@@ -76,7 +76,32 @@ namespace DataScience
             this.Value = Enumerable.Repeat(Value, Size).ToArray();
             this.Columns = Columns;
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="startval"></param>
+        /// <param name="endval"></param>
+        /// <param name="steps"></param>
+        /// <returns></returns>
+        public static Vector Linspace(float startval, float endval, int steps)
+        {
+            float interval = (Math.Abs(startval) + Math.Abs(endval)) / (steps - 1);
+            return new Vector((from val in Enumerable.Range(0, steps)
+                    select startval + (val * interval)).ToArray(),1);
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="startval"></param>
+        /// <param name="endval"></param>
+        /// <param name="interval"></param>
+        /// <returns></returns>
+        public static Vector Arange(float startval, float endval, float interval)
+        {
+            int steps = (int)((Math.Abs(startval) + Math.Abs(endval)) / interval);
+            return new Vector((from val in Enumerable.Range(0, steps)
+                               select startval + (val * interval)).ToArray(), 1);
+        }
 
         #endregion
 
@@ -99,13 +124,13 @@ namespace DataScience
         /// <param name="row"></param>
         /// <param name="col"></param>
         /// <returns></returns>
-        public float AccessVal(int row, int col)
+        public float _AccessVal(int row, int col)
         {
             return this.Value[row * this.Columns + col];
         }
 
         /// <summary>
-        /// 
+        /// Access a specific slice of either a column 'c' or row 'r' of a vector
         /// </summary>
         /// <param name="gpu"></param>
         /// <param name="vector"></param>
@@ -167,13 +192,13 @@ namespace DataScience
             return new Vector(Output);
         }
         /// <summary>
-        /// 
+        /// Access a specific slice of either a column 'c' or row 'r' of this vector
         /// </summary>
         /// <param name="gpu"></param>
         /// <param name="row_col_index"></param>
         /// <param name="row_col"></param>
         /// <returns></returns>
-        public Vector AccessSlice(Accelerator gpu, int row_col_index, char row_col)
+        public Vector _AccessSlice(Accelerator gpu, int row_col_index, char row_col)
         {
 
             if (this.Columns == 1)
@@ -189,7 +214,7 @@ namespace DataScience
                 case 'r':
                     //ChangeSelectLength = new int[5] { 0, 1, row_col_index, 0, vector.Columns };
                     //OutPutVectorLength = vector.Columns;
-                    return AccessRow(this, row_col_index);
+                    return this._AccessRow(this, row_col_index);
                 case 'c':
                     ChangeSelectLength = new int[5] { 1, 0, 0, row_col_index, this.Columns };
                     OutPutVectorLength = this.Value.Length / this.Columns;
@@ -236,11 +261,26 @@ namespace DataScience
                 ChangeSelectLength[2] * ChangeSelectLength[4] +         // RsL
                 ChangeSelectLength[3]];                                 // Cs
         }
+        /// <summary>
+        /// Access a specified row of a vector
+        /// </summary>
+        /// <param name="vector"></param>
+        /// <param name="row"></param>
+        /// <returns></returns>
         public static Vector AccessRow(Vector vector, int row)
         {
             return new Vector(vector.Value[(row * vector.Columns)..((row + 1) * vector.Columns)], 1);
         }
-
+        /// <summary>
+        /// Access a specific row of this Vector
+        /// </summary>
+        /// <param name="vector"></param>
+        /// <param name="row"></param>
+        /// <returns></returns>
+        public Vector _AccessRow(Vector vector, int row)
+        {
+            return new Vector(vector.Value[(row * vector.Columns)..((row + 1) * vector.Columns)], 1);
+        }
 
         #endregion
 
@@ -297,7 +337,7 @@ namespace DataScience
 
             return new Vector(Output);
         }
-        public Vector ConsecutiveOP(Accelerator gpu, Vector vectorB, string operation = "*")
+        public Vector _ConsecutiveOP(Accelerator gpu, Vector vectorB, string operation = "*")
         {
             if (this.Value.Length != vectorB.Value.Length)
             {
@@ -417,7 +457,7 @@ namespace DataScience
 
             return new Vector(Output);
         }
-        public Vector ConsecutiveOP(Accelerator gpu, float scalar, string operation = "*")
+        public Vector _ConsecutiveOP(Accelerator gpu, float scalar, string operation = "*")
         {
             AcceleratorStream Stream = gpu.CreateStream();
 
