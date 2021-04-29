@@ -1,6 +1,7 @@
 ﻿using ILGPU;
 using ILGPU.Runtime;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace DataScience
@@ -10,9 +11,61 @@ namespace DataScience
     /// </summary>
     public class Setup 
     { 
-    
+        public static Accelerator GetGPU(Context context)
+        {
+            List<AcceleratorId> AcceleratorIds = new List<AcceleratorId>();
 
-    
+            List<byte> N_GPU_ids = new List<byte>();
+            List<byte> CL_GPU_ids = new List<byte>();
+
+            foreach (var accelerator in Accelerator.Accelerators)
+            {
+
+                string type = accelerator.AcceleratorType.ToString();
+                float id = 0;
+
+                switch (type)
+                {
+                    case "Cuda":
+                        AcceleratorIds.Add(accelerator);
+                        N_GPU_ids.Add((byte)id);
+                        id++;
+                        break;
+
+                    case "OpenCL":
+                        AcceleratorIds.Add(accelerator);
+                        CL_GPU_ids.Add((byte)id);
+                        id++;
+                        break;
+
+                    case "CPU":
+                        break;
+
+                    default:
+                        Console.WriteLine("Unknown hardware detected");
+                        break;
+                }
+            }
+
+            Accelerator gpu = Accelerator.Current;
+
+            if (N_GPU_ids.Count >= 1)
+            {
+                gpu = Accelerator.Create(context, AcceleratorIds[N_GPU_ids[0]]);
+            }
+            else if (CL_GPU_ids.Count >= 1)
+            {
+                gpu = Accelerator.Create(context, AcceleratorIds[CL_GPU_ids[0]]);
+            }
+
+            if (N_GPU_ids.Count + CL_GPU_ids.Count < 1)
+            {
+                throw new Exception("NO GPU DETECTED");
+            }
+
+            return gpu;
+        }
+
     }
 
     /// <summary>
@@ -39,17 +92,55 @@ namespace DataScience
 
         }
 
+
         // FEATURES
         /* LOG :
-         *      - Access Slice                          : NI
+         *      - Access Slice                          : IMPLEMENTED
          *      - Access Value                          : IMPLEMENTED
-         *      - Consecutive OP                        : NI
-         *      - Dot Product                           : NI
+         *      - Consecutive OP                        : IMPLEMENTED
+         *      - Dot Product                           : IMPLEMENTED
          *      - Fill                                  : WORKING
-         *      - Normalise                             : NI
+         *      - Normalise                             : IMPLEMENTED
+         *      - Linspace                              : IMPLEMENTED
+         *      - Arange                                : IMPLEMENTED
+         *      - Diff                                  : IMPLEMENTED
         */
 
         // METHODS SECTION
+
+        // PRINT
+        public static void Print(Vector vector)
+        {
+            for (int i = 0; i < vector.Value.Length; i++)
+            {
+                if (i % vector.Columns == 0)
+                {
+                    Console.WriteLine();
+                }
+                Console.Write($"| {vector.Value[i]} |");
+            }
+
+            Console.WriteLine();
+            Console.WriteLine();
+            return;
+        }
+        public void Print()
+        {
+            for (int i = 0; i < this.Value.Length; i++)
+            {
+                if (i % this.Columns == 0)
+                {
+                    Console.WriteLine();
+                }
+                Console.Write($"| {this.Value[i]} |");
+            }
+
+            Console.WriteLine();
+            Console.WriteLine();
+            return;
+        }
+
+
 
         // CREATION
         #region
@@ -104,6 +195,8 @@ namespace DataScience
         }
 
         #endregion
+
+
 
         // MEMORY ACCESS
         #region
@@ -284,6 +377,8 @@ namespace DataScience
 
         #endregion
 
+
+
         // FUNCTIONS
         public static Vector ConsecutiveOP(Accelerator gpu, Vector vectorA, Vector vectorB, string operation = "*")
         {
@@ -337,7 +432,7 @@ namespace DataScience
 
             return new Vector(Output);
         }
-        public Vector _ConsecutiveOP(Accelerator gpu, Vector vectorB, string operation = "*")
+        public void _ConsecutiveOP(Accelerator gpu, Vector vectorB, string operation = "*")
         {
             if (this.Value.Length != vectorB.Value.Length)
             {
@@ -387,7 +482,8 @@ namespace DataScience
 
             Stream.Dispose();
 
-            return new Vector(Output);
+            this.Value = Output;
+            return;
         }
         // KERNEL
         static void ConsecutiveProductKernal(Index1 index, ArrayView<float> InputA, ArrayView<float> InputB, ArrayView<float> OutPut)
@@ -457,7 +553,7 @@ namespace DataScience
 
             return new Vector(Output);
         }
-        public Vector _ConsecutiveOP(Accelerator gpu, float scalar, string operation = "*")
+        public void _ConsecutiveOP(Accelerator gpu, float scalar, string operation = "*")
         {
             AcceleratorStream Stream = gpu.CreateStream();
 
@@ -498,7 +594,8 @@ namespace DataScience
 
             Stream.Dispose();
 
-            return new Vector(Output);
+            this.Value = Output;
+            return;
         }
         // KERNELS
         static void ScalarProductKernal(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar)
@@ -551,7 +648,7 @@ namespace DataScience
 
             return new Vector(Output);
         }
-        public Vector Diff(Accelerator gpu)
+        public void Diff(Accelerator gpu)
         {
             if (this.Columns > 1)
             {
@@ -581,7 +678,8 @@ namespace DataScience
 
             stream.Dispose();
 
-            return new Vector(Output);
+            this.Value = Output;
+            return;
         }
         static void DiffKernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input)
         {
@@ -611,9 +709,9 @@ namespace DataScience
         {
             return ConsecutiveOP(gpu, vectorA, 1f / vectorA.Value.Sum(), "*");
         }
-        public Vector Normalise(Accelerator gpu)
+        public void Normalise(Accelerator gpu)
         {
-            return ConsecutiveOP(gpu, this, 1f / this.Value.Sum(), "*");
+            this.Value = ConsecutiveOP(gpu, this, 1f / this.Value.Sum(), "*").Value;
         }
 
 

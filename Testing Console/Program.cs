@@ -1,5 +1,7 @@
 ﻿using System;
 using DataScience;
+using ILGPU;
+using ILGPU.Runtime;
 
 namespace Testing_Console
 {
@@ -7,32 +9,22 @@ namespace Testing_Console
     {
         static void Main(string[] args)
         {
+            Context context = new Context();
+            Accelerator gpu;
 
+            gpu = Setup.GetGPU(context);
+
+            // SAMPLE AND TEST CODE
 
             Vector vectorA = Vector.Linspace(-10, 10, 5);
             Vector vectorB = Vector.Arange(-10, 10, 5);
 
+            vectorA.Print();
+            vectorB.Print();
 
-            for (int i = 0; i < vectorA.Value.Length; i++)
-            {
-                if (i % vectorA.Columns == 0)
-                {
-                    Console.WriteLine();
-                }
-                Console.Write($"| {vectorA.Value[i]} |");
-            }
-
-            Console.WriteLine();
-            Console.WriteLine();
-
-            for (int i = 0; i < vectorB.Value.Length; i++)
-            {
-                if (i % vectorB.Columns == 0)
-                {
-                    Console.WriteLine();
-                }
-                Console.Write($"| {vectorB.Value[i]} |");
-            }
+            vectorA = Vector.ConsecutiveOP(gpu, vectorA, 5f);
+            vectorA._ConsecutiveOP(gpu, 5f);
+            vectorA.Print();
 
         }
     }
