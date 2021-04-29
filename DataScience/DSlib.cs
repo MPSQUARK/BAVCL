@@ -519,6 +519,47 @@ namespace DataScience
         }
 
 
+        public static Vector Diff(Accelerator gpu, Vector vectorA)
+        {
+            if (vectorA.Columns > 1)
+            {
+                throw new Exception("Diff is for use with 1D Vectors ONLY");
+            }
+
+            AcceleratorStream stream = gpu.CreateStream();
+
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>>(DiffKernel);
+
+            MemoryBuffer<float> buffer = gpu.Allocate<float>(vectorA.Value.Length - 1); // Output
+            MemoryBuffer<float> buffer2 = gpu.Allocate<float>(vectorA.Value.Length); //  Input
+
+            buffer.MemSetToZero(stream);
+            buffer2.MemSetToZero(stream);
+
+            buffer2.CopyFrom(stream, vectorA.Value, 0, 0, vectorA.Value.Length);
+
+            kernelWithStream(stream, buffer.Length, buffer.View, buffer2.View);
+
+            stream.Synchronize();
+
+            float[] Output = buffer.GetAsArray(stream);
+
+            buffer.Dispose();
+            buffer2.Dispose();
+
+            stream.Dispose();
+
+            return new Vector(Output);
+        }
+        static void DiffKernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input)
+        {
+            Output[index] = Input[index + 1] - Input[index];
+        }
+
+
+
+
+
 
 
 
