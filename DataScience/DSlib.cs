@@ -551,14 +551,60 @@ namespace DataScience
 
             return new Vector(Output);
         }
+        public Vector Diff(Accelerator gpu)
+        {
+            if (this.Columns > 1)
+            {
+                throw new Exception("Diff is for use with 1D Vectors ONLY");
+            }
+
+            AcceleratorStream stream = gpu.CreateStream();
+
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>>(DiffKernel);
+
+            MemoryBuffer<float> buffer = gpu.Allocate<float>(this.Value.Length - 1); // Output
+            MemoryBuffer<float> buffer2 = gpu.Allocate<float>(this.Value.Length); //  Input
+
+            buffer.MemSetToZero(stream);
+            buffer2.MemSetToZero(stream);
+
+            buffer2.CopyFrom(stream, this.Value, 0, 0, this.Value.Length);
+
+            kernelWithStream(stream, buffer.Length, buffer.View, buffer2.View);
+
+            stream.Synchronize();
+
+            float[] Output = buffer.GetAsArray(stream);
+
+            buffer.Dispose();
+            buffer2.Dispose();
+
+            stream.Dispose();
+
+            return new Vector(Output);
+        }
         static void DiffKernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input)
         {
             Output[index] = Input[index + 1] - Input[index];
         }
 
 
-
-
+        public static float DotProduct(Accelerator gpu, Vector vectorA, Vector vectorB)
+        {
+            return ConsecutiveOP(gpu, vectorA, vectorB, "*").Value.Sum();
+        }
+        public static float DotProduct(Accelerator gpu, Vector vectorA, float scalar)
+        {
+            return ConsecutiveOP(gpu, vectorA, scalar).Value.Sum();
+        }
+        public float DotProduct(Accelerator gpu, Vector vectorB)
+        {
+            return ConsecutiveOP(gpu, this, vectorB, "*").Value.Sum();
+        }
+        public float DotProduct(Accelerator gpu, float scalar)
+        {
+            return ConsecutiveOP(gpu, this, scalar).Value.Sum();
+        }
 
 
 
