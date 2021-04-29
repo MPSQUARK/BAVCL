@@ -22,7 +22,6 @@ namespace Testing_Console
             vectorA.Print();
             vectorB.Print();
 
-            vectorA = Vector.ConsecutiveOP(gpu, vectorA, 5f);
             vectorA._ConsecutiveOP(gpu, 5f);
             vectorA.Print();
 
