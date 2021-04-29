@@ -607,6 +607,15 @@ namespace DataScience
         }
 
 
+        public static Vector Normalise(Accelerator gpu, Vector vectorA)
+        {
+            return ConsecutiveOP(gpu, vectorA, 1f / vectorA.Value.Sum(), "*");
+        }
+        public Vector Normalise(Accelerator gpu)
+        {
+            return ConsecutiveOP(gpu, this, 1f / this.Value.Sum(), "*");
+        }
+
 
 
     }
