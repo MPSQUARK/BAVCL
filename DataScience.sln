@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31205.134
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataScience", "DataScience\DataScience.csproj", "{6B2A713D-9D28-4507-8F48-BD52617263F1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Testing Console", "Testing Console\Testing Console.csproj", "{2F94C056-EAF9-467A-8325-03525129D769}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6B2A713D-9D28-4507-8F48-BD52617263F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B2A713D-9D28-4507-8F48-BD52617263F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B2A713D-9D28-4507-8F48-BD52617263F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B2A713D-9D28-4507-8F48-BD52617263F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F94C056-EAF9-467A-8325-03525129D769}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F94C056-EAF9-467A-8325-03525129D769}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F94C056-EAF9-467A-8325-03525129D769}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F94C056-EAF9-467A-8325-03525129D769}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {981357C2-F7CB-4499-9598-C835C4A05B74}
+	EndGlobalSection
+EndGlobal
