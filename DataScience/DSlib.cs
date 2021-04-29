@@ -43,10 +43,9 @@ namespace DataScience
         /* LOG :
          *      - Access Slice                          : NI
          *      - Access Value                          : IMPLEMENTED
-         *      - Consecutive Operation                 : NI
+         *      - Consecutive OP                        : NI
          *      - Dot Product                           : NI
          *      - Fill                                  : WORKING
-         *      - Scalar Operation                      : NI
          *      - Normalise                             : NI
         */
 
@@ -246,6 +245,240 @@ namespace DataScience
         #endregion
 
         // FUNCTIONS
+        public static Vector ConsecutiveOP(Accelerator gpu, Vector vectorA, Vector vectorB, string operation = "*")
+        {
+            if (vectorA.Value.Length != vectorB.Value.Length)
+            {
+                throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
+            }
+
+            AcceleratorStream Stream = gpu.CreateStream();
+
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveProductKernal);
+
+            var buffer = gpu.Allocate<float>(vectorA.Value.Length); // Input
+            var buffer2 = gpu.Allocate<float>(vectorA.Value.Length); // Input
+            var buffer3 = gpu.Allocate<float>(vectorA.Value.Length); // Output
+
+            buffer.MemSetToZero(Stream);
+            buffer2.MemSetToZero(Stream);
+            buffer3.MemSetToZero(Stream);
+
+            buffer.CopyFrom(Stream, vectorA.Value, 0, 0, vectorA.Value.Length);
+            buffer2.CopyFrom(Stream, vectorB.Value, 0, 0, vectorB.Value.Length);
+
+            switch (operation)
+            {
+                case "*":
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveProductKernal);
+                    break;
+                case "+":
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveAdditionKernal);
+                    break;
+                case "-":
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveSubtractKernal);
+                    break;
+                case "/":
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveDivisionKernal);
+                    break;
+            }
+
+            kernelWithStream(Stream, buffer.Length, buffer.View, buffer2.View, buffer3.View);
+
+            Stream.Synchronize();
+
+            float[] Output = buffer3.GetAsArray(Stream);
+
+            buffer.Dispose();
+            buffer2.Dispose();
+            buffer3.Dispose();
+
+            Stream.Dispose();
+
+            return new Vector(Output);
+        }
+        public Vector ConsecutiveOP(Accelerator gpu, Vector vectorB, string operation = "*")
+        {
+            if (this.Value.Length != vectorB.Value.Length)
+            {
+                throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
+            }
+
+            AcceleratorStream Stream = gpu.CreateStream();
+
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveProductKernal);
+
+            var buffer = gpu.Allocate<float>(this.Value.Length); // Input
+            var buffer2 = gpu.Allocate<float>(this.Value.Length); // Input
+            var buffer3 = gpu.Allocate<float>(this.Value.Length); // Output
+
+            buffer.MemSetToZero(Stream);
+            buffer2.MemSetToZero(Stream);
+            buffer3.MemSetToZero(Stream);
+
+            buffer.CopyFrom(Stream, this.Value, 0, 0, this.Value.Length);
+            buffer2.CopyFrom(Stream, vectorB.Value, 0, 0, vectorB.Value.Length);
+
+            switch (operation)
+            {
+                case "*":
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveProductKernal);
+                    break;
+                case "+":
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveAdditionKernal);
+                    break;
+                case "-":
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveSubtractKernal);
+                    break;
+                case "/":
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveDivisionKernal);
+                    break;
+            }
+
+            kernelWithStream(Stream, buffer.Length, buffer.View, buffer2.View, buffer3.View);
+
+            Stream.Synchronize();
+
+            float[] Output = buffer3.GetAsArray(Stream);
+
+            buffer.Dispose();
+            buffer2.Dispose();
+            buffer3.Dispose();
+
+            Stream.Dispose();
+
+            return new Vector(Output);
+        }
+        // KERNEL
+        static void ConsecutiveProductKernal(Index1 index, ArrayView<float> InputA, ArrayView<float> InputB, ArrayView<float> OutPut)
+        {
+
+            OutPut[index] = InputA[index] * InputB[index];
+
+        }
+        static void ConsecutiveAdditionKernal(Index1 index, ArrayView<float> InputA, ArrayView<float> InputB, ArrayView<float> OutPut)
+        {
+
+            OutPut[index] = InputA[index] + InputB[index];
+
+        }
+        static void ConsecutiveSubtractKernal(Index1 index, ArrayView<float> InputA, ArrayView<float> InputB, ArrayView<float> OutPut)
+        {
+
+            OutPut[index] = InputA[index] - InputB[index];
+
+        }
+        static void ConsecutiveDivisionKernal(Index1 index, ArrayView<float> InputA, ArrayView<float> InputB, ArrayView<float> OutPut)
+        {
+
+            OutPut[index] = InputA[index] / InputB[index];
+
+        }
+        public static Vector ConsecutiveOP(Accelerator gpu, Vector vector, float scalar, string operation = "*")
+        {
+            AcceleratorStream Stream = gpu.CreateStream();
+
+            var buffer = gpu.Allocate<float>(vector.Value.Length);
+            var buffer2 = gpu.Allocate<float>(vector.Value.Length);
+
+            buffer.MemSetToZero(Stream);
+            buffer2.MemSetToZero(Stream);
+
+            buffer2.CopyFrom(Stream, vector.Value, 0, 0, vector.Value.Length);
+
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarProductKernal);
+
+            switch (operation)
+            {
+                case "*":
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarProductKernal);
+                    break;
+                case "/":
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarDivideKernal);
+                    break;
+                case "+":
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarSumKernal);
+                    break;
+                case "^*":  // flip the Vector e.g. 1/Vector then multiply by Scalar
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarProductInvVecKernal);
+                    break;
+            }
+
+            kernelWithStream(Stream, buffer.Length, buffer.View, buffer2.View, scalar);
+
+            Stream.Synchronize();
+
+            float[] Output = buffer.GetAsArray(Stream);
+
+            buffer.Dispose();
+            buffer2.Dispose();
+
+            Stream.Dispose();
+
+            return new Vector(Output);
+        }
+        public Vector ConsecutiveOP(Accelerator gpu, float scalar, string operation = "*")
+        {
+            AcceleratorStream Stream = gpu.CreateStream();
+
+            var buffer = gpu.Allocate<float>(this.Value.Length);
+            var buffer2 = gpu.Allocate<float>(this.Value.Length);
+
+            buffer.MemSetToZero(Stream);
+            buffer2.MemSetToZero(Stream);
+
+            buffer2.CopyFrom(Stream, this.Value, 0, 0, this.Value.Length);
+
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarProductKernal);
+
+            switch (operation)
+            {
+                case "*":
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarProductKernal);
+                    break;
+                case "/":
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarDivideKernal);
+                    break;
+                case "+":
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarSumKernal);
+                    break;
+                case "^*":  // flip the Vector e.g. 1/Vector then multiply by Scalar
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarProductInvVecKernal);
+                    break;
+            }
+
+            kernelWithStream(Stream, buffer.Length, buffer.View, buffer2.View, scalar);
+
+            Stream.Synchronize();
+
+            float[] Output = buffer.GetAsArray(Stream);
+
+            buffer.Dispose();
+            buffer2.Dispose();
+
+            Stream.Dispose();
+
+            return new Vector(Output);
+        }
+        // KERNELS
+        static void ScalarProductKernal(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar)
+        {
+            OutPut[index] = Input[index] * Scalar;
+        }
+        static void ScalarDivideKernal(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar)
+        {
+            OutPut[index] = Input[index] / Scalar;
+        }
+        static void ScalarSumKernal(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar)
+        {
+            OutPut[index] = Input[index] + Scalar;
+        }
+        static void ScalarProductInvVecKernal(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar)
+        {
+            OutPut[index] = Scalar / Input[index];
+        }
+
+
 
 
 
