@@ -46,7 +46,7 @@ namespace Testing_Console
             //vectorA_abs3.Print();
 
             Console.WriteLine();
-            Console.WriteLine($"Minimum in Abs : {vectorA_abs.Value.Min()} \nMinimum in Abs2 : {vectorA_abs2.Value.Min()} \nMinimum in Abs3 : {vectorA_abs2.Value.Min() }");
+            Console.WriteLine($"Minimum in Abs : {vectorA_abs.Value.Min()} \nMinimum in Abs2 : {vectorA_abs2.Value.Min()} \nMinimum in Abs3 : {vectorA_abs3.Value.Min() }");
 
         }
     }
