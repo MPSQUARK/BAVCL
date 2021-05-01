@@ -39,7 +39,6 @@ namespace Testing_Console
             Console.WriteLine($"{sw.ElapsedMilliseconds} ms");
             sw.Stop();
 
-
             //vectorA_abs3.Print();
 
             Console.WriteLine();

@@ -168,6 +168,23 @@ namespace DataScience
         {
             return (this.RowCount(), this.ColumnCount());
         }
+        public float Max()
+        {
+            return this.Value.Max();
+        }
+        public float Min()
+        {
+            return this.Value.Min();
+        }
+        public float Mean()
+        {
+            return this.Value.Average();
+        }
+        public float Range()
+        {
+            return this.Value.Max() - this.Value.Min();
+        }
+
 
 
         // CREATION
@@ -427,6 +444,114 @@ namespace DataScience
 
         #endregion
 
+
+        // MEMORY ALLOCATION
+        /// <summary>
+        /// Concatinates VectorB onto the end of VectorA.
+        /// Preserves the value of Columns of VectorA.
+        /// </summary>
+        /// <param name="vectorA"></param>
+        /// <param name="vectorB"></param>
+        /// <returns></returns>
+        public static Vector Concat(Vector vectorA, Vector vectorB)
+        {
+            return new Vector(vectorA.Value.Concat(vectorB.Value).ToArray(), vectorA.Columns);
+        }
+        /// <summary>
+        /// Concatinates Vector onto the end of this Vector.
+        /// Preserves the value of Columns of this Vector.
+        /// </summary>
+        /// <param name="vector"></param>
+        public void _Concat(Vector vector)
+        {
+            this.Value = this.Value.Concat(vector.Value).ToArray();
+            return;
+        }
+
+        /// <summary>
+        /// Concatinates VectorB onto the end of VectorA removing any duplicates.
+        /// Preserves the value of Columns of VectorA.
+        /// </summary>
+        /// <param name="vectorA"></param>
+        /// <param name="vectorB"></param>
+        /// <returns></returns>
+        public static Vector Merge(Vector vectorA, Vector vectorB)
+        {
+            return new Vector(vectorA.Value.Union(vectorB.Value).ToArray(), vectorA.Columns);
+        }
+        /// <summary>
+        /// Concatinates Vector onto the end of this Vector removing any duplicates.
+        /// Preserves the value of Columns of this Vector.
+        /// </summary>
+        /// <param name="vector"></param>
+        public void _Merge(Vector vector)
+        {
+            this.Value = this.Value.Union(vector.Value).ToArray();
+            return;
+        }
+
+        public static Vector Append(Vector vectorA, Vector vectorB, char axis)
+        {
+            if (axis == 'r')
+            {
+                return Vector.Concat(vectorA,vectorB);
+            }
+
+            if ((vectorA.RowCount() != vectorB.Value.Length && vectorB.Columns == 1) || vectorA.RowCount() != vectorB.RowCount())
+            {
+                if (vectorB.Columns == 1)
+                {
+                    throw new Exception($"Vectors CANNOT be appended;" +
+                    $" this array has {vectorA.RowCount()} rows, 1D vector being appended has {vectorB.Value.Length} Length");
+                }
+
+                throw new Exception($"Vectors CANNOT be appended;" +
+                    $" this array has {vectorA.RowCount()} rows, 2D vector being appended has {vectorB.RowCount()}");
+            }
+
+            throw new Exception("Append column not implemented yet");
+
+            //return new Vector(new float[0]);
+        }
+        public void Append(Vector vector, char axis)
+        {
+            if (axis == 'r')
+            {
+                this._Concat(vector);
+                return;
+            }
+            if ((this.RowCount() != vector.Value.Length && vector.Columns == 1) || this.RowCount() != vector.RowCount())
+            {
+                if (vector.Columns == 1)
+                {
+                    throw new Exception($"Vectors CANNOT be appended;" +
+                    $" this array has {this.RowCount()} rows, 1D vector being appended has {vector.Value.Length} Length");
+                }
+
+                throw new Exception($"Vectors CANNOT be appended;" +
+                    $" this array has {this.RowCount()} rows, 2D vector being appended has {vector.RowCount()}");
+            }
+
+
+            throw new Exception("Append column not implemented yet");
+
+            //return;
+        }
+        static void AppendKernel(Index1 index, ArrayView<float> Output, ArrayView<float> vecA, ArrayView<float> vecB)
+        {
+            for (int i = 0; i < vecA.Length + vecB.Length; i++)
+            {
+                if (i < vecA.Length)
+                {
+                    Output[index * (vecA.Length * vecB.Length) + i] = vecA[index * vecA.Length + i];
+                }
+                else
+                {
+                    Output[index * (vecA.Length * vecB.Length) + i] = vecB[index * vecB.Length + (i - vecA.Length)];
+                }
+            }
+
+        }
 
 
         // FUNCTIONS
@@ -883,6 +1008,7 @@ namespace DataScience
         {
             return !this.Value.Contains(0f);
         }
+
 
 
 
