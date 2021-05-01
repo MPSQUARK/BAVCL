@@ -717,7 +717,12 @@ namespace DataScience
             this.Value = ConsecutiveOP(gpu, this, 1f / this.Value.Sum(), "*").Value;
         }
 
-
+        /// <summary>
+        /// Takes the absolute value of all values in the Vector.
+        /// IMPORTANT : Use this method for Vectors of Length less than 100,000
+        /// </summary>
+        /// <param name="vector"></param>
+        /// <returns></returns>
         public static Vector Abs(Vector vector)
         {
             if (vector.Value.Min() > 0f)
@@ -731,6 +736,10 @@ namespace DataScience
             }
             return vector;
         }
+        /// <summary>
+        /// Takes the absolute value of all values in this Vector.
+        /// IMPORTANT : Use this method for Vectors of Length less than 100,000
+        /// </summary>
         public void Abs()
         {
             if (this.Value.Min() > 0f)
@@ -744,6 +753,14 @@ namespace DataScience
             }
             return;
         }
+        /// <summary>
+        /// Runs on Accelerator. (GPU : Default)
+        /// Takes the absolute value of all the values in the Vector.
+        /// IMPORTANT : Use this method for Vectors of Length more than 100,000
+        /// </summary>
+        /// <param name="gpu"></param>
+        /// <param name="vector"></param>
+        /// <returns></returns>
         public static Vector AbsX(Accelerator gpu, Vector vector)
         {
             AcceleratorStream stream = gpu.CreateStream();
@@ -767,22 +784,23 @@ namespace DataScience
 
             return new Vector(Output, vector.Columns);
         }
-        static void AbsKernel(Index1 index, ArrayView<float> IO)
-        {
-            IO[index] = XMath.Abs(IO[index]);
-        }
-
-        public static Vector AbsX2(Accelerator gpu, Vector vector)
+        /// <summary>
+        /// Runs on Accelerator. (GPU : Default)
+        /// Takes the absolute value of all the values in the Vector.
+        /// IMPORTANT : Use this method for Vectors of Length more than 100,000
+        /// </summary>
+        /// <param name="gpu"></param>
+        public Vector AbsX(Accelerator gpu)
         {
             AcceleratorStream stream = gpu.CreateStream();
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>>(Abs2Kernel);
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>>(AbsKernel);
 
-            MemoryBuffer<float> buffer = gpu.Allocate<float>(vector.Value.Length); // Input/Output
+            MemoryBuffer<float> buffer = gpu.Allocate<float>(this.Value.Length); // Input/Output
 
             buffer.MemSetToZero(stream);
 
-            buffer.CopyFrom(stream, vector.Value, 0, 0, vector.Value.Length);
+            buffer.CopyFrom(stream, this.Value, 0, 0, this.Value.Length);
 
             kernelWithStream(stream, buffer.Length, buffer.View);
 
@@ -795,14 +813,12 @@ namespace DataScience
 
             return new Vector(Output, vector.Columns);
         }
-        static void Abs2Kernel(Index1 index, ArrayView<float> IO)
+        static void AbsKernel(Index1 index, ArrayView<float> IO)
         {
-            if (IO[index] < 0)
-            {
-                IO[index] = -IO[index];
-                    
-            }
+            IO[index] = XMath.Abs(IO[index]);
         }
+
+
 
 
 

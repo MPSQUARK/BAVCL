@@ -20,10 +20,12 @@ namespace Testing_Console
             // SAMPLE AND TEST CODE
 
 
-            Vector vectorA = Vector.Linspace(-1000000, -1, 1000000);
+            Vector vectorA = Vector.Linspace(-100000, -1, 100000);
             //Vector vectorB = Vector.Arange(-10, 10, 5);
 
             //vectorA.Print();
+
+            Vector vectorA_absW = Vector.AbsX(gpu, new Vector(new float[] { 1f }));
 
             Stopwatch sw = new Stopwatch();
             sw.Start();
@@ -37,16 +39,11 @@ namespace Testing_Console
             Console.WriteLine($"{sw.ElapsedMilliseconds} ms");
             sw.Stop();
 
-            sw.Reset();
-            sw.Start();
-            Vector vectorA_abs3 = Vector.AbsX2(gpu, vectorA);
-            Console.WriteLine($"{sw.ElapsedMilliseconds} ms");
-            sw.Stop();
 
             //vectorA_abs3.Print();
 
             Console.WriteLine();
-            Console.WriteLine($"Minimum in Abs : {vectorA_abs.Value.Min()} \nMinimum in Abs2 : {vectorA_abs2.Value.Min()} \nMinimum in Abs3 : {vectorA_abs3.Value.Min() }");
+            Console.WriteLine($"Minimum in Abs : {vectorA_abs.Value.Min()} \nMinimum in Abs2 : {vectorA_abs2.Value.Min()}");
 
         }
     }
