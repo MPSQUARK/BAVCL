@@ -23,12 +23,20 @@ namespace Testing_Console
 
 
             //Vector vectorA = Vector.Linspace(-100000, -1, 100000);
-            Vector vectorB = Vector.Arange(-10, 10, 5);
-            Vector vectorC = Vector.Linspace(8, 20, 4);
+            //Vector vectorB = Vector.Arange(-10, 10, 5);
+            Vector vectorC = Vector.Linspace(100000000, 250000000, 25);
+            //Vector vectorD = Vector.Linspace(-5, 5, 10);
+            vectorC.Columns = 5;
+            //vectorD.Columns = 5;
+
+            vectorC.Print();
+
+            //Console.Write(vectorD.ToString());
+
 
             //vectorA.Print();
 
-            Vector vectorA_absW = Vector.AbsX(gpu, new Vector(new float[] { 1f }));
+            //Vector vectorA_absW = Vector.AbsX(gpu, new Vector(new float[] { 1f }));
 
             //vectorB.Print();
             //vectorC.Print();

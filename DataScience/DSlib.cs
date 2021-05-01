@@ -4,6 +4,7 @@ using ILGPU.Algorithms;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace DataScience
 {
@@ -84,34 +85,46 @@ namespace DataScience
         // PRINT
         public static void Print(Vector vector)
         {
-            for (int i = 0; i < vector.Value.Length; i++)
-            {
-                if (i % vector.Columns == 0)
-                {
-                    Console.WriteLine();
-                }
-                Console.Write($"| {vector.Value[i]} |");
-            }
-
-            Console.WriteLine();
-            Console.WriteLine();
+            Console.Write(vector.ToString());
             return;
         }
         public void Print()
         {
+            Console.Write(this.ToString());
+            return;
+        }
+
+        public override string ToString()
+        {
+            byte neg = 0;
+            if (this.Value.Min() < 0) { neg = 1; }
+            int maxchar = ((int)this.Value.Max()).ToString().Length;
+
+            StringBuilder stringBuilder = new StringBuilder();
+
             for (int i = 0; i < this.Value.Length; i++)
             {
                 if (i % this.Columns == 0)
                 {
-                    Console.WriteLine();
+                    stringBuilder.AppendLine();
                 }
-                Console.Write($"| {this.Value[i]} |");
+
+                string val = string.Format("{0:0.00}", this.Value[i]);
+                if (this.Value[i] < 0)
+                {
+                    stringBuilder.AppendFormat($"| {val.PadLeft(val.Length).PadRight(2)} |");
+                }
+                else
+                {
+                    stringBuilder.AppendFormat($"| {val.PadLeft((maxchar - ((int)this.Value[i]).ToString().Length) + val.Length+neg).PadRight(2)} |");
+                }
+
             }
 
-            Console.WriteLine();
-            Console.WriteLine();
-            return;
+            return stringBuilder.AppendLine().ToString();
         }
+
+
 
         // PROPERTIES
         public int RowCount()
@@ -213,7 +226,7 @@ namespace DataScience
         /// <returns></returns>
         public static Vector Linspace(float startval, float endval, int steps)
         {
-            float interval = MathF.Abs(endval - startval) / (steps - 1);
+            float interval = (endval / MathF.Abs(endval)) * MathF.Abs(endval - startval) / (steps - 1);
             return new Vector((from val in Enumerable.Range(0, steps)
                     select startval + (val * interval)).ToArray(),1);
         }
