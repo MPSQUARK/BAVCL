@@ -11,63 +11,33 @@ namespace DataScience
     /// 
     /// </summary>
     public class Setup 
-    { 
-        public static Accelerator GetGPU(Context context)
+    {
+        public static Accelerator GetGpu(Context context, bool prefCPU=false)
         {
-            List<AcceleratorId> AcceleratorIds = new List<AcceleratorId>();
-
-            List<byte> N_GPU_ids = new List<byte>();
-            List<byte> CL_GPU_ids = new List<byte>();
-
-            foreach (var accelerator in Accelerator.Accelerators)
-            {
-
-                string type = accelerator.AcceleratorType.ToString();
-                float id = 0;
-
-                switch (type)
-                {
-                    case "Cuda":
-                        AcceleratorIds.Add(accelerator);
-                        N_GPU_ids.Add((byte)id);
-                        id++;
-                        break;
-
-                    case "OpenCL":
-                        AcceleratorIds.Add(accelerator);
-                        CL_GPU_ids.Add((byte)id);
-                        id++;
-                        break;
-
-                    case "CPU":
-                        break;
-
-                    default:
-                        Console.WriteLine("Unknown hardware detected");
-                        break;
-                }
-            }
-
-            Accelerator gpu = Accelerator.Current;
-
-            if (N_GPU_ids.Count >= 1)
-            {
-                gpu = Accelerator.Create(context, AcceleratorIds[N_GPU_ids[0]]);
-            }
-            else if (CL_GPU_ids.Count >= 1)
-            {
-                gpu = Accelerator.Create(context, AcceleratorIds[CL_GPU_ids[0]]);
-            }
-
-            if (N_GPU_ids.Count + CL_GPU_ids.Count < 1)
-            {
-                throw new Exception("NO GPU DETECTED");
-            }
-
             context.EnableAlgorithms();
 
-            return gpu;
+            var groupedAccelerators = Accelerator.Accelerators
+                    .GroupBy(x => x.AcceleratorType)
+                    .ToDictionary(x => x.Key, x => x.ToList());
+
+            if (prefCPU && groupedAccelerators.TryGetValue(AcceleratorType.CPU, out var cpu))
+            {
+                return Accelerator.Create(context, cpu[0]);
+            }
+
+            if (groupedAccelerators.TryGetValue(AcceleratorType.Cuda, out var nv))
+            {
+                return Accelerator.Create(context, nv[0]);
+            }
+
+            if (groupedAccelerators.TryGetValue(AcceleratorType.OpenCL, out var cl))
+            {
+                return Accelerator.Create(context, cl[0]);
+            }
+
+            throw new Exception("No accelerators found!");
         }
+
 
     }
 
