@@ -802,7 +802,6 @@ namespace DataScience
                 IO[index] = -IO[index];
                     
             }
-                //IO[index] < 0f ? IO[index] : -IO[index];
         }
 
 
