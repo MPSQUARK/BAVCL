@@ -143,6 +143,31 @@ namespace DataScience
             return;
         }
 
+        // PROPERTIES
+        public int RowCount()
+        {
+            if (this.Columns == 1)
+            {
+                return 1;
+            }
+            return this.Value.Length / this.Columns;
+        }
+        public int ColumnCount()
+        {
+            if (this.Columns == 1)
+            {
+                return 0;
+            }
+            return this.Columns;
+        }
+        public int Length()
+        {
+            return this.Value.Length;
+        }
+        public (int,int) Shape()
+        {
+            return (this.RowCount(), this.ColumnCount());
+        }
 
 
         // CREATION
@@ -154,9 +179,9 @@ namespace DataScience
         /// <param name="Size"></param>
         /// <param name="Columns"></param>
         /// <returns></returns>
-        public static Vector Fill(float Value, int Size, int Columns = 1)
+        public static Vector Fill(float Value, int Length, int Columns = 1)
         {
-            return new Vector(Enumerable.Repeat(Value, Size).ToArray(), Columns);
+            return new Vector(Enumerable.Repeat(Value, Length).ToArray(), Columns);
         }
         /// <summary>
         /// Sets all values in THIS Vector to value, of a set size and columns
@@ -165,11 +190,33 @@ namespace DataScience
         /// <param name="Size"></param>
         /// <param name="Columns"></param>
         /// <param name="inplace"></param>
-        public void Fill(float Value, int Size, int Columns = 1, bool inplace= true)
+        public void _Fill(float Value, int Length, int Columns = 1, bool inplace= true)
         {
-            this.Value = Enumerable.Repeat(Value, Size).ToArray();
+            this.Value = Enumerable.Repeat(Value, Length).ToArray();
             this.Columns = Columns;
         }
+        public static Vector Zeros(int Length, int Columns)
+        {
+            return new Vector(new float[Length], 1);
+        }
+        public void _Zeros(int Length, int Columns)
+        {
+            this.Value = new float[Length];
+            this.Columns = Columns;
+            return;
+        }
+        public static Vector Ones(int Length, int Columns)
+        {
+            return new Vector(Enumerable.Repeat(1f,Length).ToArray(), 1);
+        }
+        public void _Ones(int Length, int Columns)
+        {
+            this.Value = Enumerable.Repeat(1f, Length).ToArray();
+            this.Columns = Columns;
+            return;
+        }
+
+
         /// <summary>
         /// 
         /// </summary>
@@ -651,7 +698,7 @@ namespace DataScience
 
             return new Vector(Output);
         }
-        public void Diff(Accelerator gpu)
+        public void _Diff(Accelerator gpu)
         {
             if (this.Columns > 1)
             {
@@ -712,7 +759,7 @@ namespace DataScience
         {
             return ConsecutiveOP(gpu, vectorA, 1f / vectorA.Value.Sum(), "*");
         }
-        public void Normalise(Accelerator gpu)
+        public void _Normalise(Accelerator gpu)
         {
             this.Value = ConsecutiveOP(gpu, this, 1f / this.Value.Sum(), "*").Value;
         }
@@ -740,7 +787,7 @@ namespace DataScience
         /// Takes the absolute value of all values in this Vector.
         /// IMPORTANT : Use this method for Vectors of Length less than 100,000
         /// </summary>
-        public void Abs()
+        public void _Abs()
         {
             if (this.Value.Min() > 0f)
             {
@@ -786,11 +833,11 @@ namespace DataScience
         }
         /// <summary>
         /// Runs on Accelerator. (GPU : Default)
-        /// Takes the absolute value of all the values in the Vector.
+        /// Takes the absolute value of all the values in this Vector.
         /// IMPORTANT : Use this method for Vectors of Length more than 100,000
         /// </summary>
         /// <param name="gpu"></param>
-        public Vector AbsX(Accelerator gpu)
+        public void _AbsX(Accelerator gpu)
         {
             AcceleratorStream stream = gpu.CreateStream();
 
@@ -811,13 +858,31 @@ namespace DataScience
             buffer.Dispose();
             stream.Dispose();
 
-            return new Vector(Output, vector.Columns);
+            this.Value = Output;
+            return;
         }
         static void AbsKernel(Index1 index, ArrayView<float> IO)
         {
             IO[index] = XMath.Abs(IO[index]);
         }
 
+
+        /// <summary>
+        /// Determines if All the values in the Vector are Non-Zero
+        /// </summary>
+        /// <returns></returns>
+        public static bool All(Vector vector)
+        {
+            return !vector.Value.Contains(0f);
+        }
+        /// <summary>
+        /// Determines if All the values in this Vector are Non-Zero
+        /// </summary>
+        /// <returns></returns>
+        public bool All()
+        {
+            return !this.Value.Contains(0f);
+        }
 
 
 
