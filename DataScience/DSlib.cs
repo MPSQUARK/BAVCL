@@ -1,5 +1,6 @@
 ﻿using ILGPU;
 using ILGPU.Runtime;
+using ILGPU.Algorithms;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -62,6 +63,8 @@ namespace DataScience
             {
                 throw new Exception("NO GPU DETECTED");
             }
+
+            context.EnableAlgorithms();
 
             return gpu;
         }
@@ -176,7 +179,7 @@ namespace DataScience
         /// <returns></returns>
         public static Vector Linspace(float startval, float endval, int steps)
         {
-            float interval = (Math.Abs(startval) + Math.Abs(endval)) / (steps - 1);
+            float interval = MathF.Abs(endval - startval) / (steps - 1);
             return new Vector((from val in Enumerable.Range(0, steps)
                     select startval + (val * interval)).ToArray(),1);
         }
@@ -712,6 +715,94 @@ namespace DataScience
         public void Normalise(Accelerator gpu)
         {
             this.Value = ConsecutiveOP(gpu, this, 1f / this.Value.Sum(), "*").Value;
+        }
+
+
+        public static Vector Abs(Vector vector)
+        {
+            if (vector.Value.Min() > 0f)
+            {
+                return vector;
+            }
+
+            for (int i = 0; i < vector.Value.Length; i++)
+            {
+                vector.Value[i] = MathF.Abs(vector.Value[i]);
+            }
+            return vector;
+        }
+        public void Abs()
+        {
+            if (this.Value.Min() > 0f)
+            {
+                return;
+            }
+
+            for (int i = 0; i < this.Value.Length; i++)
+            {
+                this.Value[i] = MathF.Abs(this.Value[i]);
+            }
+            return;
+        }
+        public static Vector AbsX(Accelerator gpu, Vector vector)
+        {
+            AcceleratorStream stream = gpu.CreateStream();
+
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>>(AbsKernel);
+
+            MemoryBuffer<float> buffer = gpu.Allocate<float>(vector.Value.Length); // Input/Output
+
+            buffer.MemSetToZero(stream);
+
+            buffer.CopyFrom(stream, vector.Value, 0, 0, vector.Value.Length);
+
+            kernelWithStream(stream, buffer.Length, buffer.View);
+
+            stream.Synchronize();
+
+            float[] Output = buffer.GetAsArray(stream);
+
+            buffer.Dispose();
+            stream.Dispose();
+
+            return new Vector(Output, vector.Columns);
+        }
+        static void AbsKernel(Index1 index, ArrayView<float> IO)
+        {
+            IO[index] = XMath.Abs(IO[index]);
+        }
+
+        public static Vector AbsX2(Accelerator gpu, Vector vector)
+        {
+            AcceleratorStream stream = gpu.CreateStream();
+
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>>(Abs2Kernel);
+
+            MemoryBuffer<float> buffer = gpu.Allocate<float>(vector.Value.Length); // Input/Output
+
+            buffer.MemSetToZero(stream);
+
+            buffer.CopyFrom(stream, vector.Value, 0, 0, vector.Value.Length);
+
+            kernelWithStream(stream, buffer.Length, buffer.View);
+
+            stream.Synchronize();
+
+            float[] Output = buffer.GetAsArray(stream);
+
+            buffer.Dispose();
+            stream.Dispose();
+
+            return new Vector(Output, vector.Columns);
+        }
+        static void Abs2Kernel(Index1 index, ArrayView<float> IO)
+        {
+            if (IO[index] < 0)
+            {
+                IO[index] = -IO[index];
+                    
+            }
+                //IO[index] < 0f ? IO[index] : -IO[index];
         }
 
 
