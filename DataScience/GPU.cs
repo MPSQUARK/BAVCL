@@ -15,7 +15,7 @@ namespace DataScience
         Context context;
         public Accelerator accelerator;
 
-        public GPU(ContextFlags flags = ContextFlags.None, OptimizationLevel optimizationLevel = OptimizationLevel.Debug, bool forceCPU = false)
+        public GPU(bool forceCPU = false, ContextFlags flags = ContextFlags.None, OptimizationLevel optimizationLevel = OptimizationLevel.Debug)
         {
             this.context = new Context(flags, optimizationLevel);
             this.context.EnableAlgorithms();
@@ -34,21 +34,21 @@ namespace DataScience
             {
                 return new CPUAccelerator(context);
             }
-            else
+
+            if (groupedAccelerators.TryGetValue(AcceleratorType.Cuda, out var nv))
             {
-                if (groupedAccelerators.TryGetValue(AcceleratorType.Cuda, out var nv))
-                {
-                    return Accelerator.Create(context, nv[0]);
-                }
-
-                if (groupedAccelerators.TryGetValue(AcceleratorType.OpenCL, out var cl))
-                {
-                    return Accelerator.Create(context, cl[0]);
-                }
-
-                //fallback
-                return new CPUAccelerator(context);
+                return Accelerator.Create(context, nv[0]);
             }
+
+            if (groupedAccelerators.TryGetValue(AcceleratorType.OpenCL, out var cl))
+            {
+                return Accelerator.Create(context, cl[0]);
+            }
+
+
+            //fallback
+            Console.WriteLine("Warning : Could not find gpu, falling back to Default device");
+            return new CPUAccelerator(context);
         }
     }
 }
