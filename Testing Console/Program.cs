@@ -39,8 +39,10 @@ namespace Testing_Console
 
             //vectorD.Columns = 5;
 
-            vectorB.Print();
-            //Console.WriteLine(vectorB.ToString2());
+            //vectorB.Print();
+
+            Console.Write(vectorB.ToCSV());
+            Console.WriteLine();
 
             //Console.WriteLine(string.Join("",Enumerable.Repeat("a",5)));
 

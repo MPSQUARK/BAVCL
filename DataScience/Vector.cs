@@ -54,11 +54,13 @@ namespace DataScience
         // PRINT
         public static void Print(Vector vector)
         {
+            Console.WriteLine();
             Console.Write(vector.ToString());
             return;
         }
         public void Print()
         {
+            Console.WriteLine();
             Console.Write(this.ToString());
             return;
         }
@@ -73,7 +75,7 @@ namespace DataScience
 
             for (int i = 0; i < this.Value.Length; i++)
             {
-                if (i % this.Columns == 0)
+                if ((i % this.Columns == 0) && i != 0)
                 {
                     stringBuilder.AppendLine();
                 }
@@ -86,7 +88,20 @@ namespace DataScience
 
             return stringBuilder.AppendLine().ToString();
         }
-
+        public string ToCSV()
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            bool is1D = !(this.Columns == 1);
+            for (int i = 0; i < this.Value.Length; i++)
+            {
+                if ((i % this.Columns == 0) && is1D && i != 0)
+                {
+                    stringBuilder.AppendLine();
+                }
+                stringBuilder.Append($"{this.Value[i].ToString()},");
+            }
+            return stringBuilder.ToString();
+        }
 
 
 
