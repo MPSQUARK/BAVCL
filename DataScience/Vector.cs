@@ -18,6 +18,7 @@ namespace DataScience
     public class Vector
     {
         // VARIABLE BLOCK
+        private GPU gpu;
         public float[] Value { get; set; }
         public int Columns { get; set; }
 
@@ -27,9 +28,9 @@ namespace DataScience
         /// </summary>
         /// <param name="value"></param>
         /// <param name="columns"></param>
-        public Vector(float[] value, int columns=1)
+        public Vector(GPU gpu, float[] value, int columns=1)
         {
-
+            this.gpu = gpu;
             this.Value = value;
             this.Columns = columns;
 
@@ -159,9 +160,9 @@ namespace DataScience
         /// <param name="Size"></param>
         /// <param name="Columns"></param>
         /// <returns></returns>
-        public static Vector Fill(float Value, int Length, int Columns = 1)
+        public static Vector Fill(GPU gpu, float Value, int Length, int Columns = 1)
         {
-            return new Vector(Enumerable.Repeat(Value, Length).ToArray(), Columns);
+            return new Vector(gpu, Enumerable.Repeat(Value, Length).ToArray(), Columns);
         }
         /// <summary>
         /// Sets all values in THIS Vector to value, of a set size and columns
@@ -175,9 +176,9 @@ namespace DataScience
             this.Value = Enumerable.Repeat(Value, Length).ToArray();
             this.Columns = Columns;
         }
-        public static Vector Zeros(int Length, int Columns)
+        public static Vector Zeros(GPU gpu, int Length, int Columns)
         {
-            return new Vector(new float[Length], 1);
+            return new Vector(gpu, new float[Length], 1);
         }
         public void _Zeros(int Length, int Columns)
         {
@@ -185,9 +186,9 @@ namespace DataScience
             this.Columns = Columns;
             return;
         }
-        public static Vector Ones(int Length, int Columns)
+        public static Vector Ones(GPU gpu, int Length, int Columns)
         {
-            return new Vector(Enumerable.Repeat(1f,Length).ToArray(), 1);
+            return new Vector(gpu, Enumerable.Repeat(1f, Length).ToArray(), 1);
         }
         public void _Ones(int Length, int Columns)
         {
@@ -204,15 +205,14 @@ namespace DataScience
         /// <param name="endval"></param>
         /// <param name="steps"></param>
         /// <returns></returns>
-        public static Vector Linspace(float startval, float endval, int steps)
+        public static Vector Linspace(GPU gpu, float startval, float endval, int steps)
         {
             float interval = MathF.Abs(endval - startval) / (steps - 1);
             if (endval < startval)
             {
                 interval = -interval;
             }
-            return new Vector((from val in Enumerable.Range(0, steps)
-                    select startval + (val * interval)).ToArray(),1);
+            return new Vector(gpu, (from val in Enumerable.Range(0, steps) select startval + (val * interval)).ToArray(), 1);
         }
         /// <summary>
         /// 
@@ -221,7 +221,7 @@ namespace DataScience
         /// <param name="endval"></param>
         /// <param name="interval"></param>
         /// <returns></returns>
-        public static Vector Arange(float startval, float endval, float interval)
+        public static Vector Arange(GPU gpu, float startval, float endval, float interval)
         {
             int steps = (int)MathF.Abs((endval - startval) / interval);
             if (endval < startval)
@@ -233,8 +233,6 @@ namespace DataScience
         }
 
         #endregion
-
-
 
         // MEMORY ACCESS
         #region
@@ -268,9 +266,8 @@ namespace DataScience
         /// <param name="row_col_index"></param>
         /// <param name="row_col"></param>
         /// <returns></returns>
-        public static Vector AccessSlice(Accelerator gpu, Vector vector, int row_col_index, char row_col)
+        public static Vector AccessSlice(Vector vector, int row_col_index, char row_col)
         {
-
             if (vector.Columns == 1)
             {
                 throw new Exception("Input Vector cannot be 1D");
@@ -293,6 +290,7 @@ namespace DataScience
                     throw new Exception("Invalid slice char selector, choose 'r' for row or 'c' for column");
             }
 
+            Accelerator gpu = vector.gpu.accelerator;
             AcceleratorStream Stream = gpu.CreateStream();
 
             var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<int>>(AccessSliceKernal);
@@ -320,7 +318,7 @@ namespace DataScience
 
             Stream.Dispose();
 
-            return new Vector(Output);
+            return new Vector(vector.gpu, Output);
         }
         /// <summary>
         /// Access a specific slice of either a column 'c' or row 'r' of this vector
@@ -329,7 +327,7 @@ namespace DataScience
         /// <param name="row_col_index"></param>
         /// <param name="row_col"></param>
         /// <returns></returns>
-        public Vector _AccessSlice(Accelerator gpu, int row_col_index, char row_col)
+        public Vector _AccessSlice(int row_col_index, char row_col)
         {
 
             if (this.Columns == 1)
@@ -354,6 +352,8 @@ namespace DataScience
                     throw new Exception("Invalid slice char selector, choose 'r' for row or 'c' for column");
             }
 
+            //this is bad and I should feel bad
+            Accelerator gpu = this.gpu.accelerator;
             AcceleratorStream Stream = gpu.CreateStream();
 
             var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<int>>(AccessSliceKernal);
@@ -381,7 +381,7 @@ namespace DataScience
 
             Stream.Dispose();
 
-            return new Vector(Output);
+            return new Vector(this.gpu, Output);
         }
         // KERNEL
         static void AccessSliceKernal(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, ArrayView<int> ChangeSelectLength)
@@ -400,7 +400,7 @@ namespace DataScience
         /// <returns></returns>
         public static Vector AccessRow(Vector vector, int row)
         {
-            return new Vector(vector.Value[(row * vector.Columns)..((row + 1) * vector.Columns)], 1);
+            return new Vector(vector.gpu, vector.Value[(row * vector.Columns)..((row + 1) * vector.Columns)], 1);
         }
         /// <summary>
         /// Access a specific row of this Vector
@@ -410,7 +410,7 @@ namespace DataScience
         /// <returns></returns>
         public Vector _AccessRow(Vector vector, int row)
         {
-            return new Vector(vector.Value[(row * vector.Columns)..((row + 1) * vector.Columns)], 1);
+            return new Vector(vector.gpu, vector.Value[(row * vector.Columns)..((row + 1) * vector.Columns)], 1);
         }
 
         #endregion
@@ -426,7 +426,7 @@ namespace DataScience
         /// <returns></returns>
         public static Vector Concat(Vector vectorA, Vector vectorB)
         {
-            return new Vector(vectorA.Value.Concat(vectorB.Value).ToArray(), vectorA.Columns);
+            return new Vector(vectorA.gpu, vectorA.Value.Concat(vectorB.Value).ToArray(), vectorA.Columns);
         }
         /// <summary>
         /// Concatinates Vector onto the end of this Vector.
@@ -448,7 +448,7 @@ namespace DataScience
         /// <returns></returns>
         public static Vector Merge(Vector vectorA, Vector vectorB)
         {
-            return new Vector(vectorA.Value.Union(vectorB.Value).ToArray(), vectorA.Columns);
+            return new Vector(vectorA.gpu, vectorA.Value.Union(vectorB.Value).ToArray(), vectorA.Columns);
         }
         /// <summary>
         /// Concatinates Vector onto the end of this Vector removing any duplicates.
@@ -526,12 +526,19 @@ namespace DataScience
 
 
         // FUNCTIONS
-        public static Vector ConsecutiveOP(Accelerator gpu, Vector vectorA, Vector vectorB, string operation = "*")
+        public static Vector ConsecutiveOP(Vector vectorA, Vector vectorB, string operation = "*")
         {
             if (vectorA.Value.Length != vectorB.Value.Length)
             {
                 throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
             }
+
+            if(vectorA.gpu != vectorB.gpu)
+            {
+                throw new InvalidOperationException("Vector A GPU and Vector B GPU must match");
+            }
+
+            Accelerator gpu = vectorA.gpu.accelerator;
 
             AcceleratorStream Stream = gpu.CreateStream();
 
@@ -576,15 +583,16 @@ namespace DataScience
 
             Stream.Dispose();
 
-            return new Vector(Output);
+            return new Vector(vectorA.gpu, Output);
         }
-        public void _ConsecutiveOP(Accelerator gpu, Vector vectorB, string operation = "*")
+        public void _ConsecutiveOP(Vector vectorB, string operation = "*")
         {
             if (this.Value.Length != vectorB.Value.Length)
             {
                 throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
             }
 
+            Accelerator gpu = vectorB.gpu.accelerator;
             AcceleratorStream Stream = gpu.CreateStream();
 
             var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveProductKernal);
@@ -656,8 +664,9 @@ namespace DataScience
             OutPut[index] = InputA[index] / InputB[index];
 
         }
-        public static Vector ConsecutiveOP(Accelerator gpu, Vector vector, float scalar, string operation = "*")
+        public static Vector ConsecutiveOP(Vector vector, float scalar, string operation = "*")
         {
+            Accelerator gpu = vector.gpu.accelerator;
             AcceleratorStream Stream = gpu.CreateStream();
 
             var buffer = gpu.Allocate<float>(vector.Value.Length);
@@ -697,7 +706,7 @@ namespace DataScience
 
             Stream.Dispose();
 
-            return new Vector(Output);
+            return new Vector(vector.gpu, Output);
         }
         public void _ConsecutiveOP(Accelerator gpu, float scalar, string operation = "*")
         {
@@ -762,13 +771,14 @@ namespace DataScience
         }
 
 
-        public static Vector Diff(Accelerator gpu, Vector vectorA)
+        public static Vector Diff(Vector vectorA)
         {
             if (vectorA.Columns > 1)
             {
                 throw new Exception("Diff is for use with 1D Vectors ONLY");
             }
 
+            Accelerator gpu = vectorA.gpu.accelerator;
             AcceleratorStream stream = gpu.CreateStream();
 
             var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>>(DiffKernel);
@@ -792,7 +802,7 @@ namespace DataScience
 
             stream.Dispose();
 
-            return new Vector(Output);
+            return new Vector(vectorA.gpu, Output);
         }
         public void _Diff(Accelerator gpu)
         {
@@ -833,31 +843,31 @@ namespace DataScience
         }
 
 
-        public static float DotProduct(Accelerator gpu, Vector vectorA, Vector vectorB)
+        public static float DotProduct(Vector vectorA, Vector vectorB)
         {
-            return ConsecutiveOP(gpu, vectorA, vectorB, "*").Value.Sum();
+            return ConsecutiveOP(vectorA, vectorB, "*").Value.Sum();
         }
-        public static float DotProduct(Accelerator gpu, Vector vectorA, float scalar)
+        public static float DotProduct(Vector vectorA, float scalar)
         {
-            return ConsecutiveOP(gpu, vectorA, scalar).Value.Sum();
+            return ConsecutiveOP(vectorA, scalar).Value.Sum();
         }
-        public float DotProduct(Accelerator gpu, Vector vectorB)
+        public float DotProduct(Vector vectorB)
         {
-            return ConsecutiveOP(gpu, this, vectorB, "*").Value.Sum();
+            return ConsecutiveOP(this, vectorB, "*").Value.Sum();
         }
-        public float DotProduct(Accelerator gpu, float scalar)
+        public float DotProduct(float scalar)
         {
-            return ConsecutiveOP(gpu, this, scalar).Value.Sum();
+            return ConsecutiveOP(this, scalar).Value.Sum();
         }
 
 
-        public static Vector Normalise(Accelerator gpu, Vector vectorA)
+        public static Vector Normalise(Vector vectorA)
         {
-            return ConsecutiveOP(gpu, vectorA, 1f / vectorA.Value.Sum(), "*");
+            return ConsecutiveOP(vectorA, 1f / vectorA.Value.Sum(), "*");
         }
-        public void _Normalise(Accelerator gpu)
+        public void _Normalise()
         {
-            this.Value = ConsecutiveOP(gpu, this, 1f / this.Value.Sum(), "*").Value;
+            this.Value = ConsecutiveOP(this, 1f / this.Value.Sum(), "*").Value;
         }
 
         /// <summary>
@@ -904,8 +914,9 @@ namespace DataScience
         /// <param name="gpu"></param>
         /// <param name="vector"></param>
         /// <returns></returns>
-        public static Vector AbsX(Accelerator gpu, Vector vector)
+        public static Vector AbsX(Vector vector)
         {
+            Accelerator gpu = vector.gpu.accelerator;
             AcceleratorStream stream = gpu.CreateStream();
 
             var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>>(AbsKernel);
@@ -925,7 +936,7 @@ namespace DataScience
             buffer.Dispose();
             stream.Dispose();
 
-            return new Vector(Output, vector.Columns);
+            return new Vector(vector.gpu, Output, vector.Columns);
         }
         /// <summary>
         /// Runs on Accelerator. (GPU : Default)
