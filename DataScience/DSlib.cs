@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+using Utility;
+
 namespace DataScience
 {
     /// <summary>
@@ -93,7 +95,6 @@ namespace DataScience
             Console.Write(this.ToString());
             return;
         }
-
         public override string ToString()
         {
             bool neg = (this.Value.Min() < 0);
@@ -111,27 +112,16 @@ namespace DataScience
                 }
 
                 string val = $"{this.Value[i]:0.00}";
-                stringBuilder.AppendFormat($"| {PadBoth(val, maxchar, displace - ((int)Math.Floor(MathF.Abs(this.Value[i]))).ToString().Length, this.Value[i] < 0f)} |");
+                int disp = displace - ((int)Math.Floor(MathF.Abs(this.Value[i]))).ToString().Length;
+
+                stringBuilder.AppendFormat($"| {Util.PadBoth(val, maxchar, disp , this.Value[i] < 0f)} |");
             }
 
             return stringBuilder.AppendLine().ToString();
         }
 
-        private string PadBoth(string source, int length, int disp, bool neg)
-        {
-            int spaces = length - source.Length + 2;
-            int padLeft = (int)(spaces * 0.5f) + source.Length;
-            string ws;
 
-            if (neg)
-            {
-                ws = string.Join("", Enumerable.Repeat(" ", disp - 1));
-                return (ws+source).PadLeft(padLeft - disp).PadRight(length);
-            }
 
-            ws = string.Join("", Enumerable.Repeat(" ", disp));
-            return (ws + source).PadLeft(padLeft - disp).PadRight(length);
-        }
 
 
         // PROPERTIES

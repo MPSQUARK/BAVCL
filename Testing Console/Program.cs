@@ -17,7 +17,7 @@ namespace Testing_Console
 
             gpu = Setup.GetGpu(context);
 
-
+            
 
             // SAMPLE AND TEST CODE
 
@@ -41,7 +41,7 @@ namespace Testing_Console
 
             //vectorD.Columns = 5;
 
-            vectorF.Print();
+            vectorB.Print();
             //Console.WriteLine(vectorB.ToString2());
 
             //Console.WriteLine(string.Join("",Enumerable.Repeat("a",5)));
