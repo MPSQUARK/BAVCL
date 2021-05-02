@@ -17,8 +17,6 @@ namespace Testing_Console
 
             gpu = Setup.GetGpu(context);
 
-            
-
             // SAMPLE AND TEST CODE
 
 
