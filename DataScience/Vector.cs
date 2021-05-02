@@ -223,7 +223,11 @@ namespace DataScience
         /// <returns></returns>
         public static Vector Arange(float startval, float endval, float interval)
         {
-            int steps = (int)((Math.Abs(startval) + Math.Abs(endval)) / interval);
+            int steps = (int)MathF.Abs((endval - startval) / interval);
+            if (endval < startval)
+            {
+                interval = -interval;
+            }
             return new Vector((from val in Enumerable.Range(0, steps)
                                select startval + (val * interval)).ToArray(), 1);
         }
