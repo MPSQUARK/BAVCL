@@ -46,7 +46,7 @@ namespace DataScience
     /// Class for 1D and 2D Vector support
     /// Float Precision
     /// </summary>
-    public class Vector 
+    public class Vector
     {
         // VARIABLE BLOCK
         public float[] Value { get; set; }
@@ -96,9 +96,10 @@ namespace DataScience
 
         public override string ToString()
         {
-            byte neg = 0;
-            if (this.Value.Min() < 0) { neg = 1; }
-            int maxchar = ((int)this.Value.Max()).ToString().Length;
+            bool neg = (this.Value.Min() < 0);
+
+            int displace = new int[] { ((int)Max()).ToString().Length, ((int)Min()).ToString().Length}.Max();
+            int maxchar = $"{displace:0.00}".Length;
 
             StringBuilder stringBuilder = new StringBuilder();
 
@@ -109,21 +110,28 @@ namespace DataScience
                     stringBuilder.AppendLine();
                 }
 
-                string val = string.Format("{0:0.00}", this.Value[i]);
-                if (this.Value[i] < 0)
-                {
-                    stringBuilder.AppendFormat($"| {val.PadLeft(val.Length).PadRight(2)} |");
-                }
-                else
-                {
-                    stringBuilder.AppendFormat($"| {val.PadLeft((maxchar - ((int)this.Value[i]).ToString().Length) + val.Length+neg).PadRight(2)} |");
-                }
-
+                string val = $"{this.Value[i]:0.00}";
+                stringBuilder.AppendFormat($"| {PadBoth(val, maxchar, displace - ((int)Math.Floor(MathF.Abs(this.Value[i]))).ToString().Length, this.Value[i] < 0f)} |");
             }
 
             return stringBuilder.AppendLine().ToString();
         }
 
+        private string PadBoth(string source, int length, int disp, bool neg)
+        {
+            int spaces = length - source.Length + 2;
+            int padLeft = (int)(spaces * 0.5f) + source.Length;
+            string ws;
+
+            if (neg)
+            {
+                ws = string.Join("", Enumerable.Repeat(" ", disp - 1));
+                return (ws+source).PadLeft(padLeft - disp).PadRight(length);
+            }
+
+            ws = string.Join("", Enumerable.Repeat(" ", disp));
+            return (ws + source).PadLeft(padLeft - disp).PadRight(length);
+        }
 
 
         // PROPERTIES
@@ -226,7 +234,11 @@ namespace DataScience
         /// <returns></returns>
         public static Vector Linspace(float startval, float endval, int steps)
         {
-            float interval = (endval / MathF.Abs(endval)) * MathF.Abs(endval - startval) / (steps - 1);
+            float interval = MathF.Abs(endval - startval) / (steps - 1);
+            if (endval < startval)
+            {
+                interval = -interval;
+            }
             return new Vector((from val in Enumerable.Range(0, steps)
                     select startval + (val * interval)).ToArray(),1);
         }
