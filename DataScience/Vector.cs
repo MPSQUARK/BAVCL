@@ -228,7 +228,7 @@ namespace DataScience
             {
                 interval = -interval;
             }
-            return new Vector((from val in Enumerable.Range(0, steps)
+            return new Vector(gpu,(from val in Enumerable.Range(0, steps)
                                select startval + (val * interval)).ToArray(), 1);
         }
 
