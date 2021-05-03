@@ -205,14 +205,14 @@ namespace DataScience
         /// <param name="endval"></param>
         /// <param name="steps"></param>
         /// <returns></returns>
-        public static Vector Linspace(GPU gpu, float startval, float endval, int steps)
+        public static Vector Linspace(GPU gpu, float startval, float endval, int steps, int columns=1)
         {
             float interval = MathF.Abs(endval - startval) / (steps - 1);
             if (endval < startval)
             {
                 interval = -interval;
             }
-            return new Vector(gpu, (from val in Enumerable.Range(0, steps) select startval + (val * interval)).ToArray(), 1);
+            return new Vector(gpu, (from val in Enumerable.Range(0, steps) select startval + (val * interval)).ToArray(), columns);
         }
         /// <summary>
         /// 
@@ -221,7 +221,7 @@ namespace DataScience
         /// <param name="endval"></param>
         /// <param name="interval"></param>
         /// <returns></returns>
-        public static Vector Arange(GPU gpu, float startval, float endval, float interval)
+        public static Vector Arange(GPU gpu, float startval, float endval, float interval, int columns=1)
         {
             int steps = (int)MathF.Abs((endval - startval) / interval);
             if (endval < startval)
@@ -229,7 +229,7 @@ namespace DataScience
                 interval = -interval;
             }
             return new Vector(gpu,(from val in Enumerable.Range(0, steps)
-                               select startval + (val * interval)).ToArray(), 1);
+                               select startval + (val * interval)).ToArray(), columns);
         }
 
         #endregion
@@ -468,60 +468,113 @@ namespace DataScience
                 return Vector.Concat(vectorA,vectorB);
             }
 
-            if ((vectorA.RowCount() != vectorB.Value.Length && vectorB.Columns == 1) || vectorA.RowCount() != vectorB.RowCount())
+            if (vectorA.RowCount() != vectorB.RowCount() || (vectorA.RowCount() != vectorB.Length() && vectorB.Columns == 1) )
             {
                 if (vectorB.Columns == 1)
                 {
                     throw new Exception($"Vectors CANNOT be appended;" +
-                    $" this array has {vectorA.RowCount()} rows, 1D vector being appended has {vectorB.Value.Length} Length");
+                    $" this array has {vectorA.RowCount()} rows, 1D vector being appended has {vectorB.Length()} Length");
                 }
 
                 throw new Exception($"Vectors CANNOT be appended;" +
-                    $" this array has {vectorA.RowCount()} rows, 2D vector being appended has {vectorB.RowCount()}");
+                $" this array has {vectorA.RowCount()} rows, 2D vector being appended has {vectorB.RowCount()}");
+
             }
 
-            throw new Exception("Append column not implemented yet");
 
-            //return new Vector(new float[0]);
+            Accelerator gpu = vectorA.gpu.accelerator;
+            AcceleratorStream Stream = gpu.CreateStream();
+
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(AppendKernel);
+
+            var buffer = gpu.Allocate<float>(vectorB.Value.Length + vectorA.Value.Length); // Output
+            var buffer2 = gpu.Allocate<float>(vectorA.Value.Length); // Input
+            var buffer3 = gpu.Allocate<float>(vectorB.Value.Length); // Input
+
+            buffer.MemSetToZero(Stream);
+            buffer2.MemSetToZero(Stream);
+            buffer3.MemSetToZero(Stream);
+
+            buffer2.CopyFrom(Stream, vectorA.Value, 0, 0, vectorA.Value.Length);
+            buffer3.CopyFrom(Stream, vectorB.Value, 0, 0, vectorB.Value.Length);
+
+            kernelWithStream(Stream, vectorA.RowCount(), buffer.View, buffer2.View, buffer3.View, vectorA.Columns, vectorB.Columns);
+
+            Stream.Synchronize();
+
+            float[] Output = buffer.GetAsArray(Stream);
+
+            buffer.Dispose();
+            buffer2.Dispose();
+            buffer3.Dispose();
+
+            Stream.Dispose();
+
+            return new Vector(vectorA.gpu, Output, vectorA.Columns + vectorB.Columns);
         }
-        public void Append(Vector vector, char axis)
+        public void _Append(Vector vector, char axis)
         {
             if (axis == 'r')
             {
                 this._Concat(vector);
                 return;
             }
-            if ((this.RowCount() != vector.Value.Length && vector.Columns == 1) || this.RowCount() != vector.RowCount())
+            if (this.RowCount() != vector.RowCount() || (this.RowCount() != vector.Length() && vector.Columns == 1))
             {
                 if (vector.Columns == 1)
                 {
                     throw new Exception($"Vectors CANNOT be appended;" +
-                    $" this array has {this.RowCount()} rows, 1D vector being appended has {vector.Value.Length} Length");
+                    $" this array has {this.RowCount()} rows, 1D vector being appended has {vector.Length()} Length");
                 }
 
                 throw new Exception($"Vectors CANNOT be appended;" +
-                    $" this array has {this.RowCount()} rows, 2D vector being appended has {vector.RowCount()}");
+                $" this array has {this.RowCount()} rows, 2D vector being appended has {vector.RowCount()}");
+
             }
 
+            Accelerator gpu = this.gpu.accelerator;
 
-            throw new Exception("Append column not implemented yet");
+            AcceleratorStream Stream = gpu.CreateStream();
 
-            //return;
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(AppendKernel);
+
+            var buffer = gpu.Allocate<float>(vector.Value.Length + this.Value.Length); // Output
+            var buffer2 = gpu.Allocate<float>(this.Value.Length); // Input
+            var buffer3 = gpu.Allocate<float>(vector.Value.Length); // Input
+
+            buffer.MemSetToZero(Stream);
+            buffer2.MemSetToZero(Stream);
+            buffer3.MemSetToZero(Stream);
+
+            buffer2.CopyFrom(Stream, this.Value, 0, 0, this.Value.Length);
+            buffer3.CopyFrom(Stream, vector.Value, 0, 0, vector.Value.Length);
+
+            kernelWithStream(Stream, this.RowCount(), buffer.View, buffer2.View, buffer3.View, this.Columns, vector.Columns);
+
+            Stream.Synchronize();
+
+            float[] Output = buffer.GetAsArray(Stream);
+
+            buffer.Dispose();
+            buffer2.Dispose();
+            buffer3.Dispose();
+
+            Stream.Dispose();
+
+            this.Columns += vector.Columns;
+            this.Value = Output;
+            return;
         }
-        static void AppendKernel(Index1 index, ArrayView<float> Output, ArrayView<float> vecA, ArrayView<float> vecB)
+        static void AppendKernel(Index1 index, ArrayView<float> Output, ArrayView<float> vecA, ArrayView<float> vecB, int vecAcol, int vecBcol)
         {
-            for (int i = 0; i < vecA.Length + vecB.Length; i++)
+            for (int i = 0; i < vecAcol; i++)
             {
-                if (i < vecA.Length)
-                {
-                    Output[index * (vecA.Length * vecB.Length) + i] = vecA[index * vecA.Length + i];
-                }
-                else
-                {
-                    Output[index * (vecA.Length * vecB.Length) + i] = vecB[index * vecB.Length + (i - vecA.Length)];
-                }
+                Output[index * (vecAcol + vecBcol) + i] = vecA[index * vecAcol + i];
             }
-
+            for (int i = 0; i < vecBcol; i++)
+            {
+                Output[index * (vecAcol + vecBcol) + i + vecAcol] = vecB[index * vecBcol + i];
+            }
         }
 
 
