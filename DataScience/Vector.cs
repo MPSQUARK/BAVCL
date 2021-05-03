@@ -148,6 +148,14 @@ namespace DataScience
         {
             return this.Value.Max() - this.Value.Min();
         }
+        public void Flatten()
+        {
+            this.Columns = 1;
+        }
+        public float Sum()
+        {
+            return this.Value.Sum();
+        }
 
 
 
@@ -589,6 +597,65 @@ namespace DataScience
             return;
         }
 
+        public static Vector Nan_to_num(Vector vector, float num)
+        {
+            Accelerator gpu = vector.gpu.accelerator;
+            AcceleratorStream Stream = gpu.CreateStream();
+
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, float>(Nan_to_numKernel);
+
+            var buffer = gpu.Allocate<float>(vector.Value.Length); // IO
+
+            buffer.MemSetToZero(Stream);
+
+            buffer.CopyFrom(Stream, vector.Value, 0, 0, vector.Value.Length);
+
+            kernelWithStream(Stream, vector.Value.Length, buffer.View, num);
+
+            Stream.Synchronize();
+
+            float[] Output = buffer.GetAsArray(Stream);
+
+            buffer.Dispose();
+            Stream.Dispose();
+
+            return new Vector(vector.gpu, Output, vector.Columns);
+        }
+        public void _Nan_to_num(float num)
+        {
+            Accelerator gpu = this.gpu.accelerator;
+            AcceleratorStream Stream = gpu.CreateStream();
+
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, float>(Nan_to_numKernel);
+
+            var buffer = gpu.Allocate<float>(this.Value.Length); // IO
+
+            buffer.MemSetToZero(Stream);
+
+            buffer.CopyFrom(Stream, this.Value, 0, 0, this.Value.Length);
+
+            kernelWithStream(Stream, this.Value.Length, buffer.View, num);
+
+            Stream.Synchronize();
+
+            float[] Output = buffer.GetAsArray(Stream);
+
+            buffer.Dispose();
+            Stream.Dispose();
+
+            this.Value = Output;
+            return;
+        }
+        static void Nan_to_numKernel(Index1 index, ArrayView<float> IO, float num)
+        {
+            if (float.IsNaN(IO[index]) || float.IsInfinity(IO[index]))
+            {
+                IO[index] = num;
+            }
+            
+        }
+
+
 
         // FUNCTIONS
         public static Vector ConsecutiveOP(Vector vectorA, Vector vectorB, string operation = "*")
@@ -648,7 +715,7 @@ namespace DataScience
 
             Stream.Dispose();
 
-            return new Vector(vectorA.gpu, Output);
+            return new Vector(vectorA.gpu, Output, vectorA.Columns);
         }
         public void _ConsecutiveOP(Vector vectorB, string operation = "*")
         {
@@ -771,7 +838,7 @@ namespace DataScience
 
             Stream.Dispose();
 
-            return new Vector(vector.gpu, Output);
+            return new Vector(vector.gpu, Output, vector.Columns);
         }
         public void _ConsecutiveOP(Accelerator gpu, float scalar, string operation = "*")
         {
