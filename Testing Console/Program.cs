@@ -17,14 +17,22 @@ namespace Testing_Console
             // SAMPLE AND TEST CODE
 
             Vector vec = Vector.Linspace(gpu, 0, 25, 25, 5);
-            Vector vec2 = Vector.Fill(gpu, 8, 10, 2);
-            Vector vec3 = Vector.Fill(gpu, 8, 10, 2);
+            Vector vec2 = Vector.Fill(gpu, 0, 25, 5);
 
             vec.Print();
             vec2.Print();
-            vec._Append(vec2,'c');
-            vec._Prepend(vec3, 'c');
-            vec.Print();
+            Vector vecR = Vector.ConsecutiveOP(vec, vec2, "/");
+            vecR.Print();
+
+
+            //Vector vec2 = Vector.Fill(gpu, 8, 10, 2);
+            //Vector vec3 = Vector.Fill(gpu, 8, 10, 2);
+
+            //vec.Print();
+            //vec2.Print();
+            //vec._Append(vec2,'c');
+            //vec._Prepend(vec3, 'c');
+            //vec.Print();
 
             //Vector.Append(vec, vec3, 'c').Print();
 
