@@ -577,6 +577,18 @@ namespace DataScience
             }
         }
 
+        public static Vector Prepend(Vector vectorA, Vector vectorB, char axis)
+        {
+            return Vector.Append(vectorB, vectorA, axis);
+        }
+        public void _Prepend(Vector vector, char axis)
+        {
+            Vector vec = Vector.Append(vector, this, axis);
+            this.Value = vec.Value;
+            this.Columns = vec.Columns;
+            return;
+        }
+
 
         // FUNCTIONS
         public static Vector ConsecutiveOP(Vector vectorA, Vector vectorB, string operation = "*")
