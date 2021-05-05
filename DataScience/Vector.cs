@@ -8,6 +8,7 @@ using System.Text;
 
 using Utility;
 
+
 namespace DataScience
 {
 
@@ -17,6 +18,7 @@ namespace DataScience
     /// </summary>
     public class Vector
     {
+
         // VARIABLE BLOCK
         private GPU gpu;
         public float[] Value { get; set; }
@@ -24,10 +26,11 @@ namespace DataScience
 
         // CONSTRUCTOR
         /// <summary>
-        /// 
+        /// Constructs a Vector class object.
         /// </summary>
-        /// <param name="value"></param>
-        /// <param name="columns"></param>
+        /// <param name="gpu">The device to use when computing this Vector.</param>
+        /// <param name="values">The array of data contained in this Vector.</param>
+        /// <param name="columns">The number of Columns IF this is a 2D Vector, for 1D Vectors use the default Columns = 1</param>
         public Vector(GPU gpu, float[] value, int columns=1)
         {
             this.gpu = gpu;
@@ -71,6 +74,13 @@ namespace DataScience
 
             int displace = new int[] { ((int)Max()).ToString().Length, ((int)Min()).ToString().Length}.Max();
             int maxchar = $"{displace:0.00}".Length;
+
+            if (displace > maxchar)
+            {
+                int temp = displace;
+                displace = maxchar;
+                maxchar = temp;
+            }
 
             StringBuilder stringBuilder = new StringBuilder();
 
@@ -822,6 +832,10 @@ namespace DataScience
                 case "+":
                     kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarSumKernal);
                     break;
+                case "-":
+                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarSumKernal);
+                    scalar = -scalar;
+                    break;
                 case "^*":  // flip the Vector e.g. 1/Vector then multiply by Scalar
                     kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarProductInvVecKernal);
                     break;
@@ -1123,6 +1137,130 @@ namespace DataScience
             return !this.Value.Contains(0f);
         }
 
+        public static Vector Reciprocal(Vector vector)
+        {
+            Accelerator gpu = vector.gpu.accelerator;
+            AcceleratorStream stream = gpu.CreateStream();
+
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>>(ReciprocalKernel);
+
+            MemoryBuffer<float> buffer = gpu.Allocate<float>(vector.Value.Length); // IO
+
+            buffer.MemSetToZero(stream);
+
+            buffer.CopyFrom(stream, vector.Value, 0, 0, vector.Value.Length);
+
+            kernelWithStream(stream, buffer.Length, buffer.View);
+
+            stream.Synchronize();
+
+            float[] Output = buffer.GetAsArray(stream);
+
+            buffer.Dispose();
+            stream.Dispose();
+
+            return new Vector(vector.gpu, vector.Value, vector.Columns);
+        }
+        public void _Reciprocal()
+        {
+            Accelerator gpu = this.gpu.accelerator;
+            AcceleratorStream stream = gpu.CreateStream();
+
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>>(ReciprocalKernel);
+
+            MemoryBuffer<float> buffer = gpu.Allocate<float>(this.Value.Length); // IO
+
+            buffer.MemSetToZero(stream);
+
+            buffer.CopyFrom(stream, this.Value, 0, 0, this.Value.Length);
+
+            kernelWithStream(stream, buffer.Length, buffer.View);
+
+            stream.Synchronize();
+
+            float[] Output = buffer.GetAsArray(stream);
+
+            buffer.Dispose();
+            stream.Dispose();
+
+            this.Value = Output;
+            return;
+        }
+        static void ReciprocalKernel(Index1 index, ArrayView<float> IO)
+        {
+            IO[index] = XMath.Rcp(IO[index]);
+        }
+
+        public static Vector Reverse(Vector vector)
+        {
+            return new Vector(vector.gpu, vector.Value.Reverse().ToArray(), vector.Columns);
+        }
+        public void _Reverse()
+        {
+            this.Value = this.Value.Reverse().ToArray();
+            return;
+        }
+        public static Vector ReverseX(Vector vector)
+        {
+            Accelerator gpu = vector.gpu.accelerator;
+            AcceleratorStream stream = gpu.CreateStream();
+
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>>(ReverseKernel);
+
+            MemoryBuffer<float> buffer = gpu.Allocate<float>(vector.Value.Length); // Output
+            MemoryBuffer<float> buffer2 = gpu.Allocate<float>(vector.Value.Length); // Input
+
+            buffer.MemSetToZero(stream);
+            buffer2.MemSetToZero(stream);
+
+            buffer2.CopyFrom(stream, vector.Value, 0, 0, vector.Value.Length);
+
+            kernelWithStream(stream, buffer.Length, buffer.View, buffer2.View);
+
+            stream.Synchronize();
+
+            float[] Output = buffer.GetAsArray(stream);
+
+            buffer.Dispose();
+            buffer2.Dispose();
+
+            stream.Dispose();
+
+            return new Vector(vector.gpu, Output, vector.Columns);
+        }
+        public void _ReverseX()
+        {
+            Accelerator gpu = this.gpu.accelerator;
+            AcceleratorStream stream = gpu.CreateStream();
+
+            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>>(ReverseKernel);
+
+            MemoryBuffer<float> buffer = gpu.Allocate<float>(this.Value.Length); // Output
+            MemoryBuffer<float> buffer2 = gpu.Allocate<float>(this.Value.Length); // Input
+
+            buffer.MemSetToZero(stream);
+            buffer2.MemSetToZero(stream);
+
+            buffer2.CopyFrom(stream, this.Value, 0, 0, this.Value.Length);
+
+            kernelWithStream(stream, buffer.Length, buffer.View, buffer2.View);
+
+            stream.Synchronize();
+
+            float[] Output = buffer.GetAsArray(stream);
+
+            buffer.Dispose();
+            buffer2.Dispose();
+
+            stream.Dispose();
+
+            this.Value = Output;
+            return;
+        }
+        static void ReverseKernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input)
+        {
+            Output[index] = Input[Input.Length - 1 - index];
+        }
 
 
 

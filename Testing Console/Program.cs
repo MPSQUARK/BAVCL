@@ -1,10 +1,9 @@
 ﻿using System;
 using DataScience;
+
 using ILGPU;
 using ILGPU.Runtime;
 using System.Linq;
-
-using System.Diagnostics;
 
 namespace Testing_Console
 {
@@ -17,14 +16,28 @@ namespace Testing_Console
             // SAMPLE AND TEST CODE
 
             Vector vec = Vector.Linspace(gpu, 0, 25, 25, 5);
-            Vector vec2 = Vector.Fill(gpu, 0, 25, 5);
+            //Vector vec2 = Vector.Fill(gpu, 0, 25, 5);
 
             vec.Print();
-            vec2.Print();
-            Vector vecR = Vector.ConsecutiveOP(vec, vec2, "/");
-            vecR.Print();
+            //vec._ReverseX();
+            //vec.Print();
+
+            vec._Reciprocal();
+
+            //vec = Vector.Reciprocal(vec);
+            vec.Print();
 
 
+            //vec.Print();
+            //vec2.Print();
+            //Vector vecR = Vector.ConsecutiveOP(vec, vec2, "*");
+            //vecR.Print();
+
+            //vecR._Nan_to_num(55f);
+            //vecR.Print();
+
+
+            //Console.WriteLine();
             //Vector vec2 = Vector.Fill(gpu, 8, 10, 2);
             //Vector vec3 = Vector.Fill(gpu, 8, 10, 2);
 
