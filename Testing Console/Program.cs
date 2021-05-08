@@ -5,6 +5,8 @@ using ILGPU;
 using ILGPU.Runtime;
 using System.Linq;
 
+using System.Diagnostics;
+
 namespace Testing_Console
 {
     class Program
@@ -15,17 +17,52 @@ namespace Testing_Console
 
             // SAMPLE AND TEST CODE
 
-            Vector vec = Vector.Linspace(gpu, 0, 25, 25, 5);
+
+            //vecR.Print();
+
+            Vector vec = Vector.Linspace(gpu, 1, 25, 25, 5);
+            vec.Print();
+
+            Vector3 geoVec = new Vector3(gpu, new float[] { 33, 12, 57 });
+            Vector3 geoVec2 = new Vector3(gpu, new float[] { 88, 53, 5 });
+
+
+            float x_coord = geoVec.GetCoOrd(Vector3.Coord.x);
+
+            Console.WriteLine($"\nThe x co-ordinate of geovec is : {x_coord}");
+
+            Vector3 geoVecCross = Vector3.CrossProduct(geoVec, geoVec2);
+            geoVecCross.Print();
+
+            //Vector3 geoVec3 = new Vector3(gpu, new float[] { 88, 53, 5, 9 });
+
+            //Vector vec5 = Vector.Linspace(gpu, 25, 1, 25, 5);
+            //Vector vec2 = Vector.Linspace(gpu, -25, 25, 51, 5);
+            //Vector vec3 = Vector.Linspace(gpu, -1, -25, 25, 5);
+            //Vector vec4 = Vector.Linspace(gpu, -25, -1, 25, 5);
+
+
+            //vec5.Print();
+            //vec2.Print();
+            //vec3.Print();
+            //vec4.Print();
+
             //Vector vec2 = Vector.Fill(gpu, 0, 25, 5);
 
-            vec.Print();
+            //Vector vec = new Vector(gpu, new float[] { 1.1f, 1.2f, 1.3f, 1.4f, 1.5f });
+            //Vector vec2 = new Vector(gpu, new float[] { 1.1f, 2.1f, 3.1f, 4.1f, 5.1f });
+
+            //vec.Print();
+            //vec2.Print();
+
+            //Console.WriteLine(Vector.DotProduct(vec, vec2));
             //vec._ReverseX();
             //vec.Print();
 
-            vec._Reciprocal();
+            //vec._Reciprocal();
 
             //vec = Vector.Reciprocal(vec);
-            vec.Print();
+            //vec.Print();
 
 
             //vec.Print();
