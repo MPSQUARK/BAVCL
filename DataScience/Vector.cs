@@ -16,13 +16,12 @@ namespace DataScience
     /// Class for 1D and 2D Vector support
     /// Float Precision
     /// </summary>
-    public class Vector
+    public class Vector : VectorBase<float>
     {
-
         // VARIABLE BLOCK
-        private GPU gpu;
-        public float[] Value { get; set; }
-        public int Columns { get; set; }
+        public override float[] Value { get; set; }
+        public override int Columns { get; protected set; }
+
 
         // CONSTRUCTOR
         /// <summary>
@@ -31,12 +30,11 @@ namespace DataScience
         /// <param name="gpu">The device to use when computing this Vector.</param>
         /// <param name="values">The array of data contained in this Vector.</param>
         /// <param name="columns">The number of Columns IF this is a 2D Vector, for 1D Vectors use the default Columns = 1</param>
-        public Vector(GPU gpu, float[] value, int columns=1)
+        public Vector(GPU gpu, float[] value, int columns = 1)
         {
             this.gpu = gpu;
             this.Value = value;
             this.Columns = columns;
-
         }
 
 
@@ -55,24 +53,13 @@ namespace DataScience
 
         // METHODS SECTION
 
-        // PRINT
-        public static void Print(Vector vector)
-        {
-            Console.WriteLine();
-            Console.Write(vector.ToString());
-            return;
-        }
-        public void Print()
-        {
-            Console.WriteLine();
-            Console.Write(this.ToString());
-            return;
-        }
+
+        // ToString override
         public override string ToString()
         {
             bool neg = (this.Value.Min() < 0);
 
-            int displace = new int[] { ((int)Max()).ToString().Length, ((int)Min()).ToString().Length}.Max();
+            int displace = new int[] { ((int)Max()).ToString().Length, ((int)Min()).ToString().Length }.Max();
             int maxchar = $"{displace:0.00}".Length;
 
             if (displace > maxchar)
@@ -94,78 +81,39 @@ namespace DataScience
                 string val = $"{this.Value[i]:0.00}";
                 int disp = displace - ((int)Math.Floor(MathF.Abs(this.Value[i]))).ToString().Length;
 
-                stringBuilder.AppendFormat($"| {Util.PadBoth(val, maxchar, disp , this.Value[i] < 0f)} |");
+                stringBuilder.AppendFormat($"| {Util.PadBoth(val, maxchar, disp, this.Value[i] < 0f)} |");
             }
 
             return stringBuilder.AppendLine().ToString();
         }
-        public string ToCSV()
-        {
-            StringBuilder stringBuilder = new StringBuilder();
-            bool is1D = !(this.Columns == 1);
-            for (int i = 0; i < this.Value.Length; i++)
-            {
-                if ((i % this.Columns == 0) && is1D && i != 0)
-                {
-                    stringBuilder.AppendLine();
-                }
-                stringBuilder.Append($"{this.Value[i].ToString()},");
-            }
-            return stringBuilder.ToString();
-        }
 
 
-
-
-        // PROPERTIES
-        public int RowCount()
-        {
-            if (this.Columns == 1)
-            {
-                return 1;
-            }
-            return this.Value.Length / this.Columns;
-        }
-        public int ColumnCount()
-        {
-            if (this.Columns == 1)
-            {
-                return 0;
-            }
-            return this.Columns;
-        }
-        public int Length()
-        {
-            return this.Value.Length;
-        }
-        public (int,int) Shape()
-        {
-            return (this.RowCount(), this.ColumnCount());
-        }
-        public float Max()
+        // MATHEMATICAL PROPERTIES 
+        public override float Max()
         {
             return this.Value.Max();
         }
-        public float Min()
+        public override float Min()
         {
             return this.Value.Min();
         }
-        public float Mean()
+        public override float Mean()
         {
             return this.Value.Average();
         }
-        public float Range()
+        public override float Range()
         {
             return this.Value.Max() - this.Value.Min();
+        }
+        public override float Sum()
+        {
+            return this.Value.Sum();
         }
         public void Flatten()
         {
             this.Columns = 1;
         }
-        public float Sum()
-        {
-            return this.Value.Sum();
-        }
+
 
 
 
@@ -214,6 +162,13 @@ namespace DataScience
             this.Columns = Columns;
             return;
         }
+        
+        public Vector3 ToVector3()
+        {
+            if (this.Length() % 3 != 0) { throw new Exception("Vector length must be a multiple of 3"); }
+            return new Vector3(this.gpu, this.Value);
+        }
+
 
 
         /// <summary>
@@ -225,11 +180,8 @@ namespace DataScience
         /// <returns></returns>
         public static Vector Linspace(GPU gpu, float startval, float endval, int steps, int columns=1)
         {
-            float interval = MathF.Abs(endval - startval) / (steps - 1);
-            if (endval < startval)
-            {
-                interval = -interval;
-            }
+            if(steps <= 1) { throw new Exception("Cannot make linspace with less than 1 steps"); }
+            float interval = (endval - startval) / (steps - 1);
             return new Vector(gpu, (from val in Enumerable.Range(0, steps) select startval + (val * interval)).ToArray(), columns);
         }
         /// <summary>
@@ -241,11 +193,11 @@ namespace DataScience
         /// <returns></returns>
         public static Vector Arange(GPU gpu, float startval, float endval, float interval, int columns=1)
         {
-            int steps = (int)MathF.Abs((endval - startval) / interval);
-            if (endval < startval)
-            {
-                interval = -interval;
-            }
+            int steps = (int)((endval - startval) / interval);
+            //if (endval < startval)
+            //{
+            //    interval = -interval;
+            //}
             return new Vector(gpu,(from val in Enumerable.Range(0, steps)
                                select startval + (val * interval)).ToArray(), columns);
         }

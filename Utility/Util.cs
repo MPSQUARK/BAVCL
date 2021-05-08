@@ -14,6 +14,7 @@ namespace Utility
 
             if (neg)
             {
+                if (disp == 0) { disp++; }
                 ws = string.Join("", Enumerable.Repeat(" ", disp - 1));
                 return (ws + source).PadLeft(padLeft - disp).PadRight(length);
             }
