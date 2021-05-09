@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Utility;
+
 namespace DataScience
 {
     public struct Vertex
@@ -45,6 +47,12 @@ namespace DataScience
             Console.WriteLine(this.ToString());
         }
 
+        // Check Equivalency
+        public bool Equals(Vertex vert)
+        {
+            return (Util.IsClose(this.x, vert.x)) && (Util.IsClose(this.y, vert.y)) && (Util.IsClose(this.z, vert.z));
+        }
+
 
         // PREMADE VERTICES
         #region
@@ -80,6 +88,13 @@ namespace DataScience
         public static Vertex operator -(Vertex vert)
         {
             return new Vertex(-vert.x, -vert.y, -vert.z);
+        }
+        public static Vertex operator -(Vertex vertA, Vertex vertB)
+        {
+            return new Vertex(
+                vertA.x - vertB.x,
+                vertA.y - vertB.y,
+                vertA.z - vertB.z);
         }
         public static Vertex operator +(Vertex vertA, Vertex vertB)
         {
@@ -157,7 +172,7 @@ namespace DataScience
         }
 
 
-        // Methods (non-static, static counterparts)
+        // Methods (non-static, with static counterparts)
         public void SetX(float x)
         {
             this.x = x;
@@ -188,6 +203,10 @@ namespace DataScience
         public float Dot(Vertex vertB)
         {
             return this.x * vertB.x + this.y * vertB.y + this.z * vertB.z;
+        }
+        public float Dot(float Scalar)
+        {
+            return this.x * Scalar + this.y * Scalar + this.z * Scalar;
         }
         public void _Cross(Vertex vert)
         {
@@ -240,6 +259,10 @@ namespace DataScience
         {
             return vertA.x * vertB.x + vertA.y * vertB.y + vertA.z * vertB.z;
         }
+        public static float Dot(Vertex vertA, float Scalar) 
+        {
+            return vertA.x * Scalar + vertA.y * Scalar + vertA.z * Scalar;
+        }
         public static Vertex Cross(Vertex vertA, Vertex vertB)
         {
             return new Vertex(
@@ -251,9 +274,32 @@ namespace DataScience
         {
             return vertex / vertex.Magnitude();
         }
+        public static Vertex Reflect(Vertex normal, Vertex incomming)
+        {
+            return UnitVector(incomming - normal * 2f * Dot(incomming, normal));
+        }
+        //public static Vertex RefractOrig(Vertex v, Vertex n, float niOverNt)
+        //{
+        //    v._UnitVector();
+        //    float dt = Dot(v,n);
+        //    float discriminant = 1f - niOverNt * niOverNt * (1f - dt * dt);
 
+        //    if (discriminant <= 0) { return v; }
 
+        //    return niOverNt * (v - (n * dt)) - n * XMath.Sqrt(discriminant);
+        //    //return niOverNt * v + n * (-(niOverNt * dt + XMath.Sqrt(discriminant)));
+        //}
+        public static Vertex Refract(Vertex v, Vertex n, float niOverNt)
+        {
+            v._UnitVector();
+            float dt = Dot(v, n);
+            float discriminant = 1f - niOverNt * niOverNt * (1f - dt * dt);
 
+            if (discriminant <= 0) { return v; }
+
+            //return niOverNt * (v - (n * dt)) - n * XMath.Sqrt(discriminant);
+            return niOverNt * v + n * (-(niOverNt * dt + XMath.Sqrt(discriminant)));
+        }
 
 
 
