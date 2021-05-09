@@ -17,22 +17,55 @@ namespace Testing_Console
 
             // SAMPLE AND TEST CODE
 
+            //Vertex vertA = new Vertex(4f, 7f, 1f);
+            //Vertex vertB = new Vertex(8f, 1f, 9f);
+
+            //Vertex vertResOriginal = Vertex.RefractOrig(vertA, vertB, 4f);
+            //Vertex vertResModed = Vertex.Refract(vertA, vertB, 4f);
+
+            //Console.WriteLine($"Testing Check function : {Vertex.FORWARD().Equals(Vertex.FORWARD())}");
+            //Console.WriteLine($"Testing Refract function : {vertResOriginal.Equals(vertResModed)}");
+
+            //Console.WriteLine($"Original x : {vertResOriginal.x}, \nModded x : {vertResModed.x}");
+            //vertResOriginal.Print();
+            //vertResModed.Print();
+
+            //float time = 0f;
+
+            //for (int i = 0; i < 10000; i++)
+            //{
+            //    Vertex.RefractOrig(vertA, vertB, 4f);
+            //}
+
+            //Stopwatch sw = new Stopwatch();
+            //sw.Start();
+            //for (int i = 0; i < 10000000; i++)
+            //{
+            //    Vertex.RefractOrig(vertA, vertB, 4f);
+            //}
+            //time = sw.ElapsedMilliseconds;
+            //sw.Stop();
+
+            //Console.WriteLine($"Time taken for Original refract : {time} ms");
+
+            //for (int i = 0; i < 10000; i++)
+            //{
+            //    Vertex.Refract(vertA, vertB, 4f);
+            //}
+
+            //sw.Reset();
+            //sw.Start();
+            //for (int i = 0; i < 10000000; i++)
+            //{
+            //    Vertex.Refract(vertA, vertB, 4f);
+            //}
+            //time = sw.ElapsedMilliseconds;
+            //sw.Stop();
+
+            //Console.WriteLine($"Time taken for modified refract : {time} ms");
 
             //vecR.Print();
 
-            Vector vec = Vector.Linspace(gpu, 1, 25, 25, 5);
-            vec.Print();
-
-            Vector3 geoVec = new Vector3(gpu, new float[] { 33, 12, 57 });
-            Vector3 geoVec2 = new Vector3(gpu, new float[] { 88, 53, 5 });
-
-
-            float x_coord = geoVec.GetCoOrd(Vector3.Coord.x);
-
-            Console.WriteLine($"\nThe x co-ordinate of geovec is : {x_coord}");
-
-            Vector3 geoVecCross = Vector3.CrossProduct(geoVec, geoVec2);
-            geoVecCross.Print();
 
             //Vector3 geoVec3 = new Vector3(gpu, new float[] { 88, 53, 5, 9 });
 

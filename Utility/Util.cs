@@ -23,6 +23,12 @@ namespace Utility
             return (ws + source).PadLeft(padLeft - disp).PadRight(length);
         }
 
+        public static bool IsClose(float val1, float val2, float threshold=1e-5f)
+        {
+            return MathF.Abs(val1 - val2) < threshold ? true : false;
+        }
+
+
     }
 
 
