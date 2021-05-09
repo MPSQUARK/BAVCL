@@ -52,6 +52,21 @@ namespace DataScience
         {
             return (Util.IsClose(this.x, vert.x)) && (Util.IsClose(this.y, vert.y)) && (Util.IsClose(this.z, vert.z));
         }
+        public bool Equals(Vertex vertA, Vertex vertB)
+        {
+            return (Util.IsClose(vertA.x, vertB.x)) && (Util.IsClose(vertA.y, vertB.y)) && (Util.IsClose(vertA.z, vertB.z));
+        }
+
+
+        // Copy Vertex
+        public static Vertex Copy(Vertex vert)
+        {
+            return new Vertex(vert.x, vert.y, vert.z);
+        }
+        public Vertex Copy()
+        {
+            return new Vertex(this.x, this.y, this.z);
+        }
 
 
         // PREMADE VERTICES
@@ -156,7 +171,27 @@ namespace DataScience
         {
             return vertA * (1f / Scalar);
         }
-        
+
+        #endregion
+
+        // Conversion Operators
+        #region
+        public static implicit operator float[](Vertex vert)
+        {
+            return new float[3] { vert.x, vert.y, vert.z };
+        }
+        public static implicit operator Vertex(float[] values)
+        {
+            if (values.Length != 3) { throw new Exception($"Cannot convert float array of length : {values.Length} to Vertex, expecting length of 3"); }
+            return new Vertex(values[0], values[1], values[2]);
+        }
+        public static implicit operator Vertex(Vector3 vector)
+        {
+            if (vector.Value.Length != 3) { throw new Exception($"Cannot convert Vector3 of length : {vector.Value.Length} to Vertex, expecting length of 3"); }
+            return new Vertex(vector.Value[0], vector.Value[1], vector.Value[2]);
+        }
+
+
         #endregion
 
 
@@ -223,6 +258,27 @@ namespace DataScience
             this.z *= InvMag;
             return;
         }
+        public void _Aces_approx()
+        {
+            float a = 2.51f;
+            float b = 0.03f;
+            float c = 2.43f;
+            float d = 0.59f;
+            float e = 0.14f;
+
+            this.x = XMath.Clamp(((this.x * 0.6f * (a * this.x * 0.6f + b)) / (this.x * 0.6f * (c * this.x * 0.6f + d) + e)), 0f, 1f);
+            this.y = XMath.Clamp(((this.y * 0.6f * (a * this.y * 0.6f + b)) / (this.y * 0.6f * (c * this.y * 0.6f + d) + e)), 0f, 1f);
+            this.z = XMath.Clamp(((this.z * 0.6f * (a * this.z * 0.6f + b)) / (this.z * 0.6f * (c * this.z * 0.6f + d) + e)), 0f, 1f);
+            return;
+        }
+        public void _Reinhard()
+        {
+            this.x /= (1f + this.x);
+            this.y /= (1f + this.y);
+            this.z /= (1f + this.z);
+            return;
+        }
+
 
 
 
@@ -278,17 +334,6 @@ namespace DataScience
         {
             return UnitVector(incomming - normal * 2f * Dot(incomming, normal));
         }
-        //public static Vertex RefractOrig(Vertex v, Vertex n, float niOverNt)
-        //{
-        //    v._UnitVector();
-        //    float dt = Dot(v,n);
-        //    float discriminant = 1f - niOverNt * niOverNt * (1f - dt * dt);
-
-        //    if (discriminant <= 0) { return v; }
-
-        //    return niOverNt * (v - (n * dt)) - n * XMath.Sqrt(discriminant);
-        //    //return niOverNt * v + n * (-(niOverNt * dt + XMath.Sqrt(discriminant)));
-        //}
         public static Vertex Refract(Vertex v, Vertex n, float niOverNt)
         {
             v._UnitVector();
@@ -300,7 +345,30 @@ namespace DataScience
             //return niOverNt * (v - (n * dt)) - n * XMath.Sqrt(discriminant);
             return niOverNt * v + n * (-(niOverNt * dt + XMath.Sqrt(discriminant)));
         }
+        public static float NormalReflectance(Vertex normal, Vertex incomming, float iorFrom, float iorTo)
+        {
+            float iorRatio = iorFrom / iorTo;
+            float cosThetaI = -Dot(normal, incomming);
+            float sinThetaTSquared = iorRatio * iorRatio * (1 - cosThetaI * cosThetaI);
+            if (sinThetaTSquared > 1) { return 1f; }
 
+            float cosThetaT = XMath.Sqrt(1 - sinThetaTSquared);
+            // rPerpendicular == rParallel ?? VERY STRANGE
+            float rPerpendicular = (iorFrom * cosThetaI - iorTo * cosThetaT) / (iorFrom * cosThetaI + iorTo * cosThetaT);
+            float rParallel = (iorFrom * cosThetaI - iorTo * cosThetaT) / (iorFrom * cosThetaI + iorTo * cosThetaT);
+
+            return (rPerpendicular * rPerpendicular + rParallel * rParallel) * 0.5f;
+        }
+        public static Vertex Aces_approx(Vertex vert)
+        {
+            vert._Aces_approx();
+            return vert;
+        }
+        public static Vertex Reinhard(Vertex vert)
+        {
+            vert._Reinhard();
+            return vert;
+        }
 
 
 
