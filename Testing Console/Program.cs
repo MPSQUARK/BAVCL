@@ -17,8 +17,14 @@ namespace Testing_Console
 
             // SAMPLE AND TEST CODE
 
-            //Vertex vertA = new Vertex(4f, 7f, 1f);
-            //Vertex vertB = new Vertex(8f, 1f, 9f);
+            
+            Vertex vertB = new Vertex(8f, 1f, 9f);
+            vertB.Print();
+            Vertex vertex1 = Vertex.Reinhard(vertB);
+            vertB.Print();
+            vertex1.Print();
+
+
 
             //Vertex vertResOriginal = Vertex.RefractOrig(vertA, vertB, 4f);
             //Vertex vertResModed = Vertex.Refract(vertA, vertB, 4f);
@@ -30,39 +36,51 @@ namespace Testing_Console
             //vertResOriginal.Print();
             //vertResModed.Print();
 
-            //float time = 0f;
+            float time = 0f;
 
-            //for (int i = 0; i < 10000; i++)
-            //{
-            //    Vertex.RefractOrig(vertA, vertB, 4f);
-            //}
+            for (int i = 0; i < 10000; i++)
+            {
+                Vertex vertA = new Vertex(4f, 7f, 1f);
+                Vertex vertex = Vertex.Reinhard(vertA);
+            }
 
-            //Stopwatch sw = new Stopwatch();
-            //sw.Start();
-            //for (int i = 0; i < 10000000; i++)
-            //{
-            //    Vertex.RefractOrig(vertA, vertB, 4f);
-            //}
-            //time = sw.ElapsedMilliseconds;
-            //sw.Stop();
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+            for (int i = 0; i < 1_000_000; i++)
+            {
+                Vertex vertA = new Vertex(4f, 7f, 1f);
+                Vertex vertex = Vertex.Reinhard(vertA);
 
-            //Console.WriteLine($"Time taken for Original refract : {time} ms");
+                //vertex.Print();
+            }
+            time = sw.ElapsedMilliseconds;
+            sw.Stop();
 
-            //for (int i = 0; i < 10000; i++)
-            //{
-            //    Vertex.Refract(vertA, vertB, 4f);
-            //}
+            Console.WriteLine($"Time taken for Original Reinhard : {time} ms");
 
-            //sw.Reset();
-            //sw.Start();
-            //for (int i = 0; i < 10000000; i++)
-            //{
-            //    Vertex.Refract(vertA, vertB, 4f);
-            //}
-            //time = sw.ElapsedMilliseconds;
-            //sw.Stop();
 
-            //Console.WriteLine($"Time taken for modified refract : {time} ms");
+            for (int i = 0; i < 10000; i++)
+            {
+                Vertex vertA = new Vertex(4f, 7f, 1f);
+                Vertex copyVertA = new Vertex(vertA.x, vertA.y, vertA.z);
+                copyVertA._Reinhard();
+            }
+
+            sw.Reset();
+            sw.Start();
+            for (int i = 0; i < 1_000_000; i++)
+            {
+                Vertex vertA = new Vertex(4f, 7f, 1f);
+                Vertex copyVertA = new Vertex(vertA.x, vertA.y, vertA.z);
+                copyVertA._Reinhard();
+
+                //copyVertA.Print();
+            }
+            time = sw.ElapsedMilliseconds;
+            sw.Stop();
+
+            Console.WriteLine($"Time taken for modified Reinhard : {time} ms");
+
 
             //vecR.Print();
 
