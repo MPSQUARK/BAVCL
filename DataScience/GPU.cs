@@ -26,6 +26,7 @@ namespace DataScience
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>> reverseKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>> absKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>> reciprocalKernel;
+        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>> crossKernel;
 
         public GPU(bool forceCPU = false, ContextFlags flags = ContextFlags.None, OptimizationLevel optimizationLevel = OptimizationLevel.Debug)
         {
@@ -53,6 +54,7 @@ namespace DataScience
             reverseKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>> (ReverseKernel);
             absKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(AbsKernel);
             reciprocalKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(ReciprocalKernel);
+            crossKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(CrossKernel);
 
             timer.Stop();
             Console.WriteLine("Kernels Loaded in: " + timer.Elapsed.TotalMilliseconds + " MS");
@@ -179,6 +181,14 @@ namespace DataScience
         {
             IO[index] = XMath.Rcp(IO[index]);
         }
+
+        static void CrossKernel(Index1 index, ArrayView<float> Output, ArrayView<float> InputA, ArrayView<float> InputB)
+        {
+            Output[index*3]     = InputA[index * 3 + 1] * InputB[index * 3 + 2] - InputA[index * 3 + 2] * InputB[index * 3 + 1];
+            Output[index*3 + 1] = InputA[index * 3 + 2] * InputB[index * 3    ] - InputA[index * 3    ] * InputB[index * 3 + 2];
+            Output[index*3 + 2] = InputA[index * 3    ] * InputB[index * 3 + 1] - InputA[index * 3 + 1] * InputB[index * 3    ];
+        }
+
     }
 
     public enum Operations
