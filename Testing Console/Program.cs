@@ -189,7 +189,7 @@ namespace Testing_Console
             }
             else
             {
-                Console.WriteLine("SubtractionTest Passed");
+                Console.WriteLine("SubtractionTest Failed");
             }
 
             Console.WriteLine("Construction Time: " + constructionTime.TotalMilliseconds + " ms");
