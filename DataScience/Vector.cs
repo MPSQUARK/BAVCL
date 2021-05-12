@@ -525,7 +525,6 @@ namespace DataScience
         }
 
 
-
         // FUNCTIONS
         public static Vector ConsecutiveOP(Vector vectorA, Vector vectorB, Operations operation)
         {

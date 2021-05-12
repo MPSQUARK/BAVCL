@@ -15,22 +15,35 @@ namespace Testing_Console
 
             //SubtractionTest(gpu, 10_000_000);
 
+
+
+
+
             Vector3 vec = new Vector3(gpu, new float[] { 1, 2, 3, 4, 5, 6 });
-            Vertex vert = new Vertex(99f, 99f, 99f);
-            Vertex vert1 = new Vertex(88f, 88f, 88f);
-            Vertex vert2 = new Vertex(999f, 999f, 999f);
-            Vertex vert3 = new Vertex(998f, 998f, 998f);
-
-            //vec.Print();
-            //Vector3 vec2 = Vector3.AppendVert(vec, vert);
-            //vec.Print();
-            //vec2.Print();
-
-            vec = new Vector3(gpu, new float[] { 1, 2, 3, 4, 5, 6 });
-            vec.Print();
-            Vector3 vec2 = Vector3.AppendVert(vec, new List<Vertex> { vert, vert1, vert2, vert3 });
+            Vector3 vec2 = new Vector3(gpu, new float[] { 12, 12, 13, 14, 15, 16 });
             vec.Print();
             vec2.Print();
+
+            
+            Vector3 vecR = Vector3.CrossProduct(vec, vec2);
+            vecR.Print();
+
+
+            //Vertex vert = new Vertex(99f, 99f, 99f);
+            //Vertex vert1 = new Vertex(88f, 88f, 88f);
+            //Vertex vert2 = new Vertex(999f, 999f, 999f);
+            //Vertex vert3 = new Vertex(998f, 998f, 998f);
+
+            ////vec.Print();
+            ////Vector3 vec2 = Vector3.AppendVert(vec, vert);
+            ////vec.Print();
+            ////vec2.Print();
+
+            //vec = new Vector3(gpu, new float[] { 1, 2, 3, 4, 5, 6 });
+            //vec.Print();
+            //Vector3 vec2 = Vector3.AppendVert(vec, new List<Vertex> { vert, vert1, vert2, vert3 });
+            //vec.Print();
+            //vec2.Print();
 
 
         }

@@ -182,13 +182,34 @@ namespace DataScience
         #endregion
 
 
-        public static Vector3 CrossProduct(Vector3 vectorA, Vector3 VectorB)
+        public static Vector3 CrossProduct(Vector3 VectorA, Vector3 VectorB)
         {
-            if (vectorA.Length() != 3 && VectorB.Length() != 3) { throw new Exception("Method currently only supports 1x3 Vector3 CROSS 1x3 Vector3"); }
-            float x = vectorA.Value[1] * VectorB.Value[2] - vectorA.Value[2] * VectorB.Value[1];
-            float y = vectorA.Value[2] * VectorB.Value[0] - vectorA.Value[0] * VectorB.Value[2];
-            float z = vectorA.Value[0] * VectorB.Value[1] - vectorA.Value[1] * VectorB.Value[0];
-            return new Vector3(vectorA.gpu, new float[3] { x, y, z });
+            if (VectorA.Length() != VectorB.Length()) { throw new Exception($"Cannot Cross Product two Vector3's together of different lengths. {VectorA.Length()} != {VectorB.Length()}"); }
+
+            if (VectorA.Length() == 3 && VectorB.Length() == 3)
+            {
+                float x = VectorA.Value[1] * VectorB.Value[2] - VectorA.Value[2] * VectorB.Value[1];
+                float y = VectorA.Value[2] * VectorB.Value[0] - VectorA.Value[0] * VectorB.Value[2];
+                float z = VectorA.Value[0] * VectorB.Value[1] - VectorA.Value[1] * VectorB.Value[0];
+                return new Vector3(VectorA.gpu, new float[3] { x, y, z });
+            }
+
+            var buffer = VectorA.gpu.accelerator.Allocate<float>(VectorA.Value.Length); // OutPut
+            var buffer2 = VectorA.gpu.accelerator.Allocate<float>(VectorA.Value.Length); // Input
+            var buffer3 = VectorA.gpu.accelerator.Allocate<float>(VectorB.Value.Length); // Input
+
+            buffer2.CopyFrom(VectorA.Value, 0, 0, VectorA.Value.Length);
+            buffer3.CopyFrom(VectorB.Value, 0, 0, VectorB.Value.Length);
+
+            VectorA.gpu.crossKernel(VectorA.gpu.accelerator.DefaultStream, VectorA.Value.Length / 3, buffer.View, buffer2.View, buffer3.View);
+
+            VectorA.gpu.accelerator.Synchronize();
+
+            float[] Output = buffer.GetAsArray();
+
+            buffer.Dispose();
+
+            return new Vector3(VectorA.gpu, Output);
         }
 
 
