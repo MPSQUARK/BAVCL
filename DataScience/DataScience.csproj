@@ -7,6 +7,7 @@
   <ItemGroup>
     <PackageReference Include="ILGPU" Version="0.10.1" />
     <PackageReference Include="ILGPU.Algorithms" Version="0.10.0-beta1" />
+    <PackageReference Include="System.Runtime" Version="4.3.1" />
   </ItemGroup>
 
   <ItemGroup>
