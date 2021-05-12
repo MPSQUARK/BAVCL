@@ -1,10 +1,5 @@
-﻿using System;
-using DataScience;
-
-using ILGPU;
-using ILGPU.Runtime;
-using System.Linq;
-
+﻿using DataScience;
+using System;
 using System.Diagnostics;
 
 namespace Testing_Console
@@ -163,10 +158,42 @@ namespace Testing_Console
             //Console.Write(vectorB.ToCSV());
             //Console.WriteLine();
 
+            SubtractionTest(gpu, 10_000_000);
 
 
 
+        }
 
+        public static void SubtractionTest(GPU gpu, int size)
+        {
+            Stopwatch timer = Stopwatch.StartNew();
+
+            Vector a = Vector.Linspace(gpu, 0, 1, size, 1);
+            Vector b = Vector.Linspace(gpu, 1, 0, size, 1);
+
+            timer.Stop();
+            TimeSpan constructionTime = timer.Elapsed;
+            timer.Restart();
+
+            a._ConsecutiveOP(10, ConsecutiveOperation.multiplication);
+            b._ConsecutiveOP(10, ConsecutiveOperation.multiplication);
+
+            a._ConsecutiveOP(b, ConsecutiveOperation.subtraction);
+
+            timer.Stop();
+            TimeSpan calculationTime = timer.Elapsed;
+
+            if (a.Value[0] == 0)
+            {
+                Console.WriteLine("SubtractionTest Passed");
+            }
+            else
+            {
+                Console.WriteLine("SubtractionTest Passed");
+            }
+
+            Console.WriteLine("Construction Time: " + constructionTime.TotalMilliseconds + " ms");
+            Console.WriteLine("Calculation Time: " + calculationTime.TotalMilliseconds + " ms");
         }
     }
 }
