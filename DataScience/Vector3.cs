@@ -47,6 +47,55 @@ namespace DataScience
             this.Value = this.Value[(vert_row * 3)..((vert_row + 1) * 3)];
             return;
         }
+        public static Vector3 AppendVert(Vector3 vectorA, Vertex vertA)
+        {
+            float[] values = vectorA.Value.Append(vertA.x).Append(vertA.y).Append(vertA.z).ToArray();
+            return new Vector3(vectorA.gpu, values);
+        }
+        public static Vector3 AppendVert(Vector3 vectorA, Vertex[] vertices)
+        {
+            float[] values = vectorA.Value;
+
+
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                values = values.Append(vertices[i].x).Append(vertices[i].y).Append(vertices[i].z).ToArray();
+            }
+
+            return new Vector3(vectorA.gpu, values);
+        }
+        public static Vector3 AppendVert(Vector3 vectorA, List<Vertex> vertices)
+        {
+            float[] values = vectorA.Value;
+            for (int i = 0; i < vertices.Count; i++)
+            {
+                values = values.Append(vertices[i].x).Append(vertices[i].y).Append(vertices[i].z).ToArray();
+            }
+
+            return new Vector3(vectorA.gpu, values);
+        }
+        public void _AppendVert(Vertex vertA)
+        {
+            this.Value = this.Value.Append(vertA.x).Append(vertA.y).Append(vertA.z).ToArray();
+            return;
+        }
+        public void _AppendVert(Vertex[] vertices)
+        {
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                this.Value = this.Value.Append(vertices[i].x).Append(vertices[i].y).Append(vertices[i].z).ToArray();
+            }
+            return;
+        }
+        public void _AppendVert(List<Vertex> vertices)
+        {
+            for (int i = 0; i < vertices.Count; i++)
+            {
+                this.Value = this.Value.Append(vertices[i].x).Append(vertices[i].y).Append(vertices[i].z).ToArray();
+            }
+            return;
+        }
+
 
 
 
@@ -94,6 +143,7 @@ namespace DataScience
 
 
         // MATHEMATICAL PROPERTIES 
+        #region
         public override float Max()
         {
             return this.Value.Max();
@@ -116,6 +166,21 @@ namespace DataScience
         }
 
 
+        #endregion
+
+        // OPERATORS
+        #region
+        public static Vector3 operator +(Vector3 vectorA, Vertex vertA)
+        {
+            vectorA.Value = vectorA.Value.Append(vertA.x).Append(vertA.y).Append(vertA.z).ToArray();
+            return vectorA;
+        }
+
+
+
+
+        #endregion
+
 
         public static Vector3 CrossProduct(Vector3 vectorA, Vector3 VectorB)
         {
@@ -125,6 +190,10 @@ namespace DataScience
             float z = vectorA.Value[0] * VectorB.Value[1] - vectorA.Value[1] * VectorB.Value[0];
             return new Vector3(vectorA.gpu, new float[3] { x, y, z });
         }
+
+
+
+
 
 
     }
