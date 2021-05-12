@@ -175,10 +175,10 @@ namespace Testing_Console
             TimeSpan constructionTime = timer.Elapsed;
             timer.Restart();
 
-            a._ConsecutiveOP(10, ConsecutiveOperation.multiplication);
-            b._ConsecutiveOP(10, ConsecutiveOperation.multiplication);
+            a._ConsecutiveOP(10, Operations.multiplication);
+            b._ConsecutiveOP(10, Operations.multiplication);
 
-            a._ConsecutiveOP(b, ConsecutiveOperation.subtraction);
+            a._ConsecutiveOP(b, Operations.subtraction);
 
             timer.Stop();
             TimeSpan calculationTime = timer.Elapsed;

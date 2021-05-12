@@ -25,7 +25,7 @@ namespace DataScience
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>> diffKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>> reverseKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>> absKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>> inPlaceReciprocalKernel;
+        public Action<AcceleratorStream, Index1, ArrayView<float>> reciprocalKernel;
 
         public GPU(bool forceCPU = false, ContextFlags flags = ContextFlags.None, OptimizationLevel optimizationLevel = OptimizationLevel.Debug)
         {
@@ -52,7 +52,7 @@ namespace DataScience
             diffKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>> (DiffKernel);
             reverseKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>> (ReverseKernel);
             absKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(AbsKernel);
-            inPlaceReciprocalKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(InPlaceReciprocalKernel);
+            reciprocalKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(ReciprocalKernel);
 
             timer.Stop();
             Console.WriteLine("Kernels Loaded in: " + timer.Elapsed.TotalMilliseconds + " MS");
@@ -118,21 +118,21 @@ namespace DataScience
 
         static void ConsecutiveOperationKernel(Index1 index, ArrayView<float> InputA, ArrayView<float> InputB, ArrayView<float> OutPut, SpecializedValue<int> operation)
         {
-            switch ((ConsecutiveOperation)operation.Value)
+            switch ((Operations)operation.Value)
             {
-                case ConsecutiveOperation.multiplication:
+                case Operations.multiplication:
                     OutPut[index] = InputA[index] * InputB[index];
                     break;
-                case ConsecutiveOperation.addition:
+                case Operations.addition:
                     OutPut[index] = InputA[index] + InputB[index];
                     break;
-                case ConsecutiveOperation.subtraction:
+                case Operations.subtraction:
                     OutPut[index] = InputA[index] - InputB[index];
                     break;
-                case ConsecutiveOperation.division:
+                case Operations.division:
                     OutPut[index] = InputA[index] / InputB[index];
                     break;
-                case ConsecutiveOperation.inverseDivision:
+                case Operations.inverseDivision:
                     OutPut[index] = InputB[index] / InputA[index];
                     break;
             }
@@ -140,21 +140,21 @@ namespace DataScience
 
         static void ScalarConsecutiveOperationKernel(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar, SpecializedValue<int> operation)
         {
-            switch ((ConsecutiveOperation)operation.Value)
+            switch ((Operations)operation.Value)
             {
-                case ConsecutiveOperation.multiplication:
+                case Operations.multiplication:
                     OutPut[index] = Input[index] * Scalar;
                     break;
-                case ConsecutiveOperation.addition:
+                case Operations.addition:
                     OutPut[index] = Input[index] + Scalar;
                     break;
-                case ConsecutiveOperation.subtraction:
+                case Operations.subtraction:
                     OutPut[index] = Input[index] - Scalar;
                     break;
-                case ConsecutiveOperation.division:
+                case Operations.division:
                     OutPut[index] = Input[index] / Scalar;
                     break;
-                case ConsecutiveOperation.inverseDivision:
+                case Operations.inverseDivision:
                     OutPut[index] = Scalar / Input[index];
                     break;
             }
@@ -175,13 +175,13 @@ namespace DataScience
             IO[index] = XMath.Abs(IO[index]);
         }
 
-        static void InPlaceReciprocalKernel(Index1 index, ArrayView<float> IO)
+        static void ReciprocalKernel(Index1 index, ArrayView<float> IO)
         {
             IO[index] = XMath.Rcp(IO[index]);
         }
     }
 
-    public enum ConsecutiveOperation
+    public enum Operations
     {
         multiplication = 0,
         addition = 1,

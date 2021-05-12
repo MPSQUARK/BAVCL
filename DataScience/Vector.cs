@@ -527,7 +527,7 @@ namespace DataScience
 
 
         // FUNCTIONS
-        public static Vector ConsecutiveOP(Vector vectorA, Vector vectorB, ConsecutiveOperation operation)
+        public static Vector ConsecutiveOP(Vector vectorA, Vector vectorB, Operations operation)
         {
             if (vectorA.Value.Length != vectorB.Value.Length)
             {
@@ -558,7 +558,7 @@ namespace DataScience
 
             return new Vector(vectorA.gpu, Output, vectorA.Columns);
         }
-        public void _ConsecutiveOP(Vector vectorB, ConsecutiveOperation operation)
+        public void _ConsecutiveOP(Vector vectorB, Operations operation)
         {
             if (this.Value.Length != vectorB.Value.Length)
             {
@@ -585,7 +585,7 @@ namespace DataScience
             return;
         }
 
-        public static Vector ConsecutiveOP(Vector vector, float scalar, ConsecutiveOperation operation)
+        public static Vector ConsecutiveOP(Vector vector, float scalar, Operations operation)
         {
             var buffer = vector.gpu.accelerator.Allocate<float>(vector.Value.Length);
             var buffer2 = vector.gpu.accelerator.Allocate<float>(vector.Value.Length);
@@ -603,7 +603,7 @@ namespace DataScience
 
             return new Vector(vector.gpu, Output, vector.Columns);
         }
-        public void _ConsecutiveOP(float scalar, ConsecutiveOperation operation)
+        public void _ConsecutiveOP(float scalar, Operations operation)
         {
             var buffer = gpu.accelerator.Allocate<float>(this.Value.Length);
             var buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length);
@@ -671,29 +671,29 @@ namespace DataScience
 
         public static float DotProduct(Vector vectorA, Vector vectorB)
         {
-            return ConsecutiveOP(vectorA, vectorB, ConsecutiveOperation.multiplication).Value.Sum();
+            return ConsecutiveOP(vectorA, vectorB, Operations.multiplication).Value.Sum();
         }
         public static float DotProduct(Vector vectorA, float scalar)
         {
-            return ConsecutiveOP(vectorA, scalar, ConsecutiveOperation.multiplication).Value.Sum();
+            return ConsecutiveOP(vectorA, scalar, Operations.multiplication).Value.Sum();
         }
         public float DotProduct(Vector vectorB)
         {
-            return ConsecutiveOP(this, vectorB, ConsecutiveOperation.multiplication).Value.Sum();
+            return ConsecutiveOP(this, vectorB, Operations.multiplication).Value.Sum();
         }
         public float DotProduct(float scalar)
         {
-            return ConsecutiveOP(this, scalar, ConsecutiveOperation.multiplication).Value.Sum();
+            return ConsecutiveOP(this, scalar, Operations.multiplication).Value.Sum();
         }
 
 
         public static Vector Normalise(Vector vectorA)
         {
-            return ConsecutiveOP(vectorA, 1f / vectorA.Value.Sum(), ConsecutiveOperation.multiplication);
+            return ConsecutiveOP(vectorA, 1f / vectorA.Value.Sum(), Operations.multiplication);
         }
         public void _Normalise()
         {
-            this.Value = ConsecutiveOP(this, 1f / this.Value.Sum(), ConsecutiveOperation.multiplication).Value;
+            this.Value = ConsecutiveOP(this, 1f / this.Value.Sum(), Operations.multiplication).Value;
         }
 
         /// <summary>
@@ -800,7 +800,7 @@ namespace DataScience
 
             buffer.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
 
-            vector.gpu.inPlaceReciprocalKernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
+            vector.gpu.reciprocalKernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
 
             vector.gpu.accelerator.Synchronize();
 
@@ -816,7 +816,7 @@ namespace DataScience
 
             buffer.CopyFrom(this.Value, 0, 0, this.Value.Length);
 
-            gpu.inPlaceReciprocalKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
+            gpu.reciprocalKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
 
             gpu.accelerator.Synchronize();
 
