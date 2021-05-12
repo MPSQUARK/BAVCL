@@ -260,33 +260,22 @@ namespace DataScience
                     throw new Exception("Invalid slice char selector, choose 'r' for row or 'c' for column");
             }
 
-            Accelerator gpu = vector.gpu.accelerator;
-            AcceleratorStream Stream = gpu.CreateStream();
+            var buffer = vector.gpu.accelerator.Allocate<float>(OutPutVectorLength);
+            var buffer2 = vector.gpu.accelerator.Allocate<float>(vector.Value.Length);
+            var buffer3 = vector.gpu.accelerator.Allocate<int>(5);
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<int>>(AccessSliceKernal);
+            buffer2.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
+            buffer3.CopyFrom(ChangeSelectLength, 0, 0, ChangeSelectLength.Length);
 
-            var buffer = gpu.Allocate<float>(OutPutVectorLength);
-            var buffer2 = gpu.Allocate<float>(vector.Value.Length);
-            var buffer3 = gpu.Allocate<int>(5);
+            vector.gpu.accessSliceKernel(vector.gpu.accelerator.DefaultStream, OutPutVectorLength, buffer.View, buffer2.View, buffer3.View);
 
-            buffer.MemSetToZero(Stream);
-            buffer2.MemSetToZero(Stream);
-            buffer3.MemSetToZero(Stream);
+            vector.gpu.accelerator.Synchronize();
 
-            buffer2.CopyFrom(Stream, vector.Value, 0, 0, vector.Value.Length);
-            buffer3.CopyFrom(Stream, ChangeSelectLength, 0, 0, ChangeSelectLength.Length);
-
-            kernelWithStream(Stream, OutPutVectorLength, buffer.View, buffer2.View, buffer3.View);
-
-            Stream.Synchronize();
-
-            float[] Output = buffer.GetAsArray(Stream);
+            float[] Output = buffer.GetAsArray();
 
             buffer.Dispose();
             buffer2.Dispose();
             buffer3.Dispose();
-
-            Stream.Dispose();
 
             return new Vector(vector.gpu, Output);
         }
@@ -322,46 +311,25 @@ namespace DataScience
                     throw new Exception("Invalid slice char selector, choose 'r' for row or 'c' for column");
             }
 
-            //this is bad and I should feel bad
-            Accelerator gpu = this.gpu.accelerator;
-            AcceleratorStream Stream = gpu.CreateStream();
+            var buffer = gpu.accelerator.Allocate<float>(OutPutVectorLength);
+            var buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length);
+            var buffer3 = gpu.accelerator.Allocate<int>(5);
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<int>>(AccessSliceKernal);
+            buffer2.CopyFrom(this.Value, 0, 0, this.Value.Length);
+            buffer3.CopyFrom(ChangeSelectLength, 0, 0, ChangeSelectLength.Length);
 
-            var buffer = gpu.Allocate<float>(OutPutVectorLength);
-            var buffer2 = gpu.Allocate<float>(this.Value.Length);
-            var buffer3 = gpu.Allocate<int>(5);
+            gpu.accessSliceKernel(gpu.accelerator.DefaultStream, OutPutVectorLength, buffer.View, buffer2.View, buffer3.View);
+            gpu.accelerator.Synchronize();
 
-            buffer.MemSetToZero(Stream);
-            buffer2.MemSetToZero(Stream);
-            buffer3.MemSetToZero(Stream);
-
-            buffer2.CopyFrom(Stream, this.Value, 0, 0, this.Value.Length);
-            buffer3.CopyFrom(Stream, ChangeSelectLength, 0, 0, ChangeSelectLength.Length);
-
-            kernelWithStream(Stream, OutPutVectorLength, buffer.View, buffer2.View, buffer3.View);
-
-            Stream.Synchronize();
-
-            float[] Output = buffer.GetAsArray(Stream);
+            float[] Output = buffer.GetAsArray();
 
             buffer.Dispose();
             buffer2.Dispose();
             buffer3.Dispose();
 
-            Stream.Dispose();
-
             return new Vector(this.gpu, Output);
         }
-        // KERNEL
-        static void AccessSliceKernal(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, ArrayView<int> ChangeSelectLength)
-        {
-            OutPut[index] = Input[
-                index * ChangeSelectLength[0] * ChangeSelectLength[4] + // iRcL
-                index * ChangeSelectLength[1] +                         // iCc
-                ChangeSelectLength[2] * ChangeSelectLength[4] +         // RsL
-                ChangeSelectLength[3]];                                 // Cs
-        }
+        
         /// <summary>
         /// Access a specified row of a vector
         /// </summary>
@@ -451,37 +419,26 @@ namespace DataScience
 
             }
 
+            var buffer =  vectorA.gpu.accelerator.Allocate<float>(vectorB.Value.Length + vectorA.Value.Length); // Output
+            var buffer2 = vectorA.gpu.accelerator.Allocate<float>(vectorA.Value.Length); // Input
+            var buffer3 = vectorA.gpu.accelerator.Allocate<float>(vectorB.Value.Length); // Input
 
-            Accelerator gpu = vectorA.gpu.accelerator;
-            AcceleratorStream Stream = gpu.CreateStream();
+            buffer2.CopyFrom(vectorA.Value, 0, 0, vectorA.Value.Length);
+            buffer3.CopyFrom(vectorB.Value, 0, 0, vectorB.Value.Length);
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(AppendKernel);
+            vectorA.gpu.appendKernel(vectorA.gpu.accelerator.DefaultStream, vectorA.RowCount(), buffer.View, buffer2.View, buffer3.View, vectorA.Columns, vectorB.Columns);
 
-            var buffer = gpu.Allocate<float>(vectorB.Value.Length + vectorA.Value.Length); // Output
-            var buffer2 = gpu.Allocate<float>(vectorA.Value.Length); // Input
-            var buffer3 = gpu.Allocate<float>(vectorB.Value.Length); // Input
+            vectorA.gpu.accelerator.Synchronize();
 
-            buffer.MemSetToZero(Stream);
-            buffer2.MemSetToZero(Stream);
-            buffer3.MemSetToZero(Stream);
-
-            buffer2.CopyFrom(Stream, vectorA.Value, 0, 0, vectorA.Value.Length);
-            buffer3.CopyFrom(Stream, vectorB.Value, 0, 0, vectorB.Value.Length);
-
-            kernelWithStream(Stream, vectorA.RowCount(), buffer.View, buffer2.View, buffer3.View, vectorA.Columns, vectorB.Columns);
-
-            Stream.Synchronize();
-
-            float[] Output = buffer.GetAsArray(Stream);
+            float[] Output = buffer.GetAsArray();
 
             buffer.Dispose();
             buffer2.Dispose();
             buffer3.Dispose();
 
-            Stream.Dispose();
-
             return new Vector(vectorA.gpu, Output, vectorA.Columns + vectorB.Columns);
         }
+
         public void _Append(Vector vector, char axis)
         {
             if (axis == 'r')
@@ -502,50 +459,25 @@ namespace DataScience
 
             }
 
-            Accelerator gpu = this.gpu.accelerator;
+            var buffer = gpu.accelerator.Allocate<float>(vector.Value.Length + this.Value.Length); // Output
+            var buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length); // Input
+            var buffer3 = gpu.accelerator.Allocate<float>(vector.Value.Length); // Input
 
-            AcceleratorStream Stream = gpu.CreateStream();
+            buffer2.CopyFrom(this.Value, 0, 0, this.Value.Length);
+            buffer3.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(AppendKernel);
+            gpu.appendKernel(gpu.accelerator.DefaultStream, this.RowCount(), buffer.View, buffer2.View, buffer3.View, this.Columns, vector.Columns);
 
-            var buffer = gpu.Allocate<float>(vector.Value.Length + this.Value.Length); // Output
-            var buffer2 = gpu.Allocate<float>(this.Value.Length); // Input
-            var buffer3 = gpu.Allocate<float>(vector.Value.Length); // Input
+            gpu.accelerator.Synchronize();
 
-            buffer.MemSetToZero(Stream);
-            buffer2.MemSetToZero(Stream);
-            buffer3.MemSetToZero(Stream);
-
-            buffer2.CopyFrom(Stream, this.Value, 0, 0, this.Value.Length);
-            buffer3.CopyFrom(Stream, vector.Value, 0, 0, vector.Value.Length);
-
-            kernelWithStream(Stream, this.RowCount(), buffer.View, buffer2.View, buffer3.View, this.Columns, vector.Columns);
-
-            Stream.Synchronize();
-
-            float[] Output = buffer.GetAsArray(Stream);
+            this.Columns += vector.Columns;
+            buffer.CopyTo(Value, 0, 0, buffer.Extent);
 
             buffer.Dispose();
             buffer2.Dispose();
             buffer3.Dispose();
-
-            Stream.Dispose();
-
-            this.Columns += vector.Columns;
-            this.Value = Output;
-            return;
         }
-        static void AppendKernel(Index1 index, ArrayView<float> Output, ArrayView<float> vecA, ArrayView<float> vecB, int vecAcol, int vecBcol)
-        {
-            for (int i = 0; i < vecAcol; i++)
-            {
-                Output[index * (vecAcol + vecBcol) + i] = vecA[index * vecAcol + i];
-            }
-            for (int i = 0; i < vecBcol; i++)
-            {
-                Output[index * (vecAcol + vecBcol) + i + vecAcol] = vecB[index * vecBcol + i];
-            }
-        }
+
 
         public static Vector Prepend(Vector vectorA, Vector vectorB, char axis)
         {
@@ -561,66 +493,41 @@ namespace DataScience
 
         public static Vector Nan_to_num(Vector vector, float num)
         {
-            Accelerator gpu = vector.gpu.accelerator;
-            AcceleratorStream Stream = gpu.CreateStream();
+            var buffer = vector.gpu.accelerator.Allocate<float>(vector.Value.Length); // IO
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, float>(Nan_to_numKernel);
+            buffer.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
 
-            var buffer = gpu.Allocate<float>(vector.Value.Length); // IO
+            vector.gpu.nanToNumKernel(vector.gpu.accelerator.DefaultStream, vector.Value.Length, buffer.View, num);
 
-            buffer.MemSetToZero(Stream);
+            vector.gpu.accelerator.Synchronize();
 
-            buffer.CopyFrom(Stream, vector.Value, 0, 0, vector.Value.Length);
-
-            kernelWithStream(Stream, vector.Value.Length, buffer.View, num);
-
-            Stream.Synchronize();
-
-            float[] Output = buffer.GetAsArray(Stream);
+            float[] Output = buffer.GetAsArray();
 
             buffer.Dispose();
-            Stream.Dispose();
 
             return new Vector(vector.gpu, Output, vector.Columns);
         }
         public void _Nan_to_num(float num)
         {
-            Accelerator gpu = this.gpu.accelerator;
-            AcceleratorStream Stream = gpu.CreateStream();
+            var buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // IO
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, float>(Nan_to_numKernel);
+            buffer.CopyFrom(this.Value, 0, 0, this.Value.Length);
 
-            var buffer = gpu.Allocate<float>(this.Value.Length); // IO
+            gpu.nanToNumKernel(gpu.accelerator.DefaultStream, this.Value.Length, buffer.View, num);
 
-            buffer.MemSetToZero(Stream);
+            gpu.accelerator.Synchronize();
 
-            buffer.CopyFrom(Stream, this.Value, 0, 0, this.Value.Length);
-
-            kernelWithStream(Stream, this.Value.Length, buffer.View, num);
-
-            Stream.Synchronize();
-
-            float[] Output = buffer.GetAsArray(Stream);
+            buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
 
             buffer.Dispose();
-            Stream.Dispose();
 
-            this.Value = Output;
             return;
-        }
-        static void Nan_to_numKernel(Index1 index, ArrayView<float> IO, float num)
-        {
-            if (float.IsNaN(IO[index]) || float.IsInfinity(IO[index]))
-            {
-                IO[index] = num;
-            }
-            
         }
 
 
 
         // FUNCTIONS
-        public static Vector ConsecutiveOP(Vector vectorA, Vector vectorB, string operation = "*")
+        public static Vector ConsecutiveOP(Vector vectorA, Vector vectorB, ConsecutiveOperation operation)
         {
             if (vectorA.Value.Length != vectorB.Value.Length)
             {
@@ -632,242 +539,88 @@ namespace DataScience
                 throw new InvalidOperationException("Vector A GPU and Vector B GPU must match");
             }
 
-            Accelerator gpu = vectorA.gpu.accelerator;
+            var buffer = vectorA.gpu.accelerator.Allocate<float>(vectorA.Value.Length); // Input
+            var buffer2 = vectorA.gpu.accelerator.Allocate<float>(vectorA.Value.Length); // Input
+            var buffer3 = vectorA.gpu.accelerator.Allocate<float>(vectorA.Value.Length); // Output
 
-            AcceleratorStream Stream = gpu.CreateStream();
+            buffer.CopyFrom(vectorA.Value, 0, 0, vectorA.Value.Length);
+            buffer2.CopyFrom(vectorB.Value, 0, 0, vectorB.Value.Length);
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveProductKernal);
+            vectorA.gpu.consecutiveOperationKernel(vectorA.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
 
-            var buffer = gpu.Allocate<float>(vectorA.Value.Length); // Input
-            var buffer2 = gpu.Allocate<float>(vectorA.Value.Length); // Input
-            var buffer3 = gpu.Allocate<float>(vectorA.Value.Length); // Output
+            vectorA.gpu.accelerator.Synchronize();
 
-            buffer.MemSetToZero(Stream);
-            buffer2.MemSetToZero(Stream);
-            buffer3.MemSetToZero(Stream);
-
-            buffer.CopyFrom(Stream, vectorA.Value, 0, 0, vectorA.Value.Length);
-            buffer2.CopyFrom(Stream, vectorB.Value, 0, 0, vectorB.Value.Length);
-
-            switch (operation)
-            {
-                case "*":
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveProductKernal);
-                    break;
-                case "+":
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveAdditionKernal);
-                    break;
-                case "-":
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveSubtractKernal);
-                    break;
-                case "/":
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveDivisionKernal);
-                    break;
-            }
-
-            kernelWithStream(Stream, buffer.Length, buffer.View, buffer2.View, buffer3.View);
-
-            Stream.Synchronize();
-
-            float[] Output = buffer3.GetAsArray(Stream);
+            float[] Output = buffer3.GetAsArray();
 
             buffer.Dispose();
             buffer2.Dispose();
             buffer3.Dispose();
 
-            Stream.Dispose();
-
             return new Vector(vectorA.gpu, Output, vectorA.Columns);
         }
-        public void _ConsecutiveOP(Vector vectorB, string operation = "*")
+        public void _ConsecutiveOP(Vector vectorB, ConsecutiveOperation operation)
         {
             if (this.Value.Length != vectorB.Value.Length)
             {
                 throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
             }
 
-            Accelerator gpu = vectorB.gpu.accelerator;
-            AcceleratorStream Stream = gpu.CreateStream();
+            var buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // Input
+            var buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length); // Input
+            var buffer3 = gpu.accelerator.Allocate<float>(this.Value.Length); // Output
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveProductKernal);
+            buffer.CopyFrom(this.Value, 0, 0, this.Value.Length);
+            buffer2.CopyFrom(vectorB.Value, 0, 0, vectorB.Value.Length);
 
-            var buffer = gpu.Allocate<float>(this.Value.Length); // Input
-            var buffer2 = gpu.Allocate<float>(this.Value.Length); // Input
-            var buffer3 = gpu.Allocate<float>(this.Value.Length); // Output
+            gpu.consecutiveOperationKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
 
-            buffer.MemSetToZero(Stream);
-            buffer2.MemSetToZero(Stream);
-            buffer3.MemSetToZero(Stream);
+            gpu.accelerator.Synchronize();
 
-            buffer.CopyFrom(Stream, this.Value, 0, 0, this.Value.Length);
-            buffer2.CopyFrom(Stream, vectorB.Value, 0, 0, vectorB.Value.Length);
-
-            switch (operation)
-            {
-                case "*":
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveProductKernal);
-                    break;
-                case "+":
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveAdditionKernal);
-                    break;
-                case "-":
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveSubtractKernal);
-                    break;
-                case "/":
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(ConsecutiveDivisionKernal);
-                    break;
-            }
-
-            kernelWithStream(Stream, buffer.Length, buffer.View, buffer2.View, buffer3.View);
-
-            Stream.Synchronize();
-
-            float[] Output = buffer3.GetAsArray(Stream);
+            buffer3.CopyFrom(this.Value, 0, 0, this.Value.Length);
 
             buffer.Dispose();
             buffer2.Dispose();
             buffer3.Dispose();
 
-            Stream.Dispose();
-
-            this.Value = Output;
             return;
         }
-        // KERNEL
-        static void ConsecutiveProductKernal(Index1 index, ArrayView<float> InputA, ArrayView<float> InputB, ArrayView<float> OutPut)
+
+        public static Vector ConsecutiveOP(Vector vector, float scalar, ConsecutiveOperation operation)
         {
+            var buffer = vector.gpu.accelerator.Allocate<float>(vector.Value.Length);
+            var buffer2 = vector.gpu.accelerator.Allocate<float>(vector.Value.Length);
 
-            OutPut[index] = InputA[index] * InputB[index];
+            buffer2.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
 
-        }
-        static void ConsecutiveAdditionKernal(Index1 index, ArrayView<float> InputA, ArrayView<float> InputB, ArrayView<float> OutPut)
-        {
+            vector.gpu.scalarConsecutiveOperationKernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
 
-            OutPut[index] = InputA[index] + InputB[index];
+            vector.gpu.accelerator.Synchronize();
 
-        }
-        static void ConsecutiveSubtractKernal(Index1 index, ArrayView<float> InputA, ArrayView<float> InputB, ArrayView<float> OutPut)
-        {
-
-            OutPut[index] = InputA[index] - InputB[index];
-
-        }
-        static void ConsecutiveDivisionKernal(Index1 index, ArrayView<float> InputA, ArrayView<float> InputB, ArrayView<float> OutPut)
-        {
-
-            OutPut[index] = InputA[index] / InputB[index];
-
-        }
-        public static Vector ConsecutiveOP(Vector vector, float scalar, string operation = "*")
-        {
-            Accelerator gpu = vector.gpu.accelerator;
-            AcceleratorStream Stream = gpu.CreateStream();
-
-            var buffer = gpu.Allocate<float>(vector.Value.Length);
-            var buffer2 = gpu.Allocate<float>(vector.Value.Length);
-
-            buffer.MemSetToZero(Stream);
-            buffer2.MemSetToZero(Stream);
-
-            buffer2.CopyFrom(Stream, vector.Value, 0, 0, vector.Value.Length);
-
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarProductKernal);
-
-            switch (operation)
-            {
-                case "*":
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarProductKernal);
-                    break;
-                case "/":
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarDivideKernal);
-                    break;
-                case "+":
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarSumKernal);
-                    break;
-                case "-":
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarSumKernal);
-                    scalar = -scalar;
-                    break;
-                case "^*":  // flip the Vector e.g. 1/Vector then multiply by Scalar
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarProductInvVecKernal);
-                    break;
-            }
-
-            kernelWithStream(Stream, buffer.Length, buffer.View, buffer2.View, scalar);
-
-            Stream.Synchronize();
-
-            float[] Output = buffer.GetAsArray(Stream);
+            float[] Output = buffer.GetAsArray();
 
             buffer.Dispose();
             buffer2.Dispose();
-
-            Stream.Dispose();
 
             return new Vector(vector.gpu, Output, vector.Columns);
         }
-        public void _ConsecutiveOP(Accelerator gpu, float scalar, string operation = "*")
+        public void _ConsecutiveOP(float scalar, ConsecutiveOperation operation)
         {
-            AcceleratorStream Stream = gpu.CreateStream();
+            var buffer = gpu.accelerator.Allocate<float>(this.Value.Length);
+            var buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length);
 
-            var buffer = gpu.Allocate<float>(this.Value.Length);
-            var buffer2 = gpu.Allocate<float>(this.Value.Length);
+            buffer2.CopyFrom(this.Value, 0, 0, this.Value.Length);
 
-            buffer.MemSetToZero(Stream);
-            buffer2.MemSetToZero(Stream);
+            gpu.scalarConsecutiveOperationKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
 
-            buffer2.CopyFrom(Stream, this.Value, 0, 0, this.Value.Length);
+            gpu.accelerator.Synchronize();
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarProductKernal);
-
-            switch (operation)
-            {
-                case "*":
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarProductKernal);
-                    break;
-                case "/":
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarDivideKernal);
-                    break;
-                case "+":
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarSumKernal);
-                    break;
-                case "^*":  // flip the Vector e.g. 1/Vector then multiply by Scalar
-                    kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float>(ScalarProductInvVecKernal);
-                    break;
-            }
-
-            kernelWithStream(Stream, buffer.Length, buffer.View, buffer2.View, scalar);
-
-            Stream.Synchronize();
-
-            float[] Output = buffer.GetAsArray(Stream);
+            buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
 
             buffer.Dispose();
             buffer2.Dispose();
 
-            Stream.Dispose();
-
-            this.Value = Output;
             return;
         }
-        // KERNELS
-        static void ScalarProductKernal(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar)
-        {
-            OutPut[index] = Input[index] * Scalar;
-        }
-        static void ScalarDivideKernal(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar)
-        {
-            OutPut[index] = Input[index] / Scalar;
-        }
-        static void ScalarSumKernal(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar)
-        {
-            OutPut[index] = Input[index] + Scalar;
-        }
-        static void ScalarProductInvVecKernal(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar)
-        {
-            OutPut[index] = Scalar / Input[index];
-        }
-
 
         public static Vector Diff(Vector vectorA)
         {
@@ -876,96 +629,71 @@ namespace DataScience
                 throw new Exception("Diff is for use with 1D Vectors ONLY");
             }
 
-            Accelerator gpu = vectorA.gpu.accelerator;
-            AcceleratorStream stream = gpu.CreateStream();
+            MemoryBuffer<float> buffer = vectorA.gpu.accelerator.Allocate<float>(vectorA.Value.Length - 1); // Output
+            MemoryBuffer<float> buffer2 = vectorA.gpu.accelerator.Allocate<float>(vectorA.Value.Length); //  Input
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>>(DiffKernel);
+            buffer2.CopyFrom(vectorA.Value, 0, 0, vectorA.Value.Length);
 
-            MemoryBuffer<float> buffer = gpu.Allocate<float>(vectorA.Value.Length - 1); // Output
-            MemoryBuffer<float> buffer2 = gpu.Allocate<float>(vectorA.Value.Length); //  Input
+            vectorA.gpu.diffKernel(vectorA.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View);
 
-            buffer.MemSetToZero(stream);
-            buffer2.MemSetToZero(stream);
+            vectorA.gpu.accelerator.Synchronize();
 
-            buffer2.CopyFrom(stream, vectorA.Value, 0, 0, vectorA.Value.Length);
-
-            kernelWithStream(stream, buffer.Length, buffer.View, buffer2.View);
-
-            stream.Synchronize();
-
-            float[] Output = buffer.GetAsArray(stream);
+            float[] Output = buffer.GetAsArray();
 
             buffer.Dispose();
             buffer2.Dispose();
 
-            stream.Dispose();
-
             return new Vector(vectorA.gpu, Output);
         }
-        public void _Diff(Accelerator gpu)
+        public void _Diff()
         {
             if (this.Columns > 1)
             {
                 throw new Exception("Diff is for use with 1D Vectors ONLY");
             }
 
-            AcceleratorStream stream = gpu.CreateStream();
+            MemoryBuffer<float> buffer = gpu.accelerator.Allocate<float>(this.Value.Length - 1); // Output
+            MemoryBuffer<float> buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length); //  Input
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>>(DiffKernel);
+            buffer2.CopyFrom(this.Value, 0, 0, this.Value.Length);
 
-            MemoryBuffer<float> buffer = gpu.Allocate<float>(this.Value.Length - 1); // Output
-            MemoryBuffer<float> buffer2 = gpu.Allocate<float>(this.Value.Length); //  Input
+            gpu.diffKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View);
 
-            buffer.MemSetToZero(stream);
-            buffer2.MemSetToZero(stream);
+            gpu.accelerator.Synchronize();
 
-            buffer2.CopyFrom(stream, this.Value, 0, 0, this.Value.Length);
-
-            kernelWithStream(stream, buffer.Length, buffer.View, buffer2.View);
-
-            stream.Synchronize();
-
-            float[] Output = buffer.GetAsArray(stream);
+            buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
 
             buffer.Dispose();
             buffer2.Dispose();
 
-            stream.Dispose();
-
-            this.Value = Output;
             return;
         }
-        static void DiffKernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input)
-        {
-            Output[index] = Input[index + 1] - Input[index];
-        }
-
 
         public static float DotProduct(Vector vectorA, Vector vectorB)
         {
-            return ConsecutiveOP(vectorA, vectorB, "*").Value.Sum();
+            return ConsecutiveOP(vectorA, vectorB, ConsecutiveOperation.multiplication).Value.Sum();
         }
         public static float DotProduct(Vector vectorA, float scalar)
         {
-            return ConsecutiveOP(vectorA, scalar).Value.Sum();
+            return ConsecutiveOP(vectorA, scalar, ConsecutiveOperation.multiplication).Value.Sum();
         }
         public float DotProduct(Vector vectorB)
         {
-            return ConsecutiveOP(this, vectorB, "*").Value.Sum();
+            return ConsecutiveOP(this, vectorB, ConsecutiveOperation.multiplication).Value.Sum();
         }
         public float DotProduct(float scalar)
         {
-            return ConsecutiveOP(this, scalar).Value.Sum();
+            return ConsecutiveOP(this, scalar, ConsecutiveOperation.multiplication).Value.Sum();
         }
 
 
         public static Vector Normalise(Vector vectorA)
         {
-            return ConsecutiveOP(vectorA, 1f / vectorA.Value.Sum(), "*");
+            return ConsecutiveOP(vectorA, 1f / vectorA.Value.Sum(), ConsecutiveOperation.multiplication);
         }
         public void _Normalise()
         {
-            this.Value = ConsecutiveOP(this, 1f / this.Value.Sum(), "*").Value;
+            this.Value = ConsecutiveOP(this, 1f / this.Value.Sum(), ConsecutiveOperation.multiplication).Value;
         }
 
         /// <summary>
@@ -1009,30 +737,21 @@ namespace DataScience
         /// Takes the absolute value of all the values in the Vector.
         /// IMPORTANT : Use this method for Vectors of Length more than 100,000
         /// </summary>
-        /// <param name="gpu"></param>
         /// <param name="vector"></param>
         /// <returns></returns>
         public static Vector AbsX(Vector vector)
         {
-            Accelerator gpu = vector.gpu.accelerator;
-            AcceleratorStream stream = gpu.CreateStream();
+            MemoryBuffer<float> buffer = vector.gpu.accelerator.Allocate<float>(vector.Value.Length); // Input/Output
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>>(AbsKernel);
+            buffer.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
 
-            MemoryBuffer<float> buffer = gpu.Allocate<float>(vector.Value.Length); // Input/Output
+            vector.gpu.absKernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
 
-            buffer.MemSetToZero(stream);
+            vector.gpu.accelerator.Synchronize();
 
-            buffer.CopyFrom(stream, vector.Value, 0, 0, vector.Value.Length);
-
-            kernelWithStream(stream, buffer.Length, buffer.View);
-
-            stream.Synchronize();
-
-            float[] Output = buffer.GetAsArray(stream);
+            float[] Output = buffer.GetAsArray();
 
             buffer.Dispose();
-            stream.Dispose();
 
             return new Vector(vector.gpu, Output, vector.Columns);
         }
@@ -1041,36 +760,22 @@ namespace DataScience
         /// Takes the absolute value of all the values in this Vector.
         /// IMPORTANT : Use this method for Vectors of Length more than 100,000
         /// </summary>
-        /// <param name="gpu"></param>
-        public void _AbsX(Accelerator gpu)
+        public void _AbsX()
         {
-            AcceleratorStream stream = gpu.CreateStream();
+            MemoryBuffer<float> buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // Input/Output
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>>(AbsKernel);
+            buffer.CopyFrom(this.Value, 0, 0, this.Value.Length);
 
-            MemoryBuffer<float> buffer = gpu.Allocate<float>(this.Value.Length); // Input/Output
+            gpu.absKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
 
-            buffer.MemSetToZero(stream);
+            gpu.accelerator.Synchronize();
 
-            buffer.CopyFrom(stream, this.Value, 0, 0, this.Value.Length);
-
-            kernelWithStream(stream, buffer.Length, buffer.View);
-
-            stream.Synchronize();
-
-            float[] Output = buffer.GetAsArray(stream);
+            buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
 
             buffer.Dispose();
-            stream.Dispose();
 
-            this.Value = Output;
             return;
         }
-        static void AbsKernel(Index1 index, ArrayView<float> IO)
-        {
-            IO[index] = XMath.Abs(IO[index]);
-        }
-
 
         /// <summary>
         /// Determines if All the values in the Vector are Non-Zero
@@ -1091,57 +796,36 @@ namespace DataScience
 
         public static Vector Reciprocal(Vector vector)
         {
-            Accelerator gpu = vector.gpu.accelerator;
-            AcceleratorStream stream = gpu.CreateStream();
+            MemoryBuffer<float> buffer = vector.gpu.accelerator.Allocate<float>(vector.Value.Length); // IO
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>>(ReciprocalKernel);
+            buffer.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
 
-            MemoryBuffer<float> buffer = gpu.Allocate<float>(vector.Value.Length); // IO
+            vector.gpu.inPlaceReciprocalKernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
 
-            buffer.MemSetToZero(stream);
+            vector.gpu.accelerator.Synchronize();
 
-            buffer.CopyFrom(stream, vector.Value, 0, 0, vector.Value.Length);
-
-            kernelWithStream(stream, buffer.Length, buffer.View);
-
-            stream.Synchronize();
-
-            float[] Output = buffer.GetAsArray(stream);
+            float[] Output = buffer.GetAsArray();
 
             buffer.Dispose();
-            stream.Dispose();
 
             return new Vector(vector.gpu, vector.Value, vector.Columns);
         }
         public void _Reciprocal()
         {
-            Accelerator gpu = this.gpu.accelerator;
-            AcceleratorStream stream = gpu.CreateStream();
+            MemoryBuffer<float> buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // IO
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>>(ReciprocalKernel);
+            buffer.CopyFrom(this.Value, 0, 0, this.Value.Length);
 
-            MemoryBuffer<float> buffer = gpu.Allocate<float>(this.Value.Length); // IO
+            gpu.inPlaceReciprocalKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
 
-            buffer.MemSetToZero(stream);
+            gpu.accelerator.Synchronize();
 
-            buffer.CopyFrom(stream, this.Value, 0, 0, this.Value.Length);
-
-            kernelWithStream(stream, buffer.Length, buffer.View);
-
-            stream.Synchronize();
-
-            float[] Output = buffer.GetAsArray(stream);
+            buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
 
             buffer.Dispose();
-            stream.Dispose();
-
-            this.Value = Output;
             return;
         }
-        static void ReciprocalKernel(Index1 index, ArrayView<float> IO)
-        {
-            IO[index] = XMath.Rcp(IO[index]);
-        }
+
 
         public static Vector Reverse(Vector vector)
         {
@@ -1154,65 +838,41 @@ namespace DataScience
         }
         public static Vector ReverseX(Vector vector)
         {
-            Accelerator gpu = vector.gpu.accelerator;
-            AcceleratorStream stream = gpu.CreateStream();
+            MemoryBuffer<float> buffer = vector.gpu.accelerator.Allocate<float>(vector.Value.Length); // Output
+            MemoryBuffer<float> buffer2 = vector.gpu.accelerator.Allocate<float>(vector.Value.Length); // Input
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>>(ReverseKernel);
+            buffer2.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
 
-            MemoryBuffer<float> buffer = gpu.Allocate<float>(vector.Value.Length); // Output
-            MemoryBuffer<float> buffer2 = gpu.Allocate<float>(vector.Value.Length); // Input
+            vector.gpu.reverseKernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View);
 
-            buffer.MemSetToZero(stream);
-            buffer2.MemSetToZero(stream);
+            vector.gpu.accelerator.Synchronize();
 
-            buffer2.CopyFrom(stream, vector.Value, 0, 0, vector.Value.Length);
-
-            kernelWithStream(stream, buffer.Length, buffer.View, buffer2.View);
-
-            stream.Synchronize();
-
-            float[] Output = buffer.GetAsArray(stream);
+            float[] Output = buffer.GetAsArray();
 
             buffer.Dispose();
             buffer2.Dispose();
-
-            stream.Dispose();
 
             return new Vector(vector.gpu, Output, vector.Columns);
         }
         public void _ReverseX()
         {
-            Accelerator gpu = this.gpu.accelerator;
-            AcceleratorStream stream = gpu.CreateStream();
+            MemoryBuffer<float> buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // Output
+            MemoryBuffer<float> buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length); // Input
 
-            var kernelWithStream = gpu.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>>(ReverseKernel);
+            buffer2.CopyFrom(this.Value, 0, 0, this.Value.Length);
 
-            MemoryBuffer<float> buffer = gpu.Allocate<float>(this.Value.Length); // Output
-            MemoryBuffer<float> buffer2 = gpu.Allocate<float>(this.Value.Length); // Input
+            gpu.reverseKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View);
 
-            buffer.MemSetToZero(stream);
-            buffer2.MemSetToZero(stream);
+            gpu.accelerator.Synchronize();
 
-            buffer2.CopyFrom(stream, this.Value, 0, 0, this.Value.Length);
-
-            kernelWithStream(stream, buffer.Length, buffer.View, buffer2.View);
-
-            stream.Synchronize();
-
-            float[] Output = buffer.GetAsArray(stream);
+            buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
 
             buffer.Dispose();
             buffer2.Dispose();
 
-            stream.Dispose();
-
-            this.Value = Output;
             return;
         }
-        static void ReverseKernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input)
-        {
-            Output[index] = Input[Input.Length - 1 - index];
-        }
+
 
 
 
