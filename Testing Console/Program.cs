@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
+using DataScience.IO;
+
 namespace Testing_Console
 {
     class Program
@@ -15,8 +17,8 @@ namespace Testing_Console
 
             //SubtractionTest(gpu, 10_000_000);
 
-
-
+            
+            
 
 
             Vector3 vec = new Vector3(gpu, new float[] { 1, 2, 3, 4, 5, 6 });
@@ -27,6 +29,7 @@ namespace Testing_Console
             
             Vector3 vecR = Vector3.CrossProduct(vec, vec2);
             vecR.Print();
+            IO.WriteToCSV(vecR, "vecR_file");
 
 
             //Vertex vert = new Vertex(99f, 99f, 99f);

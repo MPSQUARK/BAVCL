@@ -10,8 +10,4 @@
     <PackageReference Include="System.Runtime" Version="4.3.1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Utility\Utility.csproj" />
-  </ItemGroup>
-
 </Project>
