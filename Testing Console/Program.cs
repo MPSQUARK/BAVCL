@@ -17,19 +17,20 @@ namespace Testing_Console
 
             //SubtractionTest(gpu, 10_000_000);
 
-            
-            
-
-
-            Vector3 vec = new Vector3(gpu, new float[] { 1, 2, 3, 4, 5, 6 });
-            Vector3 vec2 = new Vector3(gpu, new float[] { 12, 12, 13, 14, 15, 16 });
+            Vector vec = Vector.Arange(gpu, 0, 5, 4);
             vec.Print();
-            vec2.Print();
+            
+
+
+            //Vector3 vec = new Vector3(gpu, new float[] { 1, 2, 3, 4, 5, 6 });
+            //Vector3 vec2 = new Vector3(gpu, new float[] { 12, 12, 13, 14, 15, 16 });
+            //vec.Print();
+            //vec2.Print();
 
             
-            Vector3 vecR = Vector3.CrossProduct(vec, vec2);
-            vecR.Print();
-            IO.WriteToCSV(vecR, "vecR_file");
+            //Vector3 vecR = Vector3.CrossProduct(vec, vec2);
+            //vecR.Print();
+            //IO.WriteToCSV(vecR, "vecR_file");
 
 
             //Vertex vert = new Vertex(99f, 99f, 99f);
