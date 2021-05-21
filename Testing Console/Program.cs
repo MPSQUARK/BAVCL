@@ -17,10 +17,22 @@ namespace Testing_Console
 
             //SubtractionTest(gpu, 10_000_000);
 
-            Vector vec = Vector.Arange(gpu, 0, 5, 4);
-            vec.Print();
-            
+            //Vector vec = Vector.Arange(gpu, 0, 200, 50);
 
+            Vector vec = Vector.Arange(gpu, 0, 12, 1, 4);
+            //Vector vec2 = Vector.Arange(gpu, 0, -400, 100);
+            vec.Print();
+
+            vec._Transpose();
+            vec.Print();
+
+            //vec2.Print();
+
+            //Vector vecR = vec + vec2;
+
+
+
+            
 
             //Vector3 vec = new Vector3(gpu, new float[] { 1, 2, 3, 4, 5, 6 });
             //Vector3 vec2 = new Vector3(gpu, new float[] { 12, 12, 13, 14, 15, 16 });

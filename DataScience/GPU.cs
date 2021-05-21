@@ -27,6 +27,7 @@ namespace DataScience
         public Action<AcceleratorStream, Index1, ArrayView<float>> absKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>> reciprocalKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>> crossKernel;
+        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, int> transposekernel;
 
         public GPU(bool forceCPU = false, ContextFlags flags = ContextFlags.None, OptimizationLevel optimizationLevel = OptimizationLevel.Debug)
         {
@@ -55,6 +56,7 @@ namespace DataScience
             absKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(AbsKernel);
             reciprocalKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(ReciprocalKernel);
             crossKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(CrossKernel);
+            transposekernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, int>(TransposeKernel);
 
             timer.Stop();
             Console.WriteLine("Kernels Loaded in: " + timer.Elapsed.TotalMilliseconds + " MS");
@@ -131,12 +133,22 @@ namespace DataScience
                 case Operations.subtraction:
                     OutPut[index] = InputA[index] - InputB[index];
                     break;
+                case Operations.flipsubtraction:
+                    OutPut[index] = InputB[index] - InputA[index];
+                    break;
                 case Operations.division:
                     OutPut[index] = InputA[index] / InputB[index];
                     break;
                 case Operations.inverseDivision:
                     OutPut[index] = InputB[index] / InputA[index];
                     break;
+                case Operations.power:
+                    OutPut[index] = XMath.Pow(InputA[index], InputB[index]);
+                    break;
+                case Operations.powerflipped:
+                    OutPut[index] = XMath.Pow(InputB[index], InputA[index]);
+                    break;
+
             }
         }
 
@@ -153,12 +165,22 @@ namespace DataScience
                 case Operations.subtraction:
                     OutPut[index] = Input[index] - Scalar;
                     break;
+                case Operations.flipsubtraction:
+                    OutPut[index] = Scalar - Input[index];
+                    break;
                 case Operations.division:
                     OutPut[index] = Input[index] / Scalar;
                     break;
                 case Operations.inverseDivision:
                     OutPut[index] = Scalar / Input[index];
                     break;
+                case Operations.power:
+                    OutPut[index] = XMath.Pow(Input[index], Scalar);
+                    break;
+                case Operations.powerflipped:
+                    OutPut[index] = XMath.Pow(Scalar, Input[index]);
+                    break;
+
             }
         }
 
@@ -189,6 +211,25 @@ namespace DataScience
             Output[index*3 + 2] = InputA[index * 3    ] * InputB[index * 3 + 1] - InputA[index * 3 + 1] * InputB[index * 3    ];
         }
 
+        static void TransposeKernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input, int columns)
+        {
+            // (int)Math.Floor(Input.Length / columns) => The Row
+            // (int)(Input.Length % columns) => The Column
+            float invcol = 1f / columns;
+            Output[(index % columns) * ((int)(Input.Length * invcol)) + ((int)XMath.Floor(index * invcol))] = Input[index];
+        }
+
+
+
+
+
+
+
+
+
+
+
+
     }
 
     public enum Operations
@@ -197,6 +238,9 @@ namespace DataScience
         addition = 1,
         subtraction = 2,
         division = 3,
-        inverseDivision = 4,
+        power = 4,
+        inverseDivision = 5,
+        flipsubtraction = 6,
+        powerflipped = 7,
     }
 }
