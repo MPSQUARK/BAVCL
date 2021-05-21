@@ -40,18 +40,21 @@ namespace DataScience
 
         // FEATURES
         /* LOG :
-         *      - Access Slice                          : IMPLEMENTED
-         *      - Access Value                          : IMPLEMENTED
-         *      - Consecutive OP                        : IMPLEMENTED
-         *      - Dot Product                           : IMPLEMENTED
-         *      - Fill                                  : WORKING
-         *      - Normalise                             : IMPLEMENTED
-         *      - Linspace                              : IMPLEMENTED
-         *      - Arange                                : IMPLEMENTED
-         *      - Diff                                  : IMPLEMENTED
+         *      - Access Slice                          : IMPLEMENTED   : NEEDS TESTING
+         *      - Access Value                          : IMPLEMENTED   : NEEDS TESTING
+         *      - Consecutive OP                        : IMPLEMENTED   : NEEDS TESTING
+         *      - Dot Product                           : IMPLEMENTED   : NEEDS TESTING
+         *      - Fill                                  : IMPLEMENTED   : NEEDS TESTING
+         *      - Normalise                             : IMPLEMENTED   : NEEDS TESTING
+         *      - Linspace                              : IMPLEMENTED   : NEEDS TESTING
+         *      - Arange                                : IMPLEMENTED   : NEEDS TESTING
+         *      - Diff                                  : IMPLEMENTED   : NEEDS TESTING
+         *      - Reciprocal                            : IMPLEMENTED   : NEEDS TESTING
+         *      - Absolute                              : IMPLEMENTED   : NEEDS TESTING
+         *      - Reverse                               : IMPLEMENTED   : NEEDS TESTING
         */
 
-        // METHODS SECTION
+        // METHODS
 
 
         // ToString override
@@ -87,8 +90,8 @@ namespace DataScience
             return stringBuilder.AppendLine().ToString();
         }
 
-
         // MATHEMATICAL PROPERTIES 
+        #region
         public override float Max()
         {
             return this.Value.Max();
@@ -116,6 +119,8 @@ namespace DataScience
 
 
 
+        #endregion
+
 
         // CREATION
         #region
@@ -137,7 +142,7 @@ namespace DataScience
         /// <param name="Size"></param>
         /// <param name="Columns"></param>
         /// <param name="inplace"></param>
-        public void _Fill(float Value, int Length, int Columns = 1, bool inplace= true)
+        public void _Fill(float Value, int Length, int Columns = 1, bool inplace = true)
         {
             this.Value = Enumerable.Repeat(Value, Length).ToArray();
             this.Columns = Columns;
@@ -162,14 +167,6 @@ namespace DataScience
             this.Columns = Columns;
             return;
         }
-        
-        public Vector3 ToVector3()
-        {
-            if (this.Length() % 3 != 0) { throw new Exception("Vector length must be a multiple of 3"); }
-            return new Vector3(this.gpu, this.Value);
-        }
-
-
 
         /// <summary>
         /// 
@@ -178,9 +175,9 @@ namespace DataScience
         /// <param name="endval"></param>
         /// <param name="steps"></param>
         /// <returns></returns>
-        public static Vector Linspace(GPU gpu, float startval, float endval, int steps, int columns=1)
+        public static Vector Linspace(GPU gpu, float startval, float endval, int steps, int columns = 1)
         {
-            if(steps <= 1) { throw new Exception("Cannot make linspace with less than 1 steps"); }
+            if (steps <= 1) { throw new Exception("Cannot make linspace with less than 1 steps"); }
             float interval = (endval - startval) / (steps - 1);
             return new Vector(gpu, (from val in Enumerable.Range(0, steps) select startval + (val * interval)).ToArray(), columns);
         }
@@ -191,16 +188,21 @@ namespace DataScience
         /// <param name="endval"></param>
         /// <param name="interval"></param>
         /// <returns></returns>
-        public static Vector Arange(GPU gpu, float startval, float endval, float interval, int columns=1)
+        public static Vector Arange(GPU gpu, float startval, float endval, float interval, int columns = 1)
         {
             int steps = (int)((endval - startval) / interval);
-            if (endval % interval != 0) { steps++; } 
+            if (endval < startval && interval > 0) { steps = Math.Abs(steps); interval = -interval; }
+            if (endval % interval != 0) { steps++; }
 
-            return new Vector(gpu,(from val in Enumerable.Range(0, steps)
-                               select startval + (val * interval)).ToArray(), columns);
+            return new Vector(gpu, (from val in Enumerable.Range(0, steps)
+                                    select startval + (val * interval)).ToArray(), columns);
         }
 
+
+
+
         #endregion
+
 
         // MEMORY ACCESS
         #region
@@ -247,8 +249,6 @@ namespace DataScience
             switch (row_col)
             {
                 case 'r':
-                    //ChangeSelectLength = new int[5] { 0, 1, row_col_index, 0, vector.Columns };
-                    //OutPutVectorLength = vector.Columns;
                     return AccessRow(vector, row_col_index);
                 case 'c':
                     ChangeSelectLength = new int[5] { 1, 0, 0, row_col_index, vector.Columns };
@@ -327,7 +327,7 @@ namespace DataScience
 
             return new Vector(this.gpu, Output);
         }
-        
+
         /// <summary>
         /// Access a specified row of a vector
         /// </summary>
@@ -353,6 +353,7 @@ namespace DataScience
 
 
         // MEMORY ALLOCATION
+        #region
         /// <summary>
         /// Concatinates VectorB onto the end of VectorA.
         /// Preserves the value of Columns of VectorA.
@@ -401,10 +402,10 @@ namespace DataScience
         {
             if (axis == 'r')
             {
-                return Vector.Concat(vectorA,vectorB);
+                return Vector.Concat(vectorA, vectorB);
             }
 
-            if (vectorA.RowCount() != vectorB.RowCount() || (vectorA.RowCount() != vectorB.Length() && vectorB.Columns == 1) )
+            if (vectorA.RowCount() != vectorB.RowCount() || (vectorA.RowCount() != vectorB.Length() && vectorB.Columns == 1))
             {
                 if (vectorB.Columns == 1)
                 {
@@ -417,7 +418,7 @@ namespace DataScience
 
             }
 
-            var buffer =  vectorA.gpu.accelerator.Allocate<float>(vectorB.Value.Length + vectorA.Value.Length); // Output
+            var buffer = vectorA.gpu.accelerator.Allocate<float>(vectorB.Value.Length + vectorA.Value.Length); // Output
             var buffer2 = vectorA.gpu.accelerator.Allocate<float>(vectorA.Value.Length); // Input
             var buffer3 = vectorA.gpu.accelerator.Allocate<float>(vectorB.Value.Length); // Input
 
@@ -523,6 +524,120 @@ namespace DataScience
         }
 
 
+
+        #endregion
+
+
+        // CONVERSION
+        #region
+        public Vector3 ToVector3()
+        {
+            if (this.Length() % 3 != 0) { throw new Exception("Vector length must be a multiple of 3"); }
+            return new Vector3(this.gpu, this.Value);
+        }
+
+
+        #endregion
+
+
+        // OPERATORS
+        #region
+        public static Vector operator +(Vector vector)
+        {
+            return Vector.AbsX(vector);
+        }
+
+
+
+        public static Vector operator +(Vector vectorA, Vector vectorB)
+        {
+            return Vector.ConsecutiveOP(vectorA, vectorB, Operations.addition);
+        }
+        public static Vector operator +(Vector vector, float Scalar)
+        {
+            return Vector.ConsecutiveOP(vector, Scalar, Operations.addition);
+        }
+        public static Vector operator +(float Scalar, Vector vector)
+        {
+            return Vector.ConsecutiveOP(vector, Scalar, Operations.addition);
+        }
+
+
+
+        public static Vector operator -(Vector vector)
+        {
+            return Vector.ConsecutiveOP(vector, -1, Operations.multiplication);
+        }
+
+
+
+        public static Vector operator -(Vector vectorA, Vector vectorB)
+        {
+            return Vector.ConsecutiveOP(vectorA, vectorB, Operations.subtraction);
+        }
+        public static Vector operator -(Vector vector, float Scalar)
+        {
+            return Vector.ConsecutiveOP(vector, Scalar, Operations.subtraction);
+        }
+
+        public static Vector operator -(float Scalar, Vector vector)
+        {
+            return Vector.ConsecutiveOP(vector, Scalar, Operations.flipsubtraction);
+        }
+
+
+
+        public static Vector operator *(Vector vectorA, Vector vectorB)
+        {
+            return Vector.ConsecutiveOP(vectorA, vectorB, Operations.multiplication);
+        }
+        public static Vector operator *(Vector vector, float Scalar)
+        {
+            return Vector.ConsecutiveOP(vector, Scalar, Operations.multiplication);
+        }
+        public static Vector operator *(float Scalar, Vector Vector)
+        {
+            return Vector.ConsecutiveOP(Vector, Scalar, Operations.multiplication);
+        }
+
+
+
+        public static Vector operator /(Vector vectorA, Vector vectorB)
+        {
+            return Vector.ConsecutiveOP(vectorA, vectorB, Operations.division);
+        }
+        public static Vector operator /(Vector vector, float Scalar)
+        {
+            return Vector.ConsecutiveOP(vector, Scalar, Operations.division);
+        }
+        public static Vector operator /(float Scalar, Vector vector)
+        {
+            return Vector.ConsecutiveOP(vector, Scalar, Operations.inverseDivision);
+        }
+
+
+
+        public static Vector operator ^(Vector vectorA, Vector vectorB)
+        {
+            return Vector.ConsecutiveOP(vectorA, vectorB, Operations.power);
+        }
+        public static Vector operator ^(Vector vector, float Scalar)
+        {
+            return Vector.ConsecutiveOP(vector, Scalar, Operations.power);
+        }
+        public static Vector operator ^(float Scalar, Vector vector)
+        {
+            return Vector.ConsecutiveOP(vector, Scalar, Operations.powerflipped);
+        }
+
+
+
+
+
+
+        #endregion
+
+
         // FUNCTIONS
         public static Vector ConsecutiveOP(Vector vectorA, Vector vectorB, Operations operation)
         {
@@ -581,7 +696,6 @@ namespace DataScience
 
             return;
         }
-
         public static Vector ConsecutiveOP(Vector vector, float scalar, Operations operation)
         {
             var buffer = vector.gpu.accelerator.Allocate<float>(vector.Value.Length);
@@ -618,6 +732,7 @@ namespace DataScience
 
             return;
         }
+
 
         public static Vector Diff(Vector vectorA)
         {
@@ -666,6 +781,7 @@ namespace DataScience
             return;
         }
 
+
         public static float DotProduct(Vector vectorA, Vector vectorB)
         {
             return ConsecutiveOP(vectorA, vectorB, Operations.multiplication).Value.Sum();
@@ -692,6 +808,7 @@ namespace DataScience
         {
             this.Value = ConsecutiveOP(this, 1f / this.Value.Sum(), Operations.multiplication).Value;
         }
+
 
         /// <summary>
         /// Takes the absolute value of all values in the Vector.
@@ -774,6 +891,10 @@ namespace DataScience
             return;
         }
 
+
+
+
+
         /// <summary>
         /// Determines if All the values in the Vector are Non-Zero
         /// </summary>
@@ -790,6 +911,7 @@ namespace DataScience
         {
             return !this.Value.Contains(0f);
         }
+
 
         public static Vector Reciprocal(Vector vector)
         {
@@ -871,7 +993,46 @@ namespace DataScience
         }
 
 
+        public void _Transpose()
+        {
 
+            MemoryBuffer<float> buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // Output
+            MemoryBuffer<float> buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length); // Input
+
+            buffer2.CopyFrom(this.Value, 0, 0, this.Value.Length);
+
+            gpu.transposekernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, this.Columns);
+
+            gpu.accelerator.Synchronize();
+
+            buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
+
+            buffer.Dispose();
+            buffer2.Dispose();
+
+            this.Columns = this.RowCount();
+
+            return;
+        }
+        public static Vector Transpose(Vector vector)
+        {
+            MemoryBuffer<float> buffer = vector.gpu.accelerator.Allocate<float>(vector.Value.Length); // Output
+            MemoryBuffer<float> buffer2 = vector.gpu.accelerator.Allocate<float>(vector.Value.Length); // Input
+
+            buffer2.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
+
+            vector.gpu.transposekernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, vector.Columns);
+
+            vector.gpu.accelerator.Synchronize();
+
+            float[] Output = buffer.GetAsArray();
+
+            buffer.Dispose();
+            buffer2.Dispose();
+
+            return new Vector(vector.gpu, Output, vector.RowCount());
+
+        }
 
 
     }
