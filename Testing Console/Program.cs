@@ -34,16 +34,24 @@ namespace Testing_Console
 
 
             Vector vec = Vector.Arange(gpu, 0, 21, 1, 7);
-            Vector vec2 = Vector.Arange(gpu, 0, -60, 1, 3);
 
             vec.Print();
+
+            IO.WriteToCSV(vec, "vec");
+            Vector vec2 = IO.ReadAsVector(gpu, "vec","csv");
+
             vec2.Print();
 
-            //vec._Append(vec2, 'c', false);
+            //Vector vec2 = Vector.Arange(gpu, 0, -60, 1, 3);
 
-            Vector vec3 = Vector.Append(vec, vec2, 'c', true);
+            //vec.Print();
+            //vec2.Print();
 
-            vec3.Print();
+            ////vec._Append(vec2, 'c', false);
+
+            //Vector vec3 = Vector.Append(vec, vec2, 'c', true);
+
+            //vec3.Print();
 
 
 
