@@ -300,7 +300,7 @@ namespace DataScience
                 case 'r':
                     //ChangeSelectLength = new int[5] { 0, 1, row_col_index, 0, vector.Columns };
                     //OutPutVectorLength = vector.Columns;
-                    return this._AccessRow(this, row_col_index);
+                    return this._AccessRow(row_col_index);
                 case 'c':
                     ChangeSelectLength = new int[5] { 1, 0, 0, row_col_index, this.Columns };
                     OutPutVectorLength = this.Value.Length / this.Columns;
@@ -344,9 +344,9 @@ namespace DataScience
         /// <param name="vector"></param>
         /// <param name="row"></param>
         /// <returns></returns>
-        public Vector _AccessRow(Vector vector, int row)
+        public Vector _AccessRow(int row)
         {
-            return new Vector(vector.gpu, vector.Value[(row * vector.Columns)..((row + 1) * vector.Columns)], 1);
+            return new Vector(this.gpu, this.Value[(row * this.Columns)..((row + 1) * this.Columns)], 1);
         }
 
         #endregion
@@ -398,25 +398,53 @@ namespace DataScience
             return;
         }
 
-        public static Vector Append(Vector vectorA, Vector vectorB, char axis)
+        public static Vector Append(Vector vectorA, Vector vectorB, char axis, bool warp = false)
         {
             if (axis == 'r')
             {
                 return Vector.Concat(vectorA, vectorB);
             }
 
-            if (vectorA.RowCount() != vectorB.RowCount() || (vectorA.RowCount() != vectorB.Length() && vectorB.Columns == 1))
+            // IF 2D
+            if (vectorA.Columns > 1 && vectorB.Columns > 1)
             {
-                if (vectorB.Columns == 1)
+                if ((vectorA.RowCount() != vectorB.RowCount()) && (vectorA.RowCount() != vectorB.Columns))
                 {
-                    throw new Exception($"Vectors CANNOT be appended;" +
-                    $" this array has {vectorA.RowCount()} rows, 1D vector being appended has {vectorB.Length()} Length");
+                    throw new Exception(
+                        $"Vectors CANNOT be appended. " +
+                        $"This Vector has the shape ({vectorA.RowCount()},{vectorA.Columns}). " +
+                        $"The 2D Vector being appended has the shape ({vectorB.RowCount()},{vectorB.Columns})");
                 }
 
-                throw new Exception($"Vectors CANNOT be appended;" +
-                $" this array has {vectorA.RowCount()} rows, 2D vector being appended has {vectorB.RowCount()}");
+                if (vectorA.RowCount() == vectorB.Columns)
+                {
+                    if (!warp)
+                    {
+                        vectorB._Transpose();
+                    }
+
+                    if (warp && (vectorB.Length() % vectorA.RowCount() == 0))
+                    {
+                        vectorB.Columns = vectorB.Value.Length / vectorA.RowCount();
+                    }
+
+                }
 
             }
+            // IF 1D
+            if (vectorB.Columns == 1)
+            {
+
+                if (vectorB.Value.Length % vectorA.RowCount() != 0)
+                {
+                    throw new Exception($"Vectors CANNOT be appended. " +
+                        $"This array has shape ({vectorA.RowCount()},{vectorA.Columns}), 1D vector being appended has {vectorB.Length()} Length");
+                }
+
+                vectorB.Columns = vectorB.Value.Length / vectorA.RowCount();
+
+            }
+
 
             var buffer = vectorA.gpu.accelerator.Allocate<float>(vectorB.Value.Length + vectorA.Value.Length); // Output
             var buffer2 = vectorA.gpu.accelerator.Allocate<float>(vectorA.Value.Length); // Input
@@ -438,23 +466,53 @@ namespace DataScience
             return new Vector(vectorA.gpu, Output, vectorA.Columns + vectorB.Columns);
         }
 
-        public void _Append(Vector vector, char axis)
+        public void _Append(Vector vector, char axis, bool warp = false)
         {
             if (axis == 'r')
             {
                 this._Concat(vector);
                 return;
             }
-            if (this.RowCount() != vector.RowCount() || (this.RowCount() != vector.Length() && vector.Columns == 1))
+
+            // IF 2D
+            if (this.Columns > 1 && vector.Columns > 1) 
             {
-                if (vector.Columns == 1)
+                if (  (this.RowCount() != vector.RowCount()) && (this.RowCount() != vector.Columns) )
                 {
-                    throw new Exception($"Vectors CANNOT be appended;" +
-                    $" this array has {this.RowCount()} rows, 1D vector being appended has {vector.Length()} Length");
+                    throw new Exception(
+                        $"Vectors CANNOT be appended. " +
+                        $"This Vector has the shape ({this.RowCount()},{this.Columns}). " +
+                        $"The 2D Vector being appended has the shape ({vector.RowCount()},{vector.Columns})");
                 }
 
-                throw new Exception($"Vectors CANNOT be appended;" +
-                $" this array has {this.RowCount()} rows, 2D vector being appended has {vector.RowCount()}");
+                if (this.RowCount() == vector.Columns)
+                {
+                    if (!warp)
+                    {
+                        vector._Transpose();
+                    }
+
+                    if (warp && (vector.Length() % this.RowCount() == 0))
+                    {
+                        vector.Columns = vector.Value.Length / this.RowCount();
+                    }
+
+                }
+
+            }
+
+            // IF 1D
+
+            if (vector.Columns == 1)
+            {
+
+                if (vector.Value.Length % this.RowCount() != 0)
+                {
+                    throw new Exception($"Vectors CANNOT be appended. " +
+                        $"This array has shape ({this.RowCount()},{this.Columns}), 1D vector being appended has {vector.Length()} Length");
+                }
+
+                vector.Columns = vector.Value.Length / this.RowCount();
 
             }
 
@@ -470,12 +528,13 @@ namespace DataScience
             gpu.accelerator.Synchronize();
 
             this.Columns += vector.Columns;
-            buffer.CopyTo(Value, 0, 0, buffer.Extent);
+            this.Value = buffer.GetAsArray();
 
             buffer.Dispose();
             buffer2.Dispose();
             buffer3.Dispose();
         }
+
 
 
         public static Vector Prepend(Vector vectorA, Vector vectorB, char axis)
@@ -995,6 +1054,7 @@ namespace DataScience
 
         public void _Transpose()
         {
+            if (this.Columns == 1 || this.Columns >= this.Value.Length) { throw new Exception("Cannot transpose 1D Vector"); }
 
             MemoryBuffer<float> buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // Output
             MemoryBuffer<float> buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length); // Input
@@ -1016,6 +1076,9 @@ namespace DataScience
         }
         public static Vector Transpose(Vector vector)
         {
+            if (vector.Columns == 1 || vector.Columns >= vector.Value.Length) { throw new Exception("Cannot transpose 1D Vector"); }
+
+
             MemoryBuffer<float> buffer = vector.gpu.accelerator.Allocate<float>(vector.Value.Length); // Output
             MemoryBuffer<float> buffer2 = vector.gpu.accelerator.Allocate<float>(vector.Value.Length); // Input
 

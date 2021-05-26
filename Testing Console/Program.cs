@@ -19,27 +19,43 @@ namespace Testing_Console
 
             //Vector vec = Vector.Arange(gpu, 0, 200, 50);
 
-            Vector vec = Vector.Arange(gpu, 0, 12, 1, 4);
-            //Vector vec2 = Vector.Arange(gpu, 0, -400, 100);
-            vec.Print();
 
-            vec._Transpose();
-            vec.Print();
+            //Vector vec2 = Vector.Arange(gpu, 0, -400, 100);
+
 
             //vec2.Print();
 
             //Vector vecR = vec + vec2;
 
+            //Vector vec = Vector.Arange(gpu, 0, 200, 1, 5);
+            //Vector vec2 = Vector.Arange(gpu, 0, -200, 1, 5);
 
 
-            
+
+
+            Vector vec = Vector.Arange(gpu, 0, 21, 1, 7);
+            Vector vec2 = Vector.Arange(gpu, 0, -60, 1, 3);
+
+            vec.Print();
+            vec2.Print();
+
+            //vec._Append(vec2, 'c', false);
+
+            Vector vec3 = Vector.Append(vec, vec2, 'c', true);
+
+            vec3.Print();
+
+
+
+
+
 
             //Vector3 vec = new Vector3(gpu, new float[] { 1, 2, 3, 4, 5, 6 });
             //Vector3 vec2 = new Vector3(gpu, new float[] { 12, 12, 13, 14, 15, 16 });
             //vec.Print();
             //vec2.Print();
 
-            
+
             //Vector3 vecR = Vector3.CrossProduct(vec, vec2);
             //vecR.Print();
             //IO.WriteToCSV(vecR, "vecR_file");

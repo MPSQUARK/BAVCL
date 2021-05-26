@@ -92,15 +92,23 @@ namespace DataScience
 
         static void AppendKernel(Index1 index, ArrayView<float> Output, ArrayView<float> vecA, ArrayView<float> vecB, int vecAcol, int vecBcol)
         {
-            for (int i = 0; i < vecAcol; i++)
+
+            for (int i = 0, j=0; j < vecBcol; i++)
             {
-                Output[index * (vecAcol + vecBcol) + i] = vecA[index * vecAcol + i];
+                if (i < vecAcol)
+                {
+                    Output[index * (vecAcol + vecBcol) + i] = vecA[index * vecAcol + i];
+                    continue;
+                }
+
+                Output[index * (vecAcol + vecBcol) + i] = vecB[index * vecBcol + j];
+                j++;
+
             }
-            for (int i = 0; i < vecBcol; i++)
-            {
-                Output[index * (vecAcol + vecBcol) + i + vecAcol] = vecB[index * vecBcol + i];
-            }
+
         }
+
+
 
         static void Nan_to_numKernel(Index1 index, ArrayView<float> IO, float num)
         {
