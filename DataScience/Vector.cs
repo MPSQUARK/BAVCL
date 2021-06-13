@@ -142,7 +142,7 @@ namespace DataScience
         /// <param name="Size"></param>
         /// <param name="Columns"></param>
         /// <param name="inplace"></param>
-        public void _Fill(float Value, int Length, int Columns = 1, bool inplace = true)
+        public void Fill_IP(float Value, int Length, int Columns = 1, bool inplace = true)
         {
             this.Value = Enumerable.Repeat(Value, Length).ToArray();
             this.Columns = Columns;
@@ -151,7 +151,7 @@ namespace DataScience
         {
             return new Vector(gpu, new float[Length], 1);
         }
-        public void _Zeros(int Length, int Columns)
+        public void Zeros_IP(int Length, int Columns)
         {
             this.Value = new float[Length];
             this.Columns = Columns;
@@ -161,7 +161,7 @@ namespace DataScience
         {
             return new Vector(gpu, Enumerable.Repeat(1f, Length).ToArray(), 1);
         }
-        public void _Ones(int Length, int Columns)
+        public void Ones_IP(int Length, int Columns)
         {
             this.Value = Enumerable.Repeat(1f, Length).ToArray();
             this.Columns = Columns;
@@ -200,7 +200,6 @@ namespace DataScience
 
 
 
-
         #endregion
 
 
@@ -223,15 +222,16 @@ namespace DataScience
         /// <param name="row"></param>
         /// <param name="col"></param>
         /// <returns></returns>
-        public float _AccessVal(int row, int col)
+        public float AccessVal(int row, int col)
         {
             return this.Value[row * this.Columns + col];
         }
 
+
+
         /// <summary>
         /// Access a specific slice of either a column 'c' or row 'r' of a vector
         /// </summary>
-        /// <param name="gpu"></param>
         /// <param name="vector"></param>
         /// <param name="row_col_index"></param>
         /// <param name="row_col"></param>
@@ -243,29 +243,67 @@ namespace DataScience
                 throw new Exception("Input Vector cannot be 1D");
             }
 
-            int[] ChangeSelectLength;
-            int OutPutVectorLength;
-
-            switch (row_col)
+            if (row_col == 'r')
             {
-                case 'r':
-                    return AccessRow(vector, row_col_index);
-                case 'c':
-                    ChangeSelectLength = new int[5] { 1, 0, 0, row_col_index, vector.Columns };
-                    OutPutVectorLength = vector.Value.Length / vector.Columns;
-                    break;
-                default:
-                    throw new Exception("Invalid slice char selector, choose 'r' for row or 'c' for column");
+                return AccessRow(vector, row_col_index);
+            }
+            if (row_col == 'c')
+            {
+                return AccessColumn(vector, row_col_index);
             }
 
-            var buffer = vector.gpu.accelerator.Allocate<float>(OutPutVectorLength);
-            var buffer2 = vector.gpu.accelerator.Allocate<float>(vector.Value.Length);
-            var buffer3 = vector.gpu.accelerator.Allocate<int>(5);
+            throw new Exception("Invalid slice char selector, choose 'r' for row or 'c' for column");
+        }
+        /// <summary>
+        /// Access a specific slice of either a column 'c' or row 'r' of a vector
+        /// </summary>
+        /// <param name="row_col_index"></param>
+        /// <param name="row_col"></param>
+        /// <returns></returns>
+        public Vector AccessSlice(int row_col_index, char row_col)
+        {
+            if (this.Columns == 1)
+            {
+                throw new Exception("Input Vector cannot be 1D");
+            }
+
+            if (row_col == 'r')
+            {
+                return AccessRow(row_col_index);
+            }
+            if (row_col == 'c')
+            {
+                return AccessColumn(row_col_index);
+            }
+
+            throw new Exception("Invalid slice char selector, choose 'r' for row or 'c' for column");
+        }
+
+
+
+        public static Vector AccessRow(Vector vector, int row)
+        {
+            return new Vector(vector.gpu, vector.Value[(row * vector.Columns)..((row + 1) * vector.Columns)], 1);
+        }
+        public Vector AccessRow(int row)
+        {
+            return new Vector(this.gpu, this.Value[(row * this.Columns)..((row + 1) * this.Columns)], 1);
+        }
+
+
+
+        public static Vector AccessColumn(Vector vector, int column)
+        {
+            int[] select = new int[2] { column, vector.Columns};
+
+            var buffer = vector.gpu.accelerator.Allocate<float>(vector.RowCount());     // Output
+            var buffer2 = vector.gpu.accelerator.Allocate<float>(vector.Value.Length);  // Input
+            var buffer3 = vector.gpu.accelerator.Allocate<int>(2);                      // Config
 
             buffer2.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
-            buffer3.CopyFrom(ChangeSelectLength, 0, 0, ChangeSelectLength.Length);
+            buffer3.CopyFrom(select, 0, 0, select.Length);
 
-            vector.gpu.accessSliceKernel(vector.gpu.accelerator.DefaultStream, OutPutVectorLength, buffer.View, buffer2.View, buffer3.View);
+            vector.gpu.accessSliceKernel(vector.gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
 
             vector.gpu.accelerator.Synchronize();
 
@@ -274,50 +312,23 @@ namespace DataScience
             buffer.Dispose();
             buffer2.Dispose();
             buffer3.Dispose();
-
+            
             return new Vector(vector.gpu, Output);
         }
-        /// <summary>
-        /// Access a specific slice of either a column 'c' or row 'r' of this vector
-        /// </summary>
-        /// <param name="gpu"></param>
-        /// <param name="row_col_index"></param>
-        /// <param name="row_col"></param>
-        /// <returns></returns>
-        public Vector _AccessSlice(int row_col_index, char row_col)
+        public Vector AccessColumn(int column)
         {
+            int[] select = new int[2] { column, this.Columns };
 
-            if (this.Columns == 1)
-            {
-                throw new Exception("Input Vector cannot be 1D");
-            }
-
-            int[] ChangeSelectLength;
-            int OutPutVectorLength;
-
-            switch (row_col)
-            {
-                case 'r':
-                    //ChangeSelectLength = new int[5] { 0, 1, row_col_index, 0, vector.Columns };
-                    //OutPutVectorLength = vector.Columns;
-                    return this._AccessRow(row_col_index);
-                case 'c':
-                    ChangeSelectLength = new int[5] { 1, 0, 0, row_col_index, this.Columns };
-                    OutPutVectorLength = this.Value.Length / this.Columns;
-                    break;
-                default:
-                    throw new Exception("Invalid slice char selector, choose 'r' for row or 'c' for column");
-            }
-
-            var buffer = gpu.accelerator.Allocate<float>(OutPutVectorLength);
-            var buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length);
-            var buffer3 = gpu.accelerator.Allocate<int>(5);
+            var buffer = this.gpu.accelerator.Allocate<float>(this.RowCount());     // Output
+            var buffer2 = this.gpu.accelerator.Allocate<float>(this.Value.Length);  // Input
+            var buffer3 = this.gpu.accelerator.Allocate<int>(2);                    // Config
 
             buffer2.CopyFrom(this.Value, 0, 0, this.Value.Length);
-            buffer3.CopyFrom(ChangeSelectLength, 0, 0, ChangeSelectLength.Length);
+            buffer3.CopyFrom(select, 0, 0, select.Length);
 
-            gpu.accessSliceKernel(gpu.accelerator.DefaultStream, OutPutVectorLength, buffer.View, buffer2.View, buffer3.View);
-            gpu.accelerator.Synchronize();
+            this.gpu.accessSliceKernel(this.gpu.accelerator.DefaultStream, this.RowCount(), buffer.View, buffer2.View, buffer3.View);
+
+            this.gpu.accelerator.Synchronize();
 
             float[] Output = buffer.GetAsArray();
 
@@ -328,26 +339,7 @@ namespace DataScience
             return new Vector(this.gpu, Output);
         }
 
-        /// <summary>
-        /// Access a specified row of a vector
-        /// </summary>
-        /// <param name="vector"></param>
-        /// <param name="row"></param>
-        /// <returns></returns>
-        public static Vector AccessRow(Vector vector, int row)
-        {
-            return new Vector(vector.gpu, vector.Value[(row * vector.Columns)..((row + 1) * vector.Columns)], 1);
-        }
-        /// <summary>
-        /// Access a specific row of this Vector
-        /// </summary>
-        /// <param name="vector"></param>
-        /// <param name="row"></param>
-        /// <returns></returns>
-        public Vector _AccessRow(int row)
-        {
-            return new Vector(this.gpu, this.Value[(row * this.Columns)..((row + 1) * this.Columns)], 1);
-        }
+
 
         #endregion
 

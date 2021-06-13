@@ -119,13 +119,20 @@ namespace DataScience
 
         }
 
+        //static void AccessSliceKernel(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, ArrayView<int> ChangeSelectLength)
+        //{
+        //    OutPut[index] = Input[
+        //        index * ChangeSelectLength[0] * ChangeSelectLength[4] + // iRcL
+        //        index * ChangeSelectLength[1] +                         // iCc
+        //        ChangeSelectLength[2] * ChangeSelectLength[4] +         // RsL
+        //        ChangeSelectLength[3]];                                 // Cs
+        //}
+
         static void AccessSliceKernel(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, ArrayView<int> ChangeSelectLength)
         {
             OutPut[index] = Input[
-                index * ChangeSelectLength[0] * ChangeSelectLength[4] + // iRcL
-                index * ChangeSelectLength[1] +                         // iCc
-                ChangeSelectLength[2] * ChangeSelectLength[4] +         // RsL
-                ChangeSelectLength[3]];                                 // Cs
+                index * ChangeSelectLength[1] +                         // iRcL
+                ChangeSelectLength[0]];                                 // Cs
         }
 
         static void ConsecutiveOperationKernel(Index1 index, ArrayView<float> InputA, ArrayView<float> InputB, ArrayView<float> OutPut, SpecializedValue<int> operation)
