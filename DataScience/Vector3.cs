@@ -56,30 +56,31 @@ namespace DataScience
         }
 
 
-        public static Vector3 AppendVert(Vector3 vectorA, Vertex vertA)
+        // Appening Verticies
+        public static Vector3 Concat(Vector3 vectorA, Vertex vertA)
         {
             Vector3 vector = vectorA.Copy();
-            vector.AppendVert_IP(vertA);
+            vector.Concat_IP(vertA);
             return vector;
         }
-        public static Vector3 AppendVert(Vector3 vectorA, Vertex[] vertices)
+        public static Vector3 Concat(Vector3 vectorA, Vertex[] vertices)
         {
             Vector3 vector = vectorA.Copy();
-            vector.AppendVert_IP(vertices);
+            vector.Concat_IP(vertices);
             return vector;
         }
-        public static Vector3 AppendVert(Vector3 vectorA, List<Vertex> vertices)
+        public static Vector3 Concat(Vector3 vectorA, List<Vertex> vertices)
         {
             Vector3 vector = vectorA.Copy();
-            vector.AppendVert_IP(vertices);
+            vector.Concat_IP(vertices);
             return vector;
         }
-        public void AppendVert_IP(Vertex vertA)
+        public void Concat_IP(Vertex vertA)
         {
             this.Value = this.Value.Append(vertA.x).Append(vertA.y).Append(vertA.z).ToArray();
             return;
         }
-        public void AppendVert_IP(Vertex[] vertices)
+        public void Concat_IP(Vertex[] vertices)
         {
             for (int i = 0; i < vertices.Length; i++)
             {
@@ -87,7 +88,7 @@ namespace DataScience
             }
             return;
         }
-        public void AppendVert_IP(List<Vertex> vertices)
+        public void Concat_IP(List<Vertex> vertices)
         {
             for (int i = 0; i < vertices.Count; i++)
             {
@@ -96,6 +97,46 @@ namespace DataScience
             return;
         }
 
+        // Appening Vector3's 
+        public static Vector3 Concat(Vector3 vectorA, Vector3 vectorB)
+        {
+            Vector3 vector = vectorA.Copy();
+            vector.Concat_IP(vectorB);
+            return vector;
+        }
+        public static Vector3 Concat(Vector3 vectorA, Vector3[] vectors)
+        {
+            Vector3 vector = vectorA.Copy();
+            vector.Concat_IP(vectors);
+            return vector;
+        }
+        public static Vector3 Concat(Vector3 vectorA, List<Vector3> vectors)
+        {
+            Vector3 vector = vectorA.Copy();
+            vector.Concat_IP(vectors);
+            return vector;
+        }
+        public void Concat_IP(Vector3 vector)
+        {
+            this.Value.Concat(vector.Value);
+            return;
+        }
+        public void Concat_IP(Vector3[] vectors)
+        {
+            for (int i = 0; i < vectors.Length; i++)
+            {
+                this.Value.Concat(vectors[i].Value);
+            }
+            return;
+        }
+        public void Concat_IP(List<Vector3> vectors)
+        {
+            for (int i = 0; i < vectors.Count; i++)
+            {
+                this.Value.Concat(vectors[i].Value);
+            }
+            return;
+        }
 
 
 
