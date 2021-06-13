@@ -59,10 +59,6 @@ namespace DataScience
 
 
         // Copy Vertex
-        public static Vertex Copy(Vertex vert)
-        {
-            return new Vertex(vert.x, vert.y, vert.z);
-        }
         public Vertex Copy()
         {
             return new Vertex(this.x, this.y, this.z);
@@ -228,7 +224,7 @@ namespace DataScience
 
             return XMath.Sqrt(dx * dx + dy * dy + dz * dz);
         }
-        public void _Fract()
+        public void Fract_IP()
         {
             this.x -= XMath.Floor(x);
             this.y -= XMath.Floor(y);
@@ -243,14 +239,14 @@ namespace DataScience
         {
             return this.x * Scalar + this.y * Scalar + this.z * Scalar;
         }
-        public void _Cross(Vertex vert)
+        public void Cross_IP(Vertex vert)
         {
             this.x =   this.y * vert.z - this.z * vert.y;
             this.y = -(this.x * vert.z - this.z * vert.x);
             this.z =   this.x * vert.y - this.y * vert.x;
             return;
         }
-        public void _UnitVector()
+        public void UnitVector_IP()
         {
             float InvMag = 1f/this.Magnitude();
             this.x *= InvMag;
@@ -258,7 +254,7 @@ namespace DataScience
             this.z *= InvMag;
             return;
         }
-        public void _Aces_approx()
+        public void Aces_approx_IP()
         {
             float a = 2.51f;
             float b = 0.03f;
@@ -271,7 +267,7 @@ namespace DataScience
             this.z = XMath.Clamp(((this.z * 0.6f * (a * this.z * 0.6f + b)) / (this.z * 0.6f * (c * this.z * 0.6f + d) + e)), 0f, 1f);
             return;
         }
-        public void _Reinhard()
+        public void Reinhard_IP()
         {
             this.x /= (1f + this.x);
             this.y /= (1f + this.y);
@@ -336,7 +332,7 @@ namespace DataScience
         }
         public static Vertex Refract(Vertex v, Vertex n, float niOverNt)
         {
-            v._UnitVector();
+            v.UnitVector_IP();
             float dt = Dot(v, n);
             float discriminant = 1f - niOverNt * niOverNt * (1f - dt * dt);
 
@@ -361,12 +357,12 @@ namespace DataScience
         }
         public static Vertex Aces_approx(Vertex vert)
         {
-            vert._Aces_approx();
+            vert.Aces_approx_IP();
             return vert;
         }
         public static Vertex Reinhard(Vertex vert)
         {
-            vert._Reinhard();
+            vert.Reinhard_IP();
             return vert;
         }
 
