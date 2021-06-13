@@ -16,38 +16,10 @@ namespace Testing_Console
 
             // SAMPLE AND TEST CODE
 
-            Vector vector = Vector.Arange(gpu, 20000,0, -0.5f, 5);
-            //vector.Print();
-
-            float time = 0f;
-            int length = 50;
-
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
-            for (int i = 0; i < length; i++)
-            {
-                vector.Sum();
-            }
-            time = sw.ElapsedMilliseconds;
-            sw.Stop();
-            sw.Reset();
-
-            Console.WriteLine($"Time taken is {time / length} ms per itteration");
-            Console.WriteLine($"The value is {vector.Sum()}");
+            Vector vector = Vector.Arange(gpu, 20, 0, -0.5f, 5);
+            Vector vector1 = new Vector(gpu, new float[]{1f, 2f, 3f, 4f, 5f, 6f, 7f}, 3);
 
 
-
-            sw.Start();
-            for (int i = 0; i < length; i++)
-            {
-                vector.Var2();
-            }
-            time = sw.ElapsedMilliseconds;
-            sw.Stop();
-            sw.Reset();
-
-            Console.WriteLine($"Time taken is {time / length} ms per itteration");
-            Console.WriteLine($"The value is {vector.Var2()}");
 
         }
 

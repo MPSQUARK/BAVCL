@@ -112,7 +112,6 @@ namespace DataScience
         {
             return Vector.ConsecutiveOP(this, this.Mean(), Operations.squareOfDiffs).Sum() / this.Length();
         }
-
         public override float Range()
         {
             return this.Value.Max() - this.Value.Min();
@@ -126,6 +125,11 @@ namespace DataScience
         public void Flatten()
         {
             this.Columns = 1;
+        }
+
+        public bool IsRectangular()
+        {
+            return (this.Length() % this.Columns == 0);
         }
 
 
