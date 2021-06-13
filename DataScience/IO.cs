@@ -102,6 +102,7 @@ namespace DataScience.IO
 
             return new Vector(gpu, Output, columns);
         }
+
         public static void ReadAsVector3(GPU gpu, string filename, string path, string format)
         {
 

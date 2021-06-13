@@ -12,6 +12,7 @@ namespace DataScience
         public abstract T[] Value { get; set; }
         public abstract int Columns { get; protected set; }
 
+
         // PRINT + CSV
         public static void Print(Vector vector)
         {

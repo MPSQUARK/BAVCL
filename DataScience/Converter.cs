@@ -19,10 +19,12 @@ namespace DataScience
                 default:
                     throw new Exception($"No format : {format} available\n Func - ConvertToFormat - IO");
             }
+
+
+
         }
         public static string ToFileFormat(Vector3 vector, string format = "txt")
         {
-
             switch (format)
             {
                 case "txt":
@@ -32,6 +34,9 @@ namespace DataScience
                 default:
                     throw new Exception($"No format : {format} available\n Func - ConvertToFormat - IO");
             }
+
+
+
         }
 
 
