@@ -213,7 +213,17 @@ namespace DataScience
         #region
         public static Vector3 operator +(Vector3 vectorA, Vertex vertA)
         {
-            vectorA.Value = vectorA.Value.Append(vertA.x).Append(vertA.y).Append(vertA.z).ToArray();
+            vectorA.Concat_IP(vertA);
+            return vectorA;
+        }
+        public static Vector3 operator +(Vector3 vectorA, Vertex[] verts)
+        {
+            vectorA.Concat_IP(verts);
+            return vectorA;
+        }
+        public static Vector3 operator +(Vector3 vectorA, List<Vertex> verts)
+        {
+            vectorA.Concat_IP(verts);
             return vectorA;
         }
 
