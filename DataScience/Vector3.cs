@@ -26,6 +26,7 @@ namespace DataScience
             this.Columns = 3;
         }
 
+
         // Enum for (x,y,z)
         public enum Coord
         {
@@ -34,7 +35,12 @@ namespace DataScience
             z,
         }
 
-        // ACCESS DATA
+        // DATA Management
+        public Vector3 Copy()
+        {
+            return new Vector3(this.gpu, this.Value);
+        }
+
         public float GetCoOrd(Coord xyz)
         {
             return this.Value[(int)xyz];
@@ -48,39 +54,32 @@ namespace DataScience
             this.Value = this.Value[(vert_row * 3)..((vert_row + 1) * 3)];
             return;
         }
+
+
         public static Vector3 AppendVert(Vector3 vectorA, Vertex vertA)
         {
-            float[] values = vectorA.Value.Append(vertA.x).Append(vertA.y).Append(vertA.z).ToArray();
-            return new Vector3(vectorA.gpu, values);
+            Vector3 vector = vectorA.Copy();
+            vector.AppendVert_IP(vertA);
+            return vector;
         }
         public static Vector3 AppendVert(Vector3 vectorA, Vertex[] vertices)
         {
-            float[] values = vectorA.Value;
-
-
-            for (int i = 0; i < vertices.Length; i++)
-            {
-                values = values.Append(vertices[i].x).Append(vertices[i].y).Append(vertices[i].z).ToArray();
-            }
-
-            return new Vector3(vectorA.gpu, values);
+            Vector3 vector = vectorA.Copy();
+            vector.AppendVert_IP(vertices);
+            return vector;
         }
         public static Vector3 AppendVert(Vector3 vectorA, List<Vertex> vertices)
         {
-            float[] values = vectorA.Value;
-            for (int i = 0; i < vertices.Count; i++)
-            {
-                values = values.Append(vertices[i].x).Append(vertices[i].y).Append(vertices[i].z).ToArray();
-            }
-
-            return new Vector3(vectorA.gpu, values);
+            Vector3 vector = vectorA.Copy();
+            vector.AppendVert_IP(vertices);
+            return vector;
         }
-        public void _AppendVert(Vertex vertA)
+        public void AppendVert_IP(Vertex vertA)
         {
             this.Value = this.Value.Append(vertA.x).Append(vertA.y).Append(vertA.z).ToArray();
             return;
         }
-        public void _AppendVert(Vertex[] vertices)
+        public void AppendVert_IP(Vertex[] vertices)
         {
             for (int i = 0; i < vertices.Length; i++)
             {
@@ -88,7 +87,7 @@ namespace DataScience
             }
             return;
         }
-        public void _AppendVert(List<Vertex> vertices)
+        public void AppendVert_IP(List<Vertex> vertices)
         {
             for (int i = 0; i < vertices.Count; i++)
             {
