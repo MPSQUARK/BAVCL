@@ -148,7 +148,7 @@ namespace DataScience
                 case Operations.subtraction:
                     OutPut[index] = InputA[index] - InputB[index];
                     break;
-                case Operations.flipsubtraction:
+                case Operations.flipSubtraction:
                     OutPut[index] = InputB[index] - InputA[index];
                     break;
                 case Operations.division:
@@ -160,8 +160,11 @@ namespace DataScience
                 case Operations.power:
                     OutPut[index] = XMath.Pow(InputA[index], InputB[index]);
                     break;
-                case Operations.powerflipped:
+                case Operations.powerFlipped:
                     OutPut[index] = XMath.Pow(InputB[index], InputA[index]);
+                    break;
+                case Operations.squareOfDiffs:
+                    OutPut[index] = XMath.Pow((InputA[index] - InputB[index]), 2f);
                     break;
 
             }
@@ -180,7 +183,7 @@ namespace DataScience
                 case Operations.subtraction:
                     OutPut[index] = Input[index] - Scalar;
                     break;
-                case Operations.flipsubtraction:
+                case Operations.flipSubtraction:
                     OutPut[index] = Scalar - Input[index];
                     break;
                 case Operations.division:
@@ -192,10 +195,12 @@ namespace DataScience
                 case Operations.power:
                     OutPut[index] = XMath.Pow(Input[index], Scalar);
                     break;
-                case Operations.powerflipped:
+                case Operations.powerFlipped:
                     OutPut[index] = XMath.Pow(Scalar, Input[index]);
                     break;
-
+                case Operations.squareOfDiffs:
+                    OutPut[index] = XMath.Pow((Input[index] - Scalar), 2f);
+                    break;
             }
         }
 
@@ -255,7 +260,8 @@ namespace DataScience
         division = 3,
         power = 4,
         inverseDivision = 5,
-        flipsubtraction = 6,
-        powerflipped = 7,
+        flipSubtraction = 6,
+        powerFlipped = 7,
+        squareOfDiffs = 8,
     }
 }

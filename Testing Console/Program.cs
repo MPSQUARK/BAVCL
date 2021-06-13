@@ -5,6 +5,7 @@ using System.Diagnostics;
 
 using DataScience.IO;
 
+
 namespace Testing_Console
 {
     class Program
@@ -15,11 +16,38 @@ namespace Testing_Console
 
             // SAMPLE AND TEST CODE
 
-            Vector vector = Vector.Arange(gpu, 0, 20, 0.5f, 5);
-            vector.Print();
+            Vector vector = Vector.Arange(gpu, 20000,0, -0.5f, 5);
+            //vector.Print();
 
-            vector.AccessColumn(2).Print();
-            vector.AccessRow(3).Print();
+            float time = 0f;
+            int length = 50;
+
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+            for (int i = 0; i < length; i++)
+            {
+                vector.Sum();
+            }
+            time = sw.ElapsedMilliseconds;
+            sw.Stop();
+            sw.Reset();
+
+            Console.WriteLine($"Time taken is {time / length} ms per itteration");
+            Console.WriteLine($"The value is {vector.Sum()}");
+
+
+
+            sw.Start();
+            for (int i = 0; i < length; i++)
+            {
+                vector.Var2();
+            }
+            time = sw.ElapsedMilliseconds;
+            sw.Stop();
+            sw.Reset();
+
+            Console.WriteLine($"Time taken is {time / length} ms per itteration");
+            Console.WriteLine($"The value is {vector.Var2()}");
 
         }
 

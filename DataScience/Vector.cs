@@ -104,6 +104,15 @@ namespace DataScience
         {
             return this.Value.Average();
         }
+        public float Std()
+        {
+            return XMath.Sqrt(this.Var());
+        }
+        public float Var()
+        {
+            return Vector.ConsecutiveOP(this, this.Mean(), Operations.squareOfDiffs).Sum() / this.Length();
+        }
+
         public override float Range()
         {
             return this.Value.Max() - this.Value.Min();
@@ -112,6 +121,8 @@ namespace DataScience
         {
             return this.Value.Sum();
         }
+
+
         public void Flatten()
         {
             this.Columns = 1;
@@ -633,7 +644,7 @@ namespace DataScience
 
         public static Vector operator -(float Scalar, Vector vector)
         {
-            return Vector.ConsecutiveOP(vector, Scalar, Operations.flipsubtraction);
+            return Vector.ConsecutiveOP(vector, Scalar, Operations.flipSubtraction);
         }
 
 
@@ -678,7 +689,7 @@ namespace DataScience
         }
         public static Vector operator ^(float Scalar, Vector vector)
         {
-            return Vector.ConsecutiveOP(vector, Scalar, Operations.powerflipped);
+            return Vector.ConsecutiveOP(vector, Scalar, Operations.powerFlipped);
         }
 
 
