@@ -38,7 +38,7 @@ namespace DataScience
         // DATA Management
         public Vector3 Copy()
         {
-            return new Vector3(this.gpu, this.Value);
+            return new Vector3(this.gpu, this.Value[..]);
         }
 
         public float GetCoOrd(Coord xyz)
