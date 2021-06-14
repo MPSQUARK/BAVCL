@@ -368,49 +368,15 @@ namespace DataScience
         /// <param name="vectorA"></param>
         /// <param name="vectorB"></param>
         /// <returns></returns>
-        public static Vector Concat(Vector vectorA, Vector vectorB)
+        public static Vector Concat(Vector vectorA, Vector vectorB, char axis='r', bool warp = false)
         {
-            return new Vector(vectorA.gpu, vectorA.Value.Concat(vectorB.Value).ToArray(), vectorA.Columns);
-        }
-        /// <summary>
-        /// Concatinates Vector onto the end of this Vector.
-        /// Preserves the value of Columns of this Vector.
-        /// </summary>
-        /// <param name="vector"></param>
-        public void _Concat(Vector vector)
-        {
-            this.Value = this.Value.Concat(vector.Value).ToArray();
-            return;
-        }
-
-        /// <summary>
-        /// Concatinates VectorB onto the end of VectorA removing any duplicates.
-        /// Preserves the value of Columns of VectorA.
-        /// </summary>
-        /// <param name="vectorA"></param>
-        /// <param name="vectorB"></param>
-        /// <returns></returns>
-        public static Vector Merge(Vector vectorA, Vector vectorB)
-        {
-            return new Vector(vectorA.gpu, vectorA.Value.Union(vectorB.Value).ToArray(), vectorA.Columns);
-        }
-        /// <summary>
-        /// Concatinates Vector onto the end of this Vector removing any duplicates.
-        /// Preserves the value of Columns of this Vector.
-        /// </summary>
-        /// <param name="vector"></param>
-        public void _Merge(Vector vector)
-        {
-            this.Value = this.Value.Union(vector.Value).ToArray();
-            return;
-        }
-
-        public static Vector Append(Vector vectorA, Vector vectorB, char axis, bool warp = false)
-        {
+            // IF Concat in ROW mode
             if (axis == 'r')
             {
-                return Vector.Concat(vectorA, vectorB);
+                return Vector.Append(vectorA, vectorB);
             }
+
+            // IF Concat in COLUMN mode
 
             // IF 2D
             if (vectorA.Columns > 1 && vectorB.Columns > 1)
@@ -452,7 +418,6 @@ namespace DataScience
 
             }
 
-
             var buffer = vectorA.gpu.accelerator.Allocate<float>(vectorB.Value.Length + vectorA.Value.Length); // Output
             var buffer2 = vectorA.gpu.accelerator.Allocate<float>(vectorA.Value.Length); // Input
             var buffer3 = vectorA.gpu.accelerator.Allocate<float>(vectorB.Value.Length); // Input
@@ -472,19 +437,20 @@ namespace DataScience
 
             return new Vector(vectorA.gpu, Output, vectorA.Columns + vectorB.Columns);
         }
-
-        public void _Append(Vector vector, char axis, bool warp = false)
+        public void Concat_IP(Vector vector, char axis = 'r', bool warp = false)
         {
             if (axis == 'r')
             {
-                this._Concat(vector);
+                this.Append_IP(vector);
                 return;
             }
 
+            // IF Concat in COLUMN mode
+
             // IF 2D
-            if (this.Columns > 1 && vector.Columns > 1) 
+            if (this.Columns > 1 && vector.Columns > 1)
             {
-                if (  (this.RowCount() != vector.RowCount()) && (this.RowCount() != vector.Columns) )
+                if ((this.RowCount() != vector.RowCount()) && (this.RowCount() != vector.Columns))
                 {
                     throw new Exception(
                         $"Vectors CANNOT be appended. " +
@@ -507,9 +473,7 @@ namespace DataScience
                 }
 
             }
-
             // IF 1D
-
             if (vector.Columns == 1)
             {
 
@@ -544,13 +508,47 @@ namespace DataScience
 
 
 
-        public static Vector Prepend(Vector vectorA, Vector vectorB, char axis)
+        /// <summary>
+        /// Concatinates VectorB onto the end of VectorA removing any duplicates.
+        /// Preserves the value of Columns of VectorA.
+        /// </summary>
+        /// <param name="vectorA"></param>
+        /// <param name="vectorB"></param>
+        /// <returns></returns>
+        public static Vector Merge(Vector vectorA, Vector vectorB)
         {
-            return Vector.Append(vectorB, vectorA, axis);
+            return new Vector(vectorA.gpu, vectorA.Value.Union(vectorB.Value).ToArray(), vectorA.Columns);
         }
-        public void _Prepend(Vector vector, char axis)
+        /// <summary>
+        /// Concatinates Vector onto the end of this Vector removing any duplicates.
+        /// Preserves the value of Columns of this Vector.
+        /// </summary>
+        /// <param name="vector"></param>
+        public void _Merge(Vector vector)
         {
-            Vector vec = Vector.Append(vector, this, axis);
+            this.Value = this.Value.Union(vector.Value).ToArray();
+            return;
+        }
+
+
+        public static Vector Append(Vector vectorA, Vector vectorB)
+        {
+            return new Vector(vectorA.gpu, vectorA.Value.Concat(vectorB.Value).ToArray(), vectorA.Columns);
+        }
+        public void Append_IP(Vector vector)
+        {
+            this.Value.Concat(vector.Value).ToArray();
+            return;
+        }
+
+
+        public static Vector Prepend(Vector vectorA, Vector vectorB)
+        {
+            return Vector.Append(vectorB, vectorA);
+        }
+        public void Prepend_IP(Vector vector, char axis)
+        {
+            Vector vec = Vector.Append(vector, this);
             this.Value = vec.Value;
             this.Columns = vec.Columns;
             return;
@@ -572,7 +570,7 @@ namespace DataScience
 
             return new Vector(vector.gpu, Output, vector.Columns);
         }
-        public void _Nan_to_num(float num)
+        public void Nan_to_num_IP(float num)
         {
             var buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // IO
 
