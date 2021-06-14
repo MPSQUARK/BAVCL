@@ -213,7 +213,11 @@ namespace DataScience
                                     select startval + (val * interval)).ToArray(), columns);
         }
 
-
+        public Vector Copy(Vector vector)
+        {
+            Vector vec = new Vector(vector.gpu, vector.Value, vector.Columns);
+            return vec;
+        }
 
         #endregion
 
@@ -393,7 +397,7 @@ namespace DataScience
                 {
                     if (!warp)
                     {
-                        vectorB._Transpose();
+                        vectorB.Transpose_IP();
                     }
 
                     if (warp && (vectorB.Length() % vectorA.RowCount() == 0))
@@ -462,7 +466,7 @@ namespace DataScience
                 {
                     if (!warp)
                     {
-                        vector._Transpose();
+                        vector.Transpose_IP();
                     }
 
                     if (warp && (vector.Length() % this.RowCount() == 0))
@@ -734,7 +738,7 @@ namespace DataScience
 
             return new Vector(vectorA.gpu, Output, vectorA.Columns);
         }
-        public void _ConsecutiveOP(Vector vectorB, Operations operation)
+        public void ConsecutiveOP_IP(Vector vectorB, Operations operation)
         {
             if (this.Value.Length != vectorB.Value.Length)
             {
@@ -778,7 +782,7 @@ namespace DataScience
 
             return new Vector(vector.gpu, Output, vector.Columns);
         }
-        public void _ConsecutiveOP(float scalar, Operations operation)
+        public void ConsecutiveOP_IP(float scalar, Operations operation)
         {
             var buffer = gpu.accelerator.Allocate<float>(this.Value.Length);
             var buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length);
@@ -821,7 +825,7 @@ namespace DataScience
 
             return new Vector(vectorA.gpu, Output);
         }
-        public void _Diff()
+        public void Diff_IP()
         {
             if (this.Columns > 1)
             {
@@ -868,7 +872,7 @@ namespace DataScience
         {
             return ConsecutiveOP(vectorA, 1f / vectorA.Value.Sum(), Operations.multiplication);
         }
-        public void _Normalise()
+        public void Normalise_IP()
         {
             this.Value = ConsecutiveOP(this, 1f / this.Value.Sum(), Operations.multiplication).Value;
         }
@@ -897,7 +901,7 @@ namespace DataScience
         /// Takes the absolute value of all values in this Vector.
         /// IMPORTANT : Use this method for Vectors of Length less than 100,000
         /// </summary>
-        public void _Abs()
+        public void Abs_IP()
         {
             if (this.Value.Min() > 0f)
             {
@@ -938,7 +942,7 @@ namespace DataScience
         /// Takes the absolute value of all the values in this Vector.
         /// IMPORTANT : Use this method for Vectors of Length more than 100,000
         /// </summary>
-        public void _AbsX()
+        public void AbsX_IP()
         {
             MemoryBuffer<float> buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // Input/Output
 
@@ -993,7 +997,7 @@ namespace DataScience
 
             return new Vector(vector.gpu, vector.Value, vector.Columns);
         }
-        public void _Reciprocal()
+        public void Reciprocal_IP()
         {
             MemoryBuffer<float> buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // IO
 
@@ -1014,7 +1018,7 @@ namespace DataScience
         {
             return new Vector(vector.gpu, vector.Value.Reverse().ToArray(), vector.Columns);
         }
-        public void _Reverse()
+        public void Reverse_IP()
         {
             this.Value = this.Value.Reverse().ToArray();
             return;
@@ -1037,7 +1041,7 @@ namespace DataScience
 
             return new Vector(vector.gpu, Output, vector.Columns);
         }
-        public void _ReverseX()
+        public void ReverseX_IP()
         {
             MemoryBuffer<float> buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // Output
             MemoryBuffer<float> buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length); // Input
@@ -1057,7 +1061,7 @@ namespace DataScience
         }
 
 
-        public void _Transpose()
+        public void Transpose_IP()
         {
             if (this.Columns == 1 || this.Columns >= this.Value.Length) { throw new Exception("Cannot transpose 1D Vector"); }
 
