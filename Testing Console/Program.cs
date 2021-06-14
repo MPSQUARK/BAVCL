@@ -16,9 +16,14 @@ namespace Testing_Console
 
             // SAMPLE AND TEST CODE
 
-            Vector vector = Vector.Arange(gpu, 20, 0, -0.5f, 5);
-            Vector vector1 = new Vector(gpu, new float[]{1f, 2f, 3f, 4f, 5f, 6f, 7f}, 3);
+            Vector vector = Vector.Arange(gpu, 10, -10, -0.5f, 5);
 
+            vector.Print();
+
+            Vector vec = Vector.Abs(vector);
+
+            vector.Print();
+            vec.Print();
 
 
         }

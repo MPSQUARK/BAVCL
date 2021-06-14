@@ -216,8 +216,8 @@ namespace DataScience
 
         public Vector Copy()
         {
-            Vector vec = new Vector(this.gpu, this.Value, this.Columns);
-            return vec;
+            return new Vector(this.gpu, this.Value[..], this.Columns);
+            //Vector vec = new Vector(this.gpu, this.Value, this.Columns);
         }
 
 
@@ -762,16 +762,9 @@ namespace DataScience
         /// <returns></returns>
         public static Vector Abs(Vector vector)
         {
-            if (vector.Value.Min() > 0f)
-            {
-                return vector;
-            }
-
-            for (int i = 0; i < vector.Value.Length; i++)
-            {
-                vector.Value[i] = MathF.Abs(vector.Value[i]);
-            }
-            return vector;
+            Vector vec = vector.Copy();
+            vec.Abs_IP();
+            return vec;
         }
         /// <summary>
         /// Takes the absolute value of all values in this Vector.
