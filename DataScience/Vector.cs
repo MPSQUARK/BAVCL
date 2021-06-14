@@ -639,34 +639,9 @@ namespace DataScience
         // FUNCTIONS
         public static Vector ConsecutiveOP(Vector vectorA, Vector vectorB, Operations operation)
         {
-            if (vectorA.Value.Length != vectorB.Value.Length)
-            {
-                throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
-            }
-
-            if(vectorA.gpu != vectorB.gpu)
-            {
-                throw new InvalidOperationException("Vector A GPU and Vector B GPU must match");
-            }
-
-            var buffer = vectorA.gpu.accelerator.Allocate<float>(vectorA.Value.Length); // Input
-            var buffer2 = vectorA.gpu.accelerator.Allocate<float>(vectorA.Value.Length); // Input
-            var buffer3 = vectorA.gpu.accelerator.Allocate<float>(vectorA.Value.Length); // Output
-
-            buffer.CopyFrom(vectorA.Value, 0, 0, vectorA.Value.Length);
-            buffer2.CopyFrom(vectorB.Value, 0, 0, vectorB.Value.Length);
-
-            vectorA.gpu.consecutiveOperationKernel(vectorA.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
-
-            vectorA.gpu.accelerator.Synchronize();
-
-            float[] Output = buffer3.GetAsArray();
-
-            buffer.Dispose();
-            buffer2.Dispose();
-            buffer3.Dispose();
-
-            return new Vector(vectorA.gpu, Output, vectorA.Columns);
+            Vector vector = vectorA.Copy();
+            vector.ConsecutiveOP_IP(vectorB, operation);
+            return vector;
         }
         public void ConsecutiveOP_IP(Vector vectorB, Operations operation)
         {
@@ -696,21 +671,9 @@ namespace DataScience
         }
         public static Vector ConsecutiveOP(Vector vector, float scalar, Operations operation)
         {
-            var buffer = vector.gpu.accelerator.Allocate<float>(vector.Value.Length);
-            var buffer2 = vector.gpu.accelerator.Allocate<float>(vector.Value.Length);
-
-            buffer2.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
-
-            vector.gpu.scalarConsecutiveOperationKernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
-
-            vector.gpu.accelerator.Synchronize();
-
-            float[] Output = buffer.GetAsArray();
-
-            buffer.Dispose();
-            buffer2.Dispose();
-
-            return new Vector(vector.gpu, Output, vector.Columns);
+            Vector vec = vector.Copy();
+            vec.ConsecutiveOP_IP(scalar, operation);
+            return vec;
         }
         public void ConsecutiveOP_IP(float scalar, Operations operation)
         {
@@ -732,28 +695,11 @@ namespace DataScience
         }
 
 
-        public static Vector Diff(Vector vectorA)
+        public static Vector Diff(Vector vector)
         {
-            if (vectorA.Columns > 1)
-            {
-                throw new Exception("Diff is for use with 1D Vectors ONLY");
-            }
-
-            MemoryBuffer<float> buffer = vectorA.gpu.accelerator.Allocate<float>(vectorA.Value.Length - 1); // Output
-            MemoryBuffer<float> buffer2 = vectorA.gpu.accelerator.Allocate<float>(vectorA.Value.Length); //  Input
-
-            buffer2.CopyFrom(vectorA.Value, 0, 0, vectorA.Value.Length);
-
-            vectorA.gpu.diffKernel(vectorA.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View);
-
-            vectorA.gpu.accelerator.Synchronize();
-
-            float[] Output = buffer.GetAsArray();
-
-            buffer.Dispose();
-            buffer2.Dispose();
-
-            return new Vector(vectorA.gpu, Output);
+            Vector vec = vector.Copy();
+            vec.Diff_IP();
+            return vec;
         }
         public void Diff_IP()
         {
