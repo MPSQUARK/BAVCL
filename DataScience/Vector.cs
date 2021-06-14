@@ -157,26 +157,27 @@ namespace DataScience
         /// <param name="Size"></param>
         /// <param name="Columns"></param>
         /// <param name="inplace"></param>
-        public void Fill_IP(float Value, int Length, int Columns = 1, bool inplace = true)
+        public void Fill_IP(float Value, int Length, int Columns = 1)
         {
             this.Value = Enumerable.Repeat(Value, Length).ToArray();
             this.Columns = Columns;
+            return;
         }
-        public static Vector Zeros(GPU gpu, int Length, int Columns)
+        public static Vector Zeros(GPU gpu, int Length, int Columns = 1)
         {
-            return new Vector(gpu, new float[Length], 1);
+            return new Vector(gpu, new float[Length], Columns);
         }
-        public void Zeros_IP(int Length, int Columns)
+        public void Zeros_IP(int Length, int Columns = 1)
         {
             this.Value = new float[Length];
             this.Columns = Columns;
             return;
         }
-        public static Vector Ones(GPU gpu, int Length, int Columns)
+        public static Vector Ones(GPU gpu, int Length, int Columns = 1)
         {
-            return new Vector(gpu, Enumerable.Repeat(1f, Length).ToArray(), 1);
+            return new Vector(gpu, Enumerable.Repeat(1f, Length).ToArray(), Columns);
         }
-        public void Ones_IP(int Length, int Columns)
+        public void Ones_IP(int Length, int Columns = 1)
         {
             this.Value = Enumerable.Repeat(1f, Length).ToArray();
             this.Columns = Columns;
@@ -190,11 +191,11 @@ namespace DataScience
         /// <param name="endval"></param>
         /// <param name="steps"></param>
         /// <returns></returns>
-        public static Vector Linspace(GPU gpu, float startval, float endval, int steps, int columns = 1)
+        public static Vector Linspace(GPU gpu, float startval, float endval, int steps, int Columns = 1)
         {
             if (steps <= 1) { throw new Exception("Cannot make linspace with less than 1 steps"); }
             float interval = (endval - startval) / (steps - 1);
-            return new Vector(gpu, (from val in Enumerable.Range(0, steps) select startval + (val * interval)).ToArray(), columns);
+            return new Vector(gpu, (from val in Enumerable.Range(0, steps) select startval + (val * interval)).ToArray(), Columns);
         }
         /// <summary>
         /// 
@@ -203,21 +204,23 @@ namespace DataScience
         /// <param name="endval"></param>
         /// <param name="interval"></param>
         /// <returns></returns>
-        public static Vector Arange(GPU gpu, float startval, float endval, float interval, int columns = 1)
+        public static Vector Arange(GPU gpu, float startval, float endval, float interval, int Columns = 1)
         {
             int steps = (int)((endval - startval) / interval);
             if (endval < startval && interval > 0) { steps = Math.Abs(steps); interval = -interval; }
             if (endval % interval != 0) { steps++; }
 
             return new Vector(gpu, (from val in Enumerable.Range(0, steps)
-                                    select startval + (val * interval)).ToArray(), columns);
+                                    select startval + (val * interval)).ToArray(), Columns);
         }
 
-        public Vector Copy(Vector vector)
+        public Vector Copy()
         {
-            Vector vec = new Vector(vector.gpu, vector.Value, vector.Columns);
+            Vector vec = new Vector(this.gpu, this.Value, this.Columns);
             return vec;
         }
+
+
 
         #endregion
 
@@ -374,72 +377,9 @@ namespace DataScience
         /// <returns></returns>
         public static Vector Concat(Vector vectorA, Vector vectorB, char axis='r', bool warp = false)
         {
-            // IF Concat in ROW mode
-            if (axis == 'r')
-            {
-                return Vector.Append(vectorA, vectorB);
-            }
-
-            // IF Concat in COLUMN mode
-
-            // IF 2D
-            if (vectorA.Columns > 1 && vectorB.Columns > 1)
-            {
-                if ((vectorA.RowCount() != vectorB.RowCount()) && (vectorA.RowCount() != vectorB.Columns))
-                {
-                    throw new Exception(
-                        $"Vectors CANNOT be appended. " +
-                        $"This Vector has the shape ({vectorA.RowCount()},{vectorA.Columns}). " +
-                        $"The 2D Vector being appended has the shape ({vectorB.RowCount()},{vectorB.Columns})");
-                }
-
-                if (vectorA.RowCount() == vectorB.Columns)
-                {
-                    if (!warp)
-                    {
-                        vectorB.Transpose_IP();
-                    }
-
-                    if (warp && (vectorB.Length() % vectorA.RowCount() == 0))
-                    {
-                        vectorB.Columns = vectorB.Value.Length / vectorA.RowCount();
-                    }
-
-                }
-
-            }
-            // IF 1D
-            if (vectorB.Columns == 1)
-            {
-
-                if (vectorB.Value.Length % vectorA.RowCount() != 0)
-                {
-                    throw new Exception($"Vectors CANNOT be appended. " +
-                        $"This array has shape ({vectorA.RowCount()},{vectorA.Columns}), 1D vector being appended has {vectorB.Length()} Length");
-                }
-
-                vectorB.Columns = vectorB.Value.Length / vectorA.RowCount();
-
-            }
-
-            var buffer = vectorA.gpu.accelerator.Allocate<float>(vectorB.Value.Length + vectorA.Value.Length); // Output
-            var buffer2 = vectorA.gpu.accelerator.Allocate<float>(vectorA.Value.Length); // Input
-            var buffer3 = vectorA.gpu.accelerator.Allocate<float>(vectorB.Value.Length); // Input
-
-            buffer2.CopyFrom(vectorA.Value, 0, 0, vectorA.Value.Length);
-            buffer3.CopyFrom(vectorB.Value, 0, 0, vectorB.Value.Length);
-
-            vectorA.gpu.appendKernel(vectorA.gpu.accelerator.DefaultStream, vectorA.RowCount(), buffer.View, buffer2.View, buffer3.View, vectorA.Columns, vectorB.Columns);
-
-            vectorA.gpu.accelerator.Synchronize();
-
-            float[] Output = buffer.GetAsArray();
-
-            buffer.Dispose();
-            buffer2.Dispose();
-            buffer3.Dispose();
-
-            return new Vector(vectorA.gpu, Output, vectorA.Columns + vectorB.Columns);
+            Vector vector = vectorA.Copy();
+            vector.Concat_IP(vectorB, axis, warp);
+            return vector;
         }
         public void Concat_IP(Vector vector, char axis = 'r', bool warp = false)
         {
@@ -528,7 +468,7 @@ namespace DataScience
         /// Preserves the value of Columns of this Vector.
         /// </summary>
         /// <param name="vector"></param>
-        public void _Merge(Vector vector)
+        public void Merge_IP(Vector vector)
         {
             this.Value = this.Value.Union(vector.Value).ToArray();
             return;
@@ -560,19 +500,9 @@ namespace DataScience
 
         public static Vector Nan_to_num(Vector vector, float num)
         {
-            var buffer = vector.gpu.accelerator.Allocate<float>(vector.Value.Length); // IO
-
-            buffer.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
-
-            vector.gpu.nanToNumKernel(vector.gpu.accelerator.DefaultStream, vector.Value.Length, buffer.View, num);
-
-            vector.gpu.accelerator.Synchronize();
-
-            float[] Output = buffer.GetAsArray();
-
-            buffer.Dispose();
-
-            return new Vector(vector.gpu, Output, vector.Columns);
+            Vector vec = vector.Copy();
+            vec.Nan_to_num_IP(num);
+            return vec;
         }
         public void Nan_to_num_IP(float num)
         {
