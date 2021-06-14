@@ -217,7 +217,6 @@ namespace DataScience
         public Vector Copy()
         {
             return new Vector(this.gpu, this.Value[..], this.Columns);
-            //Vector vec = new Vector(this.gpu, this.Value, this.Columns);
         }
 
 
@@ -792,19 +791,9 @@ namespace DataScience
         /// <returns></returns>
         public static Vector AbsX(Vector vector)
         {
-            MemoryBuffer<float> buffer = vector.gpu.accelerator.Allocate<float>(vector.Value.Length); // Input/Output
-
-            buffer.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
-
-            vector.gpu.absKernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
-
-            vector.gpu.accelerator.Synchronize();
-
-            float[] Output = buffer.GetAsArray();
-
-            buffer.Dispose();
-
-            return new Vector(vector.gpu, Output, vector.Columns);
+            Vector vec = vector.Copy();
+            vec.AbsX_IP();
+            return vec;
         }
         /// <summary>
         /// Runs on Accelerator. (GPU : Default)
@@ -852,19 +841,9 @@ namespace DataScience
 
         public static Vector Reciprocal(Vector vector)
         {
-            MemoryBuffer<float> buffer = vector.gpu.accelerator.Allocate<float>(vector.Value.Length); // IO
-
-            buffer.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
-
-            vector.gpu.reciprocalKernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
-
-            vector.gpu.accelerator.Synchronize();
-
-            float[] Output = buffer.GetAsArray();
-
-            buffer.Dispose();
-
-            return new Vector(vector.gpu, vector.Value, vector.Columns);
+            Vector vec = vector.Copy();
+            vec.Reciprocal_IP();
+            return vec;
         }
         public void Reciprocal_IP()
         {
@@ -894,21 +873,9 @@ namespace DataScience
         }
         public static Vector ReverseX(Vector vector)
         {
-            MemoryBuffer<float> buffer = vector.gpu.accelerator.Allocate<float>(vector.Value.Length); // Output
-            MemoryBuffer<float> buffer2 = vector.gpu.accelerator.Allocate<float>(vector.Value.Length); // Input
-
-            buffer2.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
-
-            vector.gpu.reverseKernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View);
-
-            vector.gpu.accelerator.Synchronize();
-
-            float[] Output = buffer.GetAsArray();
-
-            buffer.Dispose();
-            buffer2.Dispose();
-
-            return new Vector(vector.gpu, Output, vector.Columns);
+            Vector vec = vector.Copy();
+            vec.ReverseX_IP();
+            return vec;
         }
         public void ReverseX_IP()
         {
@@ -930,6 +897,12 @@ namespace DataScience
         }
 
 
+        public static Vector Transpose(Vector vector)
+        {
+            Vector vec = vector.Copy();
+            vec.Transpose_IP();
+            return vec;
+        }
         public void Transpose_IP()
         {
             if (this.Columns == 1 || this.Columns >= this.Value.Length) { throw new Exception("Cannot transpose 1D Vector"); }
@@ -952,29 +925,7 @@ namespace DataScience
 
             return;
         }
-        public static Vector Transpose(Vector vector)
-        {
-            if (vector.Columns == 1 || vector.Columns >= vector.Value.Length) { throw new Exception("Cannot transpose 1D Vector"); }
-
-
-            MemoryBuffer<float> buffer = vector.gpu.accelerator.Allocate<float>(vector.Value.Length); // Output
-            MemoryBuffer<float> buffer2 = vector.gpu.accelerator.Allocate<float>(vector.Value.Length); // Input
-
-            buffer2.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
-
-            vector.gpu.transposekernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, vector.Columns);
-
-            vector.gpu.accelerator.Synchronize();
-
-            float[] Output = buffer.GetAsArray();
-
-            buffer.Dispose();
-            buffer2.Dispose();
-
-            return new Vector(vector.gpu, Output, vector.RowCount());
-
-        }
-
+       
 
     }
 
