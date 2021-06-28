@@ -171,7 +171,7 @@ namespace DataScience
         }
         
 
-        [Obsolete]
+        
         // CODE DOES NOT WORK AS INTENDED
         //public float SumGPU()
         //{
