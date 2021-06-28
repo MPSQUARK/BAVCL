@@ -4,6 +4,7 @@ using ILGPU.IR.Transformations;
 using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -17,6 +18,14 @@ namespace DataScience
         Context context;
         public Accelerator accelerator;
 
+        public Hashtable Data = new Hashtable(); // GPU-side memory caching
+        private Queue<int> LRU = new Queue<int>(); // GPU-side memory caching
+        private Random rnd = new Random();
+
+        // Variables - Kernels
+        #region
+        public Action<AcceleratorStream, Index1, ArrayView<double>, ArrayView<float>> sumKernel;
+
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int> appendKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, float> nanToNumKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<int>> accessSliceKernel;
@@ -29,6 +38,10 @@ namespace DataScience
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>> crossKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, int> transposekernel;
 
+        #endregion
+
+
+        // Constructor
         public GPU(bool forceCPU = false, ContextFlags flags = ContextFlags.None, OptimizationLevel optimizationLevel = OptimizationLevel.Debug)
         {
             this.context = new Context(flags, optimizationLevel);
@@ -40,11 +53,12 @@ namespace DataScience
             LoadKernels();
             Console.WriteLine("Device Kernels Loaded");
         }
-
         private void LoadKernels()
         {
             Stopwatch timer = new Stopwatch();
             timer.Start();
+
+            sumKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<double>, ArrayView<float>>(SumKernel);
 
             appendKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(AppendKernel);
             nanToNumKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, float>(Nan_to_numKernel);
@@ -62,6 +76,8 @@ namespace DataScience
             Console.WriteLine("Kernels Loaded in: " + timer.Elapsed.TotalMilliseconds + " MS");
         }
 
+
+        // Get 'Best' GPU
         private Accelerator GetGpu(Context context, bool prefCPU = false)
         {
             var groupedAccelerators = Accelerator.Accelerators
@@ -88,8 +104,63 @@ namespace DataScience
             return new CPUAccelerator(context);
         }
 
-        //Kernels
 
+        // Memory Caching & Management
+        private int GenerateId()
+        {
+            return rnd.Next(-100000, 100000);
+        }
+        private bool TestId(int id)
+        {
+            return this.Data.ContainsKey(id);
+        }
+        public int Cache(float[] array)
+        {
+            int Id = GenerateId();
+            while (TestId(Id))
+            {
+                Id = GenerateId();
+            }
+
+            // Try Allocate - Need to add remove least recently used if not enough space
+            MemoryBuffer<float> buffer = this.accelerator.Allocate<float>(array.Length);
+            buffer.CopyFrom(array, 0, 0, array.Length);
+
+            LRU.Enqueue(Id);
+            Data[Id] = buffer;
+            return Id;
+        }
+        public void DeCache(int Id)
+        {
+            MemoryBuffer<float> buffer = (MemoryBuffer<float>)Data[Id];
+            buffer.Dispose();
+            Data.Remove(Id);
+
+
+        }
+        private void DeCacheLast()
+        {
+
+        }
+
+
+
+
+        // Test Kernels
+        static void SumKernel(Index1 index, ArrayView<double> Output, ArrayView<float> Input)
+        {
+            double sum = 0;
+            for (int i = index * 100000; i < (index + 1) * 100000; i++)
+            {
+                sum += Input[i];
+            }
+            Output[index] += sum;
+        }
+
+
+
+
+        //Kernels
         static void AppendKernel(Index1 index, ArrayView<float> Output, ArrayView<float> vecA, ArrayView<float> vecB, int vecAcol, int vecBcol)
         {
 
