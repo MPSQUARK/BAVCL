@@ -9,6 +9,8 @@ using System.Text;
 using DataScience.Utility;
 
 
+using System.Numerics;
+
 namespace DataScience
 {
 
@@ -21,6 +23,8 @@ namespace DataScience
         // VARIABLE BLOCK
         public override float[] Value { get; set; }
         public override int Columns { get; protected set; }
+
+        public int? Id = null;
 
 
         // CONSTRUCTOR
@@ -35,6 +39,7 @@ namespace DataScience
             this.gpu = gpu;
             this.Value = value;
             this.Columns = columns;
+            //this.Id = this.gpu.Cache(value);
         }
 
 
@@ -102,8 +107,9 @@ namespace DataScience
         }
         public override float Mean()
         {
-            return this.Value.Average();
+            return this.Sum() / this.Length();
         }
+
         public float Std()
         {
             return XMath.Sqrt(this.Var());
@@ -118,8 +124,85 @@ namespace DataScience
         }
         public override float Sum()
         {
-            return this.Value.Sum();
+            int vectorSize = System.Numerics.Vector<float>.Count;
+            int i = 0;
+            float[] array = this.Value;
+
+            System.Numerics.Vector<float> sumVector = System.Numerics.Vector<float>.Zero;
+
+            if (array.Length >= 1e4f)
+            {
+                System.Numerics.Vector<float> c = System.Numerics.Vector<float>.Zero;
+                for (; i <= array.Length - vectorSize; i += vectorSize)
+                {
+
+                    System.Numerics.Vector<float> input = new System.Numerics.Vector<float>(array, i);
+
+                    System.Numerics.Vector<float> y = input - c;
+
+                    System.Numerics.Vector<float> t = sumVector + y;
+
+                    c = (t - sumVector) - y;
+
+                    sumVector = t;
+                }
+            }
+            else
+            {
+                for (i = 0; i <= array.Length - vectorSize; i += vectorSize)
+                {
+                    System.Numerics.Vector<float> v = new System.Numerics.Vector<float>(array, i);
+
+                    sumVector = System.Numerics.Vector.Add(sumVector, v);
+                }
+            }
+            
+            float result = 0;
+            for (int j = 0; j < vectorSize; j++)
+            {
+                result += sumVector[j];
+            }
+
+            for (; i < array.Length; i++)
+            {
+                result += array[i];
+            }
+            return result;
         }
+        
+
+        [Obsolete]
+        // CODE DOES NOT WORK AS INTENDED
+        //public float SumGPU()
+        //{
+        //    var buffer2 = this.gpu.accelerator.Allocate<double>((int)(this.Length() * 1e-5));
+        //    MemoryBuffer<float> buffer;
+        //    if (this.Id == null)
+        //    {
+        //        buffer = this.gpu.accelerator.Allocate<float>(this.Length());
+        //        buffer.CopyFrom(this.Value, 0, 0, this.Value.Length);
+        //    }
+        //    else
+        //    {
+        //        buffer = (MemoryBuffer<float>)this.gpu.Data[this.Id];
+        //    }
+
+        //    this.gpu.sumKernel(this.gpu.accelerator.DefaultStream, (int)(this.Length() * 1e-5), buffer2, buffer);
+
+        //    this.gpu.accelerator.Synchronize();
+
+        //    double[] Output = buffer2.GetAsArray();
+
+        //    buffer2.Dispose();
+
+        //    double sum = 0f;
+        //    for (int i = 0; i < Output.Length; i++)
+        //    {
+        //        sum += Output[i];
+        //    }
+
+        //    return (float)sum;
+        //}
 
 
         public void Flatten()
