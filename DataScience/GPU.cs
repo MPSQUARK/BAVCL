@@ -5,10 +5,12 @@ using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DataScience
@@ -18,9 +20,10 @@ namespace DataScience
         Context context;
         public Accelerator accelerator;
 
-        public Hashtable Data = new Hashtable(); // GPU-side memory caching
-        private Queue<int> LRU = new Queue<int>(); // GPU-side memory caching
-        private Random rnd = new Random();
+
+        public ConcurrentDictionary<uint, MemoryBuffer> Data = new ConcurrentDictionary<uint, MemoryBuffer>(); // GPU-side memory caching
+        private ConcurrentQueue<uint> LRU = new ConcurrentQueue<uint>();                                       // GPU-side memory caching                                                     
+        private uint CurrentVecId = 0;
 
         // Variables - Kernels
         #region
@@ -106,41 +109,39 @@ namespace DataScience
 
 
         // Memory Caching & Management
-        private int GenerateId()
+        private uint GenerateId()
         {
-            return rnd.Next(-100000, 100000);
+            return Interlocked.Increment(ref CurrentVecId);
         }
-        private bool TestId(int id)
+        private bool TestId(uint id)
         {
             return this.Data.ContainsKey(id);
         }
-        public int Cache(float[] array)
+        public uint Cache(float[] array)
         {
-            int Id = GenerateId();
-            while (TestId(Id))
-            {
-                Id = GenerateId();
-            }
-
             // Try Allocate - Need to add remove least recently used if not enough space
             MemoryBuffer<float> buffer = this.accelerator.Allocate<float>(array.Length);
             buffer.CopyFrom(array, 0, 0, array.Length);
 
+
+            uint Id = GenerateId();
+            while (!Data.TryAdd(Id, buffer))
+            {
+                Id = GenerateId();
+            }
+
             LRU.Enqueue(Id);
-            Data[Id] = buffer;
             return Id;
         }
-        public void DeCache(int Id)
+        public void DeCache(uint Id)
         {
-            MemoryBuffer<float> buffer = (MemoryBuffer<float>)Data[Id];
+            MemoryBuffer buffer;
+            Data.TryRemove(Id, out buffer);
             buffer.Dispose();
-            Data.Remove(Id);
-
-
         }
         private void DeCacheLast()
         {
-
+            
         }
 
 
