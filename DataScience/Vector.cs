@@ -753,7 +753,7 @@ namespace DataScience
 
             gpu.accelerator.Synchronize();
 
-            buffer3.CopyFrom(this.Value, 0, 0, this.Value.Length);
+            buffer3.CopyTo(this.Value, 0, 0, this.Value.Length);
 
             buffer.Dispose();
             buffer2.Dispose();
