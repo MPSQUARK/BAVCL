@@ -24,7 +24,7 @@ namespace DataScience
         public override float[] Value { get; set; }
         public override int Columns { get; protected set; }
 
-        public int? Id = null;
+        public uint? Id = null;
 
 
         // CONSTRUCTOR
@@ -34,12 +34,22 @@ namespace DataScience
         /// <param name="gpu">The device to use when computing this Vector.</param>
         /// <param name="values">The array of data contained in this Vector.</param>
         /// <param name="columns">The number of Columns IF this is a 2D Vector, for 1D Vectors use the default Columns = 1</param>
-        public Vector(GPU gpu, float[] value, int columns = 1)
+        public Vector(GPU gpu, float[] value, int columns = 1, bool cache=true)
         {
             this.gpu = gpu;
             this.Value = value;
             this.Columns = columns;
-            //this.Id = this.gpu.Cache(value);
+            if (cache)
+            {
+                this.Id = this.gpu.Cache(value);
+            }
+            
+        }
+
+        public void Dispose()
+        {
+            this.gpu.DeCache((uint)this.Id);
+            return;
         }
 
 
@@ -743,7 +753,7 @@ namespace DataScience
 
             gpu.accelerator.Synchronize();
 
-            buffer3.CopyFrom(this.Value, 0, 0, this.Value.Length);
+            buffer3.CopyTo(this.Value, 0, 0, this.Value.Length);
 
             buffer.Dispose();
             buffer2.Dispose();
