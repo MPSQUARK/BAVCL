@@ -21,9 +21,26 @@ namespace DataScience
         public Accelerator accelerator;
 
 
+        // LRU 
         public ConcurrentDictionary<uint, MemoryBuffer> Data = new ConcurrentDictionary<uint, MemoryBuffer>(); // GPU-side memory caching
+        public ConcurrentDictionary<uint, Array> DataRefs = new ConcurrentDictionary<uint, Array>();           // CPU-side - Reference
+
         private ConcurrentQueue<uint> LRU = new ConcurrentQueue<uint>();                                       // GPU-side memory caching                                                     
         private uint CurrentVecId = 0;
+
+        // Device Memory
+        public readonly long MaxMemory;
+        private long MemoryInUse = 0;
+        private float MemoryCap;
+        public float memorycap
+        { 
+            get { return this.MemoryCap; } 
+            set { MemoryCap = Math.Clamp(value, 0f, 1f); } 
+        }
+
+
+        
+        
 
         // Variables - Kernels
         #region
@@ -41,17 +58,23 @@ namespace DataScience
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>> crossKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, int> transposekernel;
 
+
+
         #endregion
 
 
         // Constructor
-        public GPU(bool forceCPU = false, ContextFlags flags = ContextFlags.None, OptimizationLevel optimizationLevel = OptimizationLevel.Debug)
+        public GPU(float memorycap = 0.8f, bool forceCPU = false, ContextFlags flags = ContextFlags.None, OptimizationLevel optimizationLevel = OptimizationLevel.Debug)
         {
             this.context = new Context(flags, optimizationLevel);
             this.context.EnableAlgorithms();
 
             this.accelerator = GetGpu(context, forceCPU);
             Console.WriteLine("Device loaded: " + accelerator.Name);
+
+            this.memorycap = memorycap;
+            this.MaxMemory = (long)Math.Round(this.accelerator.MemorySize * this.memorycap);
+
 
             LoadKernels();
             Console.WriteLine("Device Kernels Loaded");
@@ -113,38 +136,103 @@ namespace DataScience
         {
             return Interlocked.Increment(ref CurrentVecId);
         }
-        private bool TestId(uint id)
+        private bool IsInCache(uint id)
         {
             return this.Data.ContainsKey(id);
         }
-        public uint Cache(float[] array)
+        private long MemorySize(float[] array)
         {
-            // Try Allocate - Need to add remove least recently used if not enough space
+            return (long)array.Length * 4;
+        }
+        private void DecacheLRU(long required)
+        {
+            if (required > this.MaxMemory)
+            {
+                throw new Exception($"Cannot cache this data onto the GPU, required memory : {required / (1024 * 1024)} MB, max memory available : {this.MaxMemory / (1024 * 1024)} MB.\n " +
+                                    $"Consider spliting/breaking the data into multiple smaller sets OR \n Caching to a GPU with more available memory.");
+            }
+
+            while (required > (this.MaxMemory - this.MemoryInUse))
+            {
+                this.DeCacheLast();
+            }
+            return;
+        }
+
+
+        public uint Cache(ref float[] array)
+        {
+            // how much memory needed
+            long size = MemorySize(array);
+
+            // check if the amount required is available
+            // decache last and check again untill enough space is made
+            DecacheLRU(size);
+
+            // Allocate data to GPU
             MemoryBuffer<float> buffer = this.accelerator.Allocate<float>(array.Length);
             buffer.CopyFrom(array, 0, 0, array.Length);
 
 
+            // Increase the Memory in Use
+            Interlocked.Add(ref MemoryInUse, size);
+
+            // generate Id for data so it can be found by the vector
             uint Id = GenerateId();
             while (!Data.TryAdd(Id, buffer))
             {
                 Id = GenerateId();
             }
 
+            // generate a reference for the GPU to the vector value parameter so it can be syncronised upon decaching
+            DataRefs.TryAdd(Id, array);
+
+            // Put the Id in a queue
             LRU.Enqueue(Id);
+
+            // return Id
             return Id;
         }
         public void DeCache(uint Id)
         {
             MemoryBuffer buffer;
-            Data.TryRemove(Id, out buffer);
-            buffer.Dispose();
+            if (Data.TryRemove(Id, out buffer))
+            {
+                buffer.Dispose();
+            }
+            
+            Array array;
+            if (DataRefs.TryRemove(Id, out array))
+            {
+                long size = MemorySize((float[])array);
+                Interlocked.Add(ref MemoryInUse, -size);
+            }
+            
         }
         private void DeCacheLast()
         {
+            uint Id;
+            LRU.TryDequeue(out Id); // Returns bool - could be useful for something
             
+            MemoryBuffer buffer;
+            if (Data.TryRemove(Id, out buffer))
+            {
+                
+                buffer.Dispose();
+
+                Array array;
+                DataRefs.TryRemove(Id, out array);
+                long size = MemorySize((float[])array);
+                Interlocked.Add(ref MemoryInUse, -size);
+            }
         }
 
+        public void ShowMemoryUsage(bool percentage = true)
+        {
+            if (percentage) { Console.WriteLine($"{((double)this.MemoryInUse / (double)this.MaxMemory) * 100f:0.00}%"); return; }
 
+            Console.WriteLine( $"{this.MemoryInUse / (1024 * 1024)}/{this.MaxMemory / (1024 * 1024)} MB");
+        }
 
 
         // Test Kernels

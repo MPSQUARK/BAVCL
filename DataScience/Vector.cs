@@ -34,14 +34,14 @@ namespace DataScience
         /// <param name="gpu">The device to use when computing this Vector.</param>
         /// <param name="values">The array of data contained in this Vector.</param>
         /// <param name="columns">The number of Columns IF this is a 2D Vector, for 1D Vectors use the default Columns = 1</param>
-        public Vector(GPU gpu, float[] value, int columns = 1, bool cache=true)
+        public Vector(GPU gpu, float[] value, int columns = 1, bool cache=false)
         {
             this.gpu = gpu;
             this.Value = value;
             this.Columns = columns;
             if (cache)
             {
-                this.Id = this.gpu.Cache(value);
+                this.Id = this.gpu.Cache(ref value);
             }
             
         }
