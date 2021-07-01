@@ -48,7 +48,10 @@ namespace DataScience
 
         public void Dispose()
         {
-            this.gpu.DeCache((uint)this.Id);
+            if (this.Id != null)
+            {
+                this.gpu.DeCache((uint)this.Id);
+            }
             return;
         }
 
