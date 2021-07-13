@@ -41,7 +41,7 @@ namespace DataScience
             this.Columns = columns;
             if (cache)
             {
-                this.Id = this.gpu.Cache(value);
+                this.Cache();
             }
             
         }
@@ -262,7 +262,8 @@ namespace DataScience
 
         #endregion
 
-        // Disposal
+
+        // DISPOSAL
         #region
         public void Dispose()
         {
