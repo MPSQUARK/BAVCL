@@ -14,30 +14,39 @@ namespace Testing_Console
         static void Main(string[] args)
         {
             GPU gpu = new GPU();
+            Random rnd = new Random();
 
             // SAMPLE AND TEST CODE
 
             Console.WriteLine();
 
-            Vector[] vectors = new Vector[20];
+            float[] array = new float[(int)1e7];
 
-            for (int i = 0; i < 20; i++)
+            for (int i = 0; i < (int)1e7; i++)
             {
-                vectors[i] = Vector.Arange(gpu, 0, 1e8f, 1f, 5);
-                gpu.ShowMemoryUsage();
+                array[i] = rnd.Next(0, 4);
             }
 
+            Vector vec = new Vector(gpu, array, 1, true);
+            //gpu.ShowMemoryUsage();
+            //Vector vec = Vector.Arange(gpu, 0, 1e5f, 1f, 1);
 
-            Console.WriteLine("Vectors Made, now DeCaching them \n\n\n");
-
-            for (int i = 0; i < 20; i++)
+            System.Diagnostics.Stopwatch sw = new Stopwatch();
+            sw.Start();
+            for (int i = 0; i < 10; i++)
             {
-                vectors[i].Dispose();
-                gpu.ShowMemoryUsage();
+                float result = vec.Std();
+                //gpu.ShowMemoryUsage();
             }
+            sw.Stop();
+            float time = sw.ElapsedMilliseconds;
 
+            sw.Restart();
+            Console.WriteLine($"time : {time /10 } ms");
 
-           
+            
+            Console.Read();
+
         }
 
 
