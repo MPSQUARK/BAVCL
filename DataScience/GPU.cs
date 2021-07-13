@@ -274,8 +274,6 @@ namespace DataScience
         }
 
 
-
-
         public void ShowMemoryUsage(bool percentage = true)
         {
             if (percentage) { Console.WriteLine($"{((double)this.MemoryInUse / (double)this.MaxMemory) * 100f:0.00}%"); return; }
