@@ -22,8 +22,9 @@ namespace DataScience
 
 
         // LRU 
+        // NOTE : Maybe combine these two into 1 concurrent dictionary<uint,CustomStruct>, where the struct would have : MemoryBuffer, SizeInMemory and DataType information?
         public ConcurrentDictionary<uint, MemoryBuffer> Data = new ConcurrentDictionary<uint, MemoryBuffer>(); // GPU-side memory caching
-        public ConcurrentDictionary<uint, Array> DataRefs = new ConcurrentDictionary<uint, Array>();           // CPU-side - Reference
+        public ConcurrentDictionary<uint, long> DataSizes = new ConcurrentDictionary<uint, long>();            // CPU-side 
 
         private ConcurrentQueue<uint> LRU = new ConcurrentQueue<uint>();                                       // GPU-side memory caching                                                     
         private uint CurrentVecId = 0;
@@ -66,16 +67,19 @@ namespace DataScience
         // Constructor
         public GPU(float memorycap = 0.8f, bool forceCPU = false, ContextFlags flags = ContextFlags.None, OptimizationLevel optimizationLevel = OptimizationLevel.Debug)
         {
+            // Create Context
             this.context = new Context(flags, optimizationLevel);
             this.context.EnableAlgorithms();
 
+            // Get Accelerator Device
             this.accelerator = GetGpu(context, forceCPU);
             Console.WriteLine("Device loaded: " + accelerator.Name);
 
+            // Set Memory Usage Cap
             this.memorycap = memorycap;
-            this.MaxMemory = (long)Math.Round(this.accelerator.MemorySize * this.memorycap);
+            this.MaxMemory = (long)Math.Round(this.accelerator.MemorySize * this.MemoryCap);
 
-
+            // Load Kernels
             LoadKernels();
             Console.WriteLine("Device Kernels Loaded");
         }
@@ -140,39 +144,69 @@ namespace DataScience
         {
             return this.Data.ContainsKey(id);
         }
-        private long MemorySize(float[] array)
+        public long MemorySize(float[] array)
         {
-            return (long)array.Length * 4;
+            return (long)array.Length << 2;
         }
-        private void DecacheLRU(long required)
+        public void DeCacheLRU(long required, HashSet<uint> Flags = null)
         {
+            // Check if the memory required doesn't exceed the Maximum available
             if (required > this.MaxMemory)
             {
                 throw new Exception($"Cannot cache this data onto the GPU, required memory : {required / (1024 * 1024)} MB, max memory available : {this.MaxMemory / (1024 * 1024)} MB.\n " +
                                     $"Consider spliting/breaking the data into multiple smaller sets OR \n Caching to a GPU with more available memory.");
             }
 
+            // Keep decaching untill enough space is made to accomodate the data
             while (required > (this.MaxMemory - this.MemoryInUse))
             {
-                this.DeCacheLast();
+                if (LRU.Count == Flags.Count)
+                {
+                    throw new Exception($"Cannot DeCache any more data, keep flags : {Flags.Count}, LRU entries : {LRU.Count}");
+                }
+
+                // Get the ID of the last item
+                uint Id;
+                LRU.TryDequeue(out Id); // Returns bool - could be useful for something
+
+                // If the Id is Flagged - Do not dispose and re-enqueue
+                if (Flags.Contains(Id))
+                {
+                    LRU.Enqueue(Id);
+                    continue;
+                } 
+
+                // Get the Buffer corresponding to the ID
+                MemoryBuffer buffer;
+                if (Data.TryRemove(Id, out buffer))
+                {
+                    // Dispose of the Buffer
+                    buffer.Dispose();
+
+                    // Get the size in memory of the decached array
+                    long size;
+                    DataSizes.TryRemove(Id, out size);
+                    // Reduce the Memory in Use tracker by the size
+                    Interlocked.Add(ref MemoryInUse, -size);
+                }
             }
             return;
         }
 
 
-        public uint Cache(ref float[] array)
+
+        public uint Cache(float[] array)
         {
-            // how much memory needed
+            // Calculates how much memory needed
             long size = MemorySize(array);
 
             // check if the amount required is available
             // decache last and check again untill enough space is made
-            DecacheLRU(size);
+            DeCacheLRU(size);
 
             // Allocate data to GPU
             MemoryBuffer<float> buffer = this.accelerator.Allocate<float>(array.Length);
             buffer.CopyFrom(array, 0, 0, array.Length);
-
 
             // Increase the Memory in Use
             Interlocked.Add(ref MemoryInUse, size);
@@ -184,8 +218,7 @@ namespace DataScience
                 Id = GenerateId();
             }
 
-            // generate a reference for the GPU to the vector value parameter so it can be syncronised upon decaching
-            DataRefs.TryAdd(Id, array);
+            DataSizes.TryAdd(Id, size);
 
             // Put the Id in a queue
             LRU.Enqueue(Id);
@@ -195,37 +228,53 @@ namespace DataScience
         }
         public void DeCache(uint Id)
         {
+            // Get the Memory Buffer
             MemoryBuffer buffer;
             if (Data.TryRemove(Id, out buffer))
             {
+                // Dispose of buffer
                 buffer.Dispose();
             }
             
-            Array array;
-            if (DataRefs.TryRemove(Id, out array))
+            // Get the Vector size in memory
+            long size;
+            if (DataSizes.TryRemove(Id, out size))
             {
-                long size = MemorySize((float[])array);
+                // Reduces the Memory in use tracker by the size
                 Interlocked.Add(ref MemoryInUse, -size);
             }
-            
-        }
-        private void DeCacheLast()
-        {
-            uint Id;
-            LRU.TryDequeue(out Id); // Returns bool - could be useful for something
-            
-            MemoryBuffer buffer;
-            if (Data.TryRemove(Id, out buffer))
-            {
-                
-                buffer.Dispose();
 
-                Array array;
-                DataRefs.TryRemove(Id, out array);
-                long size = MemorySize((float[])array);
-                Interlocked.Add(ref MemoryInUse, -size);
+            // If the Vector being disposed is the last Vector, then don't shuffle
+            uint DequeuedId;
+            LRU.TryDequeue(out DequeuedId);
+
+            if (DequeuedId == Id)
+            {
+                return;
             }
+
+            // Get the number of items in LRU
+            int length = LRU.Count;
+            // Put back the De-queued Id since it didn't match the Disposed Id
+            LRU.Enqueue(DequeuedId);
+
+            // shuffle through LRU to remove the disposed Id
+            for (int i = 0; i < length; i++)
+            {
+                LRU.TryDequeue(out DequeuedId);
+
+                // Id matching the one disposed will not be re-enqueued 
+                // Order will be preserved
+                if (Id != DequeuedId)
+                {
+                    LRU.Enqueue(DequeuedId);
+                }
+            }
+            
         }
+
+
+
 
         public void ShowMemoryUsage(bool percentage = true)
         {
@@ -233,6 +282,7 @@ namespace DataScience
 
             Console.WriteLine( $"{this.MemoryInUse / (1024 * 1024)}/{this.MaxMemory / (1024 * 1024)} MB");
         }
+
 
 
         // Test Kernels
@@ -363,6 +413,7 @@ namespace DataScience
                     break;
             }
         }
+
 
         static void DiffKernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input)
         {

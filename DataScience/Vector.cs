@@ -24,7 +24,7 @@ namespace DataScience
         public override float[] Value { get; set; }
         public override int Columns { get; protected set; }
 
-        public uint? Id = null;
+        public uint Id = 0;
 
 
         // CONSTRUCTOR
@@ -34,43 +34,20 @@ namespace DataScience
         /// <param name="gpu">The device to use when computing this Vector.</param>
         /// <param name="values">The array of data contained in this Vector.</param>
         /// <param name="columns">The number of Columns IF this is a 2D Vector, for 1D Vectors use the default Columns = 1</param>
-        public Vector(GPU gpu, float[] value, int columns = 1, bool cache=false)
+        public Vector(GPU gpu, float[] value, int columns = 1, bool cache=true)
         {
             this.gpu = gpu;
             this.Value = value;
             this.Columns = columns;
             if (cache)
             {
-                this.Id = this.gpu.Cache(ref value);
+                this.Id = this.gpu.Cache(value);
             }
             
         }
 
-        public void Dispose()
-        {
-            if (this.Id != null)
-            {
-                this.gpu.DeCache((uint)this.Id);
-            }
-            return;
-        }
 
 
-        // FEATURES
-        /* LOG :
-         *      - Access Slice                          : IMPLEMENTED   : NEEDS TESTING
-         *      - Access Value                          : IMPLEMENTED   : NEEDS TESTING
-         *      - Consecutive OP                        : IMPLEMENTED   : NEEDS TESTING
-         *      - Dot Product                           : IMPLEMENTED   : NEEDS TESTING
-         *      - Fill                                  : IMPLEMENTED   : NEEDS TESTING
-         *      - Normalise                             : IMPLEMENTED   : NEEDS TESTING
-         *      - Linspace                              : IMPLEMENTED   : NEEDS TESTING
-         *      - Arange                                : IMPLEMENTED   : NEEDS TESTING
-         *      - Diff                                  : IMPLEMENTED   : NEEDS TESTING
-         *      - Reciprocal                            : IMPLEMENTED   : NEEDS TESTING
-         *      - Absolute                              : IMPLEMENTED   : NEEDS TESTING
-         *      - Reverse                               : IMPLEMENTED   : NEEDS TESTING
-        */
 
         // METHODS
 
@@ -182,40 +159,6 @@ namespace DataScience
             }
             return result;
         }
-        
-
-        
-        // CODE DOES NOT WORK AS INTENDED
-        //public float SumGPU()
-        //{
-        //    var buffer2 = this.gpu.accelerator.Allocate<double>((int)(this.Length() * 1e-5));
-        //    MemoryBuffer<float> buffer;
-        //    if (this.Id == null)
-        //    {
-        //        buffer = this.gpu.accelerator.Allocate<float>(this.Length());
-        //        buffer.CopyFrom(this.Value, 0, 0, this.Value.Length);
-        //    }
-        //    else
-        //    {
-        //        buffer = (MemoryBuffer<float>)this.gpu.Data[this.Id];
-        //    }
-
-        //    this.gpu.sumKernel(this.gpu.accelerator.DefaultStream, (int)(this.Length() * 1e-5), buffer2, buffer);
-
-        //    this.gpu.accelerator.Synchronize();
-
-        //    double[] Output = buffer2.GetAsArray();
-
-        //    buffer2.Dispose();
-
-        //    double sum = 0f;
-        //    for (int i = 0; i < Output.Length; i++)
-        //    {
-        //        sum += Output[i];
-        //    }
-
-        //    return (float)sum;
-        //}
 
 
         public void Flatten()
@@ -310,18 +253,48 @@ namespace DataScience
                                     select startval + (val * interval)).ToArray(), Columns);
         }
 
-        public Vector Copy()
+        public Vector Copy(bool Cache=true)
         {
-            return new Vector(this.gpu, this.Value[..], this.Columns);
+            return new Vector(this.gpu, this.Value[..], this.Columns, Cache);
         }
 
 
 
         #endregion
 
+        // Disposal
+        #region
+        public void Dispose()
+        {
+            if (this.Id != 0)
+            {
+                this.gpu.DeCache((uint)this.Id);
+            }
+            this.Id = 0;
+            return;
+        }
+
+        #endregion
+
 
         // MEMORY ACCESS
         #region
+        public MemoryBuffer<float> GetBuffer()
+        {
+            MemoryBuffer buffer;
+            bool inputexists = this.gpu.Data.TryGetValue(this.Id, out buffer);
+
+            if (!inputexists) 
+            { 
+                this.Cache();
+                this.gpu.Data.TryGetValue(this.Id, out buffer);
+            }
+
+            return (MemoryBuffer<float>)buffer;
+        }
+
+
+
         /// <summary>
         /// Access 1 Value from 1D or 2D Vector
         /// </summary>
@@ -463,6 +436,14 @@ namespace DataScience
 
         // MEMORY ALLOCATION
         #region
+        public uint Cache()
+        {
+            this.Id = this.gpu.Cache(this.Value);
+            return this.Id;
+        }
+
+
+
         /// <summary>
         /// Concatinates VectorB onto the end of VectorA.
         /// Preserves the value of Columns of VectorA.
@@ -766,14 +747,38 @@ namespace DataScience
         }
         public static Vector ConsecutiveOP(Vector vector, float scalar, Operations operation)
         {
-            Vector vec = vector.Copy();
-            vec.ConsecutiveOP_IP(scalar, operation);
-            return vec;
+            // Ensure there is enough space for all the data
+            long size = (vector.gpu.MemorySize(vector.Value) * 2);
+            vector.gpu.DeCacheLRU(size, new HashSet<uint> { vector.Id });
+
+            // Make the Output Vector
+            Vector Output = new Vector(vector.gpu, new float[vector.Value.Length], vector.Columns);
+            
+            // Check if the output is in Cache
+            MemoryBuffer<float> buffer2 = Output.GetBuffer(); // Output
+
+            // Check if the input is in Cache and Get buffer, if not then cache and get buffer
+            MemoryBuffer<float> buffer = vector.GetBuffer(); // Input
+
+            vector.gpu.scalarConsecutiveOperationKernel(vector.gpu.accelerator.DefaultStream, buffer2.Length, buffer2.View, buffer.View, scalar, new SpecializedValue<int>((int)operation));
+
+            vector.gpu.accelerator.Synchronize();
+
+            buffer2.CopyTo(Output.Value, 0, 0, Output.Value.Length);
+
+            buffer.Dispose();
+
+            return Output;
         }
+
+
+
+
+
         public void ConsecutiveOP_IP(float scalar, Operations operation)
         {
-            var buffer = gpu.accelerator.Allocate<float>(this.Value.Length);
-            var buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length);
+            var buffer = gpu.accelerator.Allocate<float>(this.Value.Length);  // Output
+            var buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length); // input
 
             buffer2.CopyFrom(this.Value, 0, 0, this.Value.Length);
 
