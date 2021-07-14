@@ -20,32 +20,71 @@ namespace Testing_Console
 
             Console.WriteLine();
 
-            float[] array = new float[(int)1e7];
+            float[] array = new float[(int)1e8];
 
-            for (int i = 0; i < (int)1e7; i++)
+            for (int i = 0; i < (int)1e8; i++)
             {
                 array[i] = rnd.Next(0, 4);
             }
 
             Vector vec = new Vector(gpu, array, 1, true);
+
+            float result = 0;
+            float time = 0;
+
             //gpu.ShowMemoryUsage();
-            //Vector vec = Vector.Arange(gpu, 0, 1e5f, 1f, 1);
+            //Vector vec = Vector.Arange(gpu, 0, 1e8f, 1f, 1);
+
 
             System.Diagnostics.Stopwatch sw = new Stopwatch();
             sw.Start();
             for (int i = 0; i < 10; i++)
             {
-                float result = vec.Std();
+                result = vec.Std();
                 //gpu.ShowMemoryUsage();
             }
             sw.Stop();
-            float time = sw.ElapsedMilliseconds;
+            time = sw.ElapsedMilliseconds;
 
             sw.Restart();
-            Console.WriteLine($"time : {time /10 } ms");
+            Console.WriteLine($"\n\nresult: {result} | time : {time / 10 } ms");
 
-            
+
+
+            sw.Start();
+            for (int i = 0; i < 10; i++)
+            {
+                result = vec.Std();
+                //gpu.ShowMemoryUsage();
+            }
+            sw.Stop();
+            time = sw.ElapsedMilliseconds;
+
+            sw.Restart();
+            Console.WriteLine($"\n\nresult: {result} | time : {time / 10 } ms");
+
+
+
+
+
+
+
+
+
+
+
+
             Console.Read();
+
+
+
+
+
+
+
+
+
+
 
         }
 

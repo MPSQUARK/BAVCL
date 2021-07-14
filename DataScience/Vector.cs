@@ -104,10 +104,54 @@ namespace DataScience
         {
             return XMath.Sqrt(this.Var());
         }
+
         public float Var()
         {
+            if (this.Length() < 1e4f)
+            {
+                int vectorSize = System.Numerics.Vector<float>.Count;
+                int i = 0;
+
+                float[] array = this.Value;
+
+                float mean = this.Mean();
+
+                System.Numerics.Vector<float> meanvec = new System.Numerics.Vector<float>(mean);
+
+                System.Numerics.Vector<float> sumVector = System.Numerics.Vector<float>.Zero;
+
+                for (; i <= array.Length - vectorSize; i += vectorSize)
+                {
+                    System.Numerics.Vector<float> input = new System.Numerics.Vector<float>(array, i);
+
+                    System.Numerics.Vector<float> difference = input - meanvec;
+
+                    sumVector += (difference * difference);
+
+                }
+
+                float sum = 0;
+
+                for (int j = 0; j < vectorSize; j++)
+                {
+                    sum += sumVector[j];
+                }
+
+                for (; i < array.Length; i++)
+                {
+                    sum += XMath.Pow((array[i] - mean), 2f);
+                }
+
+                return sum / this.Length();
+            }
+
+            //Vector diff = Vector.AbsX(this - this.Mean());
+
+            //return (diff * diff).Sum() / this.Length();
             return Vector.ConsecutiveOP(this, this.Mean(), Operations.squareOfDiffs).Sum() / this.Length();
         }
+
+
         public override float Range()
         {
             return this.Value.Max() - this.Value.Min();
@@ -139,7 +183,7 @@ namespace DataScience
             }
             else
             {
-                for (i = 0; i <= array.Length - vectorSize; i += vectorSize)
+                for (; i <= array.Length - vectorSize; i += vectorSize)
                 {
                     System.Numerics.Vector<float> v = new System.Numerics.Vector<float>(array, i);
 
@@ -761,13 +805,11 @@ namespace DataScience
             // Check if the input is in Cache and Get buffer, if not then cache and get buffer
             MemoryBuffer<float> buffer = vector.GetBuffer(); // Input
 
-            vector.gpu.scalarConsecutiveOperationKernel(vector.gpu.accelerator.DefaultStream, buffer2.Length, buffer2.View, buffer.View, scalar, new SpecializedValue<int>((int)operation));
+            vector.gpu.scalarConsecutiveOperationKernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer2.View, buffer.View, scalar, new SpecializedValue<int>((int)operation));
 
             vector.gpu.accelerator.Synchronize();
 
             buffer2.CopyTo(Output.Value, 0, 0, Output.Value.Length);
-
-            buffer.Dispose();
 
             return Output;
         }
