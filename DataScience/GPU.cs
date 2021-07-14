@@ -148,7 +148,7 @@ namespace DataScience
         {
             return (long)array.Length << 2;
         }
-        public void DeCacheLRU(long required, HashSet<uint> Flags = null)
+        public void DeCacheLRU(long required, HashSet<uint> Flags)
         {
             // Check if the memory required doesn't exceed the Maximum available
             if (required > this.MaxMemory)
@@ -160,6 +160,7 @@ namespace DataScience
             // Keep decaching untill enough space is made to accomodate the data
             while (required > (this.MaxMemory - this.MemoryInUse))
             {
+
                 if (LRU.Count == Flags.Count)
                 {
                     throw new Exception($"Cannot DeCache any more data, keep flags : {Flags.Count}, LRU entries : {LRU.Count}");
@@ -175,6 +176,41 @@ namespace DataScience
                     LRU.Enqueue(Id);
                     continue;
                 } 
+
+                // Get the Buffer corresponding to the ID
+                MemoryBuffer buffer;
+                if (Data.TryRemove(Id, out buffer))
+                {
+                    // Dispose of the Buffer
+                    buffer.Dispose();
+
+                    // Get the size in memory of the decached array
+                    long size;
+                    DataSizes.TryRemove(Id, out size);
+                    // Reduce the Memory in Use tracker by the size
+                    Interlocked.Add(ref MemoryInUse, -size);
+                }
+            }
+            return;
+        }
+        public void DeCacheLRU(long required)
+        {
+            // Check if the memory required doesn't exceed the Maximum available
+            if (required > this.MaxMemory)
+            {
+                throw new Exception($"Cannot cache this data onto the GPU, required memory : {required / (1024 * 1024)} MB, max memory available : {this.MaxMemory / (1024 * 1024)} MB.\n " +
+                                    $"Consider spliting/breaking the data into multiple smaller sets OR \n Caching to a GPU with more available memory.");
+            }
+
+
+            // Get the ID of the last item
+            uint Id;
+
+            // Keep decaching untill enough space is made to accomodate the data
+            while (required > (this.MaxMemory - this.MemoryInUse))
+            {
+
+                LRU.TryDequeue(out Id); // Returns bool - could be useful for something
 
                 // Get the Buffer corresponding to the ID
                 MemoryBuffer buffer;
