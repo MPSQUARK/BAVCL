@@ -326,18 +326,12 @@ namespace DataScience
         #region
         public MemoryBuffer<float> GetBuffer()
         {
-            MemoryBuffer buffer;
-            bool inputexists = this.gpu.Data.TryGetValue(this.Id, out buffer);
-
-            if (!inputexists) 
-            { 
-                this.Cache();
-                this.gpu.Data.TryGetValue(this.Id, out buffer);
-            }
-
-            return (MemoryBuffer<float>)buffer;
+            return (MemoryBuffer<float>)this.gpu.GetMemoryBuffer(this.Value, this.Id);
         }
-
+        public long MemorySize()
+        {
+            return this.gpu.MemorySize(this.Value);
+        }
 
 
         /// <summary>
@@ -760,62 +754,85 @@ namespace DataScience
         // FUNCTIONS
         public static Vector ConsecutiveOP(Vector vectorA, Vector vectorB, Operations operation)
         {
-            Vector vector = vectorA.Copy();
-            vector.ConsecutiveOP_IP(vectorB, operation);
-            return vector;
+            // Check function conditions
+            if (vectorA.Value.Length != vectorB.Value.Length)
+            {
+                throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
+            }
+
+            // Ensure there is enough space for all the data
+            long size = vectorA.MemorySize() * 3;
+            vectorA.gpu.DeCacheLRU(size, new HashSet<uint> { vectorA.Id, vectorB.Id });
+
+            // Make the Output Vector
+            Vector Output = new Vector(vectorA.gpu, new float[vectorA.Value.Length], vectorA.Columns);
+
+            // Check if the input & output are in Cache
+            MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
+            MemoryBuffer<float> buffer2 = vectorA.GetBuffer(); // Input
+            MemoryBuffer<float> buffer3 = vectorB.GetBuffer(); // Input
+
+            // Run the kernel
+            vectorA.gpu.consecOpKernel(vectorA.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
+
+            // Synchronise the kernel
+            vectorA.gpu.accelerator.Synchronize();
+
+            // Copy output
+            buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
+
+            // Return the result
+            return Output;
         }
         public void ConsecutiveOP_IP(Vector vectorB, Operations operation)
         {
+            // Check function conditions
             if (this.Value.Length != vectorB.Value.Length)
             {
                 throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
             }
 
-            var buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // Input
-            var buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length); // Input
-            var buffer3 = gpu.accelerator.Allocate<float>(this.Value.Length); // Output
+            // Ensure there is enough space for all the data
+            long size = this.MemorySize() * 2;
+            this.gpu.DeCacheLRU(size, new HashSet<uint> { this.Id, vectorB.Id });
 
-            buffer.CopyFrom(this.Value, 0, 0, this.Value.Length);
-            buffer2.CopyFrom(vectorB.Value, 0, 0, vectorB.Value.Length);
+            // Check if the input & output are in Cache
+            MemoryBuffer<float> buffer = this.GetBuffer(); // Input/Output
+            MemoryBuffer<float> buffer2 = vectorB.GetBuffer(); // Input
 
-            gpu.consecutiveOperationKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
+            // Run the kernel
+            this.gpu.consecOpKernelIP(this.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
 
-            gpu.accelerator.Synchronize();
+            // Synchronise the kernel
+            this.gpu.accelerator.Synchronize();
 
-            buffer3.CopyTo(this.Value, 0, 0, this.Value.Length);
-
-            buffer.Dispose();
-            buffer2.Dispose();
-            buffer3.Dispose();
+            // Copy output
+            buffer.CopyTo(this.Value, 0, 0, this.Length());
 
             return;
         }
+
         public static Vector ConsecutiveOP(Vector vector, float scalar, Operations operation)
         {
             // Ensure there is enough space for all the data
-            long size = (vector.gpu.MemorySize(vector.Value) * 2);
+            long size = vector.MemorySize() * 2;
             vector.gpu.DeCacheLRU(size, new HashSet<uint> { vector.Id });
 
             // Make the Output Vector
             Vector Output = new Vector(vector.gpu, new float[vector.Value.Length], vector.Columns);
-            
-            // Check if the output is in Cache
-            MemoryBuffer<float> buffer2 = Output.GetBuffer(); // Output
 
-            // Check if the input is in Cache and Get buffer, if not then cache and get buffer
-            MemoryBuffer<float> buffer = vector.GetBuffer(); // Input
+            // Check if the input & output are in Cache
+            MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
+            MemoryBuffer<float> buffer2 = vector.GetBuffer(); // Input
 
-            vector.gpu.scalarConsecutiveOperationKernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer2.View, buffer.View, scalar, new SpecializedValue<int>((int)operation));
+            vector.gpu.scalarConsecOpKernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
 
             vector.gpu.accelerator.Synchronize();
 
-            buffer2.CopyTo(Output.Value, 0, 0, Output.Value.Length);
+            buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
 
             return Output;
         }
-
-
-
 
 
         public void ConsecutiveOP_IP(float scalar, Operations operation)
@@ -825,7 +842,7 @@ namespace DataScience
 
             buffer2.CopyFrom(this.Value, 0, 0, this.Value.Length);
 
-            gpu.scalarConsecutiveOperationKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
+            gpu.scalarConsecOpKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
 
             gpu.accelerator.Synchronize();
 
@@ -836,6 +853,7 @@ namespace DataScience
 
             return;
         }
+
 
 
         public static Vector Diff(Vector vector)

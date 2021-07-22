@@ -47,11 +47,15 @@ namespace DataScience
         #region
         public Action<AcceleratorStream, Index1, ArrayView<double>, ArrayView<float>> sumKernel;
 
+
+
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int> appendKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, float> nanToNumKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<int>> accessSliceKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> consecutiveOperationKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>> scalarConsecutiveOperationKernel;
+        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> consecOpKernel;
+        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>> scalarConsecOpKernel;
+        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> consecOpKernelIP;
+        public Action<AcceleratorStream, Index1, ArrayView<float>, float, SpecializedValue<int>> scalarConsecOpKernelIP;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>> diffKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>> reverseKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>> absKernel;
@@ -90,11 +94,16 @@ namespace DataScience
 
             sumKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<double>, ArrayView<float>>(SumKernel);
 
+
             appendKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(AppendKernel);
             nanToNumKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, float>(Nan_to_numKernel);
             accessSliceKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<int>>(AccessSliceKernel);
-            consecutiveOperationKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(ConsecutiveOperationKernel);
-            scalarConsecutiveOperationKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>>(ScalarConsecutiveOperationKernel);
+            
+            consecOpKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(ConsecutiveOperationKernel);
+            scalarConsecOpKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>>(ScalarConsecutiveOperationKernel);
+            consecOpKernelIP = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(ConsecutiveOperationKernelIP);
+            scalarConsecOpKernelIP = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, float, SpecializedValue<int>>(ScalarConsecutiveOperationKernelIP);
+
             diffKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>> (DiffKernel);
             reverseKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>> (ReverseKernel);
             absKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(AbsKernel);
@@ -316,6 +325,20 @@ namespace DataScience
 
             Console.WriteLine( $"{this.MemoryInUse / (1024 * 1024)}/{this.MaxMemory / (1024 * 1024)} MB");
         }
+        public MemoryBuffer GetMemoryBuffer(float[] array, uint Id)
+        {
+            MemoryBuffer buffer;
+            bool inputexists = this.Data.TryGetValue(Id, out buffer);
+
+            if (!inputexists)
+            {
+                Id = this.Cache(array);
+                this.Data.TryGetValue(Id, out buffer);
+            }
+            return buffer;
+        }
+
+
 
 
 
@@ -379,7 +402,8 @@ namespace DataScience
                 ChangeSelectLength[0]];                                 // Cs
         }
 
-        static void ConsecutiveOperationKernel(Index1 index, ArrayView<float> InputA, ArrayView<float> InputB, ArrayView<float> OutPut, SpecializedValue<int> operation)
+
+        static void ConsecutiveOperationKernel(Index1 index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, SpecializedValue<int> operation)
         {
             switch ((Operations)operation.Value)
             {
@@ -411,6 +435,40 @@ namespace DataScience
                     OutPut[index] = XMath.Pow((InputA[index] - InputB[index]), 2f);
                     break;
 
+            }
+        }
+
+        static void ConsecutiveOperationKernelIP(Index1 index, ArrayView<float> IO, ArrayView<float> Input, SpecializedValue<int> operation)
+        {
+            switch ((Operations)operation.Value)
+            {
+                case Operations.multiplication:
+                    IO[index] = IO[index] * Input[index];
+                    break;
+                case Operations.addition:
+                    IO[index] = IO[index] + Input[index];
+                    break;
+                case Operations.subtraction:
+                    IO[index] = IO[index] - Input[index];
+                    break;
+                case Operations.flipSubtraction:
+                    IO[index] = IO[index] - Input[index];
+                    break;
+                case Operations.division:
+                    IO[index] = IO[index] / Input[index];
+                    break;
+                case Operations.inverseDivision:
+                    IO[index] = IO[index] / Input[index];
+                    break;
+                case Operations.power:
+                    IO[index] = XMath.Pow(IO[index], Input[index]);
+                    break;
+                case Operations.powerFlipped:
+                    IO[index] = XMath.Pow(IO[index], Input[index]);
+                    break;
+                case Operations.squareOfDiffs:
+                    IO[index] = XMath.Pow((IO[index] - Input[index]), 2f);
+                    break;
             }
         }
 
@@ -447,6 +505,42 @@ namespace DataScience
                     break;
             }
         }
+
+        static void ScalarConsecutiveOperationKernelIP(Index1 index, ArrayView<float> IO, float Scalar, SpecializedValue<int> operation)
+        {
+            switch ((Operations)operation.Value)
+            {
+                case Operations.multiplication:
+                    IO[index] = IO[index] * Scalar;
+                    break;
+                case Operations.addition:
+                    IO[index] = IO[index] + Scalar;
+                    break;
+                case Operations.subtraction:
+                    IO[index] = IO[index] - Scalar;
+                    break;
+                case Operations.flipSubtraction:
+                    IO[index] = Scalar - IO[index];
+                    break;
+                case Operations.division:
+                    IO[index] = IO[index] / Scalar;
+                    break;
+                case Operations.inverseDivision:
+                    IO[index] = Scalar / IO[index];
+                    break;
+                case Operations.power:
+                    IO[index] = XMath.Pow(IO[index], Scalar);
+                    break;
+                case Operations.powerFlipped:
+                    IO[index] = XMath.Pow(Scalar, IO[index]);
+                    break;
+                case Operations.squareOfDiffs:
+                    IO[index] = XMath.Pow((IO[index] - Scalar), 2f);
+                    break;
+            }
+        }
+
+
 
 
         static void DiffKernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input)

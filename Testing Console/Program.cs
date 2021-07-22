@@ -7,12 +7,15 @@ using DataScience.IO;
 using System.Threading.Tasks;
 using System.Linq;
 
+using ILGPU.Algorithms;
+
 namespace Testing_Console
 {
     class Program
     {
         static void Main(string[] args)
         {
+
             GPU gpu = new GPU();
             Random rnd = new Random();
 
@@ -20,57 +23,82 @@ namespace Testing_Console
 
             Console.WriteLine();
 
-            float[] array = new float[(int)1e8];
+            Vector testvecA = Vector.Arange(gpu, 0, 10, 1, 1);
+            Vector testvecB = Vector.Fill(gpu, 5f, testvecA.Length());
 
-            for (int i = 0; i < (int)1e8; i++)
+            float time = 0f;
+            int reps = 20000;
+
+            int[] repIntervals = new int[] { 1, 10, 100, 1000, 2000, 4000, 8000, 10000, 50000, 100000 };
+
+            // WARM UP
+
+            Stopwatch sw = new Stopwatch();
+            
+            for (int i = 0; i < reps; i++)
             {
-                array[i] = rnd.Next(0, 4);
+                testvecA.ConsecutiveOP_IP(testvecB, Operations.multiplication);
             }
-
-            Vector vec = new Vector(gpu, array, 1, true);
-
-            float result = 0;
-            float time = 0;
-
-            //gpu.ShowMemoryUsage();
-            //Vector vec = Vector.Arange(gpu, 0, 1e8f, 1f, 1);
-
-
-            System.Diagnostics.Stopwatch sw = new Stopwatch();
-            sw.Start();
-            for (int i = 0; i < 10; i++)
-            {
-                result = vec.Std();
-                //gpu.ShowMemoryUsage();
-            }
-            sw.Stop();
             time = sw.ElapsedMilliseconds;
+            //Console.WriteLine($"[Cached] Total time taken is {time} ms : Avg per call is {time / reps} ms");
 
-            sw.Restart();
-            Console.WriteLine($"\n\nresult: {result} | time : {time / 10 } ms");
-
-
-
-            sw.Start();
-            for (int i = 0; i < 10; i++)
+            testvecA = Vector.Arange(gpu, 0, 10, 1, 1);
+            for (int i = 0; i < reps; i++)
             {
-                result = vec.Std();
-                //gpu.ShowMemoryUsage();
+                testvecA.ConsecutiveOP_IP(5f, Operations.multiplication);
             }
-            sw.Stop();
-            time = sw.ElapsedMilliseconds;
-
-            sw.Restart();
-            Console.WriteLine($"\n\nresult: {result} | time : {time / 10 } ms");
 
 
+            List<float> times = new List<float>();
+
+
+            // WARM UP
+
+            for (int j = 0; j < repIntervals.Length; j++)
+            {
+                reps = repIntervals[j];
+                times.Add(reps);
+
+                testvecA = Vector.Arange(gpu, 0, 10, 1, 1);
+
+                sw.Start();
+
+                for (int i = 0; i < reps; i++)
+                {
+                    testvecA.ConsecutiveOP_IP(testvecB, Operations.multiplication);
+                }
+                time = sw.ElapsedMilliseconds;
+                Console.WriteLine($"[Cached] Total time taken for {reps} reps is {time} ms : Avg per call is {time / reps} ms");
+                
+                times.Add(time);
+                times.Add(time / reps);
+               
+
+                sw.Stop();
+                sw.Reset();
+
+                testvecA = Vector.Arange(gpu, 0, 10, 1, 1);
+
+                sw.Start();
+                for (int i = 0; i < reps; i++)
+                {
+                    testvecA.ConsecutiveOP_IP(5f, Operations.multiplication);
+                }
+                time = sw.ElapsedMilliseconds;
+                Console.WriteLine($"Total time taken for {reps} reps is {time} ms : Avg per call is {time / reps} ms");
+
+                times.Add(time);
+                times.Add(time / reps);
+
+                sw.Stop();
+                sw.Reset();
 
 
 
+            }
 
-
-
-
+            Vector TimesVec = new Vector(gpu, times.ToArray(), 5, false);
+            IO.WriteToCSV(TimesVec, "LRU vs OLD");
 
 
 
