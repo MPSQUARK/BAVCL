@@ -960,6 +960,12 @@ namespace DataScience
             {
                 this.Value[i] = MathF.Abs(this.Value[i]);
             }
+
+            if (this.Id != 0)
+            {
+                this.gpu.UpdateCache(this.Value, Id);
+            }
+
             return;
         }
         /// <summary>
@@ -1044,6 +1050,7 @@ namespace DataScience
         public void Reverse_IP()
         {
             this.Value = this.Value.Reverse().ToArray();
+            if (this.Id != 0) { this.gpu.UpdateCache(this.Value, this.Id); }
             return;
         }
         public static Vector ReverseX(Vector vector)
@@ -1054,19 +1061,14 @@ namespace DataScience
         }
         public void ReverseX_IP()
         {
-            MemoryBuffer<float> buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // Output
-            MemoryBuffer<float> buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length); // Input
+            // Check if the input & output are in Cache
+            MemoryBuffer<float> buffer = this.GetBuffer(); // IO
 
-            buffer2.CopyFrom(this.Value, 0, 0, this.Value.Length);
-
-            gpu.reverseKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View);
+            gpu.reverseKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
 
             gpu.accelerator.Synchronize();
 
             buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
-
-            buffer.Dispose();
-            buffer2.Dispose();
 
             return;
         }
