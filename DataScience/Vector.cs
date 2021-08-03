@@ -1024,9 +1024,8 @@ namespace DataScience
         }
         public void Reciprocal_IP()
         {
-            MemoryBuffer<float> buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // IO
-
-            buffer.CopyFrom(this.Value, 0, 0, this.Value.Length);
+            // Check if the input & output are in Cache
+            MemoryBuffer<float> buffer = this.GetBuffer(); // IO
 
             gpu.reciprocalKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
 
@@ -1034,7 +1033,6 @@ namespace DataScience
 
             buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
 
-            buffer.Dispose();
             return;
         }
 
