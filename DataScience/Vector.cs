@@ -982,17 +982,14 @@ namespace DataScience
         /// </summary>
         public void AbsX_IP()
         {
-            MemoryBuffer<float> buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // Input/Output
-
-            buffer.CopyFrom(this.Value, 0, 0, this.Value.Length);
+            // Check if the input & output are in Cache
+            MemoryBuffer<float> buffer = this.GetBuffer(); // IO
 
             gpu.absKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
 
             gpu.accelerator.Synchronize();
 
             buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
-
-            buffer.Dispose();
 
             return;
         }
