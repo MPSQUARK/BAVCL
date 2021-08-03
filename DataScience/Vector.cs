@@ -52,7 +52,7 @@ namespace DataScience
         // METHODS
 
 
-        // ToString override
+        // Overrides - ToString & Equals
         public override string ToString()
         {
             bool neg = (this.Value.Min() < 0);
@@ -84,6 +84,24 @@ namespace DataScience
 
             return stringBuilder.AppendLine().ToString();
         }
+        public bool Equals(Vector vector)
+        {
+            if (this.Value.Length != vector.Value.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < vector.Value.Length; i++)
+            {
+                if (this.Value[i] != vector.Value[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
 
         // MATHEMATICAL PROPERTIES 
         #region
@@ -889,29 +907,29 @@ namespace DataScience
 
         public static float DotProduct(Vector vectorA, Vector vectorB)
         {
-            return ConsecutiveOP(vectorA, vectorB, Operations.multiplication).Value.Sum();
+            return ConsecutiveOP(vectorA, vectorB, Operations.multiplication).Sum();
         }
         public static float DotProduct(Vector vectorA, float scalar)
         {
-            return ConsecutiveOP(vectorA, scalar, Operations.multiplication).Value.Sum();
+            return ConsecutiveOP(vectorA, scalar, Operations.multiplication).Sum();
         }
         public float DotProduct(Vector vectorB)
         {
-            return ConsecutiveOP(this, vectorB, Operations.multiplication).Value.Sum();
+            return ConsecutiveOP(this, vectorB, Operations.multiplication).Sum();
         }
         public float DotProduct(float scalar)
         {
-            return ConsecutiveOP(this, scalar, Operations.multiplication).Value.Sum();
+            return ConsecutiveOP(this, scalar, Operations.multiplication).Sum();
         }
 
 
         public static Vector Normalise(Vector vectorA)
         {
-            return ConsecutiveOP(vectorA, 1f / vectorA.Value.Sum(), Operations.multiplication);
+            return ConsecutiveOP(vectorA, 1f / vectorA.Sum(), Operations.multiplication);
         }
         public void Normalise_IP()
         {
-            this.Value = ConsecutiveOP(this, 1f / this.Value.Sum(), Operations.multiplication).Value;
+            ConsecutiveOP_IP(1f / this.Sum(), Operations.multiplication);
         }
 
 
