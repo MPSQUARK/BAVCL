@@ -57,7 +57,7 @@ namespace DataScience
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> consecOpKernelIP;
         public Action<AcceleratorStream, Index1, ArrayView<float>, float, SpecializedValue<int>> scalarConsecOpKernelIP;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>> diffKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>> reverseKernel;
+        public Action<AcceleratorStream, Index1, ArrayView<float>> reverseKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>> absKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>> reciprocalKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>> crossKernel;
@@ -105,7 +105,7 @@ namespace DataScience
             scalarConsecOpKernelIP = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, float, SpecializedValue<int>>(ScalarConsecutiveOperationKernelIP);
 
             diffKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>> (DiffKernel);
-            reverseKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>> (ReverseKernel);
+            reverseKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>> (ReverseKernel);
             absKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(AbsKernel);
             reciprocalKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(ReciprocalKernel);
             crossKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(CrossKernel);
@@ -269,6 +269,29 @@ namespace DataScience
             LRU.Enqueue(Id);
 
             // return Id
+            return Id;
+        }
+        /// <summary>
+        /// Will update the array data cached on the GPU device
+        /// </summary>
+        /// <param name="array"></param>
+        /// <param name="Id"></param>
+        /// <returns></returns>
+        public uint UpdateCache(float[] array, uint Id)
+        {
+            MemoryBuffer buffer;
+            if (!Data.TryGetValue(Id, out buffer))
+            {
+                return Cache(array);
+            }
+
+            if (buffer.Length != array.Length)
+            {
+                DeCache(Id);
+                return Cache(array);
+            }
+
+            ((MemoryBuffer<float>)buffer).CopyFrom(array, 0, 0, array.Length);
             return Id;
         }
         public void DeCache(uint Id)
@@ -548,9 +571,13 @@ namespace DataScience
             Output[index] = Input[index + 1] - Input[index];
         }
 
-        static void ReverseKernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input)
+        static void ReverseKernel(Index1 index, ArrayView<float> IO)
         {
-            Output[index] = Input[Input.Length - 1 - index];
+            int idx = IO.Length - 1 - index;
+            float temp = IO[idx];
+
+            IO[idx] = IO[index];
+            IO[index] = temp;
         }
 
         static void AbsKernel(Index1 index, ArrayView<float> IO)
