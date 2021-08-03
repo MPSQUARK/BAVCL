@@ -23,82 +23,14 @@ namespace Testing_Console
 
             Console.WriteLine();
 
-            Vector testvecA = Vector.Arange(gpu, 0, 10, 1, 1);
-            Vector testvecB = Vector.Fill(gpu, 5f, testvecA.Length());
+            Vector testvecA = new Vector(gpu, new float[10] { 4, 9, 1, 6, 2, 7, 3, 8, 9, 1 });
+            //Vector testvecB = new Vector(gpu, new float[10] { 4, 9, 1, 6, 2, 7, 3, 8, 9, 1 });
 
-            float time = 0f;
-            int reps = 20000;
+            testvecA.Print();
+            testvecA.Diff_IP();
+            testvecA.Print();
 
-            int[] repIntervals = new int[] { 1, 10, 100, 1000, 2000, 4000, 8000, 10000, 50000, 100000 };
-
-            // WARM UP
-
-            Stopwatch sw = new Stopwatch();
-            
-            for (int i = 0; i < reps; i++)
-            {
-                testvecA.ConsecutiveOP_IP(testvecB, Operations.multiplication);
-            }
-            time = sw.ElapsedMilliseconds;
-            //Console.WriteLine($"[Cached] Total time taken is {time} ms : Avg per call is {time / reps} ms");
-
-            testvecA = Vector.Arange(gpu, 0, 10, 1, 1);
-            for (int i = 0; i < reps; i++)
-            {
-                testvecA.ConsecutiveOP_IP(5f, Operations.multiplication);
-            }
-
-
-            List<float> times = new List<float>();
-
-
-            // WARM UP
-
-            for (int j = 0; j < repIntervals.Length; j++)
-            {
-                reps = repIntervals[j];
-                times.Add(reps);
-
-                testvecA = Vector.Arange(gpu, 0, 10, 1, 1);
-
-                sw.Start();
-
-                for (int i = 0; i < reps; i++)
-                {
-                    testvecA.ConsecutiveOP_IP(testvecB, Operations.multiplication);
-                }
-                time = sw.ElapsedMilliseconds;
-                Console.WriteLine($"[Cached] Total time taken for {reps} reps is {time} ms : Avg per call is {time / reps} ms");
-                
-                times.Add(time);
-                times.Add(time / reps);
-               
-
-                sw.Stop();
-                sw.Reset();
-
-                testvecA = Vector.Arange(gpu, 0, 10, 1, 1);
-
-                sw.Start();
-                for (int i = 0; i < reps; i++)
-                {
-                    testvecA.ConsecutiveOP_IP(5f, Operations.multiplication);
-                }
-                time = sw.ElapsedMilliseconds;
-                Console.WriteLine($"Total time taken for {reps} reps is {time} ms : Avg per call is {time / reps} ms");
-
-                times.Add(time);
-                times.Add(time / reps);
-
-                sw.Stop();
-                sw.Reset();
-
-
-
-            }
-
-            Vector TimesVec = new Vector(gpu, times.ToArray(), 5, false);
-            IO.WriteToCSV(TimesVec, "LRU vs OLD");
+            Console.WriteLine(testvecA.Id);
 
 
 
