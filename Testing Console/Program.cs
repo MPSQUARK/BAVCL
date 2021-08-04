@@ -34,27 +34,31 @@ namespace Testing_Console
             //Warm up
             for (int i = 0; i < 100; i++)
             {
-                testvecA = Vector.Arange(gpu, 0, 10, 1f, 1);
-                testvecA.ReverseX_IP();
+                testvecA = Vector.Arange(gpu, 0, 20, 1f, 4);
+                testvecA.Transpose_IP();
             }
 
             sw.Start();
 
             for (int i = 0; i < runs; i++)
             {
-                testvecA = Vector.Arange(gpu, 0, 100, 0.5f, 1);
-                testvecA.ReverseX_IP();
+                testvecA = Vector.Arange(gpu, 0, 20, 1f, 4);
+                testvecA.Transpose_IP();
             }
             time = sw.ElapsedMilliseconds;
             Console.WriteLine($"time taken for ReverseX_IP with two Inputs is {time/runs} ms");
 
 
-            // 0.150-0.160 ms  0%
-            // 0.140-0.145 ms  6.7% ~ 9.4%
-            // 0.108-0.114 ms  28%  ~ 28.75%
+            // 0.154 ~ 0.146 ms
+            // 0.142 ~ 
+            // 
 
             sw.Stop();
 
+            testvecA = Vector.Arange(gpu, 0, 16, 1f, 4);
+            testvecA.Print();
+            testvecA.Transpose_IP();
+            testvecA.Print();
 
             Console.Read();
 
