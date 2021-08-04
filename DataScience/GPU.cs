@@ -599,10 +599,19 @@ namespace DataScience
 
         static void TransposeKernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input, int columns)
         {
+            int rows = Input.IntLength / columns;
+            int col = index % columns;
+            int row = (int)XMath.Floor(index / columns);
+
+            int idx = col * rows + row;
+
+            Output[idx] = Input[index];
+
             // (int)Math.Floor(Input.Length / columns) => The Row
             // (int)(Input.Length % columns) => The Column
-            float invcol = 1f / columns;
-            Output[(index % columns) * ((int)(Input.Length * invcol)) + ((int)XMath.Floor(index * invcol))] = Input[index];
+            //float invcol = 1f / columns;
+
+            //Output[(index % columns) * ((int)(Input.Length * invcol)) + ((int)XMath.Floor(index * invcol))] = Input[index];
         }
 
 

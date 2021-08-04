@@ -1064,7 +1064,7 @@ namespace DataScience
             // Check if the input & output are in Cache
             MemoryBuffer<float> buffer = this.GetBuffer(); // IO
 
-            gpu.reverseKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
+            gpu.reverseKernel(gpu.accelerator.DefaultStream, buffer.Length >> 1, buffer.View);
 
             gpu.accelerator.Synchronize();
 
@@ -1076,29 +1076,34 @@ namespace DataScience
 
         public static Vector Transpose(Vector vector)
         {
-            Vector vec = vector.Copy();
-            vec.Transpose_IP();
-            return vec;
+            if (vector.Columns == 1 || vector.Columns >= vector.Value.Length) { throw new Exception("Cannot transpose 1D Vector"); }
+
+            // Ensure there is enough space for all the data
+            long size = vector.MemorySize() * 2;
+            vector.gpu.DeCacheLRU(size, new HashSet<uint> { vector.Id });
+
+            // Make the Output Vector
+            Vector Output = new Vector(vector.gpu, new float[vector.Value.Length], vector.RowCount());
+
+            MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
+            MemoryBuffer<float> buffer2 = vector.GetBuffer(); // Input
+
+            vector.gpu.transposekernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, vector.Columns);
+
+            vector.gpu.accelerator.Synchronize();
+
+            buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
+
+            return Output;
         }
         public void Transpose_IP()
         {
-            if (this.Columns == 1 || this.Columns >= this.Value.Length) { throw new Exception("Cannot transpose 1D Vector"); }
+            Vector vector = Vector.Transpose(this);
+            this.Dispose();
 
-            MemoryBuffer<float> buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // Output
-            MemoryBuffer<float> buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length); // Input
-
-            buffer2.CopyFrom(this.Value, 0, 0, this.Value.Length);
-
-            gpu.transposekernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, this.Columns);
-
-            gpu.accelerator.Synchronize();
-
-            buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
-
-            buffer.Dispose();
-            buffer2.Dispose();
-
-            this.Columns = this.RowCount();
+            this.Value = vector.Value[..];
+            this.Id = vector.Id;
+            this.Columns = vector.Columns;
 
             return;
         }
