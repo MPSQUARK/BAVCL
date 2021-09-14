@@ -18,22 +18,57 @@ namespace DataScience
         public override int Columns { get; protected set; }
 
         // CONSTRUCTOR
-        public Vector3(GPU gpu, float[] value)
+        public Vector3(GPU gpu, float[] value, bool cache = false)
         {
             this.gpu = gpu;
             this.Value = value;
             if (value.Length % 3 != 0) { throw new Exception($"Geometric 3D Vectors MUST have 3 columns, and value length MUST be a multiple of 3 instead recieved : {value.Length}."); }
             this.Columns = 3;
+            if (cache)
+            {
+                this.Cache();
+            }
         }
+
+
+        public uint Cache()
+        {
+            this.Id = this.gpu.Cache(this.Value);
+            return this.Id;
+        }
+        public void Dispose()
+        {
+            if (this.Id != 0)
+            {
+                this.gpu.DeCache((uint)this.Id);
+            }
+            this.Id = 0;
+            return;
+        }
+
 
 
         // Enum for (x,y,z)
         public enum Coord
         {
-            x,
-            y,
-            z,
+            x = 0,
+            y = 1,
+            z = 2,
         }
+
+
+        // Create Vector3
+        public static Vector3 Fill(GPU gpu, float Value, int Length, int Columns = 1, bool cache = true)
+        {
+            return new Vector3(gpu, Enumerable.Repeat(Value, Length).ToArray(), cache);
+        }
+        public static Vector3 Zeros(GPU gpu, int Length, bool cache = true)
+        {
+            return new Vector3(gpu, new float[Length], cache);
+        }
+
+
+
 
         // DATA Management
         public Vector3 Copy()
@@ -173,13 +208,13 @@ namespace DataScience
             return stringBuilder.AppendLine().ToString();
         }
         // CONVERT TO GENERIC VECTOR
-        public Vector ToVector()
+        public Vector ToVector(bool cache = true)
         {
-            return new Vector(this.gpu, this.Value, this.Columns);
+            return new Vector(this.gpu, this.Value, this.Columns, cache);
         }
-        public Vector ToVector(int Columns)
+        public Vector ToVector(int Columns, bool cache = true)
         {
-            return new Vector(this.gpu, this.Value, Columns);
+            return new Vector(this.gpu, this.Value, Columns, cache);
         }
 
 

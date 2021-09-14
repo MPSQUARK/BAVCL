@@ -24,7 +24,7 @@ namespace DataScience
         public override float[] Value { get; set; }
         public override int Columns { get; protected set; }
 
-        public uint Id = 0;
+        
 
 
         // CONSTRUCTOR
@@ -773,61 +773,41 @@ namespace DataScience
         public static Vector ConsecutiveOP(Vector vectorA, Vector vectorB, Operations operation)
         {
             // Check function conditions
-            if (vectorA.Value.Length != vectorB.Value.Length)
+            if (vectorA.Value.Length == vectorB.Value.Length)
             {
-                throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
+                return _VectorVectorOP(vectorA, vectorB, operation);
             }
 
-            // Ensure there is enough space for all the data
-            long size = vectorA.MemorySize() * 3;
-            vectorA.gpu.DeCacheLRU(size, new HashSet<uint> { vectorA.Id, vectorB.Id });
+            bool ThisLonger = vectorA.Value.Length > vectorB.Value.Length;
 
-            // Make the Output Vector
-            Vector Output = new Vector(vectorA.gpu, new float[vectorA.Value.Length], vectorA.Columns);
+            // If one input is a Vector and other is Matrix
+            if ((vectorA.Columns == 1 && vectorB.Columns > 1) || (vectorA.Columns > 1 && vectorB.Columns == 1))
+            {
+                if (ThisLonger) { return _VectorMatrixOP(vectorB, vectorA, operation); }
+                return _VectorMatrixOP(vectorA, vectorB, operation);
+            }
 
-            // Check if the input & output are in Cache
-            MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
-            MemoryBuffer<float> buffer2 = vectorA.GetBuffer(); // Input
-            MemoryBuffer<float> buffer3 = vectorB.GetBuffer(); // Input
-
-            // Run the kernel
-            vectorA.gpu.consecOpKernel(vectorA.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
-
-            // Synchronise the kernel
-            vectorA.gpu.accelerator.Synchronize();
-
-            // Copy output
-            buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
-
-            // Return the result
-            return Output;
+            throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
         }
         public void ConsecutiveOP_IP(Vector vectorB, Operations operation)
         {
-            // Check function conditions
-            if (this.Value.Length != vectorB.Value.Length)
+            // If the lengths are the same and both 1D vectors
+            if (this.Value.Length == vectorB.Value.Length && vectorB.Columns == 1 && this.Columns == 1)
             {
-                throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
+                this._VectorVectorOP_IP(vectorB, operation);
+                return;
             }
 
-            // Ensure there is enough space for all the data
-            long size = this.MemorySize() * 2;
-            this.gpu.DeCacheLRU(size, new HashSet<uint> { this.Id, vectorB.Id });
+            bool ThisLonger = this.Value.Length > vectorB.Value.Length;
 
-            // Check if the input & output are in Cache
-            MemoryBuffer<float> buffer = this.GetBuffer(); // Input/Output
-            MemoryBuffer<float> buffer2 = vectorB.GetBuffer(); // Input
+            // If one input is a Vector and other is Matrix
+            if ((this.Columns == 1 && vectorB.Columns > 1) || (this.Columns > 1 && vectorB.Columns == 1))
+            {
+                
+                
+            }
 
-            // Run the kernel
-            this.gpu.consecOpKernelIP(this.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
-
-            // Synchronise the kernel
-            this.gpu.accelerator.Synchronize();
-
-            // Copy output
-            buffer.CopyTo(this.Value, 0, 0, this.Length());
-
-            return;
+            throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
         }
 
         public static Vector ConsecutiveOP(Vector vector, float scalar, Operations operation)
@@ -865,6 +845,89 @@ namespace DataScience
 
             return;
         }
+
+
+        internal static Vector _VectorVectorOP(Vector vectorA, Vector vectorB, Operations operation)
+        {
+            // Ensure there is enough space for all the data
+            long size = vectorA.MemorySize() * 3;
+            vectorA.gpu.DeCacheLRU(size, new HashSet<uint> { vectorA.Id, vectorB.Id });
+
+            // Make the Output Vector
+            Vector Output = new Vector(vectorA.gpu, new float[vectorA.Value.Length], vectorA.Columns);
+
+            // Check if the input & output are in Cache
+            MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
+            MemoryBuffer<float> buffer2 = vectorA.GetBuffer(); // Input
+            MemoryBuffer<float> buffer3 = vectorB.GetBuffer(); // Input
+
+            // Run the kernel
+            vectorA.gpu.consecOpKernel(vectorA.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
+
+            // Synchronise the kernel
+            vectorA.gpu.accelerator.Synchronize();
+
+            // Copy output
+            buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
+
+            // Return the result
+            return Output;
+        }
+
+        internal void _VectorVectorOP_IP(Vector vectorB, Operations operation)
+        {
+            // Ensure there is enough space for all the data
+            long size = this.MemorySize() * 2;
+            this.gpu.DeCacheLRU(size, new HashSet<uint> { this.Id, vectorB.Id });
+
+            // Check if the input & output are in Cache
+            MemoryBuffer<float> buffer = this.GetBuffer(); // Input/Output
+            MemoryBuffer<float> buffer2 = vectorB.GetBuffer(); // Input
+
+            // Run the kernel
+            this.gpu.consecOpKernelIP(this.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
+
+            // Synchronise the kernel
+            this.gpu.accelerator.Synchronize();
+
+            // Copy output
+            buffer.CopyTo(this.Value, 0, 0, this.Length());
+
+            return;
+        }
+
+
+        internal static Vector _VectorMatrixOP(Vector vector, Vector matrix, Operations operation)
+        {
+            // Ensure there is enough space for all the data
+            long size = (vector.MemorySize() << 2) + matrix.MemorySize();
+            vector.gpu.DeCacheLRU(size, new HashSet<uint> { vector.Id, matrix.Id });
+
+            // Make the Output Vector
+            Vector Output = new Vector(vector.gpu, new float[vector.Value.Length], vector.Columns);
+
+            // Check if the input & output are in Cache
+            MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
+            MemoryBuffer<float> buffer2 = vector.GetBuffer(); // Input
+            MemoryBuffer<float> buffer3 = matrix.GetBuffer(); // Input
+
+            // Run the kernel
+            vector.gpu.vectormatrixOpKernel(vector.gpu.accelerator.DefaultStream, matrix.RowCount(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
+
+            // Synchronise the kernel
+            vector.gpu.accelerator.Synchronize();
+
+            // Copy output
+            buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
+
+            // Return the result
+            return Output;
+        }
+
+
+
+
+
 
 
         public static Vector Diff(Vector vector)

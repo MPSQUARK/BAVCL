@@ -54,6 +54,8 @@ namespace DataScience
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<int>> accessSliceKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> consecOpKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>> scalarConsecOpKernel;
+        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> vectormatrixOpKernel;
+
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> consecOpKernelIP;
         public Action<AcceleratorStream, Index1, ArrayView<float>, float, SpecializedValue<int>> scalarConsecOpKernelIP;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>> diffKernel;
@@ -101,6 +103,8 @@ namespace DataScience
             
             consecOpKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(ConsecutiveOperationKernel);
             scalarConsecOpKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>>(ScalarConsecutiveOperationKernel);
+            vectormatrixOpKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(VectorMatrixKernel);
+
             consecOpKernelIP = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(ConsecutiveOperationKernelIP);
             scalarConsecOpKernelIP = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, float, SpecializedValue<int>>(ScalarConsecutiveOperationKernelIP);
 
@@ -564,6 +568,72 @@ namespace DataScience
         }
 
 
+        static void VectorMatrixKernel(Index1 index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, int Cols, SpecializedValue<int> operation)
+        {
+            int startidx = index * Cols;
+
+            switch ((Operations)operation.Value)
+            {
+                case Operations.multiplication:
+                    for (int i = 0; i < Cols; i++)
+                    {
+                        OutPut[index] += InputA[i] * InputB[startidx + i];
+                    }
+                    break;
+                case Operations.addition:
+                    for (int i = 0; i < Cols; i++)
+                    {
+                        OutPut[index] += InputA[i] + InputB[startidx + i];
+                    }
+                    break;
+                case Operations.subtraction:
+                    for (int i = 0; i < Cols; i++)
+                    {
+                        OutPut[index] += InputA[i] - InputB[startidx + i];
+                    }
+                    break;
+                case Operations.flipSubtraction:
+                    for (int i = 0; i < Cols; i++)
+                    {
+                        OutPut[index] += InputB[startidx + i] - InputA[i];
+                    }
+                    break;
+                case Operations.division:
+                    for (int i = 0; i < Cols; i++)
+                    {
+                        OutPut[index] += InputA[i] / InputB[startidx + i];
+                    }
+                    break;
+                case Operations.inverseDivision:
+                    for (int i = 0; i < Cols; i++)
+                    {
+                        OutPut[index] += InputB[startidx + i] / InputA[i];
+                    }
+                    break;
+                case Operations.power:
+                    for (int i = 0; i < Cols; i++)
+                    {
+                        OutPut[index] += XMath.Pow(InputA[i], InputB[startidx + i]);
+                    }
+                    break;
+                case Operations.powerFlipped:
+                    for (int i = 0; i < Cols; i++)
+                    {
+                        OutPut[index] += XMath.Pow(InputB[startidx + i], InputA[i]);
+                    }
+                    break;
+                case Operations.squareOfDiffs:
+                    for (int i = 0; i < Cols; i++)
+                    {
+                        OutPut[index] += XMath.Pow((InputA[i] - InputB[startidx + i]), 2f);
+                    }
+                    break;
+
+            }
+        }
+
+
+
 
 
         static void DiffKernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input)
@@ -609,8 +679,8 @@ namespace DataScience
 
             // (int)Math.Floor(Input.Length / columns) => The Row
             // (int)(Input.Length % columns) => The Column
+            
             //float invcol = 1f / columns;
-
             //Output[(index % columns) * ((int)(Input.Length * invcol)) + ((int)XMath.Floor(index * invcol))] = Input[index];
         }
 
