@@ -11,7 +11,9 @@ namespace DataScience
         protected GPU gpu { get; set; }
         public abstract T[] Value { get; set; }
         public abstract int Columns { get; protected set; }
-        
+
+        public uint Id {get; protected set;} = 0;
+
 
         // PRINT + CSV
         public static void Print(Vector vector)
