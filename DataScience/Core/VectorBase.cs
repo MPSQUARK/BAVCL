@@ -84,6 +84,15 @@ namespace DataScience
         #endregion
 
 
+        public T AccessVal(int row, int col)
+        {
+            return this.Value[row * this.Columns + col];
+        }
+        public T[] AccessRow(int row)
+        {
+            return this.Value[(row * 3)..((row + 1) * 3)];
+        }
+
 
         // PRINT + CSV
         public void Print()

@@ -4,7 +4,7 @@ namespace DataScience.Core
 {
     public static class Enums
     {
-        enum FileTypes
+        public enum FileTypes
         {
             CSV = 0,
             TXT = 1,
@@ -13,13 +13,13 @@ namespace DataScience.Core
 
         }
 
-        enum Axis
+        public enum Axis
         {
             Row = 0,
             Column = 1,
         }
 
-        enum AsType
+        public enum AsType
         {
             Vector = 0,
             Vector3 = 1,
