@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace DataScience
+namespace DataScience.IO
 {
     public sealed class Converter
     {
@@ -23,7 +19,7 @@ namespace DataScience
 
 
         }
-        public static string ToFileFormat(Vector3 vector, string format = "txt")
+        public static string ToFileFormat(Geometric.Vector3 vector, string format = "txt")
         {
             switch (format)
             {

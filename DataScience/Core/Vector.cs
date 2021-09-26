@@ -8,9 +8,6 @@ using System.Text;
 
 using DataScience.Utility;
 
-
-using System.Numerics;
-
 namespace DataScience
 {
 
@@ -20,12 +17,6 @@ namespace DataScience
     /// </summary>
     public class Vector : VectorBase<float>
     {
-        // VARIABLE BLOCK
-        public override float[] Value { get; set; }
-        public override int Columns { get; protected set; }
-
-        
-
 
         // CONSTRUCTOR
         /// <summary>
@@ -103,26 +94,15 @@ namespace DataScience
         }
 
 
-        // MATHEMATICAL PROPERTIES 
-        #region
-        public override float Max()
-        {
-            return this.Value.Max();
-        }
-        public override float Min()
-        {
-            return this.Value.Min();
-        }
+        #region "MATHEMATICAL PROPERTIES "
         public override float Mean()
         {
             return this.Sum() / this.Length();
         }
-
         public float Std()
         {
             return XMath.Sqrt(this.Var());
         }
-
         public float Var()
         {
             if (this.Length() < 1e4f)
@@ -168,8 +148,6 @@ namespace DataScience
             //return (diff * diff).Sum() / this.Length();
             return Vector.ConsecutiveOP(this, this.Mean(), Operations.squareOfDiffs).Sum() / this.Length();
         }
-
-
         public override float Range()
         {
             return this.Value.Max() - this.Value.Min();
@@ -221,19 +199,10 @@ namespace DataScience
             }
             return result;
         }
-
-
         public void Flatten()
         {
             this.Columns = 1;
         }
-
-        public bool IsRectangular()
-        {
-            return (this.Length() % this.Columns == 0);
-        }
-
-
 
         #endregion
 
@@ -327,30 +296,13 @@ namespace DataScience
 
         // DISPOSAL
         #region
-        public void Dispose()
-        {
-            if (this.Id != 0)
-            {
-                this.gpu.DeCache((uint)this.Id);
-            }
-            this.Id = 0;
-            return;
-        }
+
 
         #endregion
 
 
         // MEMORY ACCESS
         #region
-        public MemoryBuffer<float> GetBuffer()
-        {
-            return (MemoryBuffer<float>)this.gpu.GetMemoryBuffer(this.Value, this.Id);
-        }
-        public long MemorySize()
-        {
-            return this.gpu.MemorySize(this.Value);
-        }
-
 
         /// <summary>
         /// Access 1 Value from 1D or 2D Vector
@@ -493,13 +445,6 @@ namespace DataScience
 
         // MEMORY ALLOCATION
         #region
-        public uint Cache()
-        {
-            this.Id = this.gpu.Cache(this.Value);
-            return this.Id;
-        }
-
-
 
         /// <summary>
         /// Concatinates VectorB onto the end of VectorA.
@@ -639,17 +584,13 @@ namespace DataScience
         }
         public void Nan_to_num_IP(float num)
         {
-            var buffer = gpu.accelerator.Allocate<float>(this.Value.Length); // IO
-
-            buffer.CopyFrom(this.Value, 0, 0, this.Value.Length);
+            MemoryBuffer<float> buffer = GetBuffer();
 
             gpu.nanToNumKernel(gpu.accelerator.DefaultStream, this.Value.Length, buffer.View, num);
 
             gpu.accelerator.Synchronize();
 
             buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
-
-            buffer.Dispose();
 
             return;
         }
@@ -661,10 +602,10 @@ namespace DataScience
 
         // CONVERSION
         #region
-        public Vector3 ToVector3()
+        public Geometric.Vector3 ToVector3()
         {
             if (this.Length() % 3 != 0) { throw new Exception("Vector length must be a multiple of 3"); }
-            return new Vector3(this.gpu, this.Value);
+            return new Geometric.Vector3(this.gpu, this.Value);
         }
 
 
@@ -770,7 +711,7 @@ namespace DataScience
 
 
         // FUNCTIONS
-        public static Vector ConsecutiveOP(Vector vectorA, Vector vectorB, Operations operation)
+        public static Vector ConsecutiveOP(Vector vectorA, Vector vectorB, Operations operation, bool Warp = false)
         {
             // Check function conditions
             if (vectorA.Value.Length == vectorB.Value.Length)
@@ -780,12 +721,14 @@ namespace DataScience
 
             bool ThisLonger = vectorA.Value.Length > vectorB.Value.Length;
 
+
             // If one input is a Vector and other is Matrix
             if ((vectorA.Columns == 1 && vectorB.Columns > 1) || (vectorA.Columns > 1 && vectorB.Columns == 1))
             {
                 if (ThisLonger) { return _VectorMatrixOP(vectorB, vectorA, operation); }
                 return _VectorMatrixOP(vectorA, vectorB, operation);
             }
+
 
             throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
         }
@@ -896,7 +839,6 @@ namespace DataScience
             return;
         }
 
-
         internal static Vector _VectorMatrixOP(Vector vector, Vector matrix, Operations operation)
         {
             // Ensure there is enough space for all the data
@@ -924,7 +866,31 @@ namespace DataScience
             return Output;
         }
 
+        internal void _VectorMatrixOP_IP(Vector matrix, Operations operation)
+        {
+            // Ensure there is enough space for all the data
+            long size = (this.MemorySize() << 2) + matrix.MemorySize();
+            this.gpu.DeCacheLRU(size, new HashSet<uint> { this.Id, matrix.Id });
 
+            // Make the Output Vector
+            Vector Output = new Vector(this.gpu, new float[this.Value.Length], this.Columns);
+
+            // Check if the input & output are in Cache
+            MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
+            MemoryBuffer<float> buffer2 = this.GetBuffer(); // Input
+            MemoryBuffer<float> buffer3 = matrix.GetBuffer(); // Input
+
+            // Run the kernel
+            this.gpu.vectormatrixOpKernel(this.gpu.accelerator.DefaultStream, matrix.RowCount(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
+
+            // Synchronise the kernel
+            this.gpu.accelerator.Synchronize();
+
+            // Copy output
+            buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
+
+            return;
+        }
 
 
 
@@ -1026,7 +992,7 @@ namespace DataScience
 
             if (this.Id != 0)
             {
-                this.gpu.UpdateCache(this.Value, Id);
+                UpdateCache();
             }
 
             return;
@@ -1113,7 +1079,7 @@ namespace DataScience
         public void Reverse_IP()
         {
             this.Value = this.Value.Reverse().ToArray();
-            if (this.Id != 0) { this.gpu.UpdateCache(this.Value, this.Id); }
+            if (this.Id != 0) { UpdateCache(); }
             return;
         }
         public static Vector ReverseX(Vector vector)

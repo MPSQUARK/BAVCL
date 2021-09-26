@@ -2,23 +2,21 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-
 using DataScience.Utility;
+using ILGPU.Runtime;
 
-namespace DataScience
+namespace DataScience.Geometric
 {
-    /// <summary>
-    /// 
-    /// </summary>
+
     public class Vector3 : VectorBase<float>
     {
-        // VARIABLE BLOCK
-        public override float[] Value { get; set; }
-        public override int Columns { get; protected set; }
+        #region "Variables"
+        public override int Columns { get { return _columns; } set { _columns = 3; } }
+
+        #endregion
 
         // CONSTRUCTOR
-        public Vector3(GPU gpu, float[] value, bool cache = false)
+        public Vector3(GPU gpu, float[] value, bool cache = true)
         {
             this.gpu = gpu;
             this.Value = value;
@@ -31,34 +29,17 @@ namespace DataScience
         }
 
 
-        public uint Cache()
-        {
-            this.Id = this.gpu.Cache(this.Value);
-            return this.Id;
-        }
-        public void Dispose()
-        {
-            if (this.Id != 0)
-            {
-                this.gpu.DeCache((uint)this.Id);
-            }
-            this.Id = 0;
-            return;
-        }
-
-
-
         // Enum for (x,y,z)
         public enum Coord
         {
-            x = 0,
-            y = 1,
-            z = 2,
+            x = 1,
+            y = 2,
+            z = 4,
         }
 
 
         // Create Vector3
-        public static Vector3 Fill(GPU gpu, float Value, int Length, int Columns = 1, bool cache = true)
+        public static Vector3 Fill(GPU gpu, float Value, int Length, bool cache = true)
         {
             return new Vector3(gpu, Enumerable.Repeat(Value, Length).ToArray(), cache);
         }
@@ -220,14 +201,6 @@ namespace DataScience
 
         // MATHEMATICAL PROPERTIES 
         #region
-        public override float Max()
-        {
-            return this.Value.Max();
-        }
-        public override float Min()
-        {
-            return this.Value.Min();
-        }
         public override float Mean()
         {
             return this.Value.Average();
@@ -268,6 +241,7 @@ namespace DataScience
         #endregion
 
 
+
         public static Vector3 CrossProduct(Vector3 VectorA, Vector3 VectorB)
         {
             if (VectorA.Length() != VectorB.Length()) { throw new Exception($"Cannot Cross Product two Vector3's together of different lengths. {VectorA.Length()} != {VectorB.Length()}"); }
@@ -280,22 +254,23 @@ namespace DataScience
                 return new Vector3(VectorA.gpu, new float[3] { x, y, z });
             }
 
-            var buffer = VectorA.gpu.accelerator.Allocate<float>(VectorA.Value.Length); // OutPut
-            var buffer2 = VectorA.gpu.accelerator.Allocate<float>(VectorA.Value.Length); // Input
-            var buffer3 = VectorA.gpu.accelerator.Allocate<float>(VectorB.Value.Length); // Input
+            long size = VectorA.MemorySize() * 3;
 
-            buffer2.CopyFrom(VectorA.Value, 0, 0, VectorA.Value.Length);
-            buffer3.CopyFrom(VectorB.Value, 0, 0, VectorB.Value.Length);
+            Vector3 Output = new Vector3(VectorA.gpu, new float[VectorA.Value.Length], true);
+
+            VectorA.gpu.DeCacheLRU(size, new HashSet<uint> { VectorA.Id, VectorB.Id, Output.Id });
+
+            MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
+            MemoryBuffer<float> buffer2 = VectorA.GetBuffer(); // Input
+            MemoryBuffer<float> buffer3 = VectorB.GetBuffer(); // Input
 
             VectorA.gpu.crossKernel(VectorA.gpu.accelerator.DefaultStream, VectorA.Value.Length / 3, buffer.View, buffer2.View, buffer3.View);
 
             VectorA.gpu.accelerator.Synchronize();
 
-            float[] Output = buffer.GetAsArray();
+            Output.Value = buffer.GetAsArray();
 
-            buffer.Dispose();
-
-            return new Vector3(VectorA.gpu, Output);
+            return Output;
         }
 
 

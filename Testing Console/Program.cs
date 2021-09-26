@@ -1,15 +1,7 @@
 ﻿using DataScience;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-
-using DataScience.IO;
-using System.Threading.Tasks;
-using System.Linq;
-
-using ILGPU.Algorithms;
-using ILGPU.Runtime;
-using ILGPU;
+using DataScience.Geometric;
 
 namespace Testing_Console
 {
@@ -24,17 +16,22 @@ namespace Testing_Console
 
             // SAMPLE AND TEST CODE
 
-            Vector vectorA = Vector.Fill(gpu, 5f, 5);
-            vectorA.Print();
-            Vector vectorB = Vector.Arange(gpu, 1f, 26f, 1, 5);
-            vectorB.Print();
+            Vector3 vecA = new Vector3(gpu, new float[9] { 22, 11, 2,97,47,3,4,1,9 });
+            Vector3 vecB = new Vector3(gpu, new float[9] { 4, 51, 13,8,17,4,7,3,5 });
+            Stopwatch sw = new();
 
-            Vector vectorC = vectorA * vectorB;
-            vectorC.Print();
+            sw.Start();
 
-            //Stopwatch sw = new();
+            Vector3 vecC = Vector3.CrossProduct(vecA, vecB);
 
+            Console.WriteLine($"{sw.ElapsedMilliseconds }  ms");
+            sw.Stop();
 
+            vecA.Print();
+            vecB.Print();
+            vecC.Print();
+
+            Console.WriteLine(vecC.MemorySize());
 
             //float[] time = new float[2] { 0f,0f};
             //double result = 0f;

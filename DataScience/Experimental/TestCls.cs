@@ -8,7 +8,7 @@ using ILGPU.Algorithms;
 using ILGPU;
 using System.Runtime.CompilerServices;
 
-namespace DataScience
+namespace DataScience.Experimental
 {
     public class TestCls
     {
@@ -45,7 +45,7 @@ namespace DataScience
         }
 
 
-        private static double prevx = 2;
+        
 
 
 
