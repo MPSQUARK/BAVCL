@@ -37,8 +37,6 @@ namespace DataScience
 
 
         // METHODS
-
-       
         public bool Equals(Vector vector)
         {
             if (this.Value.Length != vector.Value.Length)
@@ -177,13 +175,14 @@ namespace DataScience
         /// Creates a UNIFORM Vector where all values are equal to Value
         /// </summary>
         /// <param name="Value"></param>
-        /// <param name="Size"></param>
+        /// <param name="Length"></param>
         /// <param name="Columns"></param>
         /// <returns></returns>
         public static Vector Fill(GPU gpu, float Value, int Length, int Columns = 1)
         {
             return new Vector(gpu, Enumerable.Repeat(Value, Length).ToArray(), Columns);
         }
+
         /// <summary>
         /// Sets all values in THIS Vector to value, of a set size and columns
         /// </summary>
@@ -259,9 +258,6 @@ namespace DataScience
 
 
 
-        // MEMORY ACCESS
-        #region
-
         /// <summary>
         /// Access 1 Value from 1D or 2D Vector
         /// </summary>
@@ -279,8 +275,6 @@ namespace DataScience
             return new Vector(vector.gpu, vector.Value[(row * vector.Columns)..((row + 1) * vector.Columns)], 1);
         }
 
-
-        #endregion
 
 
         // MEMORY ALLOCATION
@@ -597,7 +591,11 @@ namespace DataScience
         {
             // Ensure there is enough space for all the data
             long size = vector.MemorySize() * 2;
-            vector.gpu.DeCacheLRU(size, new HashSet<uint> { vector.Id });
+
+            uint flag = vector.Id;
+            vector.gpu.AddFlags(vector.Id);
+
+            vector.gpu.DeCacheLRU(size, true);
 
             // Make the Output Vector
             Vector Output = new Vector(vector.gpu, new float[vector.Value.Length], vector.Columns);
@@ -611,6 +609,8 @@ namespace DataScience
             vector.gpu.accelerator.Synchronize();
 
             buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
+
+            vector.gpu.RemoveFlags(flag);
 
             return Output;
         }
@@ -634,7 +634,10 @@ namespace DataScience
         {
             // Ensure there is enough space for all the data
             long size = vectorA.MemorySize() * 3;
-            vectorA.gpu.DeCacheLRU(size, new HashSet<uint> { vectorA.Id, vectorB.Id });
+
+            uint[] flags = new uint[] { vectorA.Id, vectorB.Id };
+            vectorA.gpu.AddFlags(flags);
+            vectorA.gpu.DeCacheLRU(size, true);
 
             // Make the Output Vector
             Vector Output = new Vector(vectorA.gpu, new float[vectorA.Value.Length], vectorA.Columns);
@@ -653,6 +656,8 @@ namespace DataScience
             // Copy output
             buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
 
+            vectorA.gpu.RemoveFlags(flags);
+
             // Return the result
             return Output;
         }
@@ -661,7 +666,10 @@ namespace DataScience
         {
             // Ensure there is enough space for all the data
             long size = this.MemorySize() * 2;
-            this.gpu.DeCacheLRU(size, new HashSet<uint> { this.Id, vectorB.Id });
+            uint[] flags = new uint[] { this.Id, vectorB.Id };
+            this.gpu.AddFlags(flags);
+
+            this.gpu.DeCacheLRU(size, true);
 
             // Check if the input & output are in Cache
             MemoryBuffer<float> buffer = this.GetBuffer(); // Input/Output
@@ -676,6 +684,8 @@ namespace DataScience
             // Copy output
             buffer.CopyTo(this.Value, 0, 0, this.Length());
 
+            this.gpu.RemoveFlags(flags);
+
             return;
         }
 
@@ -683,7 +693,11 @@ namespace DataScience
         {
             // Ensure there is enough space for all the data
             long size = (vector.MemorySize() << 2) + matrix.MemorySize();
-            vector.gpu.DeCacheLRU(size, new HashSet<uint> { vector.Id, matrix.Id });
+
+            uint[] flags = new uint[] { vector.Id, matrix.Id };
+            vector.gpu.AddFlags(flags);
+
+            vector.gpu.DeCacheLRU(size, true);
 
             // Make the Output Vector
             Vector Output = new Vector(vector.gpu, new float[vector.Value.Length], vector.Columns);
@@ -702,6 +716,8 @@ namespace DataScience
             // Copy output
             buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
 
+            vector.gpu.RemoveFlags(flags);
+
             // Return the result
             return Output;
         }
@@ -710,7 +726,11 @@ namespace DataScience
         {
             // Ensure there is enough space for all the data
             long size = (this.MemorySize() << 2) + matrix.MemorySize();
-            this.gpu.DeCacheLRU(size, new HashSet<uint> { this.Id, matrix.Id });
+
+            uint[] flags = new uint[] { this.Id, matrix.Id };
+            this.gpu.AddFlags(flags);
+
+            this.gpu.DeCacheLRU(size, true);
 
             // Make the Output Vector
             Vector Output = new Vector(this.gpu, new float[this.Value.Length], this.Columns);
@@ -729,6 +749,8 @@ namespace DataScience
             // Copy output
             buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
 
+            this.gpu.RemoveFlags(flags);
+
             return;
         }
 
@@ -745,7 +767,10 @@ namespace DataScience
 
             // Ensure there is enough space for all the data
             long size = vector.MemorySize() * 2;
-            vector.gpu.DeCacheLRU(size, new HashSet<uint> { vector.Id });
+
+            uint flag = vector.Id;
+            vector.gpu.AddFlags(flag);
+            vector.gpu.DeCacheLRU(size, true);
 
             // Make the Output Vector
             Vector Output = new Vector(vector.gpu, new float[vector.Value.Length - 1], vector.Columns);
@@ -758,6 +783,8 @@ namespace DataScience
             vector.gpu.accelerator.Synchronize();
 
             buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
+
+            vector.gpu.RemoveFlags(flag);
 
             return Output;
         }
@@ -949,7 +976,10 @@ namespace DataScience
 
             // Ensure there is enough space for all the data
             long size = vector.MemorySize() * 2;
-            vector.gpu.DeCacheLRU(size, new HashSet<uint> { vector.Id });
+
+            uint flag = vector.Id;
+            vector.gpu.AddFlags(flag);
+            vector.gpu.DeCacheLRU(size, true);
 
             // Make the Output Vector
             Vector Output = new Vector(vector.gpu, new float[vector.Value.Length], vector.RowCount());
@@ -962,6 +992,8 @@ namespace DataScience
             vector.gpu.accelerator.Synchronize();
 
             buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
+
+            vector.gpu.RemoveFlags(flag);
 
             return Output;
         }

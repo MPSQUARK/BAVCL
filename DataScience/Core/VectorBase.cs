@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using DataScience.Core;
 using ILGPU.Runtime;
+using static DataScience.GPU;
 
 namespace DataScience
 {
@@ -46,11 +47,13 @@ namespace DataScience
         public uint UpdateCache()
         {
             // If there exists no cached data then perform caching 
-            MemoryBuffer buffer;
-            if (!this.gpu.Data.TryGetValue(this.Id, out buffer))
+            GPUData data;
+            if (!this.gpu.GData.TryGetValue(this.Id, out data))
             {
                 return Cache();
             }
+
+            MemoryBuffer<T> buffer = (MemoryBuffer<T>)data.buffer;
 
             // If the Lengths don't match remove old data and cache again
             if (buffer.Length != Value.Length)
@@ -60,7 +63,7 @@ namespace DataScience
             }
 
             // Else update the cache
-            ((MemoryBuffer<T>)buffer).CopyFrom(Value, 0, 0, Value.Length);
+            buffer.CopyFrom(Value, 0, 0, Value.Length);
             return this.Id;
         }
         public MemoryBuffer Allocate()
