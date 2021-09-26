@@ -15,7 +15,7 @@ namespace DataScience
     /// Class for 1D and 2D Vector support
     /// Float Precision
     /// </summary>
-    public class Vector : VectorBase<float>
+    public partial class Vector : VectorBase<float>
     {
 
         // CONSTRUCTOR
@@ -25,16 +25,12 @@ namespace DataScience
         /// <param name="gpu">The device to use when computing this Vector.</param>
         /// <param name="values">The array of data contained in this Vector.</param>
         /// <param name="columns">The number of Columns IF this is a 2D Vector, for 1D Vectors use the default Columns = 1</param>
-        public Vector(GPU gpu, float[] value, int columns = 1, bool cache=true)
+        public Vector(GPU gpu, float[] values, int columns = 1, bool cache=true)
         {
             this.gpu = gpu;
-            this.Value = value;
+            this.Value = values;
             this.Columns = columns;
-            if (cache)
-            {
-                this.Cache();
-            }
-            
+            if (cache) { this.Cache(); }   
         }
 
 
@@ -42,39 +38,7 @@ namespace DataScience
 
         // METHODS
 
-
-        // Overrides - ToString & Equals
-        public override string ToString()
-        {
-            bool neg = (this.Value.Min() < 0);
-
-            int displace = new int[] { ((int)Max()).ToString().Length, ((int)Min()).ToString().Length }.Max();
-            int maxchar = $"{displace:0.00}".Length;
-
-            if (displace > maxchar)
-            {
-                int temp = displace;
-                displace = maxchar;
-                maxchar = temp;
-            }
-
-            StringBuilder stringBuilder = new StringBuilder();
-
-            for (int i = 0; i < this.Value.Length; i++)
-            {
-                if ((i % this.Columns == 0) && i != 0)
-                {
-                    stringBuilder.AppendLine();
-                }
-
-                string val = $"{this.Value[i]:0.00}";
-                int disp = displace - ((int)Math.Floor(MathF.Abs(this.Value[i]))).ToString().Length;
-
-                stringBuilder.AppendFormat($"| {Util.PadBoth(val, maxchar, disp, this.Value[i] < 0f)} |");
-            }
-
-            return stringBuilder.AppendLine().ToString();
-        }
+       
         public bool Equals(Vector vector)
         {
             if (this.Value.Length != vector.Value.Length)
@@ -294,12 +258,6 @@ namespace DataScience
         #endregion
 
 
-        // DISPOSAL
-        #region
-
-
-        #endregion
-
 
         // MEMORY ACCESS
         #region
@@ -315,78 +273,10 @@ namespace DataScience
         {
             return vector.Value[row * vector.Columns + col];
         }
-        /// <summary>
-        /// Access 1 Value from this 1D or 2D Vector
-        /// </summary>
-        /// <param name="row"></param>
-        /// <param name="col"></param>
-        /// <returns></returns>
-        public float AccessVal(int row, int col)
-        {
-            return this.Value[row * this.Columns + col];
-        }
-
-
-
-        /// <summary>
-        /// Access a specific slice of either a column 'c' or row 'r' of a vector
-        /// </summary>
-        /// <param name="vector"></param>
-        /// <param name="row_col_index"></param>
-        /// <param name="row_col"></param>
-        /// <returns></returns>
-        public static Vector AccessSlice(Vector vector, int row_col_index, char row_col)
-        {
-            if (vector.Columns == 1)
-            {
-                throw new Exception("Input Vector cannot be 1D");
-            }
-
-            if (row_col == 'r')
-            {
-                return AccessRow(vector, row_col_index);
-            }
-            if (row_col == 'c')
-            {
-                return AccessColumn(vector, row_col_index);
-            }
-
-            throw new Exception("Invalid slice char selector, choose 'r' for row or 'c' for column");
-        }
-        /// <summary>
-        /// Access a specific slice of either a column 'c' or row 'r' of a vector
-        /// </summary>
-        /// <param name="row_col_index"></param>
-        /// <param name="row_col"></param>
-        /// <returns></returns>
-        public Vector AccessSlice(int row_col_index, char row_col)
-        {
-            if (this.Columns == 1)
-            {
-                throw new Exception("Input Vector cannot be 1D");
-            }
-
-            if (row_col == 'r')
-            {
-                return AccessRow(row_col_index);
-            }
-            if (row_col == 'c')
-            {
-                return AccessColumn(row_col_index);
-            }
-
-            throw new Exception("Invalid slice char selector, choose 'r' for row or 'c' for column");
-        }
-
-
 
         public static Vector AccessRow(Vector vector, int row)
         {
             return new Vector(vector.gpu, vector.Value[(row * vector.Columns)..((row + 1) * vector.Columns)], 1);
-        }
-        public Vector AccessRow(int row)
-        {
-            return new Vector(this.gpu, this.Value[(row * this.Columns)..((row + 1) * this.Columns)], 1);
         }
 
 
@@ -395,47 +285,52 @@ namespace DataScience
         {
             int[] select = new int[2] { column, vector.Columns};
 
-            var buffer = vector.gpu.accelerator.Allocate<float>(vector.RowCount());     // Output
-            var buffer2 = vector.gpu.accelerator.Allocate<float>(vector.Value.Length);  // Input
-            var buffer3 = vector.gpu.accelerator.Allocate<int>(2);                      // Config
+            Vector Output = new Vector(vector.gpu, new float[vector.RowCount()]);
 
-            buffer2.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
+            long size = vector.MemorySize() + Output.MemorySize() + 8;
+
+            vector.gpu.DeCacheLRU(size, new HashSet<uint>() { Output.Id, vector.Id });
+
+            var buffer = Output.GetBuffer();                                            // Output
+            var buffer2 = vector.GetBuffer();                                           // Input
+
+            var buffer3 = vector.gpu.accelerator.Allocate<int>(2);                      // Config
             buffer3.CopyFrom(select, 0, 0, select.Length);
 
             vector.gpu.accessSliceKernel(vector.gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
 
             vector.gpu.accelerator.Synchronize();
 
-            float[] Output = buffer.GetAsArray();
+            Output.Value = buffer.GetAsArray();
 
-            buffer.Dispose();
-            buffer2.Dispose();
             buffer3.Dispose();
             
-            return new Vector(vector.gpu, Output);
+            return Output;
         }
         public Vector AccessColumn(int column)
         {
             int[] select = new int[2] { column, this.Columns };
 
-            var buffer = this.gpu.accelerator.Allocate<float>(this.RowCount());     // Output
-            var buffer2 = this.gpu.accelerator.Allocate<float>(this.Value.Length);  // Input
-            var buffer3 = this.gpu.accelerator.Allocate<int>(2);                    // Config
+            Vector Output = new Vector(this.gpu, new float[this.RowCount()]);
 
-            buffer2.CopyFrom(this.Value, 0, 0, this.Value.Length);
+            long size = this.MemorySize() + Output.MemorySize() + 8;
+
+            this.gpu.DeCacheLRU(size, new HashSet<uint>() { Output.Id, this.Id });
+
+            var buffer = Output.GetBuffer();                                        // Output
+            var buffer2 = this.GetBuffer();                                         // Input
+            var buffer3 = this.gpu.accelerator.Allocate<int>(2);                    // Config
             buffer3.CopyFrom(select, 0, 0, select.Length);
 
             this.gpu.accessSliceKernel(this.gpu.accelerator.DefaultStream, this.RowCount(), buffer.View, buffer2.View, buffer3.View);
 
             this.gpu.accelerator.Synchronize();
 
-            float[] Output = buffer.GetAsArray();
+            Output.Value = buffer.GetAsArray();
 
-            buffer.Dispose();
-            buffer2.Dispose();
             buffer3.Dispose();
 
-            return new Vector(this.gpu, Output);
+            return Output;
         }
 
 

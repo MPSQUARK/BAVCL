@@ -65,11 +65,7 @@ namespace DataScience.Geometric
         {
             return new Vector3(vector.gpu, vector.Value[(vert_row * 3)..((vert_row + 1) * 3)]);
         }
-        public void AccessRow(int vert_row)
-        {
-            this.Value = this.Value[(vert_row * 3)..((vert_row + 1) * 3)];
-            return;
-        }
+
 
 
         // Appening Verticies
