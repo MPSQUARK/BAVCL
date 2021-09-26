@@ -20,13 +20,17 @@ namespace DataScience
         public Accelerator accelerator;
 
 
+        public struct GPUData
+        {
+            public MemoryBuffer buffer;
+            public long size;
+        }
         // LRU 
-        // NOTE : Maybe combine these two into 1 concurrent dictionary<uint,CustomStruct>, where the struct would have : MemoryBuffer, SizeInMemory and DataType information?
-        public ConcurrentDictionary<uint, MemoryBuffer> Data = new ConcurrentDictionary<uint, MemoryBuffer>(); // GPU-side memory caching
-        public ConcurrentDictionary<uint, long> DataSizes = new ConcurrentDictionary<uint, long>();            // CPU-side 
-
+        public ConcurrentDictionary<uint, GPUData> GData = new ConcurrentDictionary<uint, GPUData>();
+        internal protected ConcurrentDictionary<uint, bool> ForceKeepFlags = new ConcurrentDictionary<uint, bool>();
         private ConcurrentQueue<uint> LRU = new ConcurrentQueue<uint>();                                       // GPU-side memory caching                                                     
         private uint CurrentVecId = 0;
+
 
         // Device Memory
         public readonly long MaxMemory;
@@ -147,17 +151,17 @@ namespace DataScience
         }
 
 
-        // Memory Caching & Management
+        #region "Memory Caching & Management"
         private uint GenerateId()
         {
             return Interlocked.Increment(ref CurrentVecId);
         }
         private bool IsInCache(uint id)
         {
-            return this.Data.ContainsKey(id);
+            return this.GData.ContainsKey(id);
         }
 
-        public void DeCacheLRU(long required, HashSet<uint> Flags)
+        public void DeCacheLRU(long required, bool HasFlags=true)
         {
             // Check if the memory required doesn't exceed the Maximum available
             if (required > this.MaxMemory)
@@ -170,9 +174,9 @@ namespace DataScience
             while (required > (this.MaxMemory - this.MemoryInUse))
             {
 
-                if (LRU.Count == Flags.Count)
+                if (LRU.Count == ForceKeepFlags.Keys.Count)
                 {
-                    throw new Exception($"Cannot DeCache any more data, keep flags : {Flags.Count}, LRU entries : {LRU.Count}");
+                    throw new Exception($"Cannot DeCache any more data, keep flags : {ForceKeepFlags.Keys.Count}, LRU entries : {LRU.Count}");
                 }
 
                 // Get the ID of the last item
@@ -180,24 +184,21 @@ namespace DataScience
                 LRU.TryDequeue(out Id); // Returns bool - could be useful for something
 
                 // If the Id is Flagged - Do not dispose and re-enqueue
-                if (Flags.Contains(Id))
+                if (ForceKeepFlags.ContainsKey(Id))
                 {
                     LRU.Enqueue(Id);
                     continue;
                 } 
 
                 // Get the Buffer corresponding to the ID
-                MemoryBuffer buffer;
-                if (Data.TryRemove(Id, out buffer))
+                GPUData data;
+                if (GData.TryRemove(Id, out data))
                 {
                     // Dispose of the Buffer
-                    buffer.Dispose();
+                    data.buffer.Dispose();
 
-                    // Get the size in memory of the decached array
-                    long size;
-                    DataSizes.TryRemove(Id, out size);
                     // Reduce the Memory in Use tracker by the size
-                    Interlocked.Add(ref MemoryInUse, -size);
+                    Interlocked.Add(ref MemoryInUse, -data.size);
                 }
             }
             return;
@@ -222,17 +223,14 @@ namespace DataScience
                 LRU.TryDequeue(out Id); // Returns bool - could be useful for something
 
                 // Get the Buffer corresponding to the ID
-                MemoryBuffer buffer;
-                if (Data.TryRemove(Id, out buffer))
+                GPUData data;
+                if (GData.TryRemove(Id, out data))
                 {
                     // Dispose of the Buffer
-                    buffer.Dispose();
+                    data.buffer.Dispose();
 
-                    // Get the size in memory of the decached array
-                    long size;
-                    DataSizes.TryRemove(Id, out size);
                     // Reduce the Memory in Use tracker by the size
-                    Interlocked.Add(ref MemoryInUse, -size);
+                    Interlocked.Add(ref MemoryInUse, -data.size);
                 }
             }
             return;
@@ -253,14 +251,14 @@ namespace DataScience
             // Increase the Memory in Use
             Interlocked.Add(ref MemoryInUse, size);
 
+            GPUData data = new GPUData { buffer = buffer, size = size};
+
             // generate Id for data so it can be found by the vector
             uint Id = GenerateId();
-            while (!Data.TryAdd(Id, buffer))
+            while (!GData.TryAdd(Id, data))
             {
                 Id = GenerateId();
             }
-
-            DataSizes.TryAdd(Id, size);
 
             // Put the Id in a queue
             LRU.Enqueue(Id);
@@ -271,19 +269,13 @@ namespace DataScience
         public void DeCache(uint Id)
         {
             // Get the Memory Buffer
-            MemoryBuffer buffer;
-            if (Data.TryRemove(Id, out buffer))
+            GPUData data;
+            if (GData.TryRemove(Id, out data))
             {
                 // Dispose of buffer
-                buffer.Dispose();
-            }
-            
-            // Get the Vector size in memory
-            long size;
-            if (DataSizes.TryRemove(Id, out size))
-            {
+                data.buffer.Dispose();
                 // Reduces the Memory in use tracker by the size
-                Interlocked.Add(ref MemoryInUse, -size);
+                Interlocked.Add(ref MemoryInUse, -data.size);
             }
 
             // If the Vector being disposed is the last Vector, then don't shuffle
@@ -322,18 +314,41 @@ namespace DataScience
         }
         public MemoryBuffer GetMemoryBuffer(ICacheable cacheable)
         {
-            MemoryBuffer buffer;
-            bool inputexists = this.Data.TryGetValue(cacheable.Id, out buffer);
+            GPUData data;
+            bool inputexists = this.GData.TryGetValue(cacheable.Id, out data);
 
             if (!inputexists)
             {
                 uint Id = this.Cache(cacheable);
-                this.Data.TryGetValue(Id, out buffer);
+                this.GData.TryGetValue(Id, out data);
             }
-            return buffer;
+            return data.buffer;
         }
 
+        public void AddFlags(uint Id)
+        {
+            ForceKeepFlags.TryAdd(Id, true);
+        }
+        public void AddFlags(uint[] Ids)
+        {
+            for (int i = 0; i < Ids.Length; i++)
+            {
+                ForceKeepFlags.TryAdd(Ids[i], true);
+            }
+        }
+        public void RemoveFlags(uint Id)
+        {
+            ForceKeepFlags.TryRemove(Id, out _);
+        }
+        public void RemoveFlags(uint[] Ids)
+        {
+            for (int i = 0; i < Ids.Length; i++)
+            {
+                ForceKeepFlags.TryRemove(Ids[i], out _);
+            }
+        }
 
+        #endregion
 
 
 

@@ -13,7 +13,10 @@ namespace DataScience
 
             long size = vector.MemorySize() + Output.MemorySize() + 8;
 
-            vector.gpu.DeCacheLRU(size, new HashSet<uint>() { Output.Id, vector.Id });
+            uint[] flags = new uint[] { Output.Id, vector.Id };
+            vector.gpu.AddFlags(flags);
+
+            vector.gpu.DeCacheLRU(size, true);
 
             var buffer = Output.GetBuffer();                                            // Output
             var buffer2 = vector.GetBuffer();                                           // Input
@@ -29,6 +32,8 @@ namespace DataScience
 
             buffer3.Dispose();
 
+            vector.gpu.RemoveFlags(flags);
+
             return Output;
         }
         public Vector AccessColumn(int column)
@@ -39,7 +44,9 @@ namespace DataScience
 
             long size = this.MemorySize() + Output.MemorySize() + 8;
 
-            this.gpu.DeCacheLRU(size, new HashSet<uint>() { Output.Id, this.Id });
+            uint[] flags = new uint[] { Output.Id, this.Id };
+            this.gpu.AddFlags(flags);
+            this.gpu.DeCacheLRU(size, true);
 
             var buffer = Output.GetBuffer();                                        // Output
             var buffer2 = this.GetBuffer();                                         // Input
@@ -53,6 +60,8 @@ namespace DataScience
             Output.Value = buffer.GetAsArray();
 
             buffer3.Dispose();
+
+            this.gpu.RemoveFlags(flags);
 
             return Output;
         }

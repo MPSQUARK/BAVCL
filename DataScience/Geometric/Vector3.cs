@@ -242,29 +242,36 @@ namespace DataScience.Geometric
         {
             if (VectorA.Length() != VectorB.Length()) { throw new Exception($"Cannot Cross Product two Vector3's together of different lengths. {VectorA.Length()} != {VectorB.Length()}"); }
 
+            // Cache the GPU
+            GPU gpu = VectorA.gpu;
+
             if (VectorA.Length() == 3 && VectorB.Length() == 3)
             {
                 float x = VectorA.Value[1] * VectorB.Value[2] - VectorA.Value[2] * VectorB.Value[1];
                 float y = VectorA.Value[2] * VectorB.Value[0] - VectorA.Value[0] * VectorB.Value[2];
                 float z = VectorA.Value[0] * VectorB.Value[1] - VectorA.Value[1] * VectorB.Value[0];
-                return new Vector3(VectorA.gpu, new float[3] { x, y, z });
+                return new Vector3(gpu, new float[3] { x, y, z });
             }
 
             long size = VectorA.MemorySize() * 3;
 
-            Vector3 Output = new Vector3(VectorA.gpu, new float[VectorA.Value.Length], true);
+            Vector3 Output = new Vector3(gpu, new float[VectorA.Value.Length], true);
 
-            VectorA.gpu.DeCacheLRU(size, new HashSet<uint> { VectorA.Id, VectorB.Id, Output.Id });
+            uint[] flags = new uint[] { VectorA.Id, VectorB.Id, Output.Id };
+            gpu.AddFlags(flags);
+            gpu.DeCacheLRU(size, true);
 
             MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
             MemoryBuffer<float> buffer2 = VectorA.GetBuffer(); // Input
             MemoryBuffer<float> buffer3 = VectorB.GetBuffer(); // Input
 
-            VectorA.gpu.crossKernel(VectorA.gpu.accelerator.DefaultStream, VectorA.Value.Length / 3, buffer.View, buffer2.View, buffer3.View);
+            gpu.crossKernel(gpu.accelerator.DefaultStream, VectorA.Value.Length / 3, buffer.View, buffer2.View, buffer3.View);
 
-            VectorA.gpu.accelerator.Synchronize();
+            gpu.accelerator.Synchronize();
 
             Output.Value = buffer.GetAsArray();
+
+            gpu.RemoveFlags(flags);
 
             return Output;
         }
