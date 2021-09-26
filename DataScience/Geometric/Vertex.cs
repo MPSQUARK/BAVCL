@@ -1,13 +1,8 @@
 ﻿using ILGPU.Algorithms;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 using DataScience.Utility;
 
-namespace DataScience
+namespace DataScience.Geometric
 {
     public struct Vertex
     {

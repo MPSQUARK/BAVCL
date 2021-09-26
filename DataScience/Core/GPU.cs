@@ -4,14 +4,13 @@ using ILGPU.IR.Transformations;
 using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
+using DataScience.Core;
+
 
 namespace DataScience
 {
@@ -157,10 +156,7 @@ namespace DataScience
         {
             return this.Data.ContainsKey(id);
         }
-        public long MemorySize(float[] array)
-        {
-            return (long)array.Length << 2;
-        }
+
         public void DeCacheLRU(long required, HashSet<uint> Flags)
         {
             // Check if the memory required doesn't exceed the Maximum available
@@ -242,20 +238,17 @@ namespace DataScience
             return;
         }
 
-
-
-        public uint Cache(float[] array)
+        public uint Cache(ICacheable cacheable)
         {
             // Calculates how much memory needed
-            long size = MemorySize(array);
+            long size = cacheable.MemorySize();
 
             // check if the amount required is available
             // decache last and check again untill enough space is made
             DeCacheLRU(size);
 
             // Allocate data to GPU
-            MemoryBuffer<float> buffer = this.accelerator.Allocate<float>(array.Length);
-            buffer.CopyFrom(array, 0, 0, array.Length);
+            MemoryBuffer buffer = cacheable.Allocate();
 
             // Increase the Memory in Use
             Interlocked.Add(ref MemoryInUse, size);
@@ -272,32 +265,9 @@ namespace DataScience
             // Put the Id in a queue
             LRU.Enqueue(Id);
 
-            // return Id
             return Id;
         }
-        /// <summary>
-        /// Will update the array data cached on the GPU device
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="Id"></param>
-        /// <returns></returns>
-        public uint UpdateCache(float[] array, uint Id)
-        {
-            MemoryBuffer buffer;
-            if (!Data.TryGetValue(Id, out buffer))
-            {
-                return Cache(array);
-            }
 
-            if (buffer.Length != array.Length)
-            {
-                DeCache(Id);
-                return Cache(array);
-            }
-
-            ((MemoryBuffer<float>)buffer).CopyFrom(array, 0, 0, array.Length);
-            return Id;
-        }
         public void DeCache(uint Id)
         {
             // Get the Memory Buffer
@@ -344,22 +314,20 @@ namespace DataScience
             }
             
         }
-
-
         public void ShowMemoryUsage(bool percentage = true)
         {
             if (percentage) { Console.WriteLine($"{((double)this.MemoryInUse / (double)this.MaxMemory) * 100f:0.00}%"); return; }
 
             Console.WriteLine( $"{this.MemoryInUse / (1024 * 1024)}/{this.MaxMemory / (1024 * 1024)} MB");
         }
-        public MemoryBuffer GetMemoryBuffer(float[] array, uint Id)
+        public MemoryBuffer GetMemoryBuffer(ICacheable cacheable)
         {
             MemoryBuffer buffer;
-            bool inputexists = this.Data.TryGetValue(Id, out buffer);
+            bool inputexists = this.Data.TryGetValue(cacheable.Id, out buffer);
 
             if (!inputexists)
             {
-                Id = this.Cache(array);
+                uint Id = this.Cache(cacheable);
                 this.Data.TryGetValue(Id, out buffer);
             }
             return buffer;
