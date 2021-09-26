@@ -206,46 +206,8 @@ namespace DataScience
             this.Columns = Columns;
             return;
         }
-        public static Vector Ones(GPU gpu, int Length, int Columns = 1)
-        {
-            return new Vector(gpu, Enumerable.Repeat(1f, Length).ToArray(), Columns);
-        }
-        public void Ones_IP(int Length, int Columns = 1)
-        {
-            this.Value = Enumerable.Repeat(1f, Length).ToArray();
-            this.Columns = Columns;
-            return;
-        }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="startval"></param>
-        /// <param name="endval"></param>
-        /// <param name="steps"></param>
-        /// <returns></returns>
-        public static Vector Linspace(GPU gpu, float startval, float endval, int steps, int Columns = 1)
-        {
-            if (steps <= 1) { throw new Exception("Cannot make linspace with less than 1 steps"); }
-            float interval = (endval - startval) / (steps - 1);
-            return new Vector(gpu, (from val in Enumerable.Range(0, steps) select startval + (val * interval)).ToArray(), Columns);
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="startval"></param>
-        /// <param name="endval"></param>
-        /// <param name="interval"></param>
-        /// <returns></returns>
-        public static Vector Arange(GPU gpu, float startval, float endval, float interval, int Columns = 1)
-        {
-            int steps = (int)((endval - startval) / interval);
-            if (endval < startval && interval > 0) { steps = Math.Abs(steps); interval = -interval; }
-            if (endval % interval != 0) { steps++; }
 
-            return new Vector(gpu, (from val in Enumerable.Range(0, steps)
-                                    select startval + (val * interval)).ToArray(), Columns);
-        }
 
         public Vector Copy(bool Cache=true)
         {
@@ -270,98 +232,12 @@ namespace DataScience
             return vector.Value[row * vector.Columns + col];
         }
 
-        public static Vector AccessRow(Vector vector, int row)
-        {
-            return new Vector(vector.gpu, vector.Value[(row * vector.Columns)..((row + 1) * vector.Columns)], 1);
-        }
+
 
 
 
         // MEMORY ALLOCATION
         #region
-
-        /// <summary>
-        /// Concatinates VectorB onto the end of VectorA.
-        /// Preserves the value of Columns of VectorA.
-        /// </summary>
-        /// <param name="vectorA"></param>
-        /// <param name="vectorB"></param>
-        /// <returns></returns>
-        public static Vector Concat(Vector vectorA, Vector vectorB, char axis='r', bool warp = false)
-        {
-            Vector vector = vectorA.Copy();
-            vector.Concat_IP(vectorB, axis, warp);
-            return vector;
-        }
-        public void Concat_IP(Vector vector, char axis = 'r', bool warp = false)
-        {
-            if (axis == 'r')
-            {
-                this.Append_IP(vector);
-                return;
-            }
-
-            // IF Concat in COLUMN mode
-
-            // IF 2D
-            if (this.Columns > 1 && vector.Columns > 1)
-            {
-                if ((this.RowCount() != vector.RowCount()) && (this.RowCount() != vector.Columns))
-                {
-                    throw new Exception(
-                        $"Vectors CANNOT be appended. " +
-                        $"This Vector has the shape ({this.RowCount()},{this.Columns}). " +
-                        $"The 2D Vector being appended has the shape ({vector.RowCount()},{vector.Columns})");
-                }
-
-                if (this.RowCount() == vector.Columns)
-                {
-                    if (!warp)
-                    {
-                        vector.Transpose_IP();
-                    }
-
-                    if (warp && (vector.Length() % this.RowCount() == 0))
-                    {
-                        vector.Columns = vector.Value.Length / this.RowCount();
-                    }
-
-                }
-
-            }
-            // IF 1D
-            if (vector.Columns == 1)
-            {
-
-                if (vector.Value.Length % this.RowCount() != 0)
-                {
-                    throw new Exception($"Vectors CANNOT be appended. " +
-                        $"This array has shape ({this.RowCount()},{this.Columns}), 1D vector being appended has {vector.Length()} Length");
-                }
-
-                vector.Columns = vector.Value.Length / this.RowCount();
-
-            }
-
-            var buffer = gpu.accelerator.Allocate<float>(vector.Value.Length + this.Value.Length); // Output
-            var buffer2 = gpu.accelerator.Allocate<float>(this.Value.Length); // Input
-            var buffer3 = gpu.accelerator.Allocate<float>(vector.Value.Length); // Input
-
-            buffer2.CopyFrom(this.Value, 0, 0, this.Value.Length);
-            buffer3.CopyFrom(vector.Value, 0, 0, vector.Value.Length);
-
-            gpu.appendKernel(gpu.accelerator.DefaultStream, this.RowCount(), buffer.View, buffer2.View, buffer3.View, this.Columns, vector.Columns);
-
-            gpu.accelerator.Synchronize();
-
-            this.Columns += vector.Columns;
-            this.Value = buffer.GetAsArray();
-
-            buffer.Dispose();
-            buffer2.Dispose();
-            buffer3.Dispose();
-        }
-
 
 
         /// <summary>
@@ -409,26 +285,6 @@ namespace DataScience
             this.Columns = vec.Columns;
             return;
         }
-
-        public static Vector Nan_to_num(Vector vector, float num)
-        {
-            Vector vec = vector.Copy();
-            vec.Nan_to_num_IP(num);
-            return vec;
-        }
-        public void Nan_to_num_IP(float num)
-        {
-            MemoryBuffer<float> buffer = GetBuffer();
-
-            gpu.nanToNumKernel(gpu.accelerator.DefaultStream, this.Value.Length, buffer.View, num);
-
-            gpu.accelerator.Synchronize();
-
-            buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
-
-            return;
-        }
-
 
 
         #endregion
