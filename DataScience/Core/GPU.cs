@@ -27,15 +27,16 @@ namespace DataScience
         }
         // LRU 
         public ConcurrentDictionary<uint, GPUData> GData = new ConcurrentDictionary<uint, GPUData>();
-        internal protected ConcurrentDictionary<uint, uint> ForceKeepFlags = new ConcurrentDictionary<uint, uint>();
-        private ConcurrentQueue<uint> LRU = new ConcurrentQueue<uint>();                                                
-        private uint CurrentVecId = 0;
-
+        protected internal ConcurrentDictionary<uint, uint> ForceKeepFlags = new ConcurrentDictionary<uint, uint>();
+        protected internal ConcurrentQueue<uint> LRU = new ConcurrentQueue<uint>();                                                
+        
+        protected internal uint CurrentVecId = 0;
+        protected internal uint LiveTaskCount = 0;
 
         // Device Memory
         public readonly long MaxMemory;
-        private long MemoryInUse = 0;
-        private float MemoryCap;
+        protected internal long MemoryInUse = 0;
+        protected internal float MemoryCap;
         public float memorycap
         { 
             get { return this.MemoryCap; } 
@@ -309,7 +310,7 @@ namespace DataScience
         {
             if (percentage) { Console.WriteLine($"{((double)this.MemoryInUse / (double)this.MaxMemory) * 100f:0.00}%"); return; }
 
-            Console.WriteLine( $"{this.MemoryInUse / (1024 * 1024)}/{this.MaxMemory / (1024 * 1024)} MB");
+            Console.WriteLine( $"{this.MemoryInUse >> 20}/{this.MaxMemory >> 20} MB");
         }
         public MemoryBuffer GetMemoryBuffer(ICacheable cacheable)
         {
