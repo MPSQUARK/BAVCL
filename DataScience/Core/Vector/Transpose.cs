@@ -36,7 +36,9 @@ namespace DataScience
         {
             throw new Exception("WIP : Please use the static version of this function under Vector.Transpose");
 
+#pragma warning disable CS0162 // Unreachable code detected
             Vector vector = Transpose(this);
+#pragma warning restore CS0162 // Unreachable code detected
             this.Dispose();
 
             this.Value = vector.Value[..];

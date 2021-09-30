@@ -27,8 +27,8 @@ namespace DataScience
         }
         // LRU 
         public ConcurrentDictionary<uint, GPUData> GData = new ConcurrentDictionary<uint, GPUData>();
-        internal protected ConcurrentDictionary<uint, bool> ForceKeepFlags = new ConcurrentDictionary<uint, bool>();
-        private ConcurrentQueue<uint> LRU = new ConcurrentQueue<uint>();                                       // GPU-side memory caching                                                     
+        internal protected ConcurrentDictionary<uint, uint> ForceKeepFlags = new ConcurrentDictionary<uint, uint>();
+        private ConcurrentQueue<uint> LRU = new ConcurrentQueue<uint>();                                                
         private uint CurrentVecId = 0;
 
 
@@ -160,7 +160,6 @@ namespace DataScience
         {
             return this.GData.ContainsKey(id);
         }
-
         public void DeCacheLRU(long required, bool HasFlags=true)
         {
             // Check if the memory required doesn't exceed the Maximum available
@@ -314,26 +313,26 @@ namespace DataScience
         }
         public MemoryBuffer GetMemoryBuffer(ICacheable cacheable)
         {
+            // If buffer exists then return it
             GPUData data;
-            bool inputexists = this.GData.TryGetValue(cacheable.Id, out data);
-
-            if (!inputexists)
+            if (this.GData.TryGetValue(cacheable.Id, out data))
             {
-                uint Id = this.Cache(cacheable);
-                this.GData.TryGetValue(Id, out data);
+                return data.buffer;
             }
+
+            // Else cache and return the buffer
+            this.GData.TryGetValue(this.Cache(cacheable), out data);
             return data.buffer;
         }
-
         public void AddFlags(uint Id)
         {
-            ForceKeepFlags.TryAdd(Id, true);
+            ForceKeepFlags.TryAdd(Id, 1);
         }
         public void AddFlags(uint[] Ids)
         {
             for (int i = 0; i < Ids.Length; i++)
             {
-                ForceKeepFlags.TryAdd(Ids[i], true);
+                ForceKeepFlags.TryAdd(Ids[i], 1);
             }
         }
         public void RemoveFlags(uint Id)
@@ -347,6 +346,8 @@ namespace DataScience
                 ForceKeepFlags.TryRemove(Ids[i], out _);
             }
         }
+
+
 
         #endregion
 
