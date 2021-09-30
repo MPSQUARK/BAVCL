@@ -13,7 +13,7 @@ namespace Testing_Console
             GPU gpu = new GPU();
             Random rnd = new Random(522);
 
-
+            
             // SAMPLE AND TEST CODE
 
             Vector3 vecA = new Vector3(gpu, new float[9] { 22, 11, 2,97,47,3,4,1,9 });
