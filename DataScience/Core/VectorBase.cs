@@ -72,7 +72,6 @@ namespace DataScience
             buffer.CopyFrom(this.Value, 0, 0, this.Value.Length);
             return buffer;
         }
-
         // Generic Methods NOT using ICacheable
         public MemoryBuffer<T> GetBuffer()
         {

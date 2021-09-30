@@ -33,9 +33,6 @@ namespace DataScience
             if (cache) { this.Cache(); }   
         }
 
-
-
-
         // METHODS
         public bool Equals(Vector vector)
         {
@@ -53,6 +50,10 @@ namespace DataScience
             }
 
             return true;
+        }
+        public Vector Copy(bool Cache = true)
+        {
+            return new Vector(this.gpu, this.Value[..], this.Columns, Cache);
         }
 
 
@@ -169,141 +170,18 @@ namespace DataScience
         #endregion
 
 
-        // CREATION
-        #region
-        /// <summary>
-        /// Creates a UNIFORM Vector where all values are equal to Value
-        /// </summary>
-        /// <param name="Value"></param>
-        /// <param name="Length"></param>
-        /// <param name="Columns"></param>
-        /// <returns></returns>
-        public static Vector Fill(GPU gpu, float Value, int Length, int Columns = 1)
-        {
-            return new Vector(gpu, Enumerable.Repeat(Value, Length).ToArray(), Columns);
-        }
+        #region "CONVERSION"
 
-        /// <summary>
-        /// Sets all values in THIS Vector to value, of a set size and columns
-        /// </summary>
-        /// <param name="Value"></param>
-        /// <param name="Size"></param>
-        /// <param name="Columns"></param>
-        /// <param name="inplace"></param>
-        public void Fill_IP(float Value, int Length, int Columns = 1)
-        {
-            this.Value = Enumerable.Repeat(Value, Length).ToArray();
-            this.Columns = Columns;
-            return;
-        }
-        public static Vector Zeros(GPU gpu, int Length, int Columns = 1)
-        {
-            return new Vector(gpu, new float[Length], Columns);
-        }
-        public void Zeros_IP(int Length, int Columns = 1)
-        {
-            this.Value = new float[Length];
-            this.Columns = Columns;
-            return;
-        }
-
-
-
-        public Vector Copy(bool Cache=true)
-        {
-            return new Vector(this.gpu, this.Value[..], this.Columns, Cache);
-        }
-
-
-
-        #endregion
-
-
-
-        /// <summary>
-        /// Access 1 Value from 1D or 2D Vector
-        /// </summary>
-        /// <param name="vector"></param>
-        /// <param name="row"></param>
-        /// <param name="col"></param>
-        /// <returns></returns>
-        public static float AccessVal(Vector vector, int row, int col)
-        {
-            return vector.Value[row * vector.Columns + col];
-        }
-
-
-
-
-
-        // MEMORY ALLOCATION
-        #region
-
-
-        /// <summary>
-        /// Concatinates VectorB onto the end of VectorA removing any duplicates.
-        /// Preserves the value of Columns of VectorA.
-        /// </summary>
-        /// <param name="vectorA"></param>
-        /// <param name="vectorB"></param>
-        /// <returns></returns>
-        public static Vector Merge(Vector vectorA, Vector vectorB)
-        {
-            return new Vector(vectorA.gpu, vectorA.Value.Union(vectorB.Value).ToArray(), vectorA.Columns);
-        }
-        /// <summary>
-        /// Concatinates Vector onto the end of this Vector removing any duplicates.
-        /// Preserves the value of Columns of this Vector.
-        /// </summary>
-        /// <param name="vector"></param>
-        public void Merge_IP(Vector vector)
-        {
-            this.Value = this.Value.Union(vector.Value).ToArray();
-            return;
-        }
-
-
-        public static Vector Append(Vector vectorA, Vector vectorB)
-        {
-            return new Vector(vectorA.gpu, vectorA.Value.Concat(vectorB.Value).ToArray(), vectorA.Columns);
-        }
-        public void Append_IP(Vector vector)
-        {
-            this.Value.Concat(vector.Value).ToArray();
-            return;
-        }
-
-
-        public static Vector Prepend(Vector vectorA, Vector vectorB)
-        {
-            return Vector.Append(vectorB, vectorA);
-        }
-        public void Prepend_IP(Vector vector, char axis)
-        {
-            Vector vec = Vector.Append(vector, this);
-            this.Value = vec.Value;
-            this.Columns = vec.Columns;
-            return;
-        }
-
-
-        #endregion
-
-
-        // CONVERSION
-        #region
         public Geometric.Vector3 ToVector3()
         {
             if (this.Length() % 3 != 0) { throw new Exception("Vector length must be a multiple of 3"); }
             return new Geometric.Vector3(this.gpu, this.Value);
         }
 
-
         #endregion
 
 
-        // OPERATORS
-        #region
+        #region "OPERATORS"
         public static Vector operator +(Vector vector)
         {
             return Vector.AbsX(vector);
@@ -398,6 +276,7 @@ namespace DataScience
 
 
         #endregion
+
 
 
         // FUNCTIONS
