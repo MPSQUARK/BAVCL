@@ -70,13 +70,14 @@ namespace DataScience
             }
 
 
-            long size = (vector.MemorySize() << 1) + (this.MemorySize() << 1);
+            long size = (vector._memorySize << 1) + (this._memorySize << 1);
 
             Vector Output = new Vector(this.gpu, new float[vector.Value.Length + this.Value.Length]);
 
-            uint[] Flags = new uint[] { this.Id, vector.Id, Output.Id };
-            this.gpu.AddFlags(Flags);
-            this.gpu.DeCacheLRU(size, true);
+            this.IncrementLiveCount();
+            vector.IncrementLiveCount();
+            Output.IncrementLiveCount();
+            this.gpu.DeCacheLRU(size);
 
             var buffer = Output.GetBuffer();                                    // Output
             var buffer2 = this.GetBuffer();                                     // Input
@@ -86,14 +87,16 @@ namespace DataScience
 
             gpu.accelerator.Synchronize();
 
-            this.gpu.RemoveFlags(Flags);
+            this.DecrementLiveCount();
+            vector.DecrementLiveCount();
+            Output.DecrementLiveCount();
 
             this.Columns += vector.Columns;
             this.Value = buffer.GetAsArray();
 
-            this.Dispose();
+            this.TryDeCache();
 
-            this.Id = Output.Id;
+            this._id = Output._id;
             
 
         }

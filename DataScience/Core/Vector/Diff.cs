@@ -13,14 +13,16 @@ namespace DataScience
             }
 
             // Ensure there is enough space for all the data
-            long size = vector.MemorySize() * 2;
+            long size = vector._memorySize << 1;
 
-            uint flag = vector.Id;
-            vector.gpu.AddFlags(flag);
-            vector.gpu.DeCacheLRU(size, true);
+            vector.IncrementLiveCount();
 
             // Make the Output Vector
             Vector Output = new Vector(vector.gpu, new float[vector.Value.Length - 1], vector.Columns);
+
+            Output.IncrementLiveCount();
+
+            vector.gpu.DeCacheLRU(size);
 
             MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
             MemoryBuffer<float> buffer2 = vector.GetBuffer(); // Input
@@ -31,7 +33,8 @@ namespace DataScience
 
             buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
 
-            vector.gpu.RemoveFlags(flag);
+            vector.DecrementLiveCount();
+            Output.DecrementLiveCount();
 
             return Output;
         }
@@ -40,9 +43,9 @@ namespace DataScience
         {
             Vector Output = Vector.Diff(this);
 
-            this.Dispose();
+            this.TryDeCache();
             this.Value = Output.Value[..];
-            this.Id = Output.Id;
+            this._id = Output._id;
 
             return;
         }

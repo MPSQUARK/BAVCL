@@ -1,17 +1,19 @@
-﻿using ILGPU.Runtime;
-
-namespace DataScience.Core
+﻿namespace DataScience.Core
 {
     public interface ICacheable
     {
-        public uint Id { get; set; }
-        public uint Cache();
-        public uint UpdateCache();
-        public void Dispose();
-        public long MemorySize();
-        public MemoryBuffer Allocate();
+        public uint LiveCount { get; }
+        public uint ID { get; set; }
+        public long MemorySize { get; set; }
 
+        public uint Cache();
+        public bool TryDeCache();
+
+        public void IncrementLiveCount();
+
+        public void DecrementLiveCount();
 
     }
+
 
 }

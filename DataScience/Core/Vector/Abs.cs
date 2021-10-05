@@ -34,7 +34,7 @@ namespace DataScience
                 this.Value[i] = MathF.Abs(this.Value[i]);
             }
 
-            if (this.Id != 0)
+            if (this._id != 0)
             {
                 UpdateCache();
             }
