@@ -12,7 +12,7 @@ namespace DataScience
         public void Reverse_IP()
         {
             this.Value = this.Value.Reverse().ToArray();
-            if (this.Id != 0) { UpdateCache(); }
+            if (this._id != 0) { UpdateCache(); }
             return;
         }
         public static Vector ReverseX(Vector vector)

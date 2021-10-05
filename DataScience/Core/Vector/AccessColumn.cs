@@ -11,12 +11,12 @@ namespace DataScience
 
             Vector Output = new Vector(vector.gpu, new float[vector.RowCount()]);
 
-            long size = vector.MemorySize() + Output.MemorySize() + 8;
+            long size = vector._memorySize + Output._memorySize + 8;
 
-            uint[] flags = new uint[] { Output.Id, vector.Id };
-            vector.gpu.AddFlags(flags);
+            Output.IncrementLiveCount();
+            vector.IncrementLiveCount();
 
-            vector.gpu.DeCacheLRU(size, true);
+            vector.gpu.DeCacheLRU(size);
 
             var buffer = Output.GetBuffer();                                            // Output
             var buffer2 = vector.GetBuffer();                                           // Input
@@ -32,7 +32,8 @@ namespace DataScience
 
             buffer3.Dispose();
 
-            vector.gpu.RemoveFlags(flags);
+            Output.DecrementLiveCount();
+            vector.DecrementLiveCount();
 
             return Output;
         }
@@ -42,11 +43,12 @@ namespace DataScience
 
             Vector Output = new Vector(this.gpu, new float[this.RowCount()]);
 
-            long size = this.MemorySize() + Output.MemorySize() + 8;
+            long size = this._memorySize + Output._memorySize + 8;
 
-            uint[] flags = new uint[] { Output.Id, this.Id };
-            this.gpu.AddFlags(flags);
-            this.gpu.DeCacheLRU(size, true);
+            this.IncrementLiveCount();
+            Output.IncrementLiveCount();
+
+            this.gpu.DeCacheLRU(size);
 
             var buffer = Output.GetBuffer();                                        // Output
             var buffer2 = this.GetBuffer();                                         // Input
@@ -61,7 +63,8 @@ namespace DataScience
 
             buffer3.Dispose();
 
-            this.gpu.RemoveFlags(flags);
+            this.DecrementLiveCount();
+            Output.DecrementLiveCount();
 
             return Output;
         }

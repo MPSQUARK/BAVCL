@@ -31,7 +31,11 @@ namespace Testing_Console
             vecB.Print();
             vecC.Print();
 
-            Console.WriteLine(vecC.MemorySize());
+            Console.WriteLine();
+            //Console.WriteLine($"VecA : {vecA.LiveCount}");
+            //Console.WriteLine($"VecB : {vecB.LiveCount}");
+            //Console.WriteLine($"VecC : {vecC.LiveCount}");
+
 
             //float[] time = new float[2] { 0f,0f};
             //double result = 0f;

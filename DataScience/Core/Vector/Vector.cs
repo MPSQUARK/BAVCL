@@ -25,12 +25,8 @@ namespace DataScience
         /// <param name="gpu">The device to use when computing this Vector.</param>
         /// <param name="values">The array of data contained in this Vector.</param>
         /// <param name="columns">The number of Columns IF this is a 2D Vector, for 1D Vectors use the default Columns = 1</param>
-        public Vector(GPU gpu, float[] values, int columns = 1, bool cache=true)
+        public Vector(GPU gpu, float[] values, int columns = 1, bool cache = true) : base(gpu, values, columns, cache)
         {
-            this.gpu = gpu;
-            this.Value = values;
-            this.Columns = columns;
-            if (cache) { this.Cache(); }   
         }
 
         // METHODS
@@ -325,12 +321,11 @@ namespace DataScience
         public static Vector ConsecutiveOP(Vector vector, float scalar, Operations operation)
         {
             // Ensure there is enough space for all the data
-            long size = vector.MemorySize() * 2;
+            long size = vector._memorySize << 1;
 
-            uint flag = vector.Id;
-            vector.gpu.AddFlags(vector.Id);
+            vector.IncrementLiveCount();
 
-            vector.gpu.DeCacheLRU(size, true);
+            vector.gpu.DeCacheLRU(size);
 
             // Make the Output Vector
             Vector Output = new Vector(vector.gpu, new float[vector.Value.Length], vector.Columns);
@@ -345,7 +340,7 @@ namespace DataScience
 
             buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
 
-            vector.gpu.RemoveFlags(flag);
+            vector.DecrementLiveCount();
 
             return Output;
         }
@@ -368,11 +363,11 @@ namespace DataScience
         internal static Vector _VectorVectorOP(Vector vectorA, Vector vectorB, Operations operation)
         {
             // Ensure there is enough space for all the data
-            long size = vectorA.MemorySize() * 3;
+            long size = vectorA._memorySize * 3;
 
-            uint[] flags = new uint[] { vectorA.Id, vectorB.Id };
-            vectorA.gpu.AddFlags(flags);
-            vectorA.gpu.DeCacheLRU(size, true);
+            vectorA.IncrementLiveCount();
+            vectorB.IncrementLiveCount();
+            vectorA.gpu.DeCacheLRU(size);
 
             // Make the Output Vector
             Vector Output = new Vector(vectorA.gpu, new float[vectorA.Value.Length], vectorA.Columns);
@@ -391,7 +386,8 @@ namespace DataScience
             // Copy output
             buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
 
-            vectorA.gpu.RemoveFlags(flags);
+            vectorA.DecrementLiveCount();
+            vectorB.DecrementLiveCount();
 
             // Return the result
             return Output;
@@ -400,11 +396,11 @@ namespace DataScience
         internal void _VectorVectorOP_IP(Vector vectorB, Operations operation)
         {
             // Ensure there is enough space for all the data
-            long size = this.MemorySize() * 2;
-            uint[] flags = new uint[] { this.Id, vectorB.Id };
-            this.gpu.AddFlags(flags);
+            long size = this._memorySize << 1;
 
-            this.gpu.DeCacheLRU(size, true);
+            vectorB.IncrementLiveCount();
+            this.IncrementLiveCount();
+            this.gpu.DeCacheLRU(size);
 
             // Check if the input & output are in Cache
             MemoryBuffer<float> buffer = this.GetBuffer(); // Input/Output
@@ -419,7 +415,8 @@ namespace DataScience
             // Copy output
             buffer.CopyTo(this.Value, 0, 0, this.Length());
 
-            this.gpu.RemoveFlags(flags);
+            vectorB.DecrementLiveCount();
+            this.DecrementLiveCount();
 
             return;
         }
@@ -427,12 +424,11 @@ namespace DataScience
         internal static Vector _VectorMatrixOP(Vector vector, Vector matrix, Operations operation)
         {
             // Ensure there is enough space for all the data
-            long size = (vector.MemorySize() << 2) + matrix.MemorySize();
+            long size = (vector._memorySize << 2) + matrix._memorySize;
 
-            uint[] flags = new uint[] { vector.Id, matrix.Id };
-            vector.gpu.AddFlags(flags);
-
-            vector.gpu.DeCacheLRU(size, true);
+            vector.IncrementLiveCount();
+            matrix.IncrementLiveCount();
+            vector.gpu.DeCacheLRU(size);
 
             // Make the Output Vector
             Vector Output = new Vector(vector.gpu, new float[vector.Value.Length], vector.Columns);
@@ -451,7 +447,8 @@ namespace DataScience
             // Copy output
             buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
 
-            vector.gpu.RemoveFlags(flags);
+            vector.DecrementLiveCount();
+            matrix.DecrementLiveCount();
 
             // Return the result
             return Output;
@@ -460,12 +457,11 @@ namespace DataScience
         internal void _VectorMatrixOP_IP(Vector matrix, Operations operation)
         {
             // Ensure there is enough space for all the data
-            long size = (this.MemorySize() << 2) + matrix.MemorySize();
+            long size = (this._memorySize << 2) + matrix._memorySize;
 
-            uint[] flags = new uint[] { this.Id, matrix.Id };
-            this.gpu.AddFlags(flags);
-
-            this.gpu.DeCacheLRU(size, true);
+            this.IncrementLiveCount();
+            matrix.IncrementLiveCount();
+            this.gpu.DeCacheLRU(size);
 
             // Make the Output Vector
             Vector Output = new Vector(this.gpu, new float[this.Value.Length], this.Columns);
@@ -484,7 +480,8 @@ namespace DataScience
             // Copy output
             buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
 
-            this.gpu.RemoveFlags(flags);
+            this.DecrementLiveCount();
+            matrix.DecrementLiveCount();
 
             return;
         }

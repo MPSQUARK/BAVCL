@@ -12,20 +12,11 @@ namespace DataScience.Geometric
     {
         #region "Variables"
         public override int Columns { get { return _columns; } set { _columns = 3; } }
-
         #endregion
 
         // CONSTRUCTOR
-        public Vector3(GPU gpu, float[] value, bool cache = true)
+        public Vector3(GPU gpu, float[] value, bool cache = true) : base(gpu, value, 3, true)
         {
-            this.gpu = gpu;
-            this.Value = value;
-            if (value.Length % 3 != 0) { throw new Exception($"Geometric 3D Vectors MUST have 3 columns, and value length MUST be a multiple of 3 instead recieved : {value.Length}."); }
-            this.Columns = 3;
-            if (cache)
-            {
-                this.Cache();
-            }
         }
 
 
@@ -253,13 +244,15 @@ namespace DataScience.Geometric
                 return new Vector3(gpu, new float[3] { x, y, z });
             }
 
-            long size = VectorA.MemorySize() * 3;
+            long size = VectorA._memorySize * 3;
 
             Vector3 Output = new Vector3(gpu, new float[VectorA.Value.Length], true);
 
-            uint[] flags = new uint[] { VectorA.Id, VectorB.Id, Output.Id };
-            gpu.AddFlags(flags);
-            gpu.DeCacheLRU(size, true);
+            VectorA.IncrementLiveCount();
+            VectorB.IncrementLiveCount();
+            Output.IncrementLiveCount();
+
+            gpu.DeCacheLRU(size);
 
             MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
             MemoryBuffer<float> buffer2 = VectorA.GetBuffer(); // Input
@@ -271,7 +264,9 @@ namespace DataScience.Geometric
 
             Output.Value = buffer.GetAsArray();
 
-            gpu.RemoveFlags(flags);
+            VectorA.DecrementLiveCount();
+            VectorB.DecrementLiveCount();
+            Output.DecrementLiveCount();
 
             return Output;
         }

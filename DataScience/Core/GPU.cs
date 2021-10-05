@@ -20,14 +20,12 @@ namespace DataScience
         public Accelerator accelerator;
 
 
-        public struct GPUData
-        {
-            public MemoryBuffer buffer;
-            public long size;
-        }
         // LRU 
-        public ConcurrentDictionary<uint, GPUData> GData = new ConcurrentDictionary<uint, GPUData>();
-        protected internal ConcurrentDictionary<uint, uint> ForceKeepFlags = new ConcurrentDictionary<uint, uint>();
+        public ConcurrentDictionary<uint, WeakReference<ICacheable>> CachedInfo = new ConcurrentDictionary<uint, WeakReference<ICacheable>>();  // Size, LiveCount
+        public ConcurrentDictionary<uint, MemoryBuffer> CachedMemory = new ConcurrentDictionary<uint, MemoryBuffer>(); // Memory Buffer
+
+
+        protected internal ConcurrentDictionary<uint, bool> ForceKeepFlags = new ConcurrentDictionary<uint, bool>();
         protected internal ConcurrentQueue<uint> LRU = new ConcurrentQueue<uint>();                                                
         
         protected internal uint CurrentVecId = 0;
@@ -159,49 +157,7 @@ namespace DataScience
         }
         private bool IsInCache(uint id)
         {
-            return this.GData.ContainsKey(id);
-        }
-        public void DeCacheLRU(long required, bool HasFlags=true)
-        {
-            // Check if the memory required doesn't exceed the Maximum available
-            if (required > this.MaxMemory)
-            {
-                throw new Exception($"Cannot cache this data onto the GPU, required memory : {required / (1024 * 1024)} MB, max memory available : {this.MaxMemory / (1024 * 1024)} MB.\n " +
-                                    $"Consider spliting/breaking the data into multiple smaller sets OR \n Caching to a GPU with more available memory.");
-            }
-
-            // Keep decaching untill enough space is made to accomodate the data
-            while (required > (this.MaxMemory - this.MemoryInUse))
-            {
-
-                if (LRU.Count == ForceKeepFlags.Keys.Count)
-                {
-                    throw new Exception($"Cannot DeCache any more data, keep flags : {ForceKeepFlags.Keys.Count}, LRU entries : {LRU.Count}");
-                }
-
-                // Get the ID of the last item
-                uint Id;
-                LRU.TryDequeue(out Id); // Returns bool - could be useful for something
-
-                // If the Id is Flagged - Do not dispose and re-enqueue
-                if (ForceKeepFlags.ContainsKey(Id))
-                {
-                    LRU.Enqueue(Id);
-                    continue;
-                } 
-
-                // Get the Buffer corresponding to the ID
-                GPUData data;
-                if (GData.TryRemove(Id, out data))
-                {
-                    // Dispose of the Buffer
-                    data.buffer.Dispose();
-
-                    // Reduce the Memory in Use tracker by the size
-                    Interlocked.Add(ref MemoryInUse, -data.size);
-                }
-            }
-            return;
+            return this.CachedMemory.ContainsKey(id);
         }
         public void DeCacheLRU(long required)
         {
@@ -212,73 +168,61 @@ namespace DataScience
                                     $"Consider spliting/breaking the data into multiple smaller sets OR \n Caching to a GPU with more available memory.");
             }
 
-
-            // Get the ID of the last item
-            uint Id;
-
             // Keep decaching untill enough space is made to accomodate the data
             while (required > (this.MaxMemory - this.MemoryInUse))
             {
-
-                LRU.TryDequeue(out Id); // Returns bool - could be useful for something
-
-                // Get the Buffer corresponding to the ID
-                GPUData data;
-                if (GData.TryRemove(Id, out data))
+                if (this.LiveTaskCount == 0) 
                 {
-                    // Dispose of the Buffer
-                    data.buffer.Dispose();
-
-                    // Reduce the Memory in Use tracker by the size
-                    Interlocked.Add(ref MemoryInUse, -data.size);
+                    throw new Exception(
+                        $"GPU states {this.LiveTaskCount} Live Tasks Running, while requiring {required >> 20} MB which is more than available {(this.MaxMemory - this.MemoryInUse) >> 20} MB. Potential cause: memory leak"); 
                 }
+
+                // Get the ID of the last item
+                uint Id;
+                if (!LRU.TryDequeue(out Id)) 
+                {
+                    throw new Exception($"LRU Empty Cannot Continue DeCaching");
+                }
+
+                // Try Get Reference to and the object of ICacheable
+                WeakReference<ICacheable> referenceCacheable;
+                if (!this.CachedInfo.TryGetValue(Id, out referenceCacheable)) { throw new Exception("Cannot Get Reference To ICacheable in DeCacheLRU"); } // Object been GC'ed
+                ICacheable cacheable;
+                if (!referenceCacheable.TryGetTarget(out cacheable)) { throw new Exception("Cannot get ICacheable interface from reference"); } // Unexpected error/behaviour
+
+                // Try to decache the data
+                if (!cacheable.TryDeCache()) { continue; }
+
+                // Reduce GPU Live Tasks
+                Interlocked.Decrement(ref LiveTaskCount);
+
             }
+
             return;
         }
 
-        public uint Cache(ICacheable cacheable)
+
+        public uint Allocate(WeakReference<ICacheable> CacheableReference, MemoryBuffer Buffer, long Size)
         {
-            // Calculates how much memory needed
-            long size = cacheable.MemorySize();
-
-            // check if the amount required is available
-            // decache last and check again untill enough space is made
-            DeCacheLRU(size);
-
-            // Allocate data to GPU
-            MemoryBuffer buffer = cacheable.Allocate();
 
             // Increase the Memory in Use
-            Interlocked.Add(ref MemoryInUse, size);
-
-            GPUData data = new GPUData { buffer = buffer, size = size};
+            Interlocked.Add(ref MemoryInUse, Size);
 
             // generate Id for data so it can be found by the vector
             uint Id = GenerateId();
-            while (!GData.TryAdd(Id, data))
+            while (!CachedInfo.TryAdd(Id, CacheableReference))
             {
                 Id = GenerateId();
             }
+            CachedMemory.TryAdd(Id, Buffer);
 
             // Put the Id in a queue
             LRU.Enqueue(Id);
 
             return Id;
         }
-
-        public void DeCache(uint Id)
+        private void RemoveFromLRU(uint Id)
         {
-            // Get the Memory Buffer
-            GPUData data;
-            if (GData.TryRemove(Id, out data))
-            {
-                // Dispose of buffer
-                data.buffer.Dispose();
-                // Reduces the Memory in use tracker by the size
-                Interlocked.Add(ref MemoryInUse, -data.size);
-            }
-
-            // If the Vector being disposed is the last Vector, then don't shuffle
             uint DequeuedId;
             LRU.TryDequeue(out DequeuedId);
 
@@ -289,6 +233,7 @@ namespace DataScience
 
             // Get the number of items in LRU
             int length = LRU.Count;
+
             // Put back the De-queued Id since it didn't match the Disposed Id
             LRU.Enqueue(DequeuedId);
 
@@ -304,49 +249,68 @@ namespace DataScience
                     LRU.Enqueue(DequeuedId);
                 }
             }
-            
+            return;
         }
+        public uint DeCache(uint Id)
+        {
+            // If fails to find the reference, object has been GC'ed
+            WeakReference<ICacheable> ReferenceCachedInfo;
+            if (!CachedInfo.TryRemove(Id, out ReferenceCachedInfo))
+            {
+                // So try remove any data associated
+                CachedMemory.TryRemove(Id, out _);
+                RemoveFromLRU(Id);
+                return 0;
+            }
+
+            // If fails to get ICacheable from reference.. no idea why.. unexpected behaviour
+            ICacheable cacheable;
+            if (!ReferenceCachedInfo.TryGetTarget(out cacheable))
+            {
+                // try rectify by removing associated data
+                CachedMemory.TryRemove(Id, out _);
+                RemoveFromLRU(Id);
+                return 0;
+            }
+
+            // ELSE
+
+            // Get the Memory Buffer
+            MemoryBuffer Buffer;
+            if (CachedMemory.TryRemove(Id, out Buffer))
+            {
+                // Dispose of buffer
+                Buffer.Dispose();
+
+                // Reduces the Memory in use tracker by the size
+                Interlocked.Add(ref MemoryInUse, -cacheable.MemorySize);
+            }
+
+            RemoveFromLRU(Id);
+            
+            return 0;
+        }
+
+
+
         public void ShowMemoryUsage(bool percentage = true)
         {
             if (percentage) { Console.WriteLine($"{((double)this.MemoryInUse / (double)this.MaxMemory) * 100f:0.00}%"); return; }
 
             Console.WriteLine( $"{this.MemoryInUse >> 20}/{this.MaxMemory >> 20} MB");
         }
-        public MemoryBuffer GetMemoryBuffer(ICacheable cacheable)
-        {
-            // If buffer exists then return it
-            GPUData data;
-            if (this.GData.TryGetValue(cacheable.Id, out data))
-            {
-                return data.buffer;
-            }
 
-            // Else cache and return the buffer
-            this.GData.TryGetValue(this.Cache(cacheable), out data);
-            return data.buffer;
-        }
-        public void AddFlags(uint Id)
+
+        public void AddLiveTasks()
         {
-            ForceKeepFlags.TryAdd(Id, 1);
+
         }
-        public void AddFlags(uint[] Ids)
+
+        public void RemoveLiveTasks()
         {
-            for (int i = 0; i < Ids.Length; i++)
-            {
-                ForceKeepFlags.TryAdd(Ids[i], 1);
-            }
+
         }
-        public void RemoveFlags(uint Id)
-        {
-            ForceKeepFlags.TryRemove(Id, out _);
-        }
-        public void RemoveFlags(uint[] Ids)
-        {
-            for (int i = 0; i < Ids.Length; i++)
-            {
-                ForceKeepFlags.TryRemove(Ids[i], out _);
-            }
-        }
+
 
 
 
