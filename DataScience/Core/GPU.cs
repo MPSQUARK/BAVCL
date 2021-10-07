@@ -164,7 +164,7 @@ namespace DataScience
             // Check if the memory required doesn't exceed the Maximum available
             if (required > this.MaxMemory)
             {
-                throw new Exception($"Cannot cache this data onto the GPU, required memory : {required / (1024 * 1024)} MB, max memory available : {this.MaxMemory / (1024 * 1024)} MB.\n " +
+                throw new Exception($"Cannot cache this data onto the GPU, required memory : {required >> 20} MB, max memory available : {this.MaxMemory >> 20} MB.\n " +
                                     $"Consider spliting/breaking the data into multiple smaller sets OR \n Caching to a GPU with more available memory.");
             }
 
@@ -186,12 +186,30 @@ namespace DataScience
 
                 // Try Get Reference to and the object of ICacheable
                 WeakReference<ICacheable> referenceCacheable;
-                if (!this.CachedInfo.TryGetValue(Id, out referenceCacheable)) { throw new Exception("Cannot Get Reference To ICacheable in DeCacheLRU"); } // Object been GC'ed
+                if (!this.CachedInfo.TryGetValue(Id, out referenceCacheable)) 
+                {
+                    // Object been GC'ed
+                    MemoryBuffer Buffer;
+                    CachedMemory.TryRemove(Id, out Buffer);
+                    Interlocked.Add(ref MemoryInUse, -Buffer.LengthInBytes);
+                    Buffer.Dispose();
+                    Interlocked.Decrement(ref LiveTaskCount);
+                    continue;
+                } 
                 ICacheable cacheable;
-                if (!referenceCacheable.TryGetTarget(out cacheable)) { throw new Exception("Cannot get ICacheable interface from reference"); } // Unexpected error/behaviour
+                if (!referenceCacheable.TryGetTarget(out cacheable)) 
+                {
+                    // Object been GC'ed
+                    MemoryBuffer Buffer;
+                    CachedMemory.TryRemove(Id, out Buffer);
+                    Interlocked.Add(ref MemoryInUse, -Buffer.LengthInBytes);
+                    Buffer.Dispose();
+                    Interlocked.Decrement(ref LiveTaskCount);
+                    continue;
+                } 
 
                 // Try to decache the data
-                if (!cacheable.TryDeCache()) { continue; }
+                if (!cacheable.TryDeCache()) { LRU.Enqueue(Id); continue; }
 
                 // Reduce GPU Live Tasks
                 Interlocked.Decrement(ref LiveTaskCount);
@@ -253,41 +271,20 @@ namespace DataScience
         }
         public uint DeCache(uint Id)
         {
-            // If fails to find the reference, object has been GC'ed
-            WeakReference<ICacheable> ReferenceCachedInfo;
-            if (!CachedInfo.TryRemove(Id, out ReferenceCachedInfo))
-            {
-                // So try remove any data associated
-                CachedMemory.TryRemove(Id, out _);
-                RemoveFromLRU(Id);
-                return 0;
-            }
-
-            // If fails to get ICacheable from reference.. no idea why.. unexpected behaviour
-            ICacheable cacheable;
-            if (!ReferenceCachedInfo.TryGetTarget(out cacheable))
-            {
-                // try rectify by removing associated data
-                CachedMemory.TryRemove(Id, out _);
-                RemoveFromLRU(Id);
-                return 0;
-            }
-
-            // ELSE
-
-            // Get the Memory Buffer
+            // Try to remove weak reference
+            CachedInfo.TryRemove(Id, out _);
+            
+            // Try to remove memory
             MemoryBuffer Buffer;
             if (CachedMemory.TryRemove(Id, out Buffer))
             {
-                // Dispose of buffer
+                Interlocked.Add(ref MemoryInUse, -Buffer.LengthInBytes);
                 Buffer.Dispose();
-
-                // Reduces the Memory in use tracker by the size
-                Interlocked.Add(ref MemoryInUse, -cacheable.MemorySize);
+                RemoveFromLRU(Id);
+                return 0;
             }
 
             RemoveFromLRU(Id);
-            
             return 0;
         }
 

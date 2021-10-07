@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics;
 using DataScience.Geometric;
+using ILGPU.Runtime;
 
 namespace Testing_Console
 {
@@ -17,20 +18,41 @@ namespace Testing_Console
             // SAMPLE AND TEST CODE
 
             Vector3 vecA = new Vector3(gpu, new float[9] { 22, 11, 2,97,47,3,4,1,9 });
-            Vector3 vecB = new Vector3(gpu, new float[9] { 4, 51, 13,8,17,4,7,3,5 });
+            long[] vecB =  new long[9] { 4, 51, 13,8,17,4,7,3,5 };
+            int reps = 10000000;
+            float time = 0f;
+            MemoryBuffer<long> memoryBuffer = gpu.accelerator.Allocate<long>(vecB);
+            MemoryBuffer buffer = (MemoryBuffer)memoryBuffer;
+
             Stopwatch sw = new();
 
+            long size;
+
             sw.Start();
+            for (int i = 0; i < reps; i++)
+            {
+                size = memoryBuffer.LengthInBytes;
+            }
+            time = sw.ElapsedMilliseconds;
+            Console.WriteLine($"Time taken MemoryBuffer<T> Length In Bytes : {time}");
 
-            Vector3 vecC = Vector3.CrossProduct(vecA, vecB);
+            sw.Restart();
+            for (int i = 0; i < reps; i++)
+            {
+                size = buffer.LengthInBytes;
+            }
+            time = sw.ElapsedMilliseconds;
+            Console.WriteLine($"Time taken MemoryBuffer Length In Bytes : {time}");
 
-            Console.WriteLine($"{sw.ElapsedMilliseconds }  ms");
+            sw.Restart();
+            for (int i = 0; i < reps; i++)
+            {
+                size = vecA.MemorySize;
+            }
+            time = sw.ElapsedMilliseconds;
+            Console.WriteLine($"Time taken Vector MemorySize : {time}");
+
             sw.Stop();
-
-            vecA.Print();
-            vecB.Print();
-            vecC.Print();
-
             Console.WriteLine();
             //Console.WriteLine($"VecA : {vecA.LiveCount}");
             //Console.WriteLine($"VecB : {vecB.LiveCount}");
