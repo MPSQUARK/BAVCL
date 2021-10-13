@@ -53,17 +53,25 @@ namespace DataScience
         /// </summary>
         public Vector AbsX_IP()
         {
+            // Secure data
             this.IncrementLiveCount();
 
-            // Check if the input & output are in Cache
+            // Make space for data
+            this.gpu.DeCacheLRU(this._memorySize);
+
+            // Get the Memory buffer input/output
             MemoryBuffer<float> buffer = this.GetBuffer(); // IO
 
-            gpu.absKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
+            // RUN
+            this.gpu.absKernel(this.gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
 
-            gpu.accelerator.Synchronize();
+            // SYNC
+            this.gpu.accelerator.Synchronize();
 
+            // Remove Security
             this.DecrementLiveCount();
 
+            // Output
             return this;
         }
 

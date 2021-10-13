@@ -47,7 +47,7 @@ namespace DataScience
                         vector.Transpose_IP();
                     }
 
-                    if (warp && (vector.Length() % this.RowCount() == 0))
+                    if (warp && (vector.Length % this.RowCount() == 0))
                     {
                         vector.Columns = vector.Value.Length / this.RowCount();
                     }
@@ -62,7 +62,7 @@ namespace DataScience
                 if (vector.Value.Length % this.RowCount() != 0)
                 {
                     throw new Exception($"Vectors CANNOT be appended. " +
-                        $"This array has shape ({this.RowCount()},{this.Columns}), 1D vector being appended has {vector.Length()} Length");
+                        $"This array has shape ({this.RowCount()},{this.Columns}), 1D vector being appended has {vector.Length} Length");
                 }
 
                 vector.Columns = vector.Value.Length / this.RowCount();

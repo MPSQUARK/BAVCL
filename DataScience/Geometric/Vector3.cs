@@ -231,12 +231,12 @@ namespace DataScience.Geometric
 
         public static Vector3 CrossProduct(Vector3 VectorA, Vector3 VectorB)
         {
-            if (VectorA.Length() != VectorB.Length()) { throw new Exception($"Cannot Cross Product two Vector3's together of different lengths. {VectorA.Length()} != {VectorB.Length()}"); }
+            if (VectorA.Length != VectorB.Length) { throw new Exception($"Cannot Cross Product two Vector3's together of different lengths. {VectorA.Length} != {VectorB.Length}"); }
 
             // Cache the GPU
             GPU gpu = VectorA.gpu;
 
-            if (VectorA.Length() == 3 && VectorB.Length() == 3)
+            if (VectorA.Length == 3 && VectorB.Length == 3)
             {
                 float x = VectorA.Value[1] * VectorB.Value[2] - VectorA.Value[2] * VectorB.Value[1];
                 float y = VectorA.Value[2] * VectorB.Value[0] - VectorA.Value[0] * VectorB.Value[2];

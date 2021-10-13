@@ -21,6 +21,8 @@ namespace DataScience
             set  { _columns = value > 0 ? value : throw new Exception($"Columns must be a positive integer greater than zero. Recieved {value}"); } 
         }
 
+        protected internal int _length = 0;
+        public virtual int Length { get { return _length; } set { _length = value; } }
 
         protected internal uint _id = 0;
         public uint ID { 
@@ -31,10 +33,14 @@ namespace DataScience
         protected internal long _memorySize = 0;
         public long MemorySize { get { return _memorySize; } set { _memorySize = value; } }
 
+        public uint _livecount = 0;
+        public uint LiveCount { get { return _livecount; } set { _livecount = value; } }
+
         protected VectorBase(GPU gpu, T[] value, int columns = 1, bool Cache = true)
         {
             this.gpu = gpu;
-            this.Columns = columns;     
+            this.Columns = columns;
+            this._length = value.Length;
             if (Cache)
             {
                 this.Cache(value);
@@ -44,8 +50,7 @@ namespace DataScience
             this._memorySize = this.CalculateMemorySize();
         }
 
-        public uint _livecount = 0;
-        public uint LiveCount { get {return _livecount; } set {_livecount = value; } }
+
 
 
 
@@ -140,6 +145,9 @@ namespace DataScience
 
             // Store info about data to LRU
             this._id = this.gpu.Allocate(VectorReference, Buffer, this._memorySize);
+
+            // Update Length Property
+            this._length = array.Length;
 
             // Get ID 
             return;
@@ -258,11 +266,7 @@ namespace DataScience
         public int RowCount()
         {
             if (this.Columns == 1) { return 1; }
-            return this.Value.Length / this.Columns;
-        }
-        public int Length()
-        {
-            return this.Value.Length;
+            return this.Length / this.Columns;
         }
         public (int, int) Shape()
         {
@@ -276,7 +280,7 @@ namespace DataScience
         public abstract T Sum();
         public bool IsRectangular()
         {
-            return (this.Length() % this.Columns == 0);
+            return (this.Length % this.Columns == 0);
         }
 
 

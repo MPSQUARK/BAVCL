@@ -16,9 +16,31 @@ namespace Testing_Console
 
 
             // SAMPLE AND TEST CODE
-            Vector vector = Vector.Arange(gpu, -10, 10f, 1, 5);
+            Vector vector = Vector.Arange(gpu, -10, 10f, 0.000001f, 5);
 
-            float[] vals = vector.Value;
+            Console.WriteLine(vector.AccessColumn(2).Length);
+
+            Stopwatch sw = new();
+            sw.Start();
+            
+            // func
+            
+            sw.Restart();
+
+            // func
+
+            Console.WriteLine($"time = {sw.ElapsedMilliseconds} ms");
+            
+            sw.Restart();
+
+            // func
+
+            sw.Restart();
+
+            // func
+
+            Console.WriteLine($"time = {sw.ElapsedMilliseconds} ms");
+            sw.Stop();
 
 
             //Console.WriteLine($"VecA : {vecA.LiveCount}");
