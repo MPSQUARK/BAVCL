@@ -18,7 +18,8 @@ namespace Testing_Console
             // SAMPLE AND TEST CODE
             Vector vector = Vector.Arange(gpu, -10, 10f, 0.000001f, 5);
 
-            Console.WriteLine(vector.AccessColumn(2).Length);
+            int val = 3;
+            Console.WriteLine(val++ * 5);
 
             Stopwatch sw = new();
             sw.Start();

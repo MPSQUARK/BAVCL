@@ -7,8 +7,13 @@ namespace DataScience
 
         public static Vector AccessRow(Vector vector, int row)
         {
-            return new Vector(vector.gpu, vector.Value[(row * vector.Columns)..((row + 1) * vector.Columns)], 1);
+            if (vector._id != 0)
+            {
+                return new Vector(vector.gpu, vector.Pull()[(row * vector.Columns)..(++row * vector.Columns)], 1);
+            }
+            return new Vector(vector.gpu, vector.Value[(row * vector.Columns)..(++row * vector.Columns)], 1);
         }
+
 
     }
 }
