@@ -231,10 +231,11 @@ namespace DataScience
         {
             return this.Value[row * this.Columns + col];
         }
-        public T[] AccessRow(int row)
+        public virtual T[] AccessRow(int row)
         {
-            return this.Value[(row * 3)..((row + 1) * 3)];
+            return this.Value[(row * this.Columns)..(++row * this.Columns)];
         }
+
 
 
         // PRINT + CSV
