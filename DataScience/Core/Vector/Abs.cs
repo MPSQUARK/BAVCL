@@ -24,6 +24,8 @@ namespace DataScience
         /// </summary>
         public void Abs_IP()
         {
+            SyncCPU();
+
             if (this.Value.Min() > 0f)
             {
                 return;
@@ -34,10 +36,7 @@ namespace DataScience
                 this.Value[i] = MathF.Abs(this.Value[i]);
             }
 
-            if (this._id != 0)
-            {
-                UpdateCache();
-            }
+            UpdateCache();
 
             return;
         }

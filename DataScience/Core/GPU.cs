@@ -29,7 +29,7 @@ namespace DataScience
         protected internal ConcurrentQueue<uint> LRU = new ConcurrentQueue<uint>();                                                
         
         protected internal uint CurrentVecId = 0;
-        protected internal uint LiveTaskCount = 0;
+        protected internal int LiveTaskCount = 0;
 
         // Device Memory
         public readonly long MaxMemory;
@@ -209,10 +209,7 @@ namespace DataScience
                 } 
 
                 // Try to decache the data
-                if (!cacheable.TryDeCache()) { LRU.Enqueue(Id); continue; }
-
-                // Reduce GPU Live Tasks
-                Interlocked.Decrement(ref LiveTaskCount);
+                if (!cacheable.TryDeCache()) { LRU.Enqueue(Id); }
 
             }
 
@@ -244,10 +241,8 @@ namespace DataScience
             uint DequeuedId;
             LRU.TryDequeue(out DequeuedId);
 
-            if (DequeuedId == Id)
-            {
-                return;
-            }
+            if (DequeuedId == Id) { return; }
+
 
             // Get the number of items in LRU
             int length = LRU.Count;
@@ -280,35 +275,27 @@ namespace DataScience
             {
                 Interlocked.Add(ref MemoryInUse, -Buffer.LengthInBytes);
                 Buffer.Dispose();
-                RemoveFromLRU(Id);
-                return 0;
             }
 
             RemoveFromLRU(Id);
+            Interlocked.Decrement(ref LiveTaskCount);
             return 0;
         }
 
 
 
-        public void ShowMemoryUsage(bool percentage = true)
+        public void ShowMemoryUsage(bool percentage = true, string format = "F2")
         {
-            if (percentage) { Console.WriteLine($"{((double)this.MemoryInUse / (double)this.MaxMemory) * 100f:0.00}%"); return; }
+            if (percentage) { Console.WriteLine($"{(((double)this.MemoryInUse / (double)this.MaxMemory) * 100f).ToString(format)}%"); return; }
 
             Console.WriteLine( $"{this.MemoryInUse >> 20}/{this.MaxMemory >> 20} MB");
         }
 
 
-        public void AddLiveTasks()
+        public void AddLiveTask()
         {
-
+            Interlocked.Increment(ref LiveTaskCount);
         }
-
-        public void RemoveLiveTasks()
-        {
-
-        }
-
-
 
 
         #endregion

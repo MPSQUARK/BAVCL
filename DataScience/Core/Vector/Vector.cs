@@ -49,7 +49,12 @@ namespace DataScience
         }
         public Vector Copy(bool Cache = true)
         {
-            return new Vector(this.gpu, this.Value[..], this.Columns, Cache);
+            if (this._id == 0)
+            {
+                return new Vector(this.gpu, this.Value[..], this.Columns, Cache);
+            }
+
+            return new Vector(this.gpu, this.Pull(), this.Columns, Cache);
         }
 
 
