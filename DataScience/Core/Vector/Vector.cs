@@ -61,7 +61,7 @@ namespace DataScience
         #region "MATHEMATICAL PROPERTIES "
         public override float Mean()
         {
-            return this.Sum() / this.Length();
+            return this.Sum() / this.Length;
         }
         public float Std()
         {
@@ -69,7 +69,7 @@ namespace DataScience
         }
         public float Var()
         {
-            if (this.Length() < 1e4f)
+            if (this.Length < 1e4f)
             {
                 int vectorSize = System.Numerics.Vector<float>.Count;
                 int i = 0;
@@ -104,13 +104,13 @@ namespace DataScience
                     sum += XMath.Pow((array[i] - mean), 2f);
                 }
 
-                return sum / this.Length();
+                return sum / this.Length;
             }
 
             //Vector diff = Vector.AbsX(this - this.Mean());
 
             //return (diff * diff).Sum() / this.Length();
-            return Vector.ConsecutiveOP(this, this.Mean(), Operations.squareOfDiffs).Sum() / this.Length();
+            return Vector.ConsecutiveOP(this, this.Mean(), Operations.squareOfDiffs).Sum() / this.Length;
         }
         public override float Range()
         {
@@ -175,7 +175,7 @@ namespace DataScience
 
         public Geometric.Vector3 ToVector3()
         {
-            if (this.Length() % 3 != 0) { throw new Exception("Vector length must be a multiple of 3"); }
+            if (this.Length % 3 != 0) { throw new Exception("Vector length must be a multiple of 3"); }
             return new Geometric.Vector3(this.gpu, this.Value);
         }
 
@@ -418,7 +418,7 @@ namespace DataScience
             this.gpu.accelerator.Synchronize();
 
             // Copy output
-            buffer.CopyTo(this.Value, 0, 0, this.Length());
+            buffer.CopyTo(this.Value, 0, 0, this.Length);
 
             vectorB.DecrementLiveCount();
             this.DecrementLiveCount();
