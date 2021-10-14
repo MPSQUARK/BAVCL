@@ -23,23 +23,23 @@ namespace Testing_Console
 
             Stopwatch sw = new();
             sw.Start();
-            
+
             // func
-            
+            vector.All();
             sw.Restart();
 
             // func
-
+            vector.All();
             Console.WriteLine($"time = {sw.ElapsedMilliseconds} ms");
             
             sw.Restart();
 
             // func
-
+            Vector.All(vector);
             sw.Restart();
 
             // func
-
+            Vector.All(vector);
             Console.WriteLine($"time = {sw.ElapsedMilliseconds} ms");
             sw.Stop();
 

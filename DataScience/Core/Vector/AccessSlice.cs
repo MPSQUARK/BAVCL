@@ -46,7 +46,7 @@ namespace DataScience
 
             if (row_col == 'r')
             {
-                return new Vector(gpu, AccessRow(row_col_index), 1);
+                return new Vector(this.gpu, AccessRow(row_col_index), 1);
             }
             if (row_col == 'c')
             {
