@@ -16,33 +16,38 @@ namespace Testing_Console
 
 
             // SAMPLE AND TEST CODE
-            Vector vector = Vector.Arange(gpu, -10, 10f, 0.000001f, 5);
+            Vector vector = Vector.Arange(gpu, -10, 0f, 0.00000001f, 5);
+            Vector vector2 = Vector.Arange(gpu, 0, 10f, 0.00000001f, 5);
 
-            int val = 3;
-            Console.WriteLine(val++ * 5);
 
             Stopwatch sw = new();
             sw.Start();
 
             // func
-            vector.All();
-            sw.Restart();
+            vector.Append_IP(vector2);                                                 
+            vector = Vector.Arange(gpu, 0, 10f, 0.00000001f, 5);
+            gpu.ShowMemoryUsage();
+            sw.Restart();                                                                                   
 
             // func
-            vector.All();
+            vector.Append_IP(vector2);
             Console.WriteLine($"time = {sw.ElapsedMilliseconds} ms");
-            
+            vector = Vector.Arange(gpu, 0, 10f, 0.00000001f, 5);
+            gpu.ShowMemoryUsage();
             sw.Restart();
 
             // func
-            Vector.All(vector);
+            Vector.Append(vector, vector2);
+            gpu.ShowMemoryUsage();
             sw.Restart();
 
             // func
-            Vector.All(vector);
+            Vector.Append(vector, vector2);
             Console.WriteLine($"time = {sw.ElapsedMilliseconds} ms");
+            gpu.ShowMemoryUsage();
             sw.Stop();
 
+            GC.Collect();
 
             //Console.WriteLine($"VecA : {vecA.LiveCount}");
             //Console.WriteLine($"VecB : {vecB.LiveCount}");
