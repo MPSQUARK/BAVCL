@@ -238,6 +238,9 @@ namespace DataScience
         }
         private void RemoveFromLRU(uint Id)
         {
+            if (LRU.Count == 0) { return; }
+            if (!LRU.Contains(Id)) { return; }
+
             uint DequeuedId;
             LRU.TryDequeue(out DequeuedId);
 

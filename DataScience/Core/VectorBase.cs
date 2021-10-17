@@ -12,6 +12,7 @@ namespace DataScience
     public abstract class VectorBase<T> : ICacheable, IIO where T : unmanaged 
     {
         protected GPU gpu { get; set; }
+
         public virtual T[] Value { get; set; }
 
 
@@ -40,13 +41,13 @@ namespace DataScience
         {
             this.gpu = gpu;
             this.Columns = columns;
-            this._length = value.Length;
             if (Cache)
             {
                 this.Cache(value);
                 return;
             }
             this.Value = value;
+            this.Length = value.Length;
             this._memorySize = this.CalculateMemorySize();
         }
 
@@ -60,11 +61,11 @@ namespace DataScience
         // Implemented Via ICacheable
         public long CalculateMemorySize()
         {
-            return Interop.SizeOf<T>() * this.Value.Length;
+            return (long)Interop.SizeOf<T>() * (long)this.Value.Length;
         }
         public long CalculateMemorySize(T[] array)
         {
-            return Interop.SizeOf<T>() * array.Length;
+            return (long)Interop.SizeOf<T>() * (long)array.Length;
         }
 
         public void IncrementLiveCount()
@@ -79,13 +80,14 @@ namespace DataScience
 
         public bool TryDeCache()
         {
-            // If the vector is not cached - Fail
-            if (this._id == 0) { return false; }
-            
             // If the vector is live - Fail
             if (this._livecount != 0) { return false; }
 
+            // If the vector is not cached - it's rechnically already decached
+            if (this._id == 0) { return true; }
+
             // Else Decache
+            this.Value = this.Pull();
             this._id = this.gpu.DeCache(this._id);
             return true;
         }
@@ -122,6 +124,8 @@ namespace DataScience
 
             // Store info about data to LRU
             this._id = this.gpu.Allocate(VectorReference, Buffer, this._memorySize);
+
+            this._length = this.Value.Length;
 
             // Get ID 
             return;
@@ -174,7 +178,7 @@ namespace DataScience
             // If the Lengths don't match remove old data and cache again
             if (Data.Length != Value.Length)
             {
-                this.gpu.DeCache(this._id);
+                this._id = this.gpu.DeCache(this._id);
                 Cache();
                 return;
             }
@@ -190,6 +194,45 @@ namespace DataScience
 
             throw new Exception("Unexpected ERROR in UpdateCache");
         }
+
+        public void UpdateCache(T[] array)
+        {
+            if (this._id == 0) { Cache(array); }
+
+            // If the ID does not exist in GPU's Cached Memory
+            MemoryBuffer Data;
+            if (!gpu.CachedMemory.TryGetValue(this._id, out Data))
+            {
+                // Try remove this ID from weakReferences
+                this.gpu.CachedInfo.TryRemove(this._id, out _);
+
+                // Cache the Data
+                Cache();
+                return;
+            }
+
+
+            // If the Lengths don't match remove old data and cache again
+            if (Data.Length != Value.Length)
+            {
+                this._id = this.gpu.DeCache(this._id);
+                Cache(array);
+                return;
+            }
+
+            // Else if the lengths match update the cache
+
+            // Convert Buffer Data to that of this type
+            MemoryBuffer<T> data = (MemoryBuffer<T>)Data;
+
+            // Copy new data to buffer 
+            data.CopyFrom(array, 0, 0, array.Length);
+            if (this.gpu.CachedMemory.TryUpdate(_id, data, Data)) { return; }
+
+            throw new Exception("Unexpected ERROR in UpdateCache");
+        }
+
+
 
 
         // Generic Methods NOT using ICacheable
