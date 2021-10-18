@@ -16,43 +16,44 @@ namespace Testing_Console
 
 
             // SAMPLE AND TEST CODE
-            Vector vector = Vector.Arange(gpu, -10, 0f, 0.00000001f, 5);
-            Vector vector2 = Vector.Arange(gpu, 0, 10f, 0.00000001f, 5);
+            int length = (int)1e9;
+            int reps = 1;
+            float dt = 0.1f;
+            float Error = 0.2f;
+            float chisquared;
+            float time = 0f;
+
+            float[] pertubation = new float[length];
+            float[] data = new float[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                pertubation[i] = (float)rnd.NextDouble();
+                data[i] = (float)rnd.NextDouble();
+            }
+
+
+            Vector Data = new Vector(gpu, data, 1);
+            Vector Noise = new Vector(gpu, pertubation, 1);
+
+            gpu.ShowMemoryUsage();
+
+            Vector NoiseyData = Data + Noise;
+
+            
+
+            chisquared = (NoiseyData - Data).ConsecutiveOP_IP(1f / Error, Operations.multiplication).ConsecutiveOP_IP(2f, Operations.power).Sum();
 
 
             Stopwatch sw = new();
             sw.Start();
-
-            // func
-            vector.Append_IP(vector2);                                                 
-            vector = Vector.Arange(gpu, 0, 10f, 0.00000001f, 5);
-            gpu.ShowMemoryUsage();
-            sw.Restart();                                                                                   
-
-            // func
-            vector.Append_IP(vector2);
-            Console.WriteLine($"time = {sw.ElapsedMilliseconds} ms");
-            vector = Vector.Arange(gpu, 0, 10f, 0.00000001f, 5);
-            gpu.ShowMemoryUsage();
-            sw.Restart();
-
-            // func
-            Vector.Append(vector, vector2);
-            gpu.ShowMemoryUsage();
-            sw.Restart();
-
-            // func
-            Vector.Append(vector, vector2);
-            Console.WriteLine($"time = {sw.ElapsedMilliseconds} ms");
-            gpu.ShowMemoryUsage();
-            sw.Stop();
-
-            GC.Collect();
-
-            //Console.WriteLine($"VecA : {vecA.LiveCount}");
-            //Console.WriteLine($"VecB : {vecB.LiveCount}");
-            //Console.WriteLine($"VecC : {vecC.LiveCount}");
-
+            for (int i = 0; i < reps; i++)
+            {
+                chisquared = (NoiseyData - Data).ConsecutiveOP_IP(1f/Error, Operations.multiplication).ConsecutiveOP_IP(2f, Operations.power).Sum();
+            }
+            time = sw.ElapsedMilliseconds;
+            sw.Reset();
+            Console.WriteLine($"Chi squared ans : {chisquared} , time taken : {time} ms , data length : {length} , for reps : {reps}");
 
             //float[] time = new float[2] { 0f,0f};
             //double result = 0f;
