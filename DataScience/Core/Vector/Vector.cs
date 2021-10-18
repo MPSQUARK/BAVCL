@@ -118,6 +118,8 @@ namespace DataScience
         }
         public override float Sum()
         {
+            SyncCPU();
+
             int vectorSize = System.Numerics.Vector<float>.Count;
             int i = 0;
             float[] array = this.Value;
@@ -284,12 +286,12 @@ namespace DataScience
         public static Vector ConsecutiveOP(Vector vectorA, Vector vectorB, Operations operation, bool Warp = false)
         {
             // Check function conditions
-            if (vectorA.Value.Length == vectorB.Value.Length)
+            if (vectorA._length == vectorB._length)
             {
                 return _VectorVectorOP(vectorA, vectorB, operation);
             }
 
-            bool ThisLonger = vectorA.Value.Length > vectorB.Value.Length;
+            bool ThisLonger = vectorA._length > vectorB._length;
 
 
             // If one input is a Vector and other is Matrix
@@ -302,10 +304,11 @@ namespace DataScience
 
             throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
         }
+
         public void ConsecutiveOP_IP(Vector vectorB, Operations operation)
         {
             // If the lengths are the same and both 1D vectors
-            if (this.Value.Length == vectorB.Value.Length && vectorB.Columns == 1 && this.Columns == 1)
+            if (this.Value.Length == vectorB._length && vectorB.Columns == 1 && this.Columns == 1)
             {
                 this._VectorVectorOP_IP(vectorB, operation);
                 return;
@@ -325,33 +328,36 @@ namespace DataScience
 
         public static Vector ConsecutiveOP(Vector vector, float scalar, Operations operation)
         {
-            // Ensure there is enough space for all the data
-            long size = vector._memorySize << 1;
+            GPU gpu = vector.gpu;
 
             vector.IncrementLiveCount();
 
-            vector.gpu.DeCacheLRU(size);
-
             // Make the Output Vector
-            Vector Output = new Vector(vector.gpu, new float[vector.Value.Length], vector.Columns);
+            Vector Output = new Vector(gpu, new float[vector._length], vector.Columns);
+
+            Output.IncrementLiveCount();
+
+            // Ensure there is enough space for all the data
+            gpu.DeCacheLRU(vector._memorySize << 1);
 
             // Check if the input & output are in Cache
             MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
             MemoryBuffer<float> buffer2 = vector.GetBuffer(); // Input
 
-            vector.gpu.scalarConsecOpKernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
+            gpu.scalarConsecOpKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
 
-            vector.gpu.accelerator.Synchronize();
-
-            buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
+            gpu.accelerator.Synchronize();
 
             vector.DecrementLiveCount();
+            Output.DecrementLiveCount();
 
             return Output;
         }
 
-        public void ConsecutiveOP_IP(float scalar, Operations operation)
+        public Vector ConsecutiveOP_IP(float scalar, Operations operation)
         {
+            this.IncrementLiveCount();
+
             // Check if the input & output are in Cache
             MemoryBuffer<float> buffer = this.GetBuffer(); // IO
 
@@ -359,23 +365,26 @@ namespace DataScience
 
             gpu.accelerator.Synchronize();
 
-            buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
+            this.DecrementLiveCount();
 
-            return;
+            return this;
         }
 
 
         internal static Vector _VectorVectorOP(Vector vectorA, Vector vectorB, Operations operation)
         {
-            // Ensure there is enough space for all the data
-            long size = vectorA._memorySize * 3;
+            GPU gpu = vectorA.gpu;
 
             vectorA.IncrementLiveCount();
             vectorB.IncrementLiveCount();
-            vectorA.gpu.DeCacheLRU(size);
 
             // Make the Output Vector
-            Vector Output = new Vector(vectorA.gpu, new float[vectorA.Value.Length], vectorA.Columns);
+            Vector Output = new Vector(gpu, new float[vectorA._length], vectorA.Columns);
+
+            Output.IncrementLiveCount();
+
+            // Ensure there is enough space for all the data
+            gpu.DeCacheLRU(vectorA._memorySize * 3);
 
             // Check if the input & output are in Cache
             MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
@@ -383,29 +392,26 @@ namespace DataScience
             MemoryBuffer<float> buffer3 = vectorB.GetBuffer(); // Input
 
             // Run the kernel
-            vectorA.gpu.consecOpKernel(vectorA.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
+            gpu.consecOpKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
 
             // Synchronise the kernel
-            vectorA.gpu.accelerator.Synchronize();
-
-            // Copy output
-            buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
+            gpu.accelerator.Synchronize();
 
             vectorA.DecrementLiveCount();
             vectorB.DecrementLiveCount();
+            Output.DecrementLiveCount();
 
             // Return the result
             return Output;
         }
 
-        internal void _VectorVectorOP_IP(Vector vectorB, Operations operation)
+        internal Vector _VectorVectorOP_IP(Vector vectorB, Operations operation)
         {
-            // Ensure there is enough space for all the data
-            long size = this._memorySize << 1;
-
             vectorB.IncrementLiveCount();
             this.IncrementLiveCount();
-            this.gpu.DeCacheLRU(size);
+
+            // Ensure there is enough space for all the data
+            this.gpu.DeCacheLRU(this._memorySize << 1);
 
             // Check if the input & output are in Cache
             MemoryBuffer<float> buffer = this.GetBuffer(); // Input/Output
@@ -417,26 +423,26 @@ namespace DataScience
             // Synchronise the kernel
             this.gpu.accelerator.Synchronize();
 
-            // Copy output
-            buffer.CopyTo(this.Value, 0, 0, this.Length);
-
             vectorB.DecrementLiveCount();
             this.DecrementLiveCount();
 
-            return;
+            return this;
         }
 
         internal static Vector _VectorMatrixOP(Vector vector, Vector matrix, Operations operation)
         {
-            // Ensure there is enough space for all the data
-            long size = (vector._memorySize << 2) + matrix._memorySize;
+            GPU gpu = vector.gpu;
 
             vector.IncrementLiveCount();
             matrix.IncrementLiveCount();
-            vector.gpu.DeCacheLRU(size);
 
             // Make the Output Vector
-            Vector Output = new Vector(vector.gpu, new float[vector.Value.Length], vector.Columns);
+            Vector Output = new Vector(gpu, new float[vector._length], vector.Columns);
+
+            Output.IncrementLiveCount();
+
+            // Ensure there is enough space for all the data
+            gpu.DeCacheLRU((vector._memorySize << 2) + matrix._memorySize);
 
             // Check if the input & output are in Cache
             MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
@@ -444,32 +450,32 @@ namespace DataScience
             MemoryBuffer<float> buffer3 = matrix.GetBuffer(); // Input
 
             // Run the kernel
-            vector.gpu.vectormatrixOpKernel(vector.gpu.accelerator.DefaultStream, matrix.RowCount(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
+            gpu.vectormatrixOpKernel(gpu.accelerator.DefaultStream, matrix.RowCount(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
 
             // Synchronise the kernel
-            vector.gpu.accelerator.Synchronize();
-
-            // Copy output
-            buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
+            gpu.accelerator.Synchronize();
 
             vector.DecrementLiveCount();
             matrix.DecrementLiveCount();
+            Output.DecrementLiveCount();
 
             // Return the result
             return Output;
         }
 
-        internal void _VectorMatrixOP_IP(Vector matrix, Operations operation)
+        internal Vector _VectorMatrixOP_IP(Vector matrix, Operations operation)
         {
-            // Ensure there is enough space for all the data
-            long size = (this._memorySize << 2) + matrix._memorySize;
 
             this.IncrementLiveCount();
             matrix.IncrementLiveCount();
-            this.gpu.DeCacheLRU(size);
 
             // Make the Output Vector
-            Vector Output = new Vector(this.gpu, new float[this.Value.Length], this.Columns);
+            Vector Output = new Vector(this.gpu, new float[this._length], this.Columns);
+
+            Output.IncrementLiveCount();
+
+            // Ensure there is enough space for all the data
+            this.gpu.DeCacheLRU((this._memorySize << 2) + matrix._memorySize);
 
             // Check if the input & output are in Cache
             MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
@@ -482,13 +488,11 @@ namespace DataScience
             // Synchronise the kernel
             this.gpu.accelerator.Synchronize();
 
-            // Copy output
-            buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
-
             this.DecrementLiveCount();
             matrix.DecrementLiveCount();
+            Output.DecrementLiveCount();
 
-            return;
+            return this;
         }
 
 
