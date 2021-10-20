@@ -1,5 +1,4 @@
 ﻿using ILGPU.Runtime;
-using System.Collections.Generic;
 
 namespace DataScience
 {

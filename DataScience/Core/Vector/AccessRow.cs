@@ -1,6 +1,4 @@
-﻿
-
-namespace DataScience
+﻿namespace DataScience
 {
     public partial class Vector
     {

@@ -1,12 +1,7 @@
-﻿using ILGPU;
-using ILGPU.Runtime;
+﻿using ILGPU.Runtime;
 using ILGPU.Algorithms;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
-using DataScience.Utility;
 
 namespace DataScience
 {

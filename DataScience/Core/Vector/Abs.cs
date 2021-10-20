@@ -1,6 +1,5 @@
 ﻿using ILGPU.Runtime;
 using System;
-using System.Linq;
 
 namespace DataScience
 {

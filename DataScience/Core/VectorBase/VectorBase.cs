@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using DataScience.Core;
 using ILGPU.Runtime;
-using static DataScience.GPU;
 using System.Threading;
 
 namespace DataScience

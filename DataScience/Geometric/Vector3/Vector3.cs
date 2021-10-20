@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using DataScience.Utility;
-using ILGPU.Runtime;
 
 namespace DataScience.Geometric
 {
