@@ -1,6 +1,4 @@
-﻿
-
-namespace DataScience.Core
+﻿namespace DataScience.Core
 {
     public static class Enums
     {

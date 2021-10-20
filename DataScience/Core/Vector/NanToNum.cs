@@ -1,6 +1,4 @@
-﻿
-
-using ILGPU.Runtime;
+﻿using ILGPU.Runtime;
 
 namespace DataScience
 {

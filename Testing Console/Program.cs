@@ -2,8 +2,6 @@
 using System;
 using System.Diagnostics;
 using DataScience.Geometric;
-using ILGPU.Runtime;
-using ILGPU.Algorithms;
 
 namespace Testing_Console
 {
