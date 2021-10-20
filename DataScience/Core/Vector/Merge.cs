@@ -14,6 +14,8 @@ namespace DataScience
         /// <returns></returns>
         public static Vector Merge(Vector vectorA, Vector vectorB)
         {
+            vectorA.SyncCPU();
+            vectorB.SyncCPU();
             return new Vector(vectorA.gpu, vectorA.Value.Union(vectorB.Value).ToArray(), vectorA.Columns);
         }
         /// <summary>
@@ -21,10 +23,12 @@ namespace DataScience
         /// Preserves the value of Columns of this Vector.
         /// </summary>
         /// <param name="vector"></param>
-        public void Merge_IP(Vector vector)
+        public Vector Merge_IP(Vector vector)
         {
-            this.Value = this.Value.Union(vector.Value).ToArray();
-            return;
+            SyncCPU();
+            vector.SyncCPU();
+            UpdateCache(this.Value.Union(vector.Value).ToArray());
+            return this;
         }
 
 

@@ -11,22 +11,23 @@ namespace DataScience
             // Get config data needed
             int[] select = new int[2] { column, vector.Columns };
 
-            // Make Output Vector
-            Vector Output = new Vector(vector.gpu, new float[vector.RowCount()]);
-
-            // Secure the Input & Output
-            Output.IncrementLiveCount();
+            // Secure the Input
             vector.IncrementLiveCount();
 
-            // Make space for data
-            vector.gpu.DeCacheLRU((vector._memorySize + Output._memorySize + 8));
+            // Make Output Vector
+            Vector Output = new Vector(vector.gpu, new float[vector.RowCount()]);
+            
+            // Secure the Output
+            Output.IncrementLiveCount();
 
             // Get Memory buffer Data
-            MemoryBuffer<float> buffer = Output.GetBuffer();                                            // Output
-            MemoryBuffer<float> buffer2 = vector.GetBuffer();                                           // Input
+            MemoryBuffer<float> 
+                buffer = Output.GetBuffer(),        // Output
+                buffer2 = vector.GetBuffer();       // Input
 
             // Allocate config Data onto GPU
-            MemoryBuffer<int> buffer3 = vector.gpu.accelerator.Allocate<int>(2);                        // Config
+            MemoryBuffer<int> 
+                buffer3 = vector.gpu.accelerator.Allocate<int>(2);      // Config
             buffer3.CopyFrom(select, 0, 0, select.Length);
 
             // RUN
@@ -48,37 +49,37 @@ namespace DataScience
         public Vector AccessColumn(int column)
         {
             // Get config data needed
-            int[] select = new int[2] { column, this.Columns };
-
-            // Make Output Vector
-            Vector Output = new Vector(this.gpu, new float[this.RowCount()]);
+            int[] select = new int[2] { column, Columns };
 
             // Secure the Input & Output
-            this.IncrementLiveCount();
+            IncrementLiveCount();
+
+            // Make Output Vector
+            Vector Output = new Vector(gpu, new float[RowCount()]);
+
             Output.IncrementLiveCount();
 
-            // Make space for data
-            this.gpu.DeCacheLRU((this._memorySize + Output._memorySize + 8));
-
             // Get Memory buffer Data
-            MemoryBuffer<float> buffer = Output.GetBuffer();                                        // Output
-            MemoryBuffer<float> buffer2 = this.GetBuffer();                                         // Input
+            MemoryBuffer<float> 
+                buffer = Output.GetBuffer(),        // Output
+                buffer2 = GetBuffer();              // Input
 
             // Allocate config Data onto GPU
-            MemoryBuffer<int> buffer3 = this.gpu.accelerator.Allocate<int>(2);                      // Config
+            MemoryBuffer<int> 
+                buffer3 = gpu.accelerator.Allocate<int>(2);     // Config
             buffer3.CopyFrom(select, 0, 0, select.Length);
 
             // RUN
-            this.gpu.accessSliceKernel(this.gpu.accelerator.DefaultStream, this.RowCount(), buffer.View, buffer2.View, buffer3.View);
+            gpu.accessSliceKernel(gpu.accelerator.DefaultStream, RowCount(), buffer.View, buffer2.View, buffer3.View);
 
             // SYNC
-            this.gpu.accelerator.Synchronize();
+            gpu.accelerator.Synchronize();
 
             // Dispose of Config
             buffer3.Dispose();
 
             // Remove Security
-            this.DecrementLiveCount();
+            DecrementLiveCount();
             Output.DecrementLiveCount();
 
             return Output;
