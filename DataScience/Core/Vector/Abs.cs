@@ -24,11 +24,11 @@ namespace DataScience
         {
             SyncCPU();
 
-            if (this.Min() > 0f) { return this; }
+            if (Min() > 0f) { return this; }
 
-            for (int i = 0; i < this.Value.Length; i++)
+            for (int i = 0; i < this._length; i++)
             {
-                this.Value[i] = MathF.Abs(this.Value[i]);
+                Value[i] = MathF.Abs(Value[i]);
             }
 
             UpdateCache();
@@ -54,22 +54,19 @@ namespace DataScience
         public Vector AbsX_IP()
         {
             // Secure data
-            this.IncrementLiveCount();
-
-            // Make space for data
-            this.gpu.DeCacheLRU(this._memorySize);
+            IncrementLiveCount();
 
             // Get the Memory buffer input/output
-            MemoryBuffer<float> buffer = this.GetBuffer(); // IO
+            MemoryBuffer<float> buffer = GetBuffer(); // IO
 
             // RUN
-            this.gpu.absKernel(this.gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
+            gpu.absKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
 
             // SYNC
-            this.gpu.accelerator.Synchronize();
+            gpu.accelerator.Synchronize();
 
             // Remove Security
-            this.DecrementLiveCount();
+            DecrementLiveCount();
 
             // Output
             return this;

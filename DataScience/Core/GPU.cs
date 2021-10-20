@@ -168,6 +168,7 @@ namespace DataScience
                                     $"Consider spliting/breaking the data into multiple smaller sets OR \n Caching to a GPU with more available memory.");
             }
 
+
             // Keep decaching untill enough space is made to accomodate the data
             while (required > (this.MaxMemory - this.MemoryInUse))
             {
@@ -370,31 +371,31 @@ namespace DataScience
         {
             switch ((Operations)operation.Value)
             {
-                case Operations.multiplication:
+                case Operations.multiply:
                     OutPut[index] = InputA[index] * InputB[index];
                     break;
-                case Operations.addition:
+                case Operations.add:
                     OutPut[index] = InputA[index] + InputB[index];
                     break;
-                case Operations.subtraction:
+                case Operations.subtract:
                     OutPut[index] = InputA[index] - InputB[index];
                     break;
-                case Operations.flipSubtraction:
+                case Operations.flipSubtract:
                     OutPut[index] = InputB[index] - InputA[index];
                     break;
-                case Operations.division:
+                case Operations.divide:
                     OutPut[index] = InputA[index] / InputB[index];
                     break;
-                case Operations.inverseDivision:
+                case Operations.invDivide:
                     OutPut[index] = InputB[index] / InputA[index];
                     break;
-                case Operations.power:
+                case Operations.pow:
                     OutPut[index] = XMath.Pow(InputA[index], InputB[index]);
                     break;
-                case Operations.powerFlipped:
+                case Operations.flipPow:
                     OutPut[index] = XMath.Pow(InputB[index], InputA[index]);
                     break;
-                case Operations.squareOfDiffs:
+                case Operations.DOTS:
                     OutPut[index] = XMath.Pow((InputA[index] - InputB[index]), 2f);
                     break;
 
@@ -405,31 +406,31 @@ namespace DataScience
         {
             switch ((Operations)operation.Value)
             {
-                case Operations.multiplication:
+                case Operations.multiply:
                     IO[index] = IO[index] * Input[index];
                     break;
-                case Operations.addition:
+                case Operations.add:
                     IO[index] = IO[index] + Input[index];
                     break;
-                case Operations.subtraction:
+                case Operations.subtract:
                     IO[index] = IO[index] - Input[index];
                     break;
-                case Operations.flipSubtraction:
+                case Operations.flipSubtract:
                     IO[index] = IO[index] - Input[index];
                     break;
-                case Operations.division:
+                case Operations.divide:
                     IO[index] = IO[index] / Input[index];
                     break;
-                case Operations.inverseDivision:
+                case Operations.invDivide:
                     IO[index] = IO[index] / Input[index];
                     break;
-                case Operations.power:
+                case Operations.pow:
                     IO[index] = XMath.Pow(IO[index], Input[index]);
                     break;
-                case Operations.powerFlipped:
+                case Operations.flipPow:
                     IO[index] = XMath.Pow(IO[index], Input[index]);
                     break;
-                case Operations.squareOfDiffs:
+                case Operations.DOTS:
                     IO[index] = XMath.Pow((IO[index] - Input[index]), 2f);
                     break;
             }
@@ -439,31 +440,31 @@ namespace DataScience
         {
             switch ((Operations)operation.Value)
             {
-                case Operations.multiplication:
+                case Operations.multiply:
                     OutPut[index] = Input[index] * Scalar;
                     break;
-                case Operations.addition:
+                case Operations.add:
                     OutPut[index] = Input[index] + Scalar;
                     break;
-                case Operations.subtraction:
+                case Operations.subtract:
                     OutPut[index] = Input[index] - Scalar;
                     break;
-                case Operations.flipSubtraction:
+                case Operations.flipSubtract:
                     OutPut[index] = Scalar - Input[index];
                     break;
-                case Operations.division:
+                case Operations.divide:
                     OutPut[index] = Input[index] / Scalar;
                     break;
-                case Operations.inverseDivision:
+                case Operations.invDivide:
                     OutPut[index] = Scalar / Input[index];
                     break;
-                case Operations.power:
+                case Operations.pow:
                     OutPut[index] = XMath.Pow(Input[index], Scalar);
                     break;
-                case Operations.powerFlipped:
+                case Operations.flipPow:
                     OutPut[index] = XMath.Pow(Scalar, Input[index]);
                     break;
-                case Operations.squareOfDiffs:
+                case Operations.DOTS:
                     OutPut[index] = XMath.Pow((Input[index] - Scalar), 2f);
                     break;
             }
@@ -473,31 +474,31 @@ namespace DataScience
         {
             switch ((Operations)operation.Value)
             {
-                case Operations.multiplication:
+                case Operations.multiply:
                     IO[index] = IO[index] * Scalar;
                     break;
-                case Operations.addition:
+                case Operations.add:
                     IO[index] = IO[index] + Scalar;
                     break;
-                case Operations.subtraction:
+                case Operations.subtract:
                     IO[index] = IO[index] - Scalar;
                     break;
-                case Operations.flipSubtraction:
+                case Operations.flipSubtract:
                     IO[index] = Scalar - IO[index];
                     break;
-                case Operations.division:
+                case Operations.divide:
                     IO[index] = IO[index] / Scalar;
                     break;
-                case Operations.inverseDivision:
+                case Operations.invDivide:
                     IO[index] = Scalar / IO[index];
                     break;
-                case Operations.power:
+                case Operations.pow:
                     IO[index] = XMath.Pow(IO[index], Scalar);
                     break;
-                case Operations.powerFlipped:
+                case Operations.flipPow:
                     IO[index] = XMath.Pow(Scalar, IO[index]);
                     break;
-                case Operations.squareOfDiffs:
+                case Operations.DOTS:
                     IO[index] = XMath.Pow((IO[index] - Scalar), 2f);
                     break;
             }
@@ -510,55 +511,55 @@ namespace DataScience
 
             switch ((Operations)operation.Value)
             {
-                case Operations.multiplication:
+                case Operations.multiply:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += InputA[i] * InputB[startidx + i];
                     }
                     break;
-                case Operations.addition:
+                case Operations.add:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += InputA[i] + InputB[startidx + i];
                     }
                     break;
-                case Operations.subtraction:
+                case Operations.subtract:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += InputA[i] - InputB[startidx + i];
                     }
                     break;
-                case Operations.flipSubtraction:
+                case Operations.flipSubtract:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += InputB[startidx + i] - InputA[i];
                     }
                     break;
-                case Operations.division:
+                case Operations.divide:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += InputA[i] / InputB[startidx + i];
                     }
                     break;
-                case Operations.inverseDivision:
+                case Operations.invDivide:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += InputB[startidx + i] / InputA[i];
                     }
                     break;
-                case Operations.power:
+                case Operations.pow:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += XMath.Pow(InputA[i], InputB[startidx + i]);
                     }
                     break;
-                case Operations.powerFlipped:
+                case Operations.flipPow:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += XMath.Pow(InputB[startidx + i], InputA[i]);
                     }
                     break;
-                case Operations.squareOfDiffs:
+                case Operations.DOTS:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += XMath.Pow((InputA[i] - InputB[startidx + i]), 2f);
@@ -635,14 +636,14 @@ namespace DataScience
 
     public enum Operations
     {
-        multiplication = 0,
-        addition = 1,
-        subtraction = 2,
-        division = 3,
-        power = 4,
-        inverseDivision = 5,
-        flipSubtraction = 6,
-        powerFlipped = 7,
-        squareOfDiffs = 8,
+        multiply = 0,
+        add = 1,
+        subtract = 2,
+        divide = 3,
+        pow = 4,
+        invDivide = 5,
+        flipSubtract = 6,
+        flipPow = 7,
+        DOTS = 8, // Difference Of Two Squares
     }
 }

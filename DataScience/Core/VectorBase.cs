@@ -292,11 +292,15 @@ namespace DataScience
 
         public string ToCSV()
         {
+            SyncCPU();
             StringBuilder stringBuilder = new StringBuilder();
-            bool is1D = !(this.Columns == 1);
-            for (int i = 0; i < this.Value.Length; i++)
+            bool is1D = (Columns != 1);
+
+            stringBuilder.Append($"{this.Value[0]},");
+
+            for (int i = 1; i < Length; i++)
             {
-                if ((i % this.Columns == 0) && is1D && i != 0)
+                if ((i % Columns == 0) && is1D)
                 {
                     stringBuilder.AppendLine();
                 }
@@ -309,16 +313,17 @@ namespace DataScience
         // MATHEMATICAL PROPERTIES 
         public int RowCount()
         {
-            if (this.Columns == 1) { return 1; }
-            return this.Length / this.Columns;
-        }
-        public (int, int) Shape()
-        {
-            return (this.RowCount(), this.Columns);
+            if (Columns == 1) { return 1; }
+            return _length / Columns;
         }
 
-        public virtual T Max() { return Value.Max(); }
-        public virtual T Min() { return Value.Min();}
+        public (int, int) Shape()
+        {
+            return (RowCount(), Columns);
+        }
+
+        public virtual T Max() { SyncCPU(); return Value.Max(); }
+        public virtual T Min() { SyncCPU(); return Value.Min();}
         public abstract T Mean();
         public abstract T Range();
         public abstract T Sum();

@@ -9,7 +9,7 @@ namespace DataScience
     {
         public override string ToString()
         {
-            bool neg = (this.Value.Min() < 0);
+            bool neg = (Min() < 0);
 
             int displace = new int[] { ((int)Max()).ToString().Length, ((int)Min()).ToString().Length }.Max();
             int maxchar = $"{displace:0.00}".Length;

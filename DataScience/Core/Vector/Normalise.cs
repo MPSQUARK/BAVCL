@@ -6,11 +6,11 @@ namespace DataScience
     {
         public static Vector Normalise(Vector vectorA)
         {
-            return ConsecutiveOP(vectorA, 1f / vectorA.Sum(), Operations.multiplication);
+            return OP(vectorA, 1f / vectorA.Sum(), Operations.multiply);
         }
-        public void Normalise_IP()
+        public Vector Normalise_IP()
         {
-            ConsecutiveOP_IP(1f / this.Sum(), Operations.multiplication);
+            return OP_IP(1f / Sum(), Operations.multiply);
         }
 
 

@@ -194,7 +194,7 @@ namespace DataScience.Geometric
         }
         public override float Range()
         {
-            return (this.Max() - this.Min());
+            return Max() - Min();
         }
         public override float Sum()
         {
@@ -236,33 +236,21 @@ namespace DataScience.Geometric
             // Cache the GPU
             GPU gpu = VectorA.gpu;
 
-            if (VectorA.Length == 3 && VectorB.Length == 3)
-            {
-                float x = VectorA.Value[1] * VectorB.Value[2] - VectorA.Value[2] * VectorB.Value[1];
-                float y = VectorA.Value[2] * VectorB.Value[0] - VectorA.Value[0] * VectorB.Value[2];
-                float z = VectorA.Value[0] * VectorB.Value[1] - VectorA.Value[1] * VectorB.Value[0];
-                return new Vector3(gpu, new float[3] { x, y, z });
-            }
-
-            long size = VectorA._memorySize * 3;
-
             Vector3 Output = new Vector3(gpu, new float[VectorA.Value.Length], true);
 
             VectorA.IncrementLiveCount();
             VectorB.IncrementLiveCount();
             Output.IncrementLiveCount();
 
-            gpu.DeCacheLRU(size);
+            gpu.DeCacheLRU(VectorA._memorySize * 3);
 
             MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
             MemoryBuffer<float> buffer2 = VectorA.GetBuffer(); // Input
             MemoryBuffer<float> buffer3 = VectorB.GetBuffer(); // Input
 
-            gpu.crossKernel(gpu.accelerator.DefaultStream, VectorA.Value.Length / 3, buffer.View, buffer2.View, buffer3.View);
+            gpu.crossKernel(gpu.accelerator.DefaultStream, VectorA._length / 3, buffer.View, buffer2.View, buffer3.View);
 
             gpu.accelerator.Synchronize();
-
-            Output.Value = buffer.GetAsArray();
 
             VectorA.DecrementLiveCount();
             VectorB.DecrementLiveCount();
