@@ -283,8 +283,6 @@ namespace DataScience
         // PRINT + CSV
         public void Print()
         {
-            Console.WriteLine();
-            SyncCPU();
             Console.Write(this.ToString());
             return;
         }

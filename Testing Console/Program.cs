@@ -13,15 +13,29 @@ namespace Testing_Console
             GPU gpu = new GPU(memorycap:0.94f);
             Random rnd = new Random(522);
 
-            Vector vec = Vector.Arange(gpu,-12, 12, 1, 4);
-            vec.SyncCPU();
-            vec.Value[5] = float.PositiveInfinity;
-            vec.Value[8] = float.NegativeInfinity;
-            vec.Value[10] = float.NaN;
-            vec.UpdateCache(vec.Value);
-            Vector3 vector = vec.ToVector3();
-            vector.Print();
-            //Console.WriteLine(vec.ToStringOld());
+            Vector vec = Vector.Arange(gpu,0, 12000000, 1, 4);
+
+            float time = 0f;
+            int reps = 100;
+
+            Stopwatch sw = new();
+
+            vec.ToString();
+
+            sw.Start();
+            vec.ToString();
+            time = sw.ElapsedMilliseconds;
+            Console.WriteLine($"time NEW : {time / reps} ms");
+
+
+
+            vec.ToStringOld();
+
+            sw.Restart();
+            vec.ToStringOld();
+            time = sw.ElapsedMilliseconds;
+            Console.WriteLine($"time OLD : {time/reps} ms");
+            sw.Stop();
 
             Console.Read();
 
