@@ -13,18 +13,16 @@ namespace Testing_Console
             GPU gpu = new GPU(memorycap:0.94f);
             Random rnd = new Random(522);
 
+            Vector vec = Vector.Arange(gpu,-12, 12, 1, 4);
+            vec.SyncCPU();
+            vec.Value[5] = float.PositiveInfinity;
+            vec.Value[8] = float.NegativeInfinity;
+            vec.Value[10] = float.NaN;
+            vec.UpdateCache(vec.Value);
+            Vector3 vector = vec.ToVector3();
+            vector.Print();
+            //Console.WriteLine(vec.ToStringOld());
 
-            // SAMPLE AND TEST CODE
-            Vector vec = Vector.Linspace(gpu, 0f, 19f, 20, 5);
-            vec.Print();
-
-            Vector vec2 = Vector.Linspace(gpu, 0f, -19f, 20, 4);
-            vec2.Print();
-
-            Vector vecR = Vector.Concat(vec, vec2, 'c', true);
-            vecR.Print();
-
-            
             Console.Read();
 
 
