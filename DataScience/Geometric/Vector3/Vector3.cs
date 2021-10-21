@@ -65,36 +65,111 @@ namespace DataScience.Geometric
         // CONVERT TO STRING
         public override string ToString()
         {
-            bool neg = (Min() < 0);
+            return ToString(2);
+        }
+        public string ToString(byte decimalplaces = 2)
+        {
+            // FORMAT : "|__-DIGITS.DECIMALPLACES__|"
 
-            int displace = new int[] { ((int)Max()).ToString().Length, ((int)Min()).ToString().Length }.Max();
-            int maxchar = $"{displace:0.00}".Length;
+            int high = ((int)Max()).ToString().Length;
+            int low = (int)Min();
+            bool hasnegative = low < 0f;
+            bool hasinfinity = Value.Contains(float.PositiveInfinity) || Value.Contains(float.NegativeInfinity) || Value.Contains(float.NaN);
+            low = hasnegative ? low.ToString().Length - 1 : low.ToString().Length;
+            int digits = high > low ? high : low;
 
-            if (displace > maxchar)
-            {
-                int temp = displace;
-                displace = maxchar;
-                maxchar = temp;
-            }
+            string format = $"F{decimalplaces}";
+            char neg = ' ';
+            string val;
+            string spaces;
 
             StringBuilder stringBuilder = new StringBuilder();
 
-            for (int i = 0; i < this._length; i++)
+
+
+            stringBuilder.AppendLine();
+
+            if (hasinfinity)
             {
-                if ((i % this.Columns == 0) && i != 0)
+
+                if (float.IsNegativeInfinity(Value[0]) || float.IsPositiveInfinity(Value[0]))
                 {
-                    stringBuilder.AppendLine();
+                    val = "INF   ";
+                }
+                else if (float.IsNaN(Value[0]))
+                {
+                    val = "NaN  ";
+                }
+                else
+                {
+                    val = Math.Abs(Value[0]).ToString(format);
+                }
+                spaces = new string(' ', digits - (val.Length - decimalplaces - 1));
+                if (Value[0] < 0f) { neg = '-'; } else { neg = ' '; }
+                stringBuilder.Append($"|  {neg}{spaces}{val}  |");
+
+                for (int i = 1; i < _length; i++)
+                {
+                    if (i % Columns == 0) { stringBuilder.AppendLine(); }
+
+                    if (float.IsNegativeInfinity(Value[i]) || float.IsPositiveInfinity(Value[i]))
+                    {
+                        val = "INF   ";
+                    }
+                    else if (float.IsNaN(Value[i]))
+                    {
+                        val = "NaN   ";
+                    }
+                    else
+                    {
+                        val = Math.Abs(Value[i]).ToString(format);
+                    }
+                    spaces = new string(' ', digits - (val.Length - decimalplaces - 1));
+                    if (Value[i] < 0f) { neg = '-'; } else { neg = ' '; }
+                    stringBuilder.Append($"|  {neg}{spaces}{val}  |");
                 }
 
-                string val = $"{this.Value[i]:0.00}";
-                int disp = displace - ((int)Math.Floor(MathF.Abs(this.Value[i]))).ToString().Length;
+                return stringBuilder.AppendLine().ToString();
+            }
 
-                stringBuilder.AppendFormat($"| {Util.PadBoth(val, maxchar, disp, this.Value[i] < 0f)} |");
+            if (hasnegative)
+            {
+                val = Math.Abs(Value[0]).ToString(format);
+                spaces = new string(' ', digits - (val.Length - decimalplaces - 1));
+                if (Value[0] < 0f) { neg = '-'; } else { neg = ' '; }
+                stringBuilder.Append($"|  {neg}{spaces}{val}  |");
+
+                for (int i = 1; i < _length; i++)
+                {
+                    if (i % Columns == 0) { stringBuilder.AppendLine(); }
+
+                    val = Math.Abs(Value[i]).ToString(format);
+                    spaces = new string(' ', digits - (val.Length - decimalplaces - 1));
+                    if (Value[i] < 0f) { neg = '-'; } else { neg = ' '; }
+                    stringBuilder.Append($"|  {neg}{spaces}{val}  |");
+                }
+
+                return stringBuilder.AppendLine().ToString();
+            }
+
+            val = Value[0].ToString(format);
+            spaces = new string(' ', digits - (val.Length - decimalplaces - 1));
+            stringBuilder.Append($"|  {neg}{spaces}{val}  |");
+
+            for (int i = 1; i < _length; i++)
+            {
+                if (i % Columns == 0) { stringBuilder.AppendLine(); }
+
+                val = Value[i].ToString(format);
+                spaces = new string(' ', digits - (val.Length - decimalplaces - 1));
+                stringBuilder.Append($"|   {spaces}{val}  |");
             }
 
             return stringBuilder.AppendLine().ToString();
+
         }
-        
+
+
         // CONVERT TO GENERIC VECTOR
         public Vector ToVector(bool cache = true)
         {
