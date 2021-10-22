@@ -5,7 +5,7 @@ namespace DataScience
     public partial class Vector
     {
 
-        public static Vector AccessColumn(Vector vector, int column)
+        public static Vector GetColumnAsVector(Vector vector, int column)
         {
             // Get config data needed
             int[] select = new int[2] { column, vector.Columns };
@@ -45,7 +45,7 @@ namespace DataScience
             return Output;
         }
 
-        public Vector AccessColumn(int column)
+        public Vector GetColumnAsVector(int column)
         {
             // Get config data needed
             int[] select = new int[2] { column, Columns };
@@ -84,7 +84,19 @@ namespace DataScience
             return Output;
         }
 
+        public static float[] GetColumnAsArray(Vector vector, int column)
+        {
+            Vector output = vector.GetColumnAsVector(column);
+            output.TryDeCache();
+            return output.Value;
+        }
 
+        public float[] GetColumnAsArray(int column)
+        {
+            Vector output = GetColumnAsVector(column);
+            output.TryDeCache();
+            return output.Value;
+        }
 
     }
 

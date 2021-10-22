@@ -3,15 +3,29 @@
     public partial class Vector
     {
 
-        public static Vector AccessRow(Vector vector, int row)
+        public static float[] GetRowAsArray(Vector vector, int row)
         {
-            if (vector._id != 0)
-            {
-                return new Vector(vector.gpu, vector.Pull()[(row * vector.Columns)..(++row * vector.Columns)]);
-            }
+            vector.SyncCPU();
+            return vector.Value[(row * vector.Columns)..(++row * vector.Columns)];
+        }
+
+        public float[] GetRowAsArray(int row)
+        {
+            SyncCPU();
+            return Value[(row * Columns)..(++row * Columns)];
+        }
+
+        public static Vector GetRowAsVector(Vector vector, int row)
+        {
+            vector.SyncCPU();
             return new Vector(vector.gpu, vector.Value[(row * vector.Columns)..(++row * vector.Columns)]);
         }
 
+        public Vector GetRowAsVector(int row)
+        {
+            SyncCPU();
+            return new Vector(gpu, Value[(row * Columns)..(++row * Columns)]);
+        }
 
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using DataScience.Core;
 
 namespace DataScience
 {
@@ -10,51 +11,90 @@ namespace DataScience
         /// </summary>
         /// <param name="vector"></param>
         /// <param name="row_col_index"></param>
-        /// <param name="row_col"></param>
+        /// <param name="axis"></param>
         /// <returns></returns>
-        public static Vector AccessSlice(Vector vector, int row_col_index, char row_col)
+        public static Vector GetSliceAsVector(Vector vector, int row_col_index, Enums.Axis axis)
         {
             if (vector.Columns == 1)
             {
                 throw new Exception("Input Vector cannot be 1D");
             }
 
-            if (row_col == 'r')
+            switch (axis)
             {
-                return AccessRow(vector, row_col_index);
+                case Enums.Axis.Row:
+                    return vector.GetRowAsVector(row_col_index);
+                case Enums.Axis.Column:
+                    return vector.GetColumnAsVector(row_col_index);
+                default:
+                    throw new Exception("Please select a valid Axis from Enums.Axis. This is a 2D Vector so ONLY Row and Column axis are valid.");
             }
-            if (row_col == 'c')
-            {
-                return AccessColumn(vector, row_col_index);
-            }
-
-            throw new Exception("Invalid slice char selector, choose 'r' for row or 'c' for column");
         }
 
         /// <summary>
         /// Access a specific slice of either a column 'c' or row 'r' of a vector
         /// </summary>
         /// <param name="row_col_index"></param>
-        /// <param name="row_col"></param>
+        /// <param name="axis"></param>
         /// <returns></returns>
-        public Vector AccessSlice(int row_col_index, char row_col)
+        public Vector GetSliceAsVector(int row_col_index, Enums.Axis axis)
         {
-            if (this.Columns == 1)
+            if (Columns == 1)
             {
                 throw new Exception("Input Vector cannot be 1D");
             }
 
-            if (row_col == 'r')
+            switch (axis)
             {
-                return new Vector(this.gpu, AccessRow(row_col_index));
+                case Enums.Axis.Row:
+                    return GetRowAsVector(row_col_index);
+                case Enums.Axis.Column:
+                    return GetColumnAsVector(row_col_index);
+                default:
+                    throw new Exception("Please select a valid Axis from Enums.Axis. This is a 2D Vector so ONLY Row and Column axis are valid.");
             }
-            if (row_col == 'c')
+            
+        }
+
+
+        public static float[] GetSliceAsArray(Vector vector, int row_col_index, Enums.Axis axis)
+        {
+            if (vector.Columns == 1)
             {
-                return AccessColumn(row_col_index);
+                throw new Exception("Input Vector cannot be 1D");
             }
 
-            throw new Exception("Invalid slice char selector, choose 'r' for row or 'c' for column");
+            switch (axis)
+            {
+                case Enums.Axis.Row:
+                    return vector.GetRowAsArray(row_col_index);
+                case Enums.Axis.Column:
+                    return vector.GetColumnAsArray(row_col_index);
+                default:
+                    throw new Exception("Please select a valid Axis from Enums.Axis. This is a 2D Vector so ONLY Row and Column axis are valid.");
+            }
         }
+
+        public float[] GetSliceAsArray(int row_col_index, Enums.Axis axis)
+        {
+            if (Columns == 1)
+            {
+                throw new Exception("Input Vector cannot be 1D");
+            }
+
+            switch (axis)
+            {
+                case Enums.Axis.Row:
+                    return GetRowAsArray(row_col_index);
+                case Enums.Axis.Column:
+                    return GetColumnAsArray(row_col_index);
+                default:
+                    throw new Exception("Please select a valid Axis from Enums.Axis. This is a 2D Vector so ONLY Row and Column axis are valid.");
+            }
+
+
+        }
+
 
 
     }
