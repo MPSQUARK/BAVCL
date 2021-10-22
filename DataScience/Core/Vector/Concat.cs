@@ -87,7 +87,7 @@ namespace DataScience
 
             this.Columns += vector.Columns;
 
-            return InheritBuffer(Output);
+            return TransferBuffer(Output);
         }
 
     }
