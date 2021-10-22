@@ -12,39 +12,32 @@ namespace DataScience
                 throw new Exception("Diff is for use with 1D Vectors ONLY");
             }
 
-            // Ensure there is enough space for all the data
-            long size = vector.MemorySize() * 2;
+            GPU gpu = vector.gpu;
 
-            uint flag = vector.Id;
-            vector.gpu.AddFlags(flag);
-            vector.gpu.DeCacheLRU(size, true);
+            vector.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new Vector(vector.gpu, new float[vector.Value.Length - 1], vector.Columns);
+            Vector Output = new Vector(gpu, new float[vector._length - 1], vector.Columns);
 
-            MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
-            MemoryBuffer<float> buffer2 = vector.GetBuffer(); // Input
+            Output.IncrementLiveCount();
 
-            vector.gpu.diffKernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View);
+            MemoryBuffer<float> 
+                buffer = Output.GetBuffer(),        // Output
+                buffer2 = vector.GetBuffer();       // Input
 
-            vector.gpu.accelerator.Synchronize();
+            gpu.diffKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View);
 
-            buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
+            gpu.accelerator.Synchronize();
 
-            vector.gpu.RemoveFlags(flag);
+            vector.DecrementLiveCount();
+            Output.DecrementLiveCount();
 
             return Output;
         }
 
-        public void Diff_IP()
+        public Vector Diff_IP()
         {
-            Vector Output = Vector.Diff(this);
-
-            this.Dispose();
-            this.Value = Output.Value[..];
-            this.Id = Output.Id;
-
-            return;
+            return InheritBuffer(Vector.Diff(this));
         }
 
     }

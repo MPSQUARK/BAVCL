@@ -9,30 +9,30 @@ namespace DataScience
         {
             return new Vector(vector.gpu, vector.Value.Reverse().ToArray(), vector.Columns);
         }
-        public void Reverse_IP()
+        public Vector Reverse_IP()
         {
-            this.Value = this.Value.Reverse().ToArray();
-            if (this.Id != 0) { UpdateCache(); }
-            return;
+            SyncCPU();
+            UpdateCache(this.Value.Reverse().ToArray());
+            return this;
         }
         public static Vector ReverseX(Vector vector)
         {
-            Vector vec = vector.Copy();
-            vec.ReverseX_IP();
-            return vec;
+            return vector.Copy().ReverseX_IP();
         }
-        public void ReverseX_IP()
+        public Vector ReverseX_IP()
         {
+            IncrementLiveCount();
+
             // Check if the input & output are in Cache
-            MemoryBuffer<float> buffer = this.GetBuffer(); // IO
+            MemoryBuffer<float> buffer = GetBuffer(); // IO
 
             gpu.reverseKernel(gpu.accelerator.DefaultStream, buffer.Length >> 1, buffer.View);
 
             gpu.accelerator.Synchronize();
 
-            buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
+            DecrementLiveCount();
 
-            return;
+            return this;
         }
 
     }

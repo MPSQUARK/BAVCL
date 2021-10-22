@@ -1,72 +1,102 @@
-﻿using System.Collections.Generic;
+﻿using ILGPU.Runtime;
 
 namespace DataScience
 {
     public partial class Vector
     {
 
-        public static Vector AccessColumn(Vector vector, int column)
+        public static Vector GetColumnAsVector(Vector vector, int column)
         {
+            // Get config data needed
             int[] select = new int[2] { column, vector.Columns };
 
+            // Secure the Input
+            vector.IncrementLiveCount();
+
+            // Make Output Vector
             Vector Output = new Vector(vector.gpu, new float[vector.RowCount()]);
+            
+            // Secure the Output
+            Output.IncrementLiveCount();
 
-            long size = vector.MemorySize() + Output.MemorySize() + 8;
+            // Get Memory buffer Data
+            MemoryBuffer<float> 
+                buffer = Output.GetBuffer(),        // Output
+                buffer2 = vector.GetBuffer();       // Input
 
-            uint[] flags = new uint[] { Output.Id, vector.Id };
-            vector.gpu.AddFlags(flags);
-
-            vector.gpu.DeCacheLRU(size, true);
-
-            var buffer = Output.GetBuffer();                                            // Output
-            var buffer2 = vector.GetBuffer();                                           // Input
-
-            var buffer3 = vector.gpu.accelerator.Allocate<int>(2);                      // Config
+            // Allocate config Data onto GPU
+            MemoryBuffer<int> 
+                buffer3 = vector.gpu.accelerator.Allocate<int>(2);      // Config
             buffer3.CopyFrom(select, 0, 0, select.Length);
 
+            // RUN
             vector.gpu.accessSliceKernel(vector.gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
 
+            // SYNC
             vector.gpu.accelerator.Synchronize();
 
-            Output.Value = buffer.GetAsArray();
-
+            // Dispose of Config
             buffer3.Dispose();
 
-            vector.gpu.RemoveFlags(flags);
+            // Remove Security
+            Output.DecrementLiveCount();
+            vector.DecrementLiveCount();
 
             return Output;
         }
-        public Vector AccessColumn(int column)
+
+        public Vector GetColumnAsVector(int column)
         {
-            int[] select = new int[2] { column, this.Columns };
+            // Get config data needed
+            int[] select = new int[2] { column, Columns };
 
-            Vector Output = new Vector(this.gpu, new float[this.RowCount()]);
+            // Secure the Input & Output
+            IncrementLiveCount();
 
-            long size = this.MemorySize() + Output.MemorySize() + 8;
+            // Make Output Vector
+            Vector Output = new Vector(gpu, new float[RowCount()]);
 
-            uint[] flags = new uint[] { Output.Id, this.Id };
-            this.gpu.AddFlags(flags);
-            this.gpu.DeCacheLRU(size, true);
+            Output.IncrementLiveCount();
 
-            var buffer = Output.GetBuffer();                                        // Output
-            var buffer2 = this.GetBuffer();                                         // Input
-            var buffer3 = this.gpu.accelerator.Allocate<int>(2);                    // Config
+            // Get Memory buffer Data
+            MemoryBuffer<float> 
+                buffer = Output.GetBuffer(),        // Output
+                buffer2 = GetBuffer();              // Input
+
+            // Allocate config Data onto GPU
+            MemoryBuffer<int> 
+                buffer3 = gpu.accelerator.Allocate<int>(2);     // Config
             buffer3.CopyFrom(select, 0, 0, select.Length);
 
-            this.gpu.accessSliceKernel(this.gpu.accelerator.DefaultStream, this.RowCount(), buffer.View, buffer2.View, buffer3.View);
+            // RUN
+            gpu.accessSliceKernel(gpu.accelerator.DefaultStream, RowCount(), buffer.View, buffer2.View, buffer3.View);
 
-            this.gpu.accelerator.Synchronize();
+            // SYNC
+            gpu.accelerator.Synchronize();
 
-            Output.Value = buffer.GetAsArray();
-
+            // Dispose of Config
             buffer3.Dispose();
 
-            this.gpu.RemoveFlags(flags);
+            // Remove Security
+            DecrementLiveCount();
+            Output.DecrementLiveCount();
 
             return Output;
         }
 
+        public static float[] GetColumnAsArray(Vector vector, int column)
+        {
+            Vector output = vector.GetColumnAsVector(column);
+            output.TryDeCache();
+            return output.Value;
+        }
 
+        public float[] GetColumnAsArray(int column)
+        {
+            Vector output = GetColumnAsVector(column);
+            output.TryDeCache();
+            return output.Value;
+        }
 
     }
 

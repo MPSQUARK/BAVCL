@@ -1,5 +1,4 @@
-﻿
-
+﻿using ILGPU.Runtime;
 using System;
 
 namespace DataScience
@@ -15,16 +14,14 @@ namespace DataScience
         /// <returns></returns>
         public static Vector Concat(Vector vectorA, Vector vectorB, char axis = 'r', bool warp = false)
         {
-            Vector vector = vectorA.Copy();
-            vector.Concat_IP(vectorB, axis, warp);
-            return vector;
+            return vectorA.Copy().Concat_IP(vectorB, axis, warp);
         }
-        public void Concat_IP(Vector vector, char axis = 'r', bool warp = false)
+        public Vector Concat_IP(Vector vector, char axis = 'r', bool warp = false)
         {
             if (axis == 'r')
             {
                 this.Append_IP(vector);
-                return;
+                return this;
             }
 
             // IF Concat in COLUMN mode
@@ -47,7 +44,7 @@ namespace DataScience
                         vector.Transpose_IP();
                     }
 
-                    if (warp && (vector.Length() % this.RowCount() == 0))
+                    if (warp && (vector.Length % this.RowCount() == 0))
                     {
                         vector.Columns = vector.Value.Length / this.RowCount();
                     }
@@ -62,40 +59,35 @@ namespace DataScience
                 if (vector.Value.Length % this.RowCount() != 0)
                 {
                     throw new Exception($"Vectors CANNOT be appended. " +
-                        $"This array has shape ({this.RowCount()},{this.Columns}), 1D vector being appended has {vector.Length()} Length");
+                        $"This array has shape ({this.RowCount()},{this.Columns}), 1D vector being appended has {vector.Length} Length");
                 }
 
                 vector.Columns = vector.Value.Length / this.RowCount();
 
             }
 
+            Vector Output = new Vector(gpu, new float[vector._length + this._length]);
 
-            long size = (vector.MemorySize() << 1) + (this.MemorySize() << 1);
+            IncrementLiveCount();
+            vector.IncrementLiveCount();
+            Output.IncrementLiveCount();
 
-            Vector Output = new Vector(this.gpu, new float[vector.Value.Length + this.Value.Length]);
-
-            uint[] Flags = new uint[] { this.Id, vector.Id, Output.Id };
-            this.gpu.AddFlags(Flags);
-            this.gpu.DeCacheLRU(size, true);
-
-            var buffer = Output.GetBuffer();                                    // Output
-            var buffer2 = this.GetBuffer();                                     // Input
-            var buffer3 = vector.GetBuffer();                                   // Input
+            MemoryBuffer<float> 
+                buffer = Output.GetBuffer(),        // Output
+                buffer2 = GetBuffer(),              // Input
+                buffer3 = vector.GetBuffer();       // Input
 
             gpu.appendKernel(gpu.accelerator.DefaultStream, this.RowCount(), buffer.View, buffer2.View, buffer3.View, this.Columns, vector.Columns);
 
             gpu.accelerator.Synchronize();
 
-            this.gpu.RemoveFlags(Flags);
+            DecrementLiveCount();
+            vector.DecrementLiveCount();
+            Output.DecrementLiveCount();
 
             this.Columns += vector.Columns;
-            this.Value = buffer.GetAsArray();
 
-            this.Dispose();
-
-            this.Id = Output.Id;
-            
-
+            return InheritBuffer(Output);
         }
 
     }

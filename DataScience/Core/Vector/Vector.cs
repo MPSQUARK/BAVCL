@@ -1,12 +1,7 @@
-﻿using ILGPU;
-using ILGPU.Runtime;
+﻿using ILGPU.Runtime;
 using ILGPU.Algorithms;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
-using DataScience.Utility;
 
 namespace DataScience
 {
@@ -25,57 +20,57 @@ namespace DataScience
         /// <param name="gpu">The device to use when computing this Vector.</param>
         /// <param name="values">The array of data contained in this Vector.</param>
         /// <param name="columns">The number of Columns IF this is a 2D Vector, for 1D Vectors use the default Columns = 1</param>
-        public Vector(GPU gpu, float[] values, int columns = 1, bool cache=true)
+        public Vector(GPU gpu, float[] values, int columns = 1, bool cache = true) : base(gpu, values, columns, cache)
         {
-            this.gpu = gpu;
-            this.Value = values;
-            this.Columns = columns;
-            if (cache) { this.Cache(); }   
         }
 
         // METHODS
         public bool Equals(Vector vector)
         {
-            if (this.Value.Length != vector.Value.Length)
-            {
-                return false;
-            }
+            SyncCPU();
+            vector.SyncCPU();
 
-            for (int i = 0; i < vector.Value.Length; i++)
+            if (this._length != vector._length) { return false; }
+
+            for (int i = 0; i < vector._length; i++)
             {
-                if (this.Value[i] != vector.Value[i])
-                {
-                    return false;
-                }
+                if (this.Value[i] != vector.Value[i]) { return false; }
             }
 
             return true;
         }
         public Vector Copy(bool Cache = true)
         {
-            return new Vector(this.gpu, this.Value[..], this.Columns, Cache);
+            if (this._id == 0)
+            {
+                return new Vector(this.gpu, this.Value[..], this.Columns, Cache);
+            }
+
+            return new Vector(this.gpu, this.Pull(), this.Columns, Cache);
         }
 
 
         #region "MATHEMATICAL PROPERTIES "
         public override float Mean()
         {
-            return this.Sum() / this.Length();
+            return Sum() / _length;
         }
         public float Std()
         {
-            return XMath.Sqrt(this.Var());
+            return XMath.Sqrt(Var());
         }
         public float Var()
         {
-            if (this.Length() < 1e4f)
+            SyncCPU();
+
+            if (this._length < 1e4f)
             {
                 int vectorSize = System.Numerics.Vector<float>.Count;
                 int i = 0;
 
                 float[] array = this.Value;
 
-                float mean = this.Mean();
+                float mean = Mean();
 
                 System.Numerics.Vector<float> meanvec = new System.Numerics.Vector<float>(mean);
 
@@ -103,20 +98,22 @@ namespace DataScience
                     sum += XMath.Pow((array[i] - mean), 2f);
                 }
 
-                return sum / this.Length();
+                return sum / this.Length;
             }
 
             //Vector diff = Vector.AbsX(this - this.Mean());
 
             //return (diff * diff).Sum() / this.Length();
-            return Vector.ConsecutiveOP(this, this.Mean(), Operations.squareOfDiffs).Sum() / this.Length();
+            return Vector.OP(this, this.Mean(), Operations.DOTS).Sum() / this._length;
         }
         public override float Range()
         {
-            return this.Value.Max() - this.Value.Min();
+            return Max() - Min();
         }
         public override float Sum()
         {
+            SyncCPU();
+
             int vectorSize = System.Numerics.Vector<float>.Count;
             int i = 0;
             float[] array = this.Value;
@@ -174,7 +171,11 @@ namespace DataScience
 
         public Geometric.Vector3 ToVector3()
         {
-            if (this.Length() % 3 != 0) { throw new Exception("Vector length must be a multiple of 3"); }
+            if (this.Length % 3 != 0) { throw new Exception("Vector length must be a multiple of 3"); }
+            if (this._id != 0)
+            {
+                return new Geometric.Vector3(this.gpu, this.Pull());
+            }
             return new Geometric.Vector3(this.gpu, this.Value);
         }
 
@@ -191,85 +192,84 @@ namespace DataScience
 
         public static Vector operator +(Vector vectorA, Vector vectorB)
         {
-            return Vector.ConsecutiveOP(vectorA, vectorB, Operations.addition);
+            return Vector.OP(vectorA, vectorB, Operations.add);
         }
         public static Vector operator +(Vector vector, float Scalar)
         {
-            return Vector.ConsecutiveOP(vector, Scalar, Operations.addition);
+            return Vector.OP(vector, Scalar, Operations.add);
         }
         public static Vector operator +(float Scalar, Vector vector)
         {
-            return Vector.ConsecutiveOP(vector, Scalar, Operations.addition);
+            return Vector.OP(vector, Scalar, Operations.add);
         }
 
 
 
         public static Vector operator -(Vector vector)
         {
-            return Vector.ConsecutiveOP(vector, -1, Operations.multiplication);
+            return Vector.OP(vector, -1, Operations.multiply);
         }
 
 
 
         public static Vector operator -(Vector vectorA, Vector vectorB)
         {
-            return Vector.ConsecutiveOP(vectorA, vectorB, Operations.subtraction);
+            return Vector.OP(vectorA, vectorB, Operations.subtract);
         }
         public static Vector operator -(Vector vector, float Scalar)
         {
-            return Vector.ConsecutiveOP(vector, Scalar, Operations.subtraction);
+            return Vector.OP(vector, Scalar, Operations.subtract);
         }
 
         public static Vector operator -(float Scalar, Vector vector)
         {
-            return Vector.ConsecutiveOP(vector, Scalar, Operations.flipSubtraction);
+            return Vector.OP(vector, Scalar, Operations.flipSubtract);
         }
 
 
 
         public static Vector operator *(Vector vectorA, Vector vectorB)
         {
-            return Vector.ConsecutiveOP(vectorA, vectorB, Operations.multiplication);
+            return Vector.OP(vectorA, vectorB, Operations.multiply);
         }
         public static Vector operator *(Vector vector, float Scalar)
         {
-            return Vector.ConsecutiveOP(vector, Scalar, Operations.multiplication);
+            return Vector.OP(vector, Scalar, Operations.multiply);
         }
         public static Vector operator *(float Scalar, Vector Vector)
         {
-            return Vector.ConsecutiveOP(Vector, Scalar, Operations.multiplication);
+            return Vector.OP(Vector, Scalar, Operations.multiply);
         }
 
 
 
         public static Vector operator /(Vector vectorA, Vector vectorB)
         {
-            return Vector.ConsecutiveOP(vectorA, vectorB, Operations.division);
+            return Vector.OP(vectorA, vectorB, Operations.divide);
         }
         public static Vector operator /(Vector vector, float Scalar)
         {
-            return Vector.ConsecutiveOP(vector, Scalar, Operations.division);
+            return Vector.OP(vector, Scalar, Operations.divide);
         }
         public static Vector operator /(float Scalar, Vector vector)
         {
-            return Vector.ConsecutiveOP(vector, Scalar, Operations.inverseDivision);
+            return Vector.OP(vector, Scalar, Operations.invDivide);
         }
 
 
 
         public static Vector operator ^(Vector vectorA, Vector vectorB)
         {
-            return Vector.ConsecutiveOP(vectorA, vectorB, Operations.power);
+            return Vector.OP(vectorA, vectorB, Operations.pow);
         }
         public static Vector operator ^(Vector vector, float Scalar)
         {
-            return Vector.ConsecutiveOP(vector, Scalar, Operations.power);
+            return Vector.OP(vector, Scalar, Operations.pow);
         }
         public static Vector operator ^(float Scalar, Vector vector)
         {
-            return Vector.ConsecutiveOP(vector, Scalar, Operations.powerFlipped);
+            return Vector.OP(vector, Scalar, Operations.flipPow);
         }
-
 
 
 
@@ -280,15 +280,15 @@ namespace DataScience
 
 
         // FUNCTIONS
-        public static Vector ConsecutiveOP(Vector vectorA, Vector vectorB, Operations operation, bool Warp = false)
+        public static Vector OP(Vector vectorA, Vector vectorB, Operations operation, bool Warp = false)
         {
             // Check function conditions
-            if (vectorA.Value.Length == vectorB.Value.Length)
+            if (vectorA._length == vectorB._length)
             {
                 return _VectorVectorOP(vectorA, vectorB, operation);
             }
 
-            bool ThisLonger = vectorA.Value.Length > vectorB.Value.Length;
+            bool ThisLonger = vectorA._length > vectorB._length;
 
 
             // If one input is a Vector and other is Matrix
@@ -301,13 +301,14 @@ namespace DataScience
 
             throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
         }
-        public void ConsecutiveOP_IP(Vector vectorB, Operations operation)
+
+        public Vector OP_IP(Vector vectorB, Operations operation)
         {
             // If the lengths are the same and both 1D vectors
-            if (this.Value.Length == vectorB.Value.Length && vectorB.Columns == 1 && this.Columns == 1)
+            if (this._length == vectorB._length && vectorB.Columns == 1 && this.Columns == 1)
             {
                 this._VectorVectorOP_IP(vectorB, operation);
-                return;
+                return this;
             }
 
             bool ThisLonger = this.Value.Length > vectorB.Value.Length;
@@ -322,171 +323,162 @@ namespace DataScience
             throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
         }
 
-        public static Vector ConsecutiveOP(Vector vector, float scalar, Operations operation)
+        public static Vector OP(Vector vector, float scalar, Operations operation)
         {
-            // Ensure there is enough space for all the data
-            long size = vector.MemorySize() * 2;
+            GPU gpu = vector.gpu;
 
-            uint flag = vector.Id;
-            vector.gpu.AddFlags(vector.Id);
-
-            vector.gpu.DeCacheLRU(size, true);
+            vector.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new Vector(vector.gpu, new float[vector.Value.Length], vector.Columns);
+            Vector Output = new Vector(gpu, new float[vector._length], vector.Columns);
+
+            Output.IncrementLiveCount();
 
             // Check if the input & output are in Cache
-            MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
-            MemoryBuffer<float> buffer2 = vector.GetBuffer(); // Input
+            MemoryBuffer<float> 
+                buffer = Output.GetBuffer(),        // Output
+                buffer2 = vector.GetBuffer();       // Input
 
-            vector.gpu.scalarConsecOpKernel(vector.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
+            gpu.scalarConsecOpKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
 
-            vector.gpu.accelerator.Synchronize();
+            gpu.accelerator.Synchronize();
 
-            buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
-
-            vector.gpu.RemoveFlags(flag);
+            vector.DecrementLiveCount();
+            Output.DecrementLiveCount();
 
             return Output;
         }
 
-        public void ConsecutiveOP_IP(float scalar, Operations operation)
+        public Vector OP_IP(float scalar, Operations operation)
         {
-            // Check if the input & output are in Cache
-            MemoryBuffer<float> buffer = this.GetBuffer(); // IO
+            IncrementLiveCount();
 
-            gpu.scalarConsecOpKernelIP(this.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, scalar, new SpecializedValue<int>((int)operation));
+            // Check if the input & output are in Cache
+            MemoryBuffer<float> buffer = GetBuffer(); // IO
+
+            gpu.scalarConsecOpKernelIP(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, scalar, new SpecializedValue<int>((int)operation));
 
             gpu.accelerator.Synchronize();
 
-            buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
+            DecrementLiveCount();
 
-            return;
+            return this;
         }
 
 
         internal static Vector _VectorVectorOP(Vector vectorA, Vector vectorB, Operations operation)
         {
-            // Ensure there is enough space for all the data
-            long size = vectorA.MemorySize() * 3;
+            GPU gpu = vectorA.gpu;
 
-            uint[] flags = new uint[] { vectorA.Id, vectorB.Id };
-            vectorA.gpu.AddFlags(flags);
-            vectorA.gpu.DeCacheLRU(size, true);
+            vectorA.IncrementLiveCount();
+            vectorB.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new Vector(vectorA.gpu, new float[vectorA.Value.Length], vectorA.Columns);
+            Vector Output = new Vector(gpu, new float[vectorA._length], vectorA.Columns);
+            Output.IncrementLiveCount();
 
             // Check if the input & output are in Cache
-            MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
-            MemoryBuffer<float> buffer2 = vectorA.GetBuffer(); // Input
-            MemoryBuffer<float> buffer3 = vectorB.GetBuffer(); // Input
+            MemoryBuffer<float> 
+                buffer = Output.GetBuffer(),        // Output
+                buffer2 = vectorA.GetBuffer(),      // Input
+                buffer3 = vectorB.GetBuffer();      // Input
 
             // Run the kernel
-            vectorA.gpu.consecOpKernel(vectorA.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
+            gpu.consecOpKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
 
             // Synchronise the kernel
-            vectorA.gpu.accelerator.Synchronize();
+            gpu.accelerator.Synchronize();
 
-            // Copy output
-            buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
-
-            vectorA.gpu.RemoveFlags(flags);
+            vectorA.DecrementLiveCount();
+            vectorB.DecrementLiveCount();
+            Output.DecrementLiveCount();
 
             // Return the result
             return Output;
         }
 
-        internal void _VectorVectorOP_IP(Vector vectorB, Operations operation)
+        internal Vector _VectorVectorOP_IP(Vector vectorB, Operations operation)
         {
-            // Ensure there is enough space for all the data
-            long size = this.MemorySize() * 2;
-            uint[] flags = new uint[] { this.Id, vectorB.Id };
-            this.gpu.AddFlags(flags);
-
-            this.gpu.DeCacheLRU(size, true);
+            vectorB.IncrementLiveCount();
+            IncrementLiveCount();
 
             // Check if the input & output are in Cache
-            MemoryBuffer<float> buffer = this.GetBuffer(); // Input/Output
-            MemoryBuffer<float> buffer2 = vectorB.GetBuffer(); // Input
+            MemoryBuffer<float> 
+                buffer = GetBuffer(),          // IO
+                buffer2 = vectorB.GetBuffer();      // Input
 
             // Run the kernel
-            this.gpu.consecOpKernelIP(this.gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
+            gpu.consecOpKernelIP(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
 
             // Synchronise the kernel
-            this.gpu.accelerator.Synchronize();
+            gpu.accelerator.Synchronize();
 
-            // Copy output
-            buffer.CopyTo(this.Value, 0, 0, this.Length());
+            vectorB.DecrementLiveCount();
+            DecrementLiveCount();
 
-            this.gpu.RemoveFlags(flags);
-
-            return;
+            return this;
         }
 
         internal static Vector _VectorMatrixOP(Vector vector, Vector matrix, Operations operation)
         {
-            // Ensure there is enough space for all the data
-            long size = (vector.MemorySize() << 2) + matrix.MemorySize();
+            GPU gpu = vector.gpu;
 
-            uint[] flags = new uint[] { vector.Id, matrix.Id };
-            vector.gpu.AddFlags(flags);
-
-            vector.gpu.DeCacheLRU(size, true);
+            vector.IncrementLiveCount();
+            matrix.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new Vector(vector.gpu, new float[vector.Value.Length], vector.Columns);
+            Vector Output = new Vector(gpu, new float[vector._length], vector.Columns);
+
+            Output.IncrementLiveCount();
 
             // Check if the input & output are in Cache
-            MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
-            MemoryBuffer<float> buffer2 = vector.GetBuffer(); // Input
-            MemoryBuffer<float> buffer3 = matrix.GetBuffer(); // Input
+            MemoryBuffer<float> 
+                buffer = Output.GetBuffer(),        // Output
+                buffer2 = vector.GetBuffer(),       // Input
+                buffer3 = matrix.GetBuffer();       // Input
 
             // Run the kernel
-            vector.gpu.vectormatrixOpKernel(vector.gpu.accelerator.DefaultStream, matrix.RowCount(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
+            gpu.vectormatrixOpKernel(gpu.accelerator.DefaultStream, matrix.RowCount(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
 
             // Synchronise the kernel
-            vector.gpu.accelerator.Synchronize();
+            gpu.accelerator.Synchronize();
 
-            // Copy output
-            buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
-
-            vector.gpu.RemoveFlags(flags);
+            vector.DecrementLiveCount();
+            matrix.DecrementLiveCount();
+            Output.DecrementLiveCount();
 
             // Return the result
             return Output;
         }
 
-        internal void _VectorMatrixOP_IP(Vector matrix, Operations operation)
+        internal Vector _VectorMatrixOP_IP(Vector matrix, Operations operation)
         {
-            // Ensure there is enough space for all the data
-            long size = (this.MemorySize() << 2) + matrix.MemorySize();
 
-            uint[] flags = new uint[] { this.Id, matrix.Id };
-            this.gpu.AddFlags(flags);
-
-            this.gpu.DeCacheLRU(size, true);
+            IncrementLiveCount();
+            matrix.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new Vector(this.gpu, new float[this.Value.Length], this.Columns);
+            Vector Output = new Vector(gpu, new float[_length], Columns);
+
+            Output.IncrementLiveCount();
 
             // Check if the input & output are in Cache
-            MemoryBuffer<float> buffer = Output.GetBuffer(); // Output
-            MemoryBuffer<float> buffer2 = this.GetBuffer(); // Input
-            MemoryBuffer<float> buffer3 = matrix.GetBuffer(); // Input
+            MemoryBuffer<float> 
+                buffer = Output.GetBuffer(),        // Output
+                buffer2 = GetBuffer(),              // Input
+                buffer3 = matrix.GetBuffer();       // Input
 
             // Run the kernel
-            this.gpu.vectormatrixOpKernel(this.gpu.accelerator.DefaultStream, matrix.RowCount(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
+            gpu.vectormatrixOpKernel(gpu.accelerator.DefaultStream, matrix.RowCount(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
 
             // Synchronise the kernel
-            this.gpu.accelerator.Synchronize();
+            gpu.accelerator.Synchronize();
 
-            // Copy output
-            buffer.CopyTo(Output.Value, 0, 0, Output.Value.Length);
+            DecrementLiveCount();
+            matrix.DecrementLiveCount();
+            Output.DecrementLiveCount();
 
-            this.gpu.RemoveFlags(flags);
-
-            return;
+            return this;
         }
 
 

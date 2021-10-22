@@ -1,6 +1,5 @@
 ﻿using ILGPU.Runtime;
 using System;
-using System.Linq;
 
 namespace DataScience
 {
@@ -14,32 +13,26 @@ namespace DataScience
         /// <returns></returns>
         public static Vector Abs(Vector vector)
         {
-            Vector vec = vector.Copy();
-            vec.Abs_IP();
-            return vec;
+            return vector.Copy().Abs_IP();
         }
         /// <summary>
         /// Takes the absolute value of all values in this Vector.
         /// IMPORTANT : Use this method for Vectors of Length less than 100,000
         /// </summary>
-        public void Abs_IP()
+        public Vector Abs_IP()
         {
-            if (this.Value.Min() > 0f)
+            SyncCPU();
+
+            if (Min() > 0f) { return this; }
+
+            for (int i = 0; i < this._length; i++)
             {
-                return;
+                Value[i] = MathF.Abs(Value[i]);
             }
 
-            for (int i = 0; i < this.Value.Length; i++)
-            {
-                this.Value[i] = MathF.Abs(this.Value[i]);
-            }
+            UpdateCache();
 
-            if (this.Id != 0)
-            {
-                UpdateCache();
-            }
-
-            return;
+            return this;
         }
         /// <summary>
         /// Runs on Accelerator. (GPU : Default)
@@ -50,27 +43,32 @@ namespace DataScience
         /// <returns></returns>
         public static Vector AbsX(Vector vector)
         {
-            Vector vec = vector.Copy();
-            vec.AbsX_IP();
-            return vec;
+            return vector.Copy().AbsX_IP();
         }
         /// <summary>
         /// Runs on Accelerator. (GPU : Default)
         /// Takes the absolute value of all the values in this Vector.
         /// IMPORTANT : Use this method for Vectors of Length more than 100,000
         /// </summary>
-        public void AbsX_IP()
+        public Vector AbsX_IP()
         {
-            // Check if the input & output are in Cache
-            MemoryBuffer<float> buffer = this.GetBuffer(); // IO
+            // Secure data
+            IncrementLiveCount();
 
+            // Get the Memory buffer input/output
+            MemoryBuffer<float> buffer = GetBuffer(); // IO
+
+            // RUN
             gpu.absKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
 
+            // SYNC
             gpu.accelerator.Synchronize();
 
-            buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
+            // Remove Security
+            DecrementLiveCount();
 
-            return;
+            // Output
+            return this;
         }
 
 

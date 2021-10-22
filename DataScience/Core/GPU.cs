@@ -5,7 +5,6 @@ using ILGPU.Runtime;
 using ILGPU.Runtime.CPU;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -20,18 +19,16 @@ namespace DataScience
         public Accelerator accelerator;
 
 
-        public struct GPUData
-        {
-            public MemoryBuffer buffer;
-            public long size;
-        }
         // LRU 
-        public ConcurrentDictionary<uint, GPUData> GData = new ConcurrentDictionary<uint, GPUData>();
-        protected internal ConcurrentDictionary<uint, uint> ForceKeepFlags = new ConcurrentDictionary<uint, uint>();
+        public ConcurrentDictionary<uint, WeakReference<ICacheable>> CachedInfo = new ConcurrentDictionary<uint, WeakReference<ICacheable>>();  // Size, LiveCount
+        public ConcurrentDictionary<uint, MemoryBuffer> CachedMemory = new ConcurrentDictionary<uint, MemoryBuffer>(); // Memory Buffer
+
+
+        protected internal ConcurrentDictionary<uint, bool> ForceKeepFlags = new ConcurrentDictionary<uint, bool>();
         protected internal ConcurrentQueue<uint> LRU = new ConcurrentQueue<uint>();                                                
         
         protected internal uint CurrentVecId = 0;
-        protected internal uint LiveTaskCount = 0;
+        protected internal int LiveTaskCount = 0;
 
         // Device Memory
         public readonly long MaxMemory;
@@ -159,136 +156,100 @@ namespace DataScience
         }
         private bool IsInCache(uint id)
         {
-            return this.GData.ContainsKey(id);
-        }
-        public void DeCacheLRU(long required, bool HasFlags=true)
-        {
-            // Check if the memory required doesn't exceed the Maximum available
-            if (required > this.MaxMemory)
-            {
-                throw new Exception($"Cannot cache this data onto the GPU, required memory : {required / (1024 * 1024)} MB, max memory available : {this.MaxMemory / (1024 * 1024)} MB.\n " +
-                                    $"Consider spliting/breaking the data into multiple smaller sets OR \n Caching to a GPU with more available memory.");
-            }
-
-            // Keep decaching untill enough space is made to accomodate the data
-            while (required > (this.MaxMemory - this.MemoryInUse))
-            {
-
-                if (LRU.Count == ForceKeepFlags.Keys.Count)
-                {
-                    throw new Exception($"Cannot DeCache any more data, keep flags : {ForceKeepFlags.Keys.Count}, LRU entries : {LRU.Count}");
-                }
-
-                // Get the ID of the last item
-                uint Id;
-                LRU.TryDequeue(out Id); // Returns bool - could be useful for something
-
-                // If the Id is Flagged - Do not dispose and re-enqueue
-                if (ForceKeepFlags.ContainsKey(Id))
-                {
-                    LRU.Enqueue(Id);
-                    continue;
-                } 
-
-                // Get the Buffer corresponding to the ID
-                GPUData data;
-                if (GData.TryRemove(Id, out data))
-                {
-                    // Dispose of the Buffer
-                    data.buffer.Dispose();
-
-                    // Reduce the Memory in Use tracker by the size
-                    Interlocked.Add(ref MemoryInUse, -data.size);
-                }
-            }
-            return;
+            return this.CachedMemory.ContainsKey(id);
         }
         public void DeCacheLRU(long required)
         {
             // Check if the memory required doesn't exceed the Maximum available
             if (required > this.MaxMemory)
             {
-                throw new Exception($"Cannot cache this data onto the GPU, required memory : {required / (1024 * 1024)} MB, max memory available : {this.MaxMemory / (1024 * 1024)} MB.\n " +
+                throw new Exception($"Cannot cache this data onto the GPU, required memory : {required >> 20} MB, max memory available : {this.MaxMemory >> 20} MB.\n " +
                                     $"Consider spliting/breaking the data into multiple smaller sets OR \n Caching to a GPU with more available memory.");
             }
 
 
-            // Get the ID of the last item
-            uint Id;
-
             // Keep decaching untill enough space is made to accomodate the data
             while (required > (this.MaxMemory - this.MemoryInUse))
             {
-
-                LRU.TryDequeue(out Id); // Returns bool - could be useful for something
-
-                // Get the Buffer corresponding to the ID
-                GPUData data;
-                if (GData.TryRemove(Id, out data))
+                if (this.LiveTaskCount == 0) 
                 {
-                    // Dispose of the Buffer
-                    data.buffer.Dispose();
-
-                    // Reduce the Memory in Use tracker by the size
-                    Interlocked.Add(ref MemoryInUse, -data.size);
+                    throw new Exception(
+                        $"GPU states {this.LiveTaskCount} Live Tasks Running, while requiring {required >> 20} MB which is more than available {(this.MaxMemory - this.MemoryInUse) >> 20} MB. Potential cause: memory leak"); 
                 }
+
+                // Get the ID of the last item
+                uint Id;
+                if (!LRU.TryDequeue(out Id)) 
+                {
+                    throw new Exception($"LRU Empty Cannot Continue DeCaching");
+                }
+
+                // Try Get Reference to and the object of ICacheable
+                WeakReference<ICacheable> referenceCacheable;
+                if (!this.CachedInfo.TryGetValue(Id, out referenceCacheable)) 
+                {
+                    // Object been GC'ed
+                    MemoryBuffer Buffer;
+                    CachedMemory.TryRemove(Id, out Buffer);
+                    Interlocked.Add(ref MemoryInUse, -Buffer.LengthInBytes);
+                    Buffer.Dispose();
+                    Interlocked.Decrement(ref LiveTaskCount);
+                    continue;
+                } 
+                ICacheable cacheable;
+                if (!referenceCacheable.TryGetTarget(out cacheable)) 
+                {
+                    // Object been GC'ed
+                    MemoryBuffer Buffer;
+                    CachedMemory.TryRemove(Id, out Buffer);
+                    Interlocked.Add(ref MemoryInUse, -Buffer.LengthInBytes);
+                    Buffer.Dispose();
+                    Interlocked.Decrement(ref LiveTaskCount);
+                    continue;
+                } 
+
+                // Try to decache the data
+                if (!cacheable.TryDeCache()) { LRU.Enqueue(Id); }
+
             }
+
             return;
         }
 
-        public uint Cache(ICacheable cacheable)
+
+        public uint Allocate(WeakReference<ICacheable> CacheableReference, MemoryBuffer Buffer, long Size)
         {
-            // Calculates how much memory needed
-            long size = cacheable.MemorySize();
-
-            // check if the amount required is available
-            // decache last and check again untill enough space is made
-            DeCacheLRU(size);
-
-            // Allocate data to GPU
-            MemoryBuffer buffer = cacheable.Allocate();
 
             // Increase the Memory in Use
-            Interlocked.Add(ref MemoryInUse, size);
-
-            GPUData data = new GPUData { buffer = buffer, size = size};
+            Interlocked.Add(ref MemoryInUse, Size);
 
             // generate Id for data so it can be found by the vector
             uint Id = GenerateId();
-            while (!GData.TryAdd(Id, data))
+            while (!CachedInfo.TryAdd(Id, CacheableReference))
             {
                 Id = GenerateId();
             }
+            CachedMemory.TryAdd(Id, Buffer);
 
             // Put the Id in a queue
             LRU.Enqueue(Id);
 
             return Id;
         }
-
-        public void DeCache(uint Id)
+        private void RemoveFromLRU(uint Id)
         {
-            // Get the Memory Buffer
-            GPUData data;
-            if (GData.TryRemove(Id, out data))
-            {
-                // Dispose of buffer
-                data.buffer.Dispose();
-                // Reduces the Memory in use tracker by the size
-                Interlocked.Add(ref MemoryInUse, -data.size);
-            }
+            if (LRU.Count == 0) { return; }
+            if (!LRU.Contains(Id)) { return; }
 
-            // If the Vector being disposed is the last Vector, then don't shuffle
             uint DequeuedId;
             LRU.TryDequeue(out DequeuedId);
 
-            if (DequeuedId == Id)
-            {
-                return;
-            }
+            if (DequeuedId == Id) { return; }
+
 
             // Get the number of items in LRU
             int length = LRU.Count;
+
             // Put back the De-queued Id since it didn't match the Disposed Id
             LRU.Enqueue(DequeuedId);
 
@@ -304,50 +265,40 @@ namespace DataScience
                     LRU.Enqueue(DequeuedId);
                 }
             }
-            
+            return;
         }
-        public void ShowMemoryUsage(bool percentage = true)
+        public uint DeCache(uint Id)
         {
-            if (percentage) { Console.WriteLine($"{((double)this.MemoryInUse / (double)this.MaxMemory) * 100f:0.00}%"); return; }
+            // Try to remove weak reference
+            CachedInfo.TryRemove(Id, out _);
+            
+            // Try to remove memory
+            MemoryBuffer Buffer;
+            if (CachedMemory.TryRemove(Id, out Buffer))
+            {
+                Interlocked.Add(ref MemoryInUse, -Buffer.LengthInBytes);
+                Buffer.Dispose();
+            }
+
+            RemoveFromLRU(Id);
+            Interlocked.Decrement(ref LiveTaskCount);
+            return 0;
+        }
+
+
+
+        public void ShowMemoryUsage(bool percentage = true, string format = "F2")
+        {
+            if (percentage) { Console.WriteLine($"{(((double)this.MemoryInUse / (double)this.MaxMemory) * 100f).ToString(format)}%"); return; }
 
             Console.WriteLine( $"{this.MemoryInUse >> 20}/{this.MaxMemory >> 20} MB");
         }
-        public MemoryBuffer GetMemoryBuffer(ICacheable cacheable)
-        {
-            // If buffer exists then return it
-            GPUData data;
-            if (this.GData.TryGetValue(cacheable.Id, out data))
-            {
-                return data.buffer;
-            }
 
-            // Else cache and return the buffer
-            this.GData.TryGetValue(this.Cache(cacheable), out data);
-            return data.buffer;
-        }
-        public void AddFlags(uint Id)
-        {
-            ForceKeepFlags.TryAdd(Id, 1);
-        }
-        public void AddFlags(uint[] Ids)
-        {
-            for (int i = 0; i < Ids.Length; i++)
-            {
-                ForceKeepFlags.TryAdd(Ids[i], 1);
-            }
-        }
-        public void RemoveFlags(uint Id)
-        {
-            ForceKeepFlags.TryRemove(Id, out _);
-        }
-        public void RemoveFlags(uint[] Ids)
-        {
-            for (int i = 0; i < Ids.Length; i++)
-            {
-                ForceKeepFlags.TryRemove(Ids[i], out _);
-            }
-        }
 
+        public void AddLiveTask()
+        {
+            Interlocked.Increment(ref LiveTaskCount);
+        }
 
 
         #endregion
@@ -419,31 +370,31 @@ namespace DataScience
         {
             switch ((Operations)operation.Value)
             {
-                case Operations.multiplication:
+                case Operations.multiply:
                     OutPut[index] = InputA[index] * InputB[index];
                     break;
-                case Operations.addition:
+                case Operations.add:
                     OutPut[index] = InputA[index] + InputB[index];
                     break;
-                case Operations.subtraction:
+                case Operations.subtract:
                     OutPut[index] = InputA[index] - InputB[index];
                     break;
-                case Operations.flipSubtraction:
+                case Operations.flipSubtract:
                     OutPut[index] = InputB[index] - InputA[index];
                     break;
-                case Operations.division:
+                case Operations.divide:
                     OutPut[index] = InputA[index] / InputB[index];
                     break;
-                case Operations.inverseDivision:
+                case Operations.invDivide:
                     OutPut[index] = InputB[index] / InputA[index];
                     break;
-                case Operations.power:
+                case Operations.pow:
                     OutPut[index] = XMath.Pow(InputA[index], InputB[index]);
                     break;
-                case Operations.powerFlipped:
+                case Operations.flipPow:
                     OutPut[index] = XMath.Pow(InputB[index], InputA[index]);
                     break;
-                case Operations.squareOfDiffs:
+                case Operations.DOTS:
                     OutPut[index] = XMath.Pow((InputA[index] - InputB[index]), 2f);
                     break;
 
@@ -454,31 +405,31 @@ namespace DataScience
         {
             switch ((Operations)operation.Value)
             {
-                case Operations.multiplication:
+                case Operations.multiply:
                     IO[index] = IO[index] * Input[index];
                     break;
-                case Operations.addition:
+                case Operations.add:
                     IO[index] = IO[index] + Input[index];
                     break;
-                case Operations.subtraction:
+                case Operations.subtract:
                     IO[index] = IO[index] - Input[index];
                     break;
-                case Operations.flipSubtraction:
+                case Operations.flipSubtract:
                     IO[index] = IO[index] - Input[index];
                     break;
-                case Operations.division:
+                case Operations.divide:
                     IO[index] = IO[index] / Input[index];
                     break;
-                case Operations.inverseDivision:
+                case Operations.invDivide:
                     IO[index] = IO[index] / Input[index];
                     break;
-                case Operations.power:
+                case Operations.pow:
                     IO[index] = XMath.Pow(IO[index], Input[index]);
                     break;
-                case Operations.powerFlipped:
+                case Operations.flipPow:
                     IO[index] = XMath.Pow(IO[index], Input[index]);
                     break;
-                case Operations.squareOfDiffs:
+                case Operations.DOTS:
                     IO[index] = XMath.Pow((IO[index] - Input[index]), 2f);
                     break;
             }
@@ -488,31 +439,31 @@ namespace DataScience
         {
             switch ((Operations)operation.Value)
             {
-                case Operations.multiplication:
+                case Operations.multiply:
                     OutPut[index] = Input[index] * Scalar;
                     break;
-                case Operations.addition:
+                case Operations.add:
                     OutPut[index] = Input[index] + Scalar;
                     break;
-                case Operations.subtraction:
+                case Operations.subtract:
                     OutPut[index] = Input[index] - Scalar;
                     break;
-                case Operations.flipSubtraction:
+                case Operations.flipSubtract:
                     OutPut[index] = Scalar - Input[index];
                     break;
-                case Operations.division:
+                case Operations.divide:
                     OutPut[index] = Input[index] / Scalar;
                     break;
-                case Operations.inverseDivision:
+                case Operations.invDivide:
                     OutPut[index] = Scalar / Input[index];
                     break;
-                case Operations.power:
+                case Operations.pow:
                     OutPut[index] = XMath.Pow(Input[index], Scalar);
                     break;
-                case Operations.powerFlipped:
+                case Operations.flipPow:
                     OutPut[index] = XMath.Pow(Scalar, Input[index]);
                     break;
-                case Operations.squareOfDiffs:
+                case Operations.DOTS:
                     OutPut[index] = XMath.Pow((Input[index] - Scalar), 2f);
                     break;
             }
@@ -522,31 +473,31 @@ namespace DataScience
         {
             switch ((Operations)operation.Value)
             {
-                case Operations.multiplication:
+                case Operations.multiply:
                     IO[index] = IO[index] * Scalar;
                     break;
-                case Operations.addition:
+                case Operations.add:
                     IO[index] = IO[index] + Scalar;
                     break;
-                case Operations.subtraction:
+                case Operations.subtract:
                     IO[index] = IO[index] - Scalar;
                     break;
-                case Operations.flipSubtraction:
+                case Operations.flipSubtract:
                     IO[index] = Scalar - IO[index];
                     break;
-                case Operations.division:
+                case Operations.divide:
                     IO[index] = IO[index] / Scalar;
                     break;
-                case Operations.inverseDivision:
+                case Operations.invDivide:
                     IO[index] = Scalar / IO[index];
                     break;
-                case Operations.power:
+                case Operations.pow:
                     IO[index] = XMath.Pow(IO[index], Scalar);
                     break;
-                case Operations.powerFlipped:
+                case Operations.flipPow:
                     IO[index] = XMath.Pow(Scalar, IO[index]);
                     break;
-                case Operations.squareOfDiffs:
+                case Operations.DOTS:
                     IO[index] = XMath.Pow((IO[index] - Scalar), 2f);
                     break;
             }
@@ -559,55 +510,55 @@ namespace DataScience
 
             switch ((Operations)operation.Value)
             {
-                case Operations.multiplication:
+                case Operations.multiply:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += InputA[i] * InputB[startidx + i];
                     }
                     break;
-                case Operations.addition:
+                case Operations.add:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += InputA[i] + InputB[startidx + i];
                     }
                     break;
-                case Operations.subtraction:
+                case Operations.subtract:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += InputA[i] - InputB[startidx + i];
                     }
                     break;
-                case Operations.flipSubtraction:
+                case Operations.flipSubtract:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += InputB[startidx + i] - InputA[i];
                     }
                     break;
-                case Operations.division:
+                case Operations.divide:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += InputA[i] / InputB[startidx + i];
                     }
                     break;
-                case Operations.inverseDivision:
+                case Operations.invDivide:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += InputB[startidx + i] / InputA[i];
                     }
                     break;
-                case Operations.power:
+                case Operations.pow:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += XMath.Pow(InputA[i], InputB[startidx + i]);
                     }
                     break;
-                case Operations.powerFlipped:
+                case Operations.flipPow:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += XMath.Pow(InputB[startidx + i], InputA[i]);
                     }
                     break;
-                case Operations.squareOfDiffs:
+                case Operations.DOTS:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += XMath.Pow((InputA[i] - InputB[startidx + i]), 2f);
@@ -684,14 +635,14 @@ namespace DataScience
 
     public enum Operations
     {
-        multiplication = 0,
-        addition = 1,
-        subtraction = 2,
-        division = 3,
-        power = 4,
-        inverseDivision = 5,
-        flipSubtraction = 6,
-        powerFlipped = 7,
-        squareOfDiffs = 8,
+        multiply = 0,
+        add = 1,
+        subtract = 2,
+        divide = 3,
+        pow = 4,
+        invDivide = 5,
+        flipSubtract = 6,
+        flipPow = 7,
+        DOTS = 8, // Difference Of Two Squares
     }
 }
