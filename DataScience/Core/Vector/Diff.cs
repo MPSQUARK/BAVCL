@@ -37,7 +37,7 @@ namespace DataScience
 
         public Vector Diff_IP()
         {
-            return InheritBuffer(Vector.Diff(this));
+            return TransferBuffer(Vector.Diff(this));
         }
 
     }

@@ -33,7 +33,7 @@ namespace DataScience
         }
         public Vector Transpose_IP()
         {
-            return InheritBuffer(Transpose(this), true);
+            return TransferBuffer(Transpose(this), true);
         }
 
     }

@@ -2,7 +2,7 @@
 {
     public partial class Vector
     {
-        public static Vector InheritBuffer(Vector Inheritee, Vector Temp, bool IncColumns = false)
+        public static Vector TransferBuffer(Vector Inheritee, Vector Temp, bool IncColumns = false)
         {
             Inheritee.gpu.DeCache(Inheritee._id);
             Inheritee._id = Temp._id;
@@ -13,7 +13,7 @@
             return Inheritee;
         }
 
-        public Vector InheritBuffer(Vector Temp, bool IncColumns=false)
+        public Vector TransferBuffer(Vector Temp, bool IncColumns=false)
         {
             gpu.DeCache(_id);
             _id = Temp._id;
