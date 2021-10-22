@@ -6,22 +6,22 @@ namespace DataScience
     {
         public static Vector Reciprocal(Vector vector)
         {
-            Vector vec = vector.Copy();
-            vec.Reciprocal_IP();
-            return vec;
+            return vector.Copy().Reciprocal_IP();
         }
-        public void Reciprocal_IP()
+        public Vector Reciprocal_IP()
         {
+            IncrementLiveCount();
+
             // Check if the input & output are in Cache
-            MemoryBuffer<float> buffer = this.GetBuffer(); // IO
+            MemoryBuffer<float> buffer = GetBuffer(); // IO
 
             gpu.reciprocalKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
 
             gpu.accelerator.Synchronize();
 
-            buffer.CopyTo(this.Value, 0, 0, this.Value.Length);
+            DecrementLiveCount();
 
-            return;
+            return this;
         }
 
     }

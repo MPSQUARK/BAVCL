@@ -1,5 +1,4 @@
-﻿
-using System.Linq;
+﻿using System.Linq;
 
 namespace DataScience
 {
@@ -9,11 +8,11 @@ namespace DataScience
         {
             return new Vector(gpu, Enumerable.Repeat(1f, Length).ToArray(), Columns);
         }
-        public void Ones_IP(int Length, int Columns = 1)
+        public Vector Ones_IP(int Length, int Columns = 1)
         {
-            this.Value = Enumerable.Repeat(1f, Length).ToArray();
+            UpdateCache(Enumerable.Repeat(1f, Length).ToArray());
             this.Columns = Columns;
-            return;
+            return this;
         }
 
     }

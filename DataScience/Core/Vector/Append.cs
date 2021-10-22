@@ -6,12 +6,17 @@ namespace DataScience
     {
         public static Vector Append(Vector vectorA, Vector vectorB)
         {
+            vectorA.SyncCPU();
+            vectorB.SyncCPU();
             return new Vector(vectorA.gpu, vectorA.Value.Concat(vectorB.Value).ToArray(), vectorA.Columns);
         }
-        public void Append_IP(Vector vector)
+        public Vector Append_IP(Vector vector)
         {
-            this.Value.Concat(vector.Value).ToArray();
-            return;
+            this.SyncCPU();
+            vector.SyncCPU();
+            this.Value = this.Value.Concat(vector.Value).ToArray();
+            this.UpdateCache();
+            return this;
         }
 
 
@@ -19,13 +24,7 @@ namespace DataScience
         {
             return Vector.Append(vectorB, vectorA);
         }
-        public void Prepend_IP(Vector vector, char axis)
-        {
-            Vector vec = Vector.Append(vector, this);
-            this.Value = vec.Value;
-            this.Columns = vec.Columns;
-            return;
-        }
+
 
 
     }
