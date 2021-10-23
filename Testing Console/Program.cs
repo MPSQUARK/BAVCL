@@ -1,9 +1,10 @@
 ﻿using DataScience;
+using DataScience.Core;
 using System;
 using System.Diagnostics;
 using DataScience.Geometric;
 using DataScience.Utility;
-
+using System.Linq;
 
 namespace Testing_Console
 {
@@ -15,60 +16,91 @@ namespace Testing_Console
             GPU gpu = new GPU(memorycap:0.94f);
             Random rnd = new Random(522);
 
-            Vector vec = Vector.Arange(gpu,0, 20000000, 1, 4);
 
-            //vec.Print();
+            string words =
+                "something hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials hello me three five forty marcel materials" +
+                "hello me three five forty marcel materials hello me three five forty marcel materials";
+            
+            VectorStr vector = new VectorStr(words.Split(" "));
 
-            float[] time = new float[2];
-            int reps = 100;
+            Console.WriteLine($"Longest Word : {vector.Max()}");
+            Console.WriteLine($"Length of Array : {vector.Value.Length}");
 
-
-            Vector vec2 = Vector.Arange(gpu, 0, 12, 1, 4);
-
-
-
-            //Console.WriteLine(Util.ToString(Vector.GetColumnAsArray(vec2, 1)));
-            //Console.WriteLine(Util.ToString(vec2.GetColumnAsArray(1)));
-
-
-            //Stopwatch sw = new();
-
-            //for (int i = 0; i < reps; i++)
-            //{
-            //    Vector.GetColumnAsArray(vec, 1);
-            //}
-
-            //gpu.DeCacheLRU(gpu.MaxMemory);
-            //vec.Cache();
-
-            //sw.Start();
-            //for (int i = 0; i < reps; i++)
-            //{
-            //    Vector.GetColumnAsArray(vec, 1);
-            //}
-            //time[0] = (float)sw.ElapsedMilliseconds / (float)reps;
-
-
-
-
-            //for (int i = 0; i < reps; i++)
-            //{
-            //    vec.GetColumnAsArray(1);
-            //}
-
-            //gpu.DeCacheLRU(gpu.MaxMemory);
-            //vec.Cache();
-
-            //sw.Restart();
-            //for (int i = 0; i < reps; i++)
-            //{
-            //    vec.GetColumnAsArray(1);
-            //}
-            //time[1] = (float)sw.ElapsedMilliseconds / (float)reps;
+            float[] time = new float[3];
+            int reps = 100000;
+            Stopwatch sw = new();
 
 
+            for (int i = 0; i < reps; i++)
+            {
+                vector.Contains("something");
+            }
 
-            //Console.WriteLine(Util.ToString(time, decimalplaces:2));
+            sw.Start();
+            for (int i = 0; i < reps; i++)
+            {
+                vector.Contains("something");
+            }
+            time[0] = (float)sw.ElapsedMilliseconds;
+
+
+            for (int i = 0; i < reps; i++)
+            {
+                vector.Contains2("something");
+            }
+
+            sw.Restart();
+            for (int i = 0; i < reps; i++)
+            {
+                vector.Contains2("something");
+            }
+            time[1] = (float)sw.ElapsedMilliseconds;
+            sw.Reset();
+
+
+            for (int i = 0; i < reps; i++)
+            {
+                vector.Contains3("something");
+            }
+
+            sw.Restart();
+            for (int i = 0; i < reps; i++)
+            {
+                vector.Contains3("something");
+            }
+            time[2] = (float)sw.ElapsedMilliseconds;
+            sw.Reset();
+
+
+            Console.WriteLine(Util.ToString(time));
 
         }
 
