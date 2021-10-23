@@ -14,7 +14,7 @@ namespace DataScience.IO
         public static void WriteToFile(string input, string filename="new file", string format="txt" ,string path = "")
         {
             if (path == "") { path = AppDomain.CurrentDomain.BaseDirectory; }
-            System.IO.Directory.CreateDirectory(path+@"\saved_data\");
+            Directory.CreateDirectory(path+@"\saved_data\");
             string fullpath = $"{path}/saved_data/{filename}.{format}";
 
             using (StreamWriter writer = new StreamWriter(fullpath))
@@ -27,7 +27,7 @@ namespace DataScience.IO
         public static void WriteToFile(IIO IOable, string filename = "new file", string format = "txt", string path = "")
         {
             if (path == "") { path = AppDomain.CurrentDomain.BaseDirectory; }
-            System.IO.Directory.CreateDirectory(path + @"\saved_data\");
+            Directory.CreateDirectory(path + @"\saved_data\");
             string fullpath = $"{path}/saved_data/{filename}.{format}";
 
             using (StreamWriter writer = new StreamWriter(fullpath))

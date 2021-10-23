@@ -21,8 +21,8 @@
   <ItemGroup>
     <Folder Include="Astrophysics\" />
     <Folder Include="Core\Mask\" />
+    <Folder Include="Core\Matrix\" />
     <Folder Include="Core\VectorInt\" />
-    <Folder Include="Core\VectorStr\" />
     <Folder Include="Tests\" />
   </ItemGroup>
 
