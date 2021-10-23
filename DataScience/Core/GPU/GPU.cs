@@ -394,7 +394,7 @@ namespace DataScience
                 case Operations.flipPow:
                     OutPut[index] = XMath.Pow(InputB[index], InputA[index]);
                     break;
-                case Operations.DOTS:
+                case Operations.subtractSquare:
                     OutPut[index] = XMath.Pow((InputA[index] - InputB[index]), 2f);
                     break;
 
@@ -429,7 +429,7 @@ namespace DataScience
                 case Operations.flipPow:
                     IO[index] = XMath.Pow(IO[index], Input[index]);
                     break;
-                case Operations.DOTS:
+                case Operations.subtractSquare:
                     IO[index] = XMath.Pow((IO[index] - Input[index]), 2f);
                     break;
             }
@@ -463,7 +463,7 @@ namespace DataScience
                 case Operations.flipPow:
                     OutPut[index] = XMath.Pow(Scalar, Input[index]);
                     break;
-                case Operations.DOTS:
+                case Operations.subtractSquare:
                     OutPut[index] = XMath.Pow((Input[index] - Scalar), 2f);
                     break;
             }
@@ -497,7 +497,7 @@ namespace DataScience
                 case Operations.flipPow:
                     IO[index] = XMath.Pow(Scalar, IO[index]);
                     break;
-                case Operations.DOTS:
+                case Operations.subtractSquare:
                     IO[index] = XMath.Pow((IO[index] - Scalar), 2f);
                     break;
             }
@@ -558,7 +558,7 @@ namespace DataScience
                         OutPut[index] += XMath.Pow(InputB[startidx + i], InputA[i]);
                     }
                     break;
-                case Operations.DOTS:
+                case Operations.subtractSquare:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += XMath.Pow((InputA[i] - InputB[startidx + i]), 2f);
@@ -643,6 +643,6 @@ namespace DataScience
         invDivide = 5,
         flipSubtract = 6,
         flipPow = 7,
-        DOTS = 8, // Difference Of Two Squares
+        subtractSquare = 8, // square the difference of two values
     }
 }
