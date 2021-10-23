@@ -104,7 +104,7 @@ namespace DataScience
             //Vector diff = Vector.AbsX(this - this.Mean());
 
             //return (diff * diff).Sum() / this.Length();
-            return Vector.OP(this, this.Mean(), Operations.DOTS).Sum() / this._length;
+            return Vector.OP(this, this.Mean(), Operations.subtractSquare).Sum() / this._length;
         }
         public override float Range()
         {
