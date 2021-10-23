@@ -5,8 +5,13 @@ namespace DataScience
 {
     public partial class Matrix : VectorBase<float>
     {
-        public Matrix(GPU gpu, float[] value, int columns = 1, bool Cache = true) : base(gpu, value, columns, Cache)
+
+        public (int, int) MatrixShape; 
+
+        public Matrix(GPU gpu, float[] value, (int, int) shape, int columns = 1, bool Cache = true) : base(gpu, value, columns, Cache)
         {
+            this.MatrixShape = shape;
+
             gpu.DeCache(_id);
             throw new System.NotImplementedException();
         }
@@ -25,6 +30,15 @@ namespace DataScience
         {
             throw new System.NotImplementedException();
         }
+
+
+        public int MatrixLength()
+        {
+            return MatrixShape.Item1 * MatrixShape.Item2;
+        }
+
+
+
     }
 
 
