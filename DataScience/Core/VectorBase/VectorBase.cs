@@ -2,11 +2,10 @@
 using System;
 using System.Linq;
 using System.Text;
-using DataScience.Core;
 using ILGPU.Runtime;
 using System.Threading;
 
-namespace DataScience
+namespace DataScience.Core
 {
     public abstract class VectorBase<T> : ICacheable, IIO where T : unmanaged 
     {
@@ -269,13 +268,10 @@ namespace DataScience
         #endregion
 
 
-        public T AccessVal(int row, int col)
+        public T GetValue(int row, int col)
         {
+            SyncCPU();
             return this.Value[row * this.Columns + col];
-        }
-        public virtual T[] AccessRow(int row)
-        {
-            return this.Value[(row * this.Columns)..(++row * this.Columns)];
         }
 
 
@@ -291,13 +287,21 @@ namespace DataScience
         {
             SyncCPU();
             StringBuilder stringBuilder = new StringBuilder();
-            bool is1D = (Columns != 1);
+
+            if (Columns != 1)
+            {
+                for (int i = 0; i < Length; i++)
+                {
+                    stringBuilder.Append($"{this.Value[i]},");
+                }
+                return stringBuilder.ToString();
+            }
 
             stringBuilder.Append($"{this.Value[0]},");
 
             for (int i = 1; i < Length; i++)
             {
-                if ((i % Columns == 0) && is1D)
+                if (i % Columns == 0)
                 {
                     stringBuilder.AppendLine();
                 }
@@ -314,7 +318,7 @@ namespace DataScience
             return _length / Columns;
         }
 
-        public (int, int) Shape()
+        public virtual (int, int) Shape()
         {
             return (RowCount(), Columns);
         }
