@@ -1,27 +1,43 @@
-﻿using System;
-using System.Linq;
+﻿using ILGPU.Algorithms;
 
 namespace DataScience
 {
     public partial class Vector
     {
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="startval"></param>
-        /// <param name="endval"></param>
-        /// <param name="interval"></param>
-        /// <returns></returns>
-        public static Vector Arange(GPU gpu, float startval, float endval, float interval, int Columns = 1)
+        public static Vector Arange(GPU gpu, float startval, float endval, float interval, int Columns = 1, bool cache = true)
         {
             int steps = (int)((endval - startval) / interval);
-            if (endval < startval && interval > 0) { steps = Math.Abs(steps); interval = -interval; }
+            if (endval < startval && interval > 0) { steps = XMath.Abs(steps); interval = -interval; }
             if (endval % interval != 0) { steps++; }
 
-            return new Vector(gpu, (from val in Enumerable.Range(0, steps)
-                                    select startval + (val * interval)).ToArray(), Columns);
+            float[] values = new float[steps];
+
+            for (int i = 0; i < steps; i++)
+            {
+                values[i] = startval + (i * interval);
+            }
+
+            return new Vector(gpu, values, Columns, cache);
         }
+
+
+        public static float[] Arange(float startval, float endval, float interval)
+        {
+            int steps = (int)((endval - startval) / interval);
+            if (endval < startval && interval > 0) { steps = XMath.Abs(steps); interval = -interval; }
+            if (endval % interval != 0) { steps++; }
+
+            float[] values = new float[steps];
+
+            for (int i = 0; i < steps; i++)
+            {
+                values[i] = startval + (i * interval);
+            }
+
+            return values;
+        }
+
 
     }
 }
