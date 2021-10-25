@@ -19,14 +19,14 @@ namespace Testing_Console
             GPU gpu = new GPU();
             Random rnd = new Random(522);
 
-            //BenchmarkRunner.Run<Benchmark>();
+            BenchmarkRunner.Run<Benchmark>();
 
-            Benchmark benchmark = new();
-            Vector vector = benchmark.Arange();
-            Vector vector1 = benchmark.ArangeForWithXMath();
+            //Benchmark benchmark = new();
+            //float dist = benchmark.Distance();
+            //float dist2 = benchmark.DistanceVec();
 
 
-            Console.WriteLine($"@ {vector.Length} : orig : {vector.Value[^1]} | got : {vector1.Value[^1]}");
+            //Console.WriteLine($"orig : {dist} | got : {dist2}");
 
 
             //Console.WriteLine(Util.ToString(new float[2]));

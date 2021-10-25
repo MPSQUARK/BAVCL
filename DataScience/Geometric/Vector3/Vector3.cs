@@ -49,17 +49,11 @@ namespace DataScience.Geometric
             return new Vector3(gpu, Value[..]);
         }
 
-        public float GetCoOrd(Coord xyz)
-        {
-            SyncCPU();
-            return this.Value[(int)xyz];
-        }
         public static Vector3 AccessRow(Vector3 vector, int vert_row)
         {
             vector.SyncCPU();
             return new Vector3(vector.gpu, vector.Value[(vert_row * 3)..((vert_row + 1) * 3)]);
         }
-
 
 
         // CONVERT TO STRING
