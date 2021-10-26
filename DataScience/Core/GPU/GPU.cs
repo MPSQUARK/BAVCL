@@ -15,7 +15,7 @@ namespace DataScience
 {
     public class GPU
     {
-        Context context;
+        protected internal Context context;
         public Accelerator accelerator;
 
 

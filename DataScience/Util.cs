@@ -115,8 +115,91 @@ namespace DataScience.Utility
 
         }
 
+        public static float Max(float[] arr)
+        {
+            if (arr.Length == 0) { throw new Exception("Cannot Be Length 0"); }
+
+            float max = arr[0];
+
+            for (int i = 0; i < arr.Length; i++)
+            {
+                if (max < arr[i])
+                {
+                    max = arr[i];
+                }
+            }
+
+            return max;
+        }
+
+        public static float Max(float[] arr, bool NonInf = true)
+        {
+            if (arr.Length == 0) { throw new Exception("Cannot Be Length 0"); }
+
+            float max = arr[0];
+
+            if (NonInf)
+            {
+                for (int i = 0; i < arr.Length; i++)
+                {
+                    if (float.PositiveInfinity == arr[i] || float.NegativeInfinity == arr[i])
+                    {
+                        if (max < 999) { max = 999; }
+                        continue;
+                    }
+                    if (max < arr[i])
+                    {
+                        max = arr[i];
+                    }
+                }
+                return max;
+            }
+
+            for (int i = 0; i < arr.Length; i++)
+            {
+                if (max < arr[i])
+                {
+                    max = arr[i];
+                }
+            }
+
+            return max;
+        }
 
 
+        public static float Min(float[] arr, bool NonInf = true)
+        {
+            if (arr.Length == 0) { throw new Exception("Cannot Be Length 0"); }
+
+            float min = arr[0];
+
+            if (NonInf)
+            {
+                for (int i = 0; i < arr.Length; i++)
+                {
+                    if (float.PositiveInfinity == arr[i] || float.NegativeInfinity == arr[i])
+                    {
+                        if (min > 999) { min = 999; }
+                        continue;
+                    }
+                    if (min > arr[i])
+                    {
+                        min = arr[i];
+                    }
+                }
+                return min;
+            }
+
+            for (int i = 0; i < arr.Length; i++)
+            {
+                if (min > arr[i])
+                {
+                    min = arr[i];
+                }
+            }
+
+            return min;
+        }
 
 
     }
