@@ -4,6 +4,7 @@ using System;
 using System.Linq;
 using System.Text;
 
+
 namespace DataScience
 {
     public partial class Vector
@@ -14,12 +15,13 @@ namespace DataScience
         {
             return ToString(2);
         }
-        public string ToString(byte decimalplaces = 2 )
+
+        public string ToString(byte decimalplaces = 2)
         {
             // FORMAT : "|__-DIGITS.DECIMALPLACES__|"
-
-            int high = ((int)Max()).ToString().Length;
-            int low = (int)Min();
+            this.SyncCPU();
+            int high = ((int)Util.Max(this.Value, true)).ToString().Length;
+            int low = (int)Util.Min(this.Value, true);
             bool hasnegative = low < 0f;
             bool hasinfinity = Value.Contains(float.PositiveInfinity) || Value.Contains(float.NegativeInfinity) || Value.Contains(float.NaN);
             low = hasnegative ? low.ToString().Length - 1 : low.ToString().Length;
@@ -33,7 +35,6 @@ namespace DataScience
             StringBuilder stringBuilder = new StringBuilder();
 
 
-
             stringBuilder.AppendLine();
 
             if (hasinfinity)
@@ -42,16 +43,18 @@ namespace DataScience
                 if (float.IsNegativeInfinity(Value[0]) || float.IsPositiveInfinity(Value[0]))
                 {
                     val = "INF   ";
+                    spaces = new string(' ', digits - 3);
                 }
                 else if (float.IsNaN(Value[0]))
                 {
-                    val = "NaN  ";
+                    val = "NaN   ";
+                    spaces = new string(' ', digits - 3);
                 }
                 else
                 {
                     val = Math.Abs(Value[0]).ToString(format);
+                    spaces = new string(' ', digits - (val.Length - decimalplaces - 1));
                 }
-                spaces = new string(' ', digits - (val.Length - decimalplaces - 1));
                 if (Value[0] < 0f) { neg = '-'; } else { neg = ' '; }
                 stringBuilder.Append($"|  {neg}{spaces}{val}  |");
 
@@ -62,16 +65,18 @@ namespace DataScience
                     if (float.IsNegativeInfinity(Value[i]) || float.IsPositiveInfinity(Value[i]))
                     {
                         val = "INF   ";
+                        spaces = new string(' ', digits - 3);
                     }
                     else if (float.IsNaN(Value[i]))
                     {
                         val = "NaN   ";
+                        spaces = new string(' ', digits - 3);
                     }
                     else
                     {
                         val = Math.Abs(Value[i]).ToString(format);
+                        spaces = new string(' ', digits - (val.Length - decimalplaces - 1));
                     }
-                    spaces = new string(' ', digits - (val.Length - decimalplaces - 1));
                     if (Value[i] < 0f) { neg = '-'; } else { neg = ' '; }
                     stringBuilder.Append($"|  {neg}{spaces}{val}  |");
                 }
@@ -115,6 +120,8 @@ namespace DataScience
             return stringBuilder.AppendLine().ToString();
 
         }
-
+    
+    
+    
     }
 }

@@ -19,14 +19,35 @@ namespace Testing_Console
             GPU gpu = new GPU();
             Random rnd = new Random(522);
 
-            BenchmarkRunner.Run<Benchmark>();
+            Vector vector = Vector.Arange(gpu, -12, 16, 1, 4, true);
+            
+
+            //Console.WriteLine(vector.ToStringOrig());
+            //Console.WriteLine(vector.ToString());
+
+            vector.SyncCPU();
+            vector.Value[2] = float.PositiveInfinity;
+            vector.Value[3] = float.NegativeInfinity;
+            vector.Value[4] = float.NaN;
+            vector.UpdateCache();
+            vector.Print();
+
+            //Console.WriteLine(vector.ToStringOrig());
+            //Console.WriteLine(vector.ToStringUpdate());
+            //Console.WriteLine(vector.ToString());
+
+            //BenchmarkRunner.Run<Benchmark>();
 
             //Benchmark benchmark = new();
-            //float dist = benchmark.Distance();
-            //float dist2 = benchmark.DistanceVec();
+            //float[] dist = benchmark.Linspace().Value;
+            //float[] dist2 = benchmark.LinspaceForloop().Value;
+            //float[] dist3 = benchmark.LinspaceForloopHybrid().Value;
 
+            //for (int i = 0; i < dist.Length; i++)
+            //{
+            //    Console.WriteLine($"orig : {dist[i]} | got : {dist2[i]} | v3 : {dist3[i]}");
+            //}
 
-            //Console.WriteLine($"orig : {dist} | got : {dist2}");
 
 
             //Console.WriteLine(Util.ToString(new float[2]));
@@ -34,7 +55,7 @@ namespace Testing_Console
 
         }
 
-       
+
 
 
 

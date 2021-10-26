@@ -11,9 +11,9 @@ namespace DataScience.Core
             set; 
         }
         public virtual T[] Value 
-        { 
-            get; 
-            set; 
+        {
+            get;
+            set;
         }
         public virtual int Columns
         {
@@ -41,12 +41,11 @@ namespace DataScience.Core
             set { _livecount = value; } 
         }
 
-
         protected internal int _columns = 1;
         protected internal int _length = 0;
         protected internal uint _id = 0;
         protected internal long _memorySize = 0;
-        public uint _livecount = 0;
+        protected internal uint _livecount = 0;
 
         
 
