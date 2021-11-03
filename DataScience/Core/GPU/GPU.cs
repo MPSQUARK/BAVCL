@@ -9,7 +9,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using DataScience.Core;
-
+using DataScience.Experimental;
 
 namespace DataScience
 {
@@ -96,6 +96,7 @@ namespace DataScience
             timer.Start();
 
             sumKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<double>, ArrayView<float>>(SumKernel);
+            testkern = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, SpecializedValue<int>>(TESTKERNEL);
 
 
             appendKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(AppendKernel);
@@ -435,6 +436,7 @@ namespace DataScience
             }
         }
 
+
         static void ScalarConsecutiveOperationKernel(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar, SpecializedValue<int> operation)
         {
             switch ((Operations)operation.Value)
@@ -628,6 +630,25 @@ namespace DataScience
 
 
 
+        public Action<AcceleratorStream, Index1, ArrayView<float>, SpecializedValue<int>> testkern;
+        static void TESTKERNEL(Index1 index, ArrayView<float> IO, SpecializedValue<int> operation)
+        {
+            switch ((Operations)operation.Value)
+            {
+                case Operations.cbrt:
+                    IO[index] = TestCls.CbrtFast(IO[index]);
+                    break;
+                case Operations.cbrtrcp:
+                    IO[index] = TestCls.CbrtFastRcp(IO[index]);
+                    break;
+                case Operations.cbrtrcppow:
+                    IO[index] = TestCls.CbrtFastRcpANDPow(IO[index]);
+                    break;
+                case Operations.cbrtinterop:
+                    IO[index] = TestCls.CbrtFastInterop(IO[index]);
+                    break;
+            }
+        }
 
 
 
@@ -644,5 +665,11 @@ namespace DataScience
         flipSubtract = 6,
         flipPow = 7,
         subtractSquare = 8, // square the difference of two values
+
+
+        cbrt = 9,
+        cbrtrcp = 10,
+        cbrtrcppow = 11,
+        cbrtinterop = 12,
     }
 }
