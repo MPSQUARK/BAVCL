@@ -1,11 +1,11 @@
 ﻿using DataScience;
+using DataScience.Core;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 
-using DataScience.IO;
-using System.Threading.Tasks;
-using System.Linq;
+using BenchmarkDotNet.Running;
+
+using DataScience.Ext;
+using DataScience.Geometric;
 
 namespace Testing_Console
 {
@@ -13,31 +13,23 @@ namespace Testing_Console
     {
         static void Main(string[] args)
         {
+            //Random rnd = new Random(522);
+
             GPU gpu = new GPU();
 
-            // SAMPLE AND TEST CODE
+            float[] arr = new float[] { -5, -4, -3, float.PositiveInfinity, -2, -1, float.NegativeInfinity, 0, 1, float.NaN, 2, 3, -12312, 4, 5 };
 
-            Console.WriteLine();
+            Console.WriteLine(arr);
 
-            Vector[] vectors = new Vector[20];
+            arr.Print();
 
-            for (int i = 0; i < 20; i++)
-            {
-                vectors[i] = Vector.Arange(gpu, 0, 1e8f, 1f, 5);
-                gpu.ShowMemoryUsage();
-            }
+            Vector.Arange(gpu, -12, 12, 1, 4).Print();
 
+            Vector3.Fill(gpu, 5, 12).Print();
 
-            Console.WriteLine("Vectors Made, now DeCaching them \n\n\n");
+            int val = 12412;
+            val.Print();
 
-            for (int i = 0; i < 20; i++)
-            {
-                vectors[i].Dispose();
-                gpu.ShowMemoryUsage();
-            }
-
-
-           
         }
 
 

@@ -1,13 +1,8 @@
 ﻿using ILGPU.Algorithms;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 using DataScience.Utility;
 
-namespace DataScience
+namespace DataScience.Geometric
 {
     public struct Vertex
     {
@@ -19,22 +14,37 @@ namespace DataScience
 
 
         // VARIABLE BLOCK
-        public float x { get; set; }
-        public float y { get; set; }
-        public float z { get; set; }
+        public float[] values;
+
+        public float x 
+        {
+            get { return values[0]; }
+            set { values[0] = value; } 
+        }
+        public float y
+        {
+            get { return values[1]; }
+            set { values[1] = value; }
+        }
+        public float z
+        {
+            get { return values[2]; }
+            set { values[2] = value; }
+        }
 
         // CONSTRUCTORS
         public Vertex(float x, float y, float z)
         {
-            this.x = x;
-            this.y = y;
-            this.z = z;
+            this.values = new float[3] { x, y, z };
         }
         public Vertex(double x, double y, double z)
         {
-            this.x = (float)x;
-            this.y = (float)y;
-            this.z = (float)z;
+            this.values = new float[3] { (float)x, (float)y, (float)z };
+        }
+        public Vertex(float[] array)
+        {
+            if (array.Length != 3) { throw new Exception($"To Make A Vertex You MUST Provide 3 Values. Recieved : {array.Length}"); }
+            this.values = array;
         }
 
         // Print + ToString
@@ -61,7 +71,7 @@ namespace DataScience
         // Copy Vertex
         public Vertex Copy()
         {
-            return new Vertex(this.x, this.y, this.z);
+            return new Vertex(this.values[..]);
         }
 
 
@@ -174,17 +184,15 @@ namespace DataScience
         #region
         public static implicit operator float[](Vertex vert)
         {
-            return new float[3] { vert.x, vert.y, vert.z };
+            return vert.values;
         }
         public static implicit operator Vertex(float[] values)
         {
-            if (values.Length != 3) { throw new Exception($"Cannot convert float array of length : {values.Length} to Vertex, expecting length of 3"); }
-            return new Vertex(values[0], values[1], values[2]);
+            return new Vertex(values);
         }
         public static implicit operator Vertex(Vector3 vector)
         {
-            if (vector.Value.Length != 3) { throw new Exception($"Cannot convert Vector3 of length : {vector.Value.Length} to Vertex, expecting length of 3"); }
-            return new Vertex(vector.Value[0], vector.Value[1], vector.Value[2]);
+            return new Vertex(vector.Value);
         }
 
 
@@ -204,25 +212,11 @@ namespace DataScience
 
 
         // Methods (non-static, with static counterparts)
-        public void SetX(float x)
-        {
-            this.x = x;
-        }
-        public void SetY(float y)
-        {
-            this.y = y;
-        }
-        public void SetZ(float z)
-        {
-            this.z = z;
-        }
         public float Distance(Vertex vert)
         {
-            float dx = this.x - vert.x;
-            float dy = this.y - vert.y;
-            float dz = this.z - vert.z;
-
-            return XMath.Sqrt(dx * dx + dy * dy + dz * dz);
+            System.Numerics.Vector3 vec = new System.Numerics.Vector3(values[0], values[1], values[2]);
+            System.Numerics.Vector3 vec2 = new System.Numerics.Vector3(vert.values[0], vert.values[1], vert.values[2]);
+            return System.Numerics.Vector3.Distance(vec, vec2);
         }
         public void Fract_IP()
         {
@@ -231,10 +225,12 @@ namespace DataScience
             this.z -= XMath.Floor(z);
             return;
         }
+
         public float Dot(Vertex vertB)
         {
             return this.x * vertB.x + this.y * vertB.y + this.z * vertB.z;
         }
+
         public float Dot(float Scalar)
         {
             return this.x * Scalar + this.y * Scalar + this.z * Scalar;
