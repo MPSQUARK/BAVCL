@@ -77,9 +77,9 @@ namespace DataScience.Core
         }
 
         // PRINT + CSV
-        public void Print()
+        public virtual void Print()
         {
-            Console.Write(this.ToString());
+            Console.WriteLine(this.ToString());
             return;
         }
 

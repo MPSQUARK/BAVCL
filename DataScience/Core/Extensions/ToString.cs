@@ -1,44 +1,34 @@
 ﻿using DataScience.Utility;
-using ILGPU.Algorithms;
 using System;
-using System.Linq;
 using System.Text;
 
-
-namespace DataScience
+namespace DataScience.Core
 {
-    public partial class Vector
+    public static partial class Extensions
     {
-        public override string ToString()
+        public static string ToStr(this float[] arr, byte decimalplaces = 2)
         {
-            return ToString(2);
-        }
-
-        public string ToString(byte decimalplaces = 2)
-        {
-            this.SyncCPU();
-            (float min, float max, bool hasinfinity) = Util.MinMaxInf(this.Value);
+            (float min, float max, bool hasinfinity) = Util.MinMaxInf(arr);
 
             bool hasnegative = min < 0f;
 
             int high = max.ToString().Length;
             int low = hasnegative ? min.ToString().Length - 1 : min.ToString().Length;
 
-            int digits = high > low ? high: low;
+            int digits = high > low ? high : low;
 
             string format = $"F{decimalplaces}";
 
             // FORMAT : "|__-DIGITS.DECIMALPLACES__|"
-            char[] Template = new char[digits + decimalplaces + 6];
+            char[] Template = new char[digits + decimalplaces + 7];
 
-            Template[0] = '|';  // Padding
-            Template[1] = ' ';  // Padding
-            Template[2] = ' ';  // Negative Sign
-            Template[^3] = ' '; // Padding
-            Template[^2] = ' '; // Padding
-            Template[^1] = '|'; // Padding
-
-
+            Template[0] =  '|';  // Padding
+            Template[1] =  ' ';  // Padding
+            Template[2] =  ' ';  // Negative Sign
+            Template[^4] = ' ';  // Padding
+            Template[^3] = ' ';  // Padding
+            Template[^2] = '|';  // Padding
+            Template[^1] = '\n'; // New Line
 
             StringBuilder stringBuilder = new StringBuilder();
             char[] clear = new string(' ', Template.Length - 6).ToCharArray();
@@ -51,37 +41,36 @@ namespace DataScience
                 string nan = new string(' ', decimalplaces);
 
 
-                for (int i = 0; i < _length; i++)
+                for (int i = 0; i < arr.Length; i++)
                 {
-                    if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
-                    Template[2] = Value[i] < 0f ? '-' : ' ';
+                    Template[2] = arr[i] < 0f ? '-' : ' ';
 
-                    if (float.IsFinite(this.Value[i]))
+                    if (float.IsFinite(arr[i]))
                     {
                         clear.CopyTo(Template, 3);
-                        string val = Math.Abs(this.Value[i]).ToString(format);
+                        string val = Math.Abs(arr[i]).ToString(format);
                         val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                         stringBuilder.Append(Template);
                         continue;
                     }
 
-                    if (float.IsPositiveInfinity(this.Value[i]))
+                    if (float.IsPositiveInfinity(arr[i]))
                     {
-                        stringBuilder.Append($"|  {inf}INF{afterinf} |");
+                        stringBuilder.Append($"|  {inf}INF{afterinf} |\n");
                         continue;
                     }
 
-                    if (float.IsNaN(this.Value[i]))
+                    if (float.IsNaN(arr[i]))
                     {
-                        stringBuilder.Append($"|  {inf}NaN{afterinf} |");
+                        stringBuilder.Append($"|  {inf}NaN{afterinf} |\n");
                         continue;
                     }
 
-                    if (float.IsNegativeInfinity(this.Value[i]))
+                    if (float.IsNegativeInfinity(arr[i]))
                     {
-                        stringBuilder.Append($"| -{inf}INF{nan}  |");
+                        stringBuilder.Append($"| -{inf}INF{nan}  |\n");
                         continue;
                     }
 
@@ -91,14 +80,13 @@ namespace DataScience
 
             if (hasnegative)
             {
-                for (int i = 0; i < _length; i++)
+                for (int i = 0; i < arr.Length; i++)
                 {
-                    if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
-                    Template[2] = Value[i] < 0f ? '-' : ' ';
+                    Template[2] = arr[i] < 0f ? '-' : ' ';
 
                     clear.CopyTo(Template, 3);
-                    string val = Math.Abs(this.Value[i]).ToString(format);
+                    string val = Math.Abs(arr[i]).ToString(format);
                     val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                     stringBuilder.Append(Template);
@@ -108,13 +96,11 @@ namespace DataScience
                 return stringBuilder.ToString();
             }
 
-
-            for (int i = 0; i < _length; i++)
+            for (int i = 0; i < arr.Length; i++)
             {
-                if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
                 clear.CopyTo(Template, 3);
-                string val = this.Value[i].ToString(format);
+                string val = arr[i].ToString(format);
                 val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                 stringBuilder.Append(Template);
@@ -127,4 +113,6 @@ namespace DataScience
 
 
     }
+
+
 }

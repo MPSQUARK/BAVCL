@@ -1,13 +1,11 @@
-﻿using DataScience.Utility;
-using ILGPU.Algorithms;
-using System;
-using System.Linq;
+﻿using System;
+using DataScience.Utility;
 using System.Text;
 
-
-namespace DataScience
+namespace DataScience.Geometric
 {
-    public partial class Vector
+
+    public partial class Vector3
     {
         public override string ToString()
         {
@@ -24,7 +22,7 @@ namespace DataScience
             int high = max.ToString().Length;
             int low = hasnegative ? min.ToString().Length - 1 : min.ToString().Length;
 
-            int digits = high > low ? high: low;
+            int digits = high > low ? high : low;
 
             string format = $"F{decimalplaces}";
 
@@ -126,5 +124,8 @@ namespace DataScience
         }
 
 
+
     }
+
+
 }
