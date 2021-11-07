@@ -2,6 +2,7 @@
 using ILGPU.Algorithms;
 using System;
 using DataScience.Core;
+using DataScience.Ext;
 
 namespace DataScience
 {
@@ -431,18 +432,6 @@ namespace DataScience
             Output.DecrementLiveCount();
 
             return this;
-        }
-
-
-
-
-
-
-
-        public void TestCBRT(Operations operation)
-        {
-            gpu.testkern(gpu.accelerator.DefaultStream, this._length, this.GetBuffer().View, new SpecializedValue<int>((int)operation));
-            gpu.accelerator.Synchronize();
         }
 
 

@@ -9,8 +9,6 @@ namespace DataScience
 {
     public partial class Vector
     {
-
-
         public override string ToString()
         {
             return ToString(2);
@@ -18,156 +16,52 @@ namespace DataScience
 
         public string ToString(byte decimalplaces = 2)
         {
-            // FORMAT : "|__-DIGITS.DECIMALPLACES__|"
             this.SyncCPU();
-            int high = ((int)Util.Max(this.Value, true)).ToString().Length;
-            int low = (int)Util.Min(this.Value, true);
-            bool hasnegative = low < 0f;
-            bool hasinfinity = Value.Contains(float.PositiveInfinity) || Value.Contains(float.NegativeInfinity) || Value.Contains(float.NaN);
-            low = hasnegative ? low.ToString().Length - 1 : low.ToString().Length;
-            int digits = high > low ? high : low;
+            (float min, float max, bool hasinfinity) = Util.MinMaxInf(this.Value);
 
-            string format = $"F{decimalplaces}";
-            char neg = ' ';
-            string val;
-            string spaces;
+            bool hasnegative = min < 0f;
 
-            StringBuilder stringBuilder = new StringBuilder();
+            int high = max.ToString().Length;
+            int low = hasnegative ? min.ToString().Length - 1 : min.ToString().Length;
 
+            int digits = high > low ? high: low;
 
-            stringBuilder.AppendLine();
-
-            if (hasinfinity)
-            {
-
-                if (float.IsNegativeInfinity(Value[0]) || float.IsPositiveInfinity(Value[0]))
-                {
-                    val = "INF   ";
-                    spaces = new string(' ', digits - 3);
-                }
-                else if (float.IsNaN(Value[0]))
-                {
-                    val = "NaN   ";
-                    spaces = new string(' ', digits - 3);
-                }
-                else
-                {
-                    val = Math.Abs(Value[0]).ToString(format);
-                    spaces = new string(' ', digits - (val.Length - decimalplaces - 1));
-                }
-                if (Value[0] < 0f) { neg = '-'; } else { neg = ' '; }
-                stringBuilder.Append($"|  {neg}{spaces}{val}  |");
-
-                for (int i = 1; i < _length; i++)
-                {
-                    if (i % Columns == 0) { stringBuilder.AppendLine(); }
-
-                    if (float.IsNegativeInfinity(Value[i]) || float.IsPositiveInfinity(Value[i]))
-                    {
-                        val = "INF   ";
-                        spaces = new string(' ', digits - 3);
-                    }
-                    else if (float.IsNaN(Value[i]))
-                    {
-                        val = "NaN   ";
-                        spaces = new string(' ', digits - 3);
-                    }
-                    else
-                    {
-                        val = Math.Abs(Value[i]).ToString(format);
-                        spaces = new string(' ', digits - (val.Length - decimalplaces - 1));
-                    }
-                    if (Value[i] < 0f) { neg = '-'; } else { neg = ' '; }
-                    stringBuilder.Append($"|  {neg}{spaces}{val}  |");
-                }
-
-                return stringBuilder.AppendLine().ToString();
-            }
-
-            if (hasnegative)
-            {
-                val = Math.Abs(Value[0]).ToString(format);
-                spaces = new string(' ', digits - (val.Length - decimalplaces - 1));
-                if (Value[0] < 0f) { neg = '-'; } else { neg = ' '; }
-                stringBuilder.Append($"|  {neg}{spaces}{val}  |");
-
-                for (int i = 1; i < _length; i++)
-                {
-                    if (i % Columns == 0) { stringBuilder.AppendLine(); }
-
-                    val = Math.Abs(Value[i]).ToString(format);
-                    spaces = new string(' ', digits - (val.Length - decimalplaces - 1));
-                    if (Value[i] < 0f) { neg = '-'; } else { neg = ' '; }
-                    stringBuilder.Append($"|  {neg}{spaces}{val}  |");
-                }
-
-                return stringBuilder.AppendLine().ToString();
-            }
-
-            val = Value[0].ToString(format);
-            spaces = new string(' ', digits - (val.Length - decimalplaces - 1));
-            stringBuilder.Append($"|  {neg}{spaces}{val}  |");
-
-            for (int i = 1; i < _length; i++)
-            {
-                if (i % Columns == 0) { stringBuilder.AppendLine(); }
-
-                val = Value[i].ToString(format);
-                spaces = new string(' ', digits - (val.Length - decimalplaces - 1));
-                stringBuilder.Append($"|   {spaces}{val}  |");
-            }
-
-            return stringBuilder.AppendLine().ToString();
-
-        }
-    
-        public string ToStringNEWER(byte decimalplaces = 2)
-        {
-            this.SyncCPU();
-            int high = ((int)Util.Max(this.Value, true)).ToString().Length;
-            int low = (int)Util.Min(this.Value, true);
-            bool hasnegative = low < 0f;
-            low = hasnegative ? low.ToString().Length - 1 : low.ToString().Length;
-            bool hasinfinity = Value.Contains(float.PositiveInfinity) || Value.Contains(float.NegativeInfinity) || Value.Contains(float.NaN);
-            int digits = high > low ? high : low;
             string format = $"F{decimalplaces}";
 
             // FORMAT : "|__-DIGITS.DECIMALPLACES__|"
-            char[] Template = new char[digits + decimalplaces + 7];
-            Template[0] = '|';
-            Template[1] = ' ';
-            Template[2] = ' ';
-            Template[^3] = ' ';
-            Template[^2] = ' ';
-            Template[^1] = '|';
+            char[] Template = new char[digits + decimalplaces + 6];
 
-            int diff = digits + decimalplaces + 1;
+            Template[0] = '|';  // Padding
+            Template[1] = ' ';  // Padding
+            Template[2] = ' ';  // Negative Sign
+            Template[^3] = ' '; // Padding
+            Template[^2] = ' '; // Padding
+            Template[^1] = '|'; // Padding
+
+
 
             StringBuilder stringBuilder = new StringBuilder();
+            char[] clear = new string(' ', Template.Length - 6).ToCharArray();
+            int _diff = digits + 4 + decimalplaces;
 
             if (hasinfinity)
             {
-                string neginf = $"|  {new string(' ', digits - 3)}-INF{new string(' ', decimalplaces)}  |";
-                
-                string inf = $"|  {new string(' ', digits - 2)}INF{new string(' ', decimalplaces)}  |";
-                string nan = $"|  {new string(' ', digits - 2)}NaN{new string(' ', decimalplaces)}  |";
+                string inf = new string(' ', digits - 3);
+                string afterinf = new string(' ', decimalplaces + 1);
+                string nan = new string(' ', decimalplaces);
 
 
                 for (int i = 0; i < _length; i++)
                 {
                     if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
-                    Template[3] = Value[i] < 0f ? '-' : ' ';
+                    Template[2] = Value[i] < 0f ? '-' : ' ';
 
                     if (float.IsFinite(this.Value[i]))
                     {
-                        char[] val = Math.Abs(this.Value[i]).ToString(format).ToCharArray();
-
-                        for (int j = 4; j < 4 + diff - val.Length; j++)
-                        {
-                            Template[j] = ' ';
-                        }
-                        val.CopyTo(Template, 4 + diff - val.Length);
+                        clear.CopyTo(Template, 3);
+                        string val = Math.Abs(this.Value[i]).ToString(format);
+                        val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                         stringBuilder.Append(Template);
                         continue;
@@ -175,141 +69,24 @@ namespace DataScience
 
                     if (float.IsPositiveInfinity(this.Value[i]))
                     {
-                        stringBuilder.Append(inf);
+                        stringBuilder.Append($"|  {inf}INF{afterinf} |");
                         continue;
                     }
 
                     if (float.IsNaN(this.Value[i]))
                     {
-                        stringBuilder.Append(nan);
+                        stringBuilder.Append($"|  {inf}NaN{afterinf} |");
                         continue;
                     }
 
                     if (float.IsNegativeInfinity(this.Value[i]))
                     {
-                        stringBuilder.Append(neginf);
+                        stringBuilder.Append($"| -{inf}INF{nan}  |");
                         continue;
                     }
 
                 }
-
                 return stringBuilder.ToString();
-            }
-
-            if (decimalplaces == 0) { digits--; }
-
-            if (hasnegative)
-            {
-
-                for (int i = 0; i < _length; i++)
-                {
-                    if (i % Columns == 0) { stringBuilder.AppendLine(); }
-
-                    Template[3] = Value[i] < 0f ? '-' : ' ';
-
-                    if (float.IsFinite(this.Value[i]))
-                    {
-                        char[] val = Math.Abs(this.Value[i]).ToString(format).ToCharArray();
-
-                        for (int j = 4; j < 4 + diff - val.Length; j++)
-                        {
-                            Template[j] = ' ';
-                        }
-                        val.CopyTo(Template, 4 + diff - val.Length);
-
-                        stringBuilder.Append(Template);
-                        continue;
-                    }
-                }
-
-                return stringBuilder.ToString();
-            }
-
-            Template[3] = ' ';
-
-            for (int i = 0; i < _length; i++)
-            {
-                if (i % Columns == 0) { stringBuilder.AppendLine(); }
-
-                char[] val = this.Value[i].ToString(format).ToCharArray();
-
-                for (int j = 4; j < 4 + diff - val.Length; j++)
-                {
-                    Template[j] = ' ';
-                }
-                val.CopyTo(Template, 4 + diff - val.Length);
-
-                stringBuilder.Append(Template);
-
-            }
-
-            return stringBuilder.ToString();
-        }
-
-
-        public string ToStringNEWER2(byte decimalplaces = 2)
-        {
-            this.SyncCPU();
-            int high = ((int)Util.Max(this.Value, true)).ToString().Length;
-            int low = (int)Util.Min(this.Value, true);
-            bool hasnegative = low < 0f;
-            bool hasinfinity = Value.Contains(float.PositiveInfinity) || Value.Contains(float.NegativeInfinity) || Value.Contains(float.NaN);
-            low = hasnegative ? low.ToString().Length - 1 : low.ToString().Length;
-            int digits = high > low ? high : low;
-            string format = $"F{decimalplaces}";
-
-            // FORMAT : "|__-DIGITS.DECIMALPLACES__|"
-            char[] Template = new char[digits + decimalplaces + 7];
-            Template[0] = '|';
-            Template[1] = ' ';
-            Template[2] = ' ';
-            Template[^3] = ' ';
-            Template[^2] = ' ';
-            Template[^1] = '|';
-
-            StringBuilder stringBuilder = new StringBuilder();
-            string inf = new string(' ', digits - 3);
-            string afterinf = new string(' ', decimalplaces + 1);
-            string nan = new string(' ', decimalplaces);
-            int _diff = digits + decimalplaces + 1;
-
-            if (hasinfinity)
-            {
-
-                for (int i = 0; i < _length; i++)
-                {
-                    if (i % Columns == 0) { stringBuilder.AppendLine(); }
-
-                    Template[3] = Value[i] < 0f ? '-' : ' ';
-
-                    if (float.IsFinite(this.Value[i]))
-                    {
-                        char[] val = Math.Abs(this.Value[i]).ToString(format).ToCharArray();
-                        val.CopyTo(Template, 3 + _diff - val.Length);
-
-                        stringBuilder.Append(Template);
-                        continue;
-                    }
-
-                    if (float.IsPositiveInfinity(this.Value[i]))
-                    {
-                        stringBuilder.Append($"|  {inf}INF{afterinf}  |");
-                        continue;
-                    }
-
-                    if (float.IsNaN(this.Value[i]))
-                    {
-                        stringBuilder.Append($"|  {inf}NaN{afterinf}  |");
-                        continue;
-                    }
-
-                    if (float.IsNegativeInfinity(this.Value[i]))
-                    {
-                        stringBuilder.Append($"|  {inf}-INF{nan}  |");
-                        continue;
-                    }
-
-                }
             }
 
             if (hasnegative)
@@ -318,30 +95,36 @@ namespace DataScience
                 {
                     if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
-                    Template[3] = Value[i] < 0f ? '-' : ' ';
+                    Template[2] = Value[i] < 0f ? '-' : ' ';
 
-                    char[] val = Math.Abs(this.Value[i]).ToString(format).ToCharArray();
-                    val.CopyTo(Template, 3 + _diff - val.Length);
+                    clear.CopyTo(Template, 3);
+                    string val = Math.Abs(this.Value[i]).ToString(format);
+                    val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                     stringBuilder.Append(Template);
-
+                    continue;
                 }
+
+                return stringBuilder.ToString();
             }
+
 
             for (int i = 0; i < _length; i++)
             {
                 if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
-                Template[3] = Value[i] < 0f ? '-' : ' ';
-
-                char[] val = this.Value[i].ToString(format).ToCharArray();
-                val.CopyTo(Template, 3 + _diff - val.Length);
+                clear.CopyTo(Template, 3);
+                string val = this.Value[i].ToString(format);
+                val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                 stringBuilder.Append(Template);
+                continue;
 
             }
 
             return stringBuilder.ToString();
         }
+
+
     }
 }

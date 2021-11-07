@@ -96,8 +96,6 @@ namespace DataScience
             timer.Start();
 
             sumKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<double>, ArrayView<float>>(SumKernel);
-            testkern = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, SpecializedValue<int>>(TESTKERNEL);
-
 
             appendKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(AppendKernel);
             nanToNumKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, float>(Nan_to_numKernel);
@@ -614,41 +612,11 @@ namespace DataScience
             int idx = col * rows + row;
 
             Output[idx] = Input[index];
-
-            // (int)Math.Floor(Input.Length / columns) => The Row
-            // (int)(Input.Length % columns) => The Column
-            
-            //float invcol = 1f / columns;
-            //Output[(index % columns) * ((int)(Input.Length * invcol)) + ((int)XMath.Floor(index * invcol))] = Input[index];
         }
 
 
 
 
-
-
-
-
-
-        public Action<AcceleratorStream, Index1, ArrayView<float>, SpecializedValue<int>> testkern;
-        static void TESTKERNEL(Index1 index, ArrayView<float> IO, SpecializedValue<int> operation)
-        {
-            switch ((Operations)operation.Value)
-            {
-                case Operations.cbrt:
-                    IO[index] = TestCls.CbrtFast(IO[index]);
-                    break;
-                case Operations.cbrtrcp:
-                    IO[index] = TestCls.CbrtFastRcp(IO[index]);
-                    break;
-                case Operations.cbrtrcppow:
-                    IO[index] = TestCls.CbrtFastRcpANDPow(IO[index]);
-                    break;
-                case Operations.cbrtinterop:
-                    IO[index] = TestCls.CbrtFastInterop(IO[index]);
-                    break;
-            }
-        }
 
 
 
@@ -665,11 +633,5 @@ namespace DataScience
         flipSubtract = 6,
         flipPow = 7,
         subtractSquare = 8, // square the difference of two values
-
-
-        cbrt = 9,
-        cbrtrcp = 10,
-        cbrtrcppow = 11,
-        cbrtinterop = 12,
     }
 }
