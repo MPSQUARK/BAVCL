@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DataScience.Core
+namespace BAVCL.Core
 {
     public partial class VectorBase<T>
     {

@@ -1,7 +1,7 @@
 ﻿using System.Linq;
-using DataScience.Core;
+using BAVCL.Core;
 
-namespace DataScience.Geometric
+namespace BAVCL.Geometric
 {
 
     public partial class Vector3 : VectorBase<float>

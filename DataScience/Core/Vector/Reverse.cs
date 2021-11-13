@@ -1,7 +1,7 @@
 ﻿using ILGPU.Runtime;
 using System.Linq;
 
-namespace DataScience
+namespace BAVCL
 {
     public partial class Vector
     {

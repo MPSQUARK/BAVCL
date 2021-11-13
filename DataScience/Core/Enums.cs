@@ -1,4 +1,4 @@
-﻿namespace DataScience.Core
+﻿namespace BAVCL.Core
 {
     public static class Enums
     {

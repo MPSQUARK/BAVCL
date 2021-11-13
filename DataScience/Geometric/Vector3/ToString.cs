@@ -1,8 +1,8 @@
 ﻿using System;
-using DataScience.Utility;
+using BAVCL.Utility;
 using System.Text;
 
-namespace DataScience.Geometric
+namespace BAVCL.Geometric
 {
 
     public partial class Vector3
@@ -12,10 +12,11 @@ namespace DataScience.Geometric
             return ToString(2);
         }
 
+
         public string ToString(byte decimalplaces = 2)
         {
             this.SyncCPU();
-            (float min, float max, bool hasinfinity) = Util.MinMaxInf(this.Value);
+            (int min, int max, bool hasinfinity) = Util.MinMaxInf(this.Value);
 
             bool hasnegative = min < 0f;
 
@@ -122,7 +123,6 @@ namespace DataScience.Geometric
 
             return stringBuilder.ToString();
         }
-
 
 
     }

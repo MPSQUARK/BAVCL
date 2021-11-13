@@ -1,8 +1,8 @@
 ﻿using ILGPU.Algorithms;
 using System;
-using DataScience.Utility;
+using BAVCL.Utility;
 
-namespace DataScience.Geometric
+namespace BAVCL.Geometric
 {
     public struct Vertex
     {

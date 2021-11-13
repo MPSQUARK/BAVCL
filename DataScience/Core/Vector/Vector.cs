@@ -1,10 +1,10 @@
 ﻿using ILGPU.Runtime;
 using ILGPU.Algorithms;
 using System;
-using DataScience.Core;
-using DataScience.Ext;
+using BAVCL.Core;
+using BAVCL.Ext;
 
-namespace DataScience
+namespace BAVCL
 {
 
     /// <summary>

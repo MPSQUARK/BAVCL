@@ -2,9 +2,9 @@
 using System.Linq;
 using System.IO;
 using System.Text.RegularExpressions;
-using DataScience.Core;
+using BAVCL.Core;
 
-namespace DataScience.IO
+namespace BAVCL.IO
 {
     public class IO
     {

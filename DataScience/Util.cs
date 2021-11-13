@@ -3,7 +3,7 @@ using System;
 using System.Linq;
 using System.Text;
 
-namespace DataScience.Utility
+namespace BAVCL.Utility
 {
     public class Util
     {
@@ -81,7 +81,7 @@ namespace DataScience.Utility
             return min;
         }
 
-        public static (float, float, bool) MinMaxInf(float[] arr)
+        public static (int, int, bool) MinMaxInf(float[] arr)
         {
             if (arr.Length == 0) { throw new Exception("Cannot Be Length 0"); }
 
@@ -109,7 +109,7 @@ namespace DataScience.Utility
                 }
             }
             
-            if (i == arr.Length) {return (min, max, false); }
+            if (i == arr.Length) {return ((int)min, (int)max, false); }
 
             for (; i < arr.Length; i++)
             {
@@ -129,7 +129,7 @@ namespace DataScience.Utility
                 }
             }
 
-            return (min, max, true);
+            return ((int)min, (int)max, true);
         }
 
 

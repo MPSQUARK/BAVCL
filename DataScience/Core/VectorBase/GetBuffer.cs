@@ -1,6 +1,6 @@
 ﻿using ILGPU.Runtime;
 
-namespace DataScience.Core
+namespace BAVCL.Core
 {
     public partial class VectorBase<T>
     {

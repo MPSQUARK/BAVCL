@@ -2,7 +2,7 @@
 using ILGPU;
 using ILGPU.Algorithms;
 
-namespace DataScience.Experimental
+namespace BAVCL.Experimental
 {
     public class TestCls
     {
