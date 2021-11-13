@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using DataScience.Core;
 
 namespace DataScience.Geometric
@@ -92,35 +91,6 @@ namespace DataScience.Geometric
 
 
         #endregion
-
-        // OPERATORS
-        #region
-        public static Vector3 operator +(Vector3 vectorA, Vertex vertA)
-        {
-            vectorA.Concat_IP(vertA);
-            return vectorA;
-        }
-        public static Vector3 operator +(Vector3 vectorA, Vertex[] verts)
-        {
-            vectorA.Concat_IP(verts);
-            return vectorA;
-        }
-        public static Vector3 operator +(Vector3 vectorA, List<Vertex> verts)
-        {
-            vectorA.Concat_IP(verts);
-            return vectorA;
-        }
-
-
-
-
-        #endregion
-
-
-
-
-
-
 
 
 

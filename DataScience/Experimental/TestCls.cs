@@ -262,132 +262,32 @@ namespace DataScience.Experimental
 
 
 
-        //public static double cbrtHalley(double n, double x, double e = 1e-6)
-        //{
-        //    double xcubed = x * x * x;
-        //    double xcubedPlusN;
+        public static float Sqrt(float N)
+        {
+            // if N < 0 throw error, no support for imaginary numbers
+            int n = (int)Interop.FloatAsInt(N);
 
-        //    while (Math.Abs(xcubed - n) > e)
-        //    {
-        //        xcubedPlusN = xcubed + n;
-        //        x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
-        //        xcubed = x * x * x;
-        //    }
+            int M = (n >> 23) - 127;
+            float result = 1 << (M >> 1);
 
-        //    return x;
+            if ((M & 0b1) == 0b1)
+            {
+                result *= 1.414213562373095f;
+            }
 
-        //}
+            uint D = (uint)(n << 9) >> 9;
+            
+            if (D == 0) { return result; }
 
-        //// https://rosettacode.org/wiki/Nth_root#C.23
-        //public static double NthRoot(double A, int n, double p)
-        //{
-        //    double _n = (double)n;
-        //    double[] x = new double[2];
-        //    x[0] = A;
-        //    x[1] = A / _n;
-        //    while (Math.Abs(x[0] - x[1]) > p)
-        //    {
-        //        x[1] = x[0];
-        //        x[0] = (1 / _n) * (((_n - 1) * x[1]) + (A / Math.Pow(x[1], _n - 1)));
+            float d = Interop.IntAsFloat((uint)(0b0_01111111_00000000000000000000000 | D));
 
-        //    }
-        //    return x[0];
-        //}
+            result = result * (0.0239878f * d * d * d - 0.17811632f * d * d + 0.78060805f * d + 0.37368985f);
 
+            return result;
+        }
 
-        ///// <summary>
-        ///// Calculates the cube root of a number.
-        ///// </summary>
-        ///// <param name="n">The number whose cube root you wish to find.</param>
-        ///// <param name="checksafety">Enables checks for edge cases: 
-        ///// 0, NaN, Inf and negative values of n. 
-        ///// Disable to gain minor speed increase at your own risk.</param>
-        ///// <param name="itter">Determines the number of itterations performed 
-        ///// using Halley's algorithm, default : 3 should provide double precision
-        ///// level of accuracy. A value of 2 will approximately give the result to float precision
-        ///// level of accuracy. Higher number increases accuracy and time nessessary 
-        ///// for computation. Lower values will be less accurate but faster.</param>
-        ///// <returns>The cube root of the value n as a double.</returns>
-        //public unsafe static double cbrtMagic(double n, bool checksafety = true, int itter = 3)
-        //{
-        //    // Edge cases
-        //    //if (checksafety)
-        //    //{
-        //    //    if (n == 0) { return 0; }
-        //    //    if (n < 0) { return -cbrtMagic(-n); }
-        //    //    if (float.IsNaN(n) || float.IsInfinity(n))
-        //    //    { throw new Exception("Cannot perform cube root on NaN or Inf values"); }
-        //    //}
-
-        //    // Initial approximation
-        //    uint N = *(uint*)&n;         // Convert the binary representation of float into a positive int
-        //    N >>= 23;                         // Isolate the mantissa 
-        //    N -= 127;                         // Convert mantissa into actual power it represents
-        //    double x = 1 << (int)(N / 3);     // Perform cube root on 2^P, to appoximate x
-
-        //    // Perform 3 itterations of Halley algorithm for double accuracy
-        //    // 2 itterations for approximately float accuracy
-        //    double xcubed = x * x * x;
-        //    if (xcubed == n) { return x; }
-
-        //    double xcubedPlusN;
-
-        //    for (int i = 0; i < itter; i++)
-        //    {
-        //        xcubedPlusN = xcubed + n;
-        //        x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
-        //        xcubed = x * x * x;
-        //    }
-
-        //    return x;
-        //}
-
-
-        //public unsafe static float cbrtfloat(float n, bool checksafety = true, int itter = 3)
-        //{
-        //    // Edge cases
-        //    //if (checksafety)
-        //    //{
-        //    //    if (n == 0) { return 0; }
-        //    //    if (n < 0) { return -cbrtMagic(-n); }
-        //    //    if (float.IsNaN(n) || float.IsInfinity(n))
-        //    //    { throw new Exception("Cannot perform cube root on NaN or Inf values"); }
-        //    //}
-
-        //    // Initial approximation
-        //    uint N = *(uint*)&n;         // Convert the binary representation of float into a positive int
-        //    N >>= 23;                         // Isolate the mantissa 
-        //    N -= 127;                         // Convert mantissa into actual power it represents
-        //    float x = 1 << (int)(N / 3);     // Perform cube root on 2^P, to appoximate x
-
-        //    // Perform 3 itterations of Halley algorithm for double accuracy
-        //    // 2 itterations for approximately float accuracy
-        //    float xcubed = x * x * x;
-        //    if (xcubed == n) { return x; }
-
-        //    float xcubedPlusN;
-
-        //    for (int i = 0; i < itter; i++)
-        //    {
-        //        xcubedPlusN = xcubed + n;
-        //        x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
-        //        xcubed = x * x * x;
-        //    }
-
-        //    return x;
-        //}
-
-
-        //public static void cbrtKernel(Index1 index, ArrayView<double> OutPut, ArrayView<float> Input)
-        //{
-        //    OutPut[index] = cbrtfloat(Input[index]);
-        //}
-
-
-
-
-
-
+        // Alternatively
+        // result = result * ((n & 0b0_00000001_00000000000000000000000) >> 23) 1.414213562373095f
 
 
 

@@ -15,7 +15,7 @@ namespace DataScience
             // Check if the input & output are in Cache
             MemoryBuffer<float> buffer = GetBuffer(); // IO
 
-            gpu.reciprocalKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
+            gpu.rcpKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
 
             gpu.accelerator.Synchronize();
 
