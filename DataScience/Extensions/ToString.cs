@@ -1,8 +1,8 @@
-﻿using DataScience.Utility;
+﻿using BAVCL.Utility;
 using System;
 using System.Text;
 
-namespace DataScience.Core
+namespace BAVCL.Core
 {
     public static partial class Extensions
     {

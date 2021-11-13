@@ -1,11 +1,11 @@
-﻿using DataScience.Utility;
+﻿using BAVCL.Utility;
 using ILGPU.Algorithms;
 using System;
 using System.Linq;
 using System.Text;
 
 
-namespace DataScience
+namespace BAVCL
 {
     public partial class Vector
     {

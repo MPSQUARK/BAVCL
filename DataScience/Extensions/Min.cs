@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DataScience.Ext
+namespace BAVCL.Ext
 {
     public static partial class Extensions
     {

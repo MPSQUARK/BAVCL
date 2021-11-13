@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace DataScience.Core
+namespace BAVCL.Core
 {
     public abstract partial class VectorBase<T> : ICacheable, IIO where T : unmanaged 
     {

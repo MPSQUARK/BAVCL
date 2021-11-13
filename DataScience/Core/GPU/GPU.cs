@@ -8,10 +8,10 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using DataScience.Core;
-using DataScience.Experimental;
+using BAVCL.Core;
+using BAVCL.Experimental;
 
-namespace DataScience
+namespace BAVCL
 {
     public class GPU
     {

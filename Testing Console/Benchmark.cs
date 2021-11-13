@@ -1,13 +1,13 @@
-﻿using DataScience;
+﻿using BAVCL;
 using BenchmarkDotNet.Attributes;
 using System;
 using System.Linq;
 using ILGPU.Algorithms;
 using System.Threading.Tasks;
-using DataScience.Geometric;
+using BAVCL.Geometric;
 using System.Collections.Generic;
 using ILGPU;
-using DataScience.Experimental;
+using BAVCL.Experimental;
 
 namespace Testing_Console
 {

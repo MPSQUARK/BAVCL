@@ -2,7 +2,7 @@
 
 using ILGPU.Runtime;
 
-namespace DataScience.Geometric
+namespace BAVCL.Geometric
 {
 
     public partial class Vector3

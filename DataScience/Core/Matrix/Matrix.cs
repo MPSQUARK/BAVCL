@@ -1,7 +1,7 @@
-﻿using DataScience.Core;
+﻿using BAVCL.Core;
 
 
-namespace DataScience
+namespace BAVCL
 {
     public partial class Matrix : VectorBase<float>
     {

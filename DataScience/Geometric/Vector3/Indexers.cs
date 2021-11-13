@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DataScience.Geometric
+namespace BAVCL.Geometric
 {
 
     public partial class Vector3

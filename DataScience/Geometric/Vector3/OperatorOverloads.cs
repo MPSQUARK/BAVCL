@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace DataScience.Geometric
+namespace BAVCL.Geometric
 {
     public partial class Vector3
     {
