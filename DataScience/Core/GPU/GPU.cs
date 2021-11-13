@@ -52,17 +52,17 @@ namespace DataScience
 
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int> appendKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, float> nanToNumKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<int>> accessSliceKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> consecOpKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>> scalarConsecOpKernel;
+        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<int>> getSliceKernel;
+        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> a_opFKernel;
+        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>> s_opFKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> vectormatrixOpKernel;
 
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> consecOpKernelIP;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, float, SpecializedValue<int>> scalarConsecOpKernelIP;
+        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> a_FloatOPKernelIP;
+        public Action<AcceleratorStream, Index1, ArrayView<float>, float, SpecializedValue<int>> s_FloatOPKernelIP;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>> diffKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>> reverseKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>> absKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>> reciprocalKernel;
+        public Action<AcceleratorStream, Index1, ArrayView<float>> rcpKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>> crossKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, int> transposekernel;
 
@@ -99,19 +99,19 @@ namespace DataScience
 
             appendKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(AppendKernel);
             nanToNumKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, float>(Nan_to_numKernel);
-            accessSliceKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<int>>(AccessSliceKernel);
+            getSliceKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<int>>(AccessSliceKernel);
             
-            consecOpKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(ConsecutiveOperationKernel);
-            scalarConsecOpKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>>(ScalarConsecutiveOperationKernel);
+            a_opFKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernel);
+            s_opFKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernel);
             vectormatrixOpKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(VectorMatrixKernel);
 
-            consecOpKernelIP = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(ConsecutiveOperationKernelIP);
-            scalarConsecOpKernelIP = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, float, SpecializedValue<int>>(ScalarConsecutiveOperationKernelIP);
+            a_FloatOPKernelIP = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernelIP);
+            s_FloatOPKernelIP = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernelIP);
 
             diffKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>> (DiffKernel);
             reverseKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>> (ReverseKernel);
             absKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(AbsKernel);
-            reciprocalKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(ReciprocalKernel);
+            rcpKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(ReciprocalKernel);
             crossKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(CrossKernel);
             transposekernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, int>(TransposeKernel);
 
@@ -365,7 +365,7 @@ namespace DataScience
         }
 
 
-        static void ConsecutiveOperationKernel(Index1 index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, SpecializedValue<int> operation)
+        static void A_FloatOPKernel(Index1 index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, SpecializedValue<int> operation)
         {
             switch ((Operations)operation.Value)
             {
@@ -384,7 +384,7 @@ namespace DataScience
                 case Operations.divide:
                     OutPut[index] = InputA[index] / InputB[index];
                     break;
-                case Operations.invDivide:
+                case Operations.flipDivide:
                     OutPut[index] = InputB[index] / InputA[index];
                     break;
                 case Operations.pow:
@@ -400,7 +400,7 @@ namespace DataScience
             }
         }
 
-        static void ConsecutiveOperationKernelIP(Index1 index, ArrayView<float> IO, ArrayView<float> Input, SpecializedValue<int> operation)
+        static void A_FloatOPKernelIP(Index1 index, ArrayView<float> IO, ArrayView<float> Input, SpecializedValue<int> operation)
         {
             switch ((Operations)operation.Value)
             {
@@ -419,7 +419,7 @@ namespace DataScience
                 case Operations.divide:
                     IO[index] = IO[index] / Input[index];
                     break;
-                case Operations.invDivide:
+                case Operations.flipDivide:
                     IO[index] = IO[index] / Input[index];
                     break;
                 case Operations.pow:
@@ -435,7 +435,7 @@ namespace DataScience
         }
 
 
-        static void ScalarConsecutiveOperationKernel(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar, SpecializedValue<int> operation)
+        static void S_FloatOPKernel(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar, SpecializedValue<int> operation)
         {
             switch ((Operations)operation.Value)
             {
@@ -454,7 +454,7 @@ namespace DataScience
                 case Operations.divide:
                     OutPut[index] = Input[index] / Scalar;
                     break;
-                case Operations.invDivide:
+                case Operations.flipDivide:
                     OutPut[index] = Scalar / Input[index];
                     break;
                 case Operations.pow:
@@ -469,7 +469,7 @@ namespace DataScience
             }
         }
 
-        static void ScalarConsecutiveOperationKernelIP(Index1 index, ArrayView<float> IO, float Scalar, SpecializedValue<int> operation)
+        static void S_FloatOPKernelIP(Index1 index, ArrayView<float> IO, float Scalar, SpecializedValue<int> operation)
         {
             switch ((Operations)operation.Value)
             {
@@ -488,7 +488,7 @@ namespace DataScience
                 case Operations.divide:
                     IO[index] = IO[index] / Scalar;
                     break;
-                case Operations.invDivide:
+                case Operations.flipDivide:
                     IO[index] = Scalar / IO[index];
                     break;
                 case Operations.pow:
@@ -540,7 +540,7 @@ namespace DataScience
                         OutPut[index] += InputA[i] / InputB[startidx + i];
                     }
                     break;
-                case Operations.invDivide:
+                case Operations.flipDivide:
                     for (int i = 0; i < Cols; i++)
                     {
                         OutPut[index] += InputB[startidx + i] / InputA[i];
@@ -629,7 +629,7 @@ namespace DataScience
         subtract = 2,
         divide = 3,
         pow = 4,
-        invDivide = 5,
+        flipDivide = 5,
         flipSubtract = 6,
         flipPow = 7,
         subtractSquare = 8, // square the difference of two values

@@ -206,7 +206,7 @@ namespace DataScience
         }
         public static Vector operator /(float Scalar, Vector vector)
         {
-            return Vector.OP(vector, Scalar, Operations.invDivide);
+            return Vector.OP(vector, Scalar, Operations.flipDivide);
         }
 
 
@@ -292,7 +292,7 @@ namespace DataScience
                 buffer = Output.GetBuffer(),        // Output
                 buffer2 = vector.GetBuffer();       // Input
 
-            gpu.scalarConsecOpKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
+            gpu.s_opFKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
 
             gpu.accelerator.Synchronize();
 
@@ -309,7 +309,7 @@ namespace DataScience
             // Check if the input & output are in Cache
             MemoryBuffer<float> buffer = GetBuffer(); // IO
 
-            gpu.scalarConsecOpKernelIP(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, scalar, new SpecializedValue<int>((int)operation));
+            gpu.s_FloatOPKernelIP(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, scalar, new SpecializedValue<int>((int)operation));
 
             gpu.accelerator.Synchronize();
 
@@ -337,7 +337,7 @@ namespace DataScience
                 buffer3 = vectorB.GetBuffer();      // Input
 
             // Run the kernel
-            gpu.consecOpKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
+            gpu.a_opFKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
 
             // Synchronise the kernel
             gpu.accelerator.Synchronize();
@@ -357,11 +357,11 @@ namespace DataScience
 
             // Check if the input & output are in Cache
             MemoryBuffer<float> 
-                buffer = GetBuffer(),          // IO
+                buffer = GetBuffer(),               // IO
                 buffer2 = vectorB.GetBuffer();      // Input
 
             // Run the kernel
-            gpu.consecOpKernelIP(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
+            gpu.a_FloatOPKernelIP(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
 
             // Synchronise the kernel
             gpu.accelerator.Synchronize();

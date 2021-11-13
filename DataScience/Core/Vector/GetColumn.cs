@@ -30,7 +30,7 @@ namespace DataScience
             buffer3.CopyFrom(select, 0, 0, select.Length);
 
             // RUN
-            vector.gpu.accessSliceKernel(vector.gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
+            vector.gpu.getSliceKernel(vector.gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
 
             // SYNC
             vector.gpu.accelerator.Synchronize();
@@ -69,7 +69,7 @@ namespace DataScience
             buffer3.CopyFrom(select, 0, 0, select.Length);
 
             // RUN
-            gpu.accessSliceKernel(gpu.accelerator.DefaultStream, RowCount(), buffer.View, buffer2.View, buffer3.View);
+            gpu.getSliceKernel(gpu.accelerator.DefaultStream, RowCount(), buffer.View, buffer2.View, buffer3.View);
 
             // SYNC
             gpu.accelerator.Synchronize();
