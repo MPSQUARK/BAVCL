@@ -8,6 +8,7 @@
             TXT = 1,
             // FITS
             // JSON
+            // XML
 
         }
 
@@ -23,6 +24,9 @@
             Vector3 = 1,
             Array = 2,
         }
+
+
+
 
 
     }

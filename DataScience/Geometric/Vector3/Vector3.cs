@@ -16,13 +16,6 @@ namespace DataScience.Geometric
         }
 
 
-        // Enum for (x,y,z)
-        public enum Coord
-        {
-            x = 1,
-            y = 2,
-            z = 4,
-        }
 
 
         // Create Vector3
