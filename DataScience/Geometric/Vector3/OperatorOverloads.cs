@@ -7,6 +7,7 @@ namespace DataScience.Geometric
     public partial class Vector3
     {
 
+
         // Vector3 - Vector3 Interaction
         public static Vector3 operator +(Vector3 vectorA, Vector3 vectorB)
         {

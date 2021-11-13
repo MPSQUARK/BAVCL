@@ -1,6 +1,5 @@
-﻿using System;
-using DataScience.Utility;
-using System.Text;
+﻿
+
 using ILGPU.Runtime;
 
 namespace DataScience.Geometric
