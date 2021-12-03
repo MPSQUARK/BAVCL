@@ -7,7 +7,7 @@ namespace BAVCL.Core
     {
         public void UpdateCache()
         {
-            if (this._id == 0) { return; }
+            if (this._id == 0) { Cache(); return; }
 
             // If the ID does not exist in GPU's Cached Memory
             MemoryBuffer Data;
@@ -44,7 +44,7 @@ namespace BAVCL.Core
 
         public void UpdateCache(T[] array)
         {
-            if (this._id == 0) { Cache(array); }
+            if (this._id == 0) { Cache(array); return; }
 
             // If the ID does not exist in GPU's Cached Memory
             MemoryBuffer Data;

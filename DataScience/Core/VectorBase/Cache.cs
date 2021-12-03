@@ -5,7 +5,7 @@ namespace BAVCL.Core
 {
     public partial class VectorBase<T>
     {
-        public void Cache()
+        internal void Cache()
         {
             this._memorySize = this.CalculateMemorySize();
 
@@ -30,7 +30,7 @@ namespace BAVCL.Core
             return;
         }
 
-        public void Cache(T[] array)
+        internal void Cache(T[] array)
         {
             this._memorySize = this.CalculateMemorySize(array);
 
