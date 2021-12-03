@@ -5,16 +5,10 @@ namespace BAVCL.Core
 {
     public abstract partial class VectorBase<T> : ICacheable, IIO where T : unmanaged 
     {
-        protected GPU gpu 
-        { 
-            get; 
-            set; 
-        }
-        public virtual T[] Value 
-        {
-            get;
-            set;
-        }
+        protected GPU gpu;
+
+        public T[] Value;
+
         public virtual int Columns
         {
             get { return _columns; }

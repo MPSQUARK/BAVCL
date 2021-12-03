@@ -15,6 +15,7 @@
   <ItemGroup>
     <PackageReference Include="ILGPU" Version="0.10.1" />
     <PackageReference Include="ILGPU.Algorithms" Version="0.10.0-beta1" />
+    <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
     <PackageReference Include="System.Runtime" Version="4.3.1" />
   </ItemGroup>
 
@@ -22,6 +23,7 @@
     <Folder Include="Astrophysics\" />
     <Folder Include="Core\Mask\" />
     <Folder Include="Core\VectorInt\" />
+    <Folder Include="Plotting\Saved Plots\" />
     <Folder Include="Tests\" />
   </ItemGroup>
 

@@ -41,15 +41,18 @@ namespace BAVCL
         }
 
 
-        
-        
+
+
 
         // Variables - Kernels
         #region
+        // Test KERNELS
         public Action<AcceleratorStream, Index1, ArrayView<double>, ArrayView<float>> sumKernel;
+        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>> TestSQRTKernel;
+        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>> TestMYSQRTKernel;
 
 
-
+        // ACTUAL KERNELS
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int> appendKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, float> nanToNumKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<int>> getSliceKernel;
@@ -63,11 +66,13 @@ namespace BAVCL
         public Action<AcceleratorStream, Index1, ArrayView<float>> reverseKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>> absKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>> rcpKernel;
+        public Action<AcceleratorStream, Index1, ArrayView<float>> rsqrtKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>> crossKernel;
         public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, int> transposekernel;
 
 
 
+        public Action<AcceleratorStream, Index1, ArrayView<float>, float> LogKernel;
         #endregion
 
 
@@ -95,7 +100,11 @@ namespace BAVCL
             Stopwatch timer = new Stopwatch();
             timer.Start();
 
+            // TEST KERNELS
             sumKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<double>, ArrayView<float>>(SumKernel);
+            TestSQRTKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>>(testsqrtkernel);
+            TestMYSQRTKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>>(testmysqrtkernel);
+
 
             appendKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(AppendKernel);
             nanToNumKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, float>(Nan_to_numKernel);
@@ -112,8 +121,13 @@ namespace BAVCL
             reverseKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>> (ReverseKernel);
             absKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(AbsKernel);
             rcpKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(ReciprocalKernel);
+            rsqrtKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(RsqrtKernel);
+
             crossKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(CrossKernel);
             transposekernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, int>(TransposeKernel);
+
+
+            LogKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, float>(logKern);
 
             timer.Stop();
             Console.WriteLine("Kernels Loaded in: " + timer.Elapsed.TotalMilliseconds + " MS");
@@ -180,7 +194,8 @@ namespace BAVCL
                 uint Id;
                 if (!LRU.TryDequeue(out Id)) 
                 {
-                    throw new Exception($"LRU Empty Cannot Continue DeCaching");
+                    return;
+                    //throw new Exception($"LRU Empty Cannot Continue DeCaching");
                 }
 
                 // Try Get Reference to and the object of ICacheable
@@ -586,6 +601,7 @@ namespace BAVCL
             IO[index] = temp;
         }
 
+
         static void AbsKernel(Index1 index, ArrayView<float> IO)
         {
             IO[index] = XMath.Abs(IO[index]);
@@ -595,6 +611,13 @@ namespace BAVCL
         {
             IO[index] = XMath.Rcp(IO[index]);
         }
+
+        static void RsqrtKernel(Index1 index, ArrayView<float> IO)
+        {
+            IO[index] = XMath.Rsqrt(IO[index]);
+        }
+
+
 
         static void CrossKernel(Index1 index, ArrayView<float> Output, ArrayView<float> InputA, ArrayView<float> InputB)
         {
@@ -617,6 +640,23 @@ namespace BAVCL
 
 
 
+
+        static void testsqrtkernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input)
+        {
+            Output[index] = XMath.Sqrt(Input[index]);
+        }
+
+        static void testmysqrtkernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input)
+        {
+            Output[index] = TestCls.sqrt_acc_v2(Input[index]);
+        }
+
+
+
+        public static void logKern(Index1 index, ArrayView<float> IO, float @base)
+        {
+            IO[index] = XMath.Log(IO[index],@base);
+        }
 
 
 

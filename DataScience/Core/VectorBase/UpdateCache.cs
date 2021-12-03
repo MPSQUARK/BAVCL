@@ -60,7 +60,7 @@ namespace BAVCL.Core
 
 
             // If the Lengths don't match remove old data and cache again
-            if (Data.Length != Value.Length)
+            if (Data.Length != array.Length)
             {
                 this._id = this.gpu.DeCache(this._id);
                 Cache(array);
