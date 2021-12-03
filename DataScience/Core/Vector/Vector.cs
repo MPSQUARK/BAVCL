@@ -32,6 +32,16 @@ namespace BAVCL
             set { this.Value[i] = value; }
         }
 
+        public override void Print()
+        {
+            Console.WriteLine(this.ToStr());
+            return;
+        }
+        public void Print(byte decimalplaces = 2, bool syncCPU = true)
+        {
+            Console.WriteLine(this.ToStr(decimalplaces, syncCPU));
+            return;
+        }
 
         // METHODS
         public bool Equals(Vector vector)
