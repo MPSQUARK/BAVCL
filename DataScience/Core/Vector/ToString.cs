@@ -11,10 +11,10 @@ namespace BAVCL
     {
         public override string ToString()
         {
-            return ToString(2);
+            return ToStr(2,false);
         }
 
-        public string ToString(byte decimalplaces = 2, bool syncCPU = false)
+        public string ToStr(byte decimalplaces = 2, bool syncCPU = true)
         {
             if ((this.Value == null) || syncCPU) { this.SyncCPU(); }
 
