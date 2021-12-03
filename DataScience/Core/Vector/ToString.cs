@@ -14,9 +14,10 @@ namespace BAVCL
             return ToString(2);
         }
 
-        public string ToString(byte decimalplaces = 2)
+        public string ToString(byte decimalplaces = 2, bool syncCPU = false)
         {
-            this.SyncCPU();
+            if ((this.Value == null) || syncCPU) { this.SyncCPU(); }
+
             (float min, float max, bool hasinfinity) = Util.MinMaxInf(this.Value);
 
             bool hasnegative = min < 0f;

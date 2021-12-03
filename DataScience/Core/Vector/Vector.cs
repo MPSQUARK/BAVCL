@@ -25,6 +25,14 @@ namespace BAVCL
         {
         }
 
+
+        public float this[int i]
+        {
+            get { return this.Value[i]; }
+            set { this.Value[i] = value; }
+        }
+
+
         // METHODS
         public bool Equals(Vector vector)
         {
@@ -115,6 +123,18 @@ namespace BAVCL
         public void Flatten()
         {
             this.Columns = 1;
+        }
+
+        public override float Min()
+        {
+            SyncCPU();
+            return Value.Min();
+        }
+
+        public override float Max()
+        {
+            SyncCPU();
+            return Value.Max();
         }
 
         #endregion
@@ -433,6 +453,32 @@ namespace BAVCL
 
             return this;
         }
+
+
+
+        public Vector Log_IP(float @base)
+        {
+            IncrementLiveCount();
+
+            MemoryBuffer<float> buffer = GetBuffer();
+
+            gpu.LogKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, @base);
+
+            gpu.accelerator.Synchronize();
+
+            DecrementLiveCount();
+
+            return this;
+        }
+
+
+
+
+
+
+
+
+
 
 
     }

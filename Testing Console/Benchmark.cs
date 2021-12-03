@@ -8,27 +8,116 @@ using BAVCL.Geometric;
 using System.Collections.Generic;
 using ILGPU;
 using BAVCL.Experimental;
+using ILGPU.Runtime;
 
 namespace Testing_Console
 {
     [MemoryDiagnoser]
     public class Benchmark
     {
-        [Params(2,4,8,16,49,100,64,256,529)]
-        public float val;
+
+        //[Params(2, 8, 16, 49, 100, 64, 256, 529, 165518, 5131, 123, 71645, 12.1518f)]
+        //public float val;
+        public static GPU gpu = new GPU();
+        public static MemoryBuffer<float> input = Vector.Arange(gpu, 0, 1_000_000, 1).GetBuffer();
+        public static int len = (int)input.Length;
+
+        public static MemoryBuffer<float> output = Vector.Fill(gpu, 0, len).GetBuffer();
+
+        public static float[] vals = input.GetAsArray();
+        public static float[] _output = new float[len];
 
         [Benchmark]
-        public void MathSqrt()
+        public void XMathSqrt()
         {
-            Math.Sqrt(val);
+            gpu.TestSQRTKernel(gpu.accelerator.DefaultStream, len, output.View, input.View);
+            gpu.accelerator.Synchronize();
         }
+
 
         [Benchmark]
         public void MySqrt()
         {
-            TestCls.Sqrt(val);
+            gpu.TestMYSQRTKernel(gpu.accelerator.DefaultStream, len, output.View, input.View);
+            gpu.accelerator.Synchronize();
         }
 
+
+        [Benchmark]
+        public void MySQRT()
+        {
+            TestCls.sqrtarr(len, _output, vals);
+        }
+
+
+        //[Benchmark]
+        //public void MathSqrt()
+        //{
+        //    Math.Sqrt(val);
+        //}
+
+        //[Benchmark]
+        //public void MySqrt()
+        //{
+        //    for (int i = 0; i < 10; i++)
+        //    {
+        //        TestCls.sqrt_acc_v1(val);
+        //    }
+        //}
+
+        //[Benchmark]
+        //public void MySqrt_v2()
+        //{
+        //    for (int i = 0; i < 10; i++)
+        //    {
+        //        TestCls.sqrt_acc_v2(val);
+        //    }
+        //}
+
+        //[Benchmark]
+        //public void MySqrt_v3()
+        //{
+        //    for (int i = 0; i < 10; i++)
+        //    {
+        //        TestCls.sqrt_acc_v3(val);
+        //    }
+        //}
+
+        //[Benchmark]
+        //public void MathSqrt()
+        //{
+        //    Math.Sqrt(val);
+        //}
+
+        //[Benchmark]
+        //public void MySqrt()
+        //{
+        //    TestCls.Sqrt(val);
+        //}
+
+        //[Benchmark]
+        //public void sqrt_simplif_v5()
+        //{
+        //    TestCls.sqrt_simplif_v5(val);
+        //}
+
+        //[Benchmark]
+        //public void sqrt_taylor_v2()
+        //{
+        //    TestCls.sqrt_taylor_v2(val);
+        //}
+
+        //[Benchmark]
+        //public void sqrt_lookup_CPU()
+        //{
+        //    TestCls.sqrt_lookup_CPU(val);
+        //}
+
+        //[Benchmark]
+        //public void sqrt_lookup_Inlined()
+        //{
+        //    TestCls.sqrt_lookup_Inlined(val);
+        //}
 
         //public static GPU gpu = new GPU();
 
