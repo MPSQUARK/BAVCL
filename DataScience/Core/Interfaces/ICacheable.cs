@@ -6,7 +6,6 @@
         public uint ID { get; set; }
         public long MemorySize { get; set; }
 
-        public void Cache();
         public bool TryDeCache();
 
         public void IncrementLiveCount();
