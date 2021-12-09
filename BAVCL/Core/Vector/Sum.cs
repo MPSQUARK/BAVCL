@@ -18,7 +18,7 @@
                 for (; i <= array.Length - vectorSize; i += vectorSize)
                 {
 
-                    System.Numerics.Vector<float> input = new System.Numerics.Vector<float>(array, i);
+                    System.Numerics.Vector<float> input = new(array, i);
 
                     System.Numerics.Vector<float> y = input - c;
 
@@ -33,7 +33,8 @@
             {
                 for (; i <= array.Length - vectorSize; i += vectorSize)
                 {
-                    System.Numerics.Vector<float> v = new System.Numerics.Vector<float>(array, i);
+                    System.Numerics.Vector<float> vector = new(array, i);
+                    System.Numerics.Vector<float> v = vector;
 
                     sumVector = System.Numerics.Vector.Add(sumVector, v);
                 }

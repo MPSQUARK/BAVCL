@@ -19,7 +19,7 @@ namespace BAVCL.Core
             MemoryBuffer Buffer = Allocate();
 
             // Get a weakreference of buffer
-            WeakReference<ICacheable> VectorReference = new WeakReference<ICacheable>(this);
+            WeakReference<ICacheable> VectorReference = new(this);
 
             // Store info about data to LRU
             this._id = this.gpu.Allocate(VectorReference, Buffer, this._memorySize);
@@ -44,7 +44,7 @@ namespace BAVCL.Core
             MemoryBuffer Buffer = Allocate(array);
 
             // Get a weakreference of buffer
-            WeakReference<ICacheable> VectorReference = new WeakReference<ICacheable>(this);
+            WeakReference<ICacheable> VectorReference = new(this);
 
             // Store info about data to LRU
             this._id = this.gpu.Allocate(VectorReference, Buffer, this._memorySize);

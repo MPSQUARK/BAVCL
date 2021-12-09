@@ -12,7 +12,7 @@ namespace BAVCL.Core
         public string ToCSV()
         {
             SyncCPU();
-            StringBuilder stringBuilder = new StringBuilder();
+            StringBuilder stringBuilder = new();
 
 
             if (Columns != 1)

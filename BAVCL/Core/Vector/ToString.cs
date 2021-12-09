@@ -41,15 +41,15 @@ namespace BAVCL
 
 
 
-            StringBuilder stringBuilder = new StringBuilder();
+            StringBuilder stringBuilder = new();
             char[] clear = new string(' ', Template.Length - 6).ToCharArray();
             int _diff = digits + 4 + decimalplaces;
 
             if (hasinfinity)
             {
-                string inf = new string(' ', digits - 3);
-                string afterinf = new string(' ', decimalplaces + 1);
-                string nan = new string(' ', decimalplaces);
+                string inf = new(' ', digits - 3);
+                string afterinf = new(' ', decimalplaces + 1);
+                string nan = new(' ', decimalplaces);
 
 
                 for (int i = 0; i < _length; i++)

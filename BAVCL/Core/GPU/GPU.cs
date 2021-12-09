@@ -75,12 +75,13 @@ namespace BAVCL
         public Action<AcceleratorStream, Index1D, ArrayView<float>, float> LogKernel;
         #endregion
 
-
+        
         // Constructor
-        public GPU(float memorycap = 0.8f, bool forceCPU = false, OptimizationLevel optimizationLevel = OptimizationLevel.Debug)
+        public GPU(float memorycap = 0.8f, bool forceCPU = false)
         {
             // Create Context
             this.context = Context.Create(builder => builder.Default().EnableAlgorithms());
+            // OptimizationLevel optimizationLevel = OptimizationLevel.Debug
 
             // Get Accelerator Device
             this.accelerator = context.GetPreferredDevice(preferCPU: forceCPU).CreateAccelerator(context);

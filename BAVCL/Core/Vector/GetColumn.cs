@@ -15,7 +15,7 @@ namespace BAVCL
             vector.IncrementLiveCount();
 
             // Make Output Vector
-            Vector Output = new Vector(vector.gpu, new float[vector.RowCount()]);
+            Vector Output = new(vector.gpu, new float[vector.RowCount()]);
             
             // Secure the Output
             Output.IncrementLiveCount();

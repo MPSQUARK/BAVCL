@@ -92,13 +92,13 @@ namespace BAVCL
 
                 float mean = Mean();
 
-                System.Numerics.Vector<float> meanvec = new System.Numerics.Vector<float>(mean);
+                System.Numerics.Vector<float> meanvec = new(mean);
 
                 System.Numerics.Vector<float> sumVector = System.Numerics.Vector<float>.Zero;
 
                 for (; i <= array.Length - vectorSize; i += vectorSize)
                 {
-                    System.Numerics.Vector<float> input = new System.Numerics.Vector<float>(array, i);
+                    System.Numerics.Vector<float> input = new(array, i);
 
                     System.Numerics.Vector<float> difference = input - meanvec;
 
@@ -314,7 +314,7 @@ namespace BAVCL
             vector.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new Vector(gpu, new float[vector._length], vector.Columns);
+            Vector Output = new(gpu, new float[vector._length], vector.Columns);
 
             Output.IncrementLiveCount();
 
@@ -358,7 +358,7 @@ namespace BAVCL
             vectorB.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new Vector(gpu, new float[vectorA._length], vectorA.Columns);
+            Vector Output = new(gpu, new float[vectorA._length], vectorA.Columns);
             Output.IncrementLiveCount();
 
             // Check if the input & output are in Cache
@@ -442,7 +442,7 @@ namespace BAVCL
             matrix.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new Vector(gpu, new float[_length], Columns);
+            Vector Output = new(gpu, new float[_length], Columns);
 
             Output.IncrementLiveCount();
 
