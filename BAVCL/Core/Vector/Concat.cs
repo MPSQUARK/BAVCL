@@ -1,4 +1,5 @@
-﻿using ILGPU.Runtime;
+﻿using ILGPU;
+using ILGPU.Runtime;
 using System;
 
 namespace BAVCL
@@ -72,7 +73,7 @@ namespace BAVCL
             vector.IncrementLiveCount();
             Output.IncrementLiveCount();
 
-            MemoryBuffer<float> 
+            MemoryBuffer1D<float, Stride1D.Dense>
                 buffer = Output.GetBuffer(),        // Output
                 buffer2 = GetBuffer(),              // Input
                 buffer3 = vector.GetBuffer();       // Input

@@ -1,21 +1,18 @@
-﻿using ILGPU.Runtime;
+﻿using ILGPU;
+using ILGPU.Runtime;
 
 namespace BAVCL.Core
 {
     public partial class VectorBase<T>
     {
 
-        public MemoryBuffer<T> Allocate()
+        public MemoryBuffer1D<T, Stride1D.Dense> Allocate()
         {
-            MemoryBuffer<T> buffer = this.gpu.accelerator.Allocate<T>(this.Value.Length);
-            buffer.CopyFrom(this.Value, 0, 0, this.Value.Length);
-            return buffer;
+            return this.gpu.accelerator.Allocate1D(this.Value);
         }
-        public MemoryBuffer<T> Allocate(T[] array)
+        public MemoryBuffer1D<T,Stride1D.Dense> Allocate(T[] array)
         {
-            MemoryBuffer<T> buffer = this.gpu.accelerator.Allocate<T>(array.Length);
-            buffer.CopyFrom(array, 0, 0, array.Length);
-            return buffer;
+            return this.gpu.accelerator.Allocate1D(array);
         }
 
 

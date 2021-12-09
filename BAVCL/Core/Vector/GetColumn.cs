@@ -1,4 +1,5 @@
-﻿using ILGPU.Runtime;
+﻿using ILGPU;
+using ILGPU.Runtime;
 
 namespace BAVCL
 {
@@ -20,14 +21,13 @@ namespace BAVCL
             Output.IncrementLiveCount();
 
             // Get Memory buffer Data
-            MemoryBuffer<float> 
+            MemoryBuffer1D<float, Stride1D.Dense>
                 buffer = Output.GetBuffer(),        // Output
                 buffer2 = vector.GetBuffer();       // Input
 
             // Allocate config Data onto GPU
-            MemoryBuffer<int> 
-                buffer3 = vector.gpu.accelerator.Allocate<int>(2);      // Config
-            buffer3.CopyFrom(select, 0, 0, select.Length);
+            MemoryBuffer1D<int, Stride1D.Dense>
+                buffer3 = vector.gpu.accelerator.Allocate1D(select);      // Config
 
             // RUN
             vector.gpu.getSliceKernel(vector.gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
@@ -54,19 +54,18 @@ namespace BAVCL
             IncrementLiveCount();
 
             // Make Output Vector
-            Vector Output = new Vector(gpu, new float[RowCount()]);
+            Vector Output = new(gpu, new float[RowCount()]);
 
             Output.IncrementLiveCount();
 
             // Get Memory buffer Data
-            MemoryBuffer<float> 
+            MemoryBuffer1D<float, Stride1D.Dense>
                 buffer = Output.GetBuffer(),        // Output
                 buffer2 = GetBuffer();              // Input
 
             // Allocate config Data onto GPU
-            MemoryBuffer<int> 
-                buffer3 = gpu.accelerator.Allocate<int>(2);     // Config
-            buffer3.CopyFrom(select, 0, 0, select.Length);
+            MemoryBuffer1D<int, Stride1D.Dense>
+                buffer3 = gpu.accelerator.Allocate1D(select);     // Config
 
             // RUN
             gpu.getSliceKernel(gpu.accelerator.DefaultStream, RowCount(), buffer.View, buffer2.View, buffer3.View);

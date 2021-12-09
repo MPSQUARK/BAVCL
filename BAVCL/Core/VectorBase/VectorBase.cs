@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ILGPU.Runtime;
+using System;
 using System.Linq;
 
 namespace BAVCL.Core
@@ -61,7 +62,7 @@ namespace BAVCL.Core
 
         public T[] Pull()
         {
-            return GetBuffer().GetAsArray();
+            return GetBuffer().GetAsArray1D();
         }
 
         public T GetValue(int row, int col)

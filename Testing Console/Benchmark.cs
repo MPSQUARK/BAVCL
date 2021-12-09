@@ -18,19 +18,19 @@ namespace Testing_Console
 
         //[Params(2, 8, 16, 49, 100, 64, 256, 529, 165518, 5131, 123, 71645, 12.1518f)]
         //public float val;
-        public static GPU gpu = new GPU();
-        public static MemoryBuffer<float> input = Vector.Arange(gpu, 0, 1_000_000, 1).GetBuffer();
+        public static GPU gpu = new();
+        public static MemoryBuffer1D<float, Stride1D.Dense> input = Vector.Arange(gpu, 0, 1_000_000, 1).GetBuffer();
         public static int len = (int)input.Length;
 
-        public static MemoryBuffer<float> output = Vector.Fill(gpu, 0, len).GetBuffer();
+        public static MemoryBuffer1D<float, Stride1D.Dense> output = Vector.Fill(gpu, 0, len).GetBuffer();
 
-        public static float[] vals = input.GetAsArray();
+        public static float[] vals = input.GetAsArray1D();
         public static float[] _output = new float[len];
 
         [Benchmark]
         public void XMathSqrt()
         {
-            gpu.TestSQRTKernel(gpu.accelerator.DefaultStream, len, output.View, input.View);
+            gpu.TestSQRTKernel(gpu.accelerator.DefaultStream, output.IntExtent, output.View, input.View);
             gpu.accelerator.Synchronize();
         }
 
@@ -38,7 +38,7 @@ namespace Testing_Console
         [Benchmark]
         public void MySqrt()
         {
-            gpu.TestMYSQRTKernel(gpu.accelerator.DefaultStream, len, output.View, input.View);
+            gpu.TestMYSQRTKernel(gpu.accelerator.DefaultStream, output.IntExtent, output.View, input.View);
             gpu.accelerator.Synchronize();
         }
 
