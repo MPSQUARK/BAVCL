@@ -99,9 +99,6 @@ namespace BAVCL.Core
             return (this.Length % this.Columns == 0);
         }
 
-
-
-
     }
 
 

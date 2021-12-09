@@ -7,7 +7,11 @@ namespace BAVCL.Core
     {
         public void UpdateCache()
         {
-            if (this._id == 0) { Cache(); return; }
+            if (this._id == 0) 
+            { 
+                Cache(); 
+                return; 
+            }
 
             // If the ID does not exist in GPU's Cached Memory
             MemoryBuffer Data;
@@ -37,7 +41,8 @@ namespace BAVCL.Core
 
             // Copy new data to buffer 
             data.CopyFrom(Value, 0, 0, Value.Length);
-            if (this.gpu.CachedMemory.TryUpdate(_id, data, Data)) { return; }
+            if (this.gpu.CachedMemory.TryUpdate(this._id, data, Data)) { return; }
+
 
             throw new Exception("Unexpected ERROR in UpdateCache");
         }
@@ -76,7 +81,11 @@ namespace BAVCL.Core
             data.CopyFrom(array, 0, 0, array.Length);
             if (this.gpu.CachedMemory.TryUpdate(_id, data, Data)) { return; }
 
-            throw new Exception("Unexpected ERROR in UpdateCache");
+
+            this._id = this.gpu.DeCache(this._id);
+            Cache(array);
+            return;
+            //throw new Exception("Unexpected ERROR in UpdateCache");
         }
 
 
