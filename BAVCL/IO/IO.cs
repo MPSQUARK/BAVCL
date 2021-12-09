@@ -17,7 +17,7 @@ namespace BAVCL.IO
             Directory.CreateDirectory(path+@"\saved_data\");
             string fullpath = $"{path}/saved_data/{filename}.{format}";
 
-            using (StreamWriter writer = new StreamWriter(fullpath))
+            using (StreamWriter writer = new(fullpath))
             {
                 writer.Write(input);
             }
@@ -30,7 +30,7 @@ namespace BAVCL.IO
             Directory.CreateDirectory(path + @"\saved_data\");
             string fullpath = $"{path}/saved_data/{filename}.{format}";
 
-            using (StreamWriter writer = new StreamWriter(fullpath))
+            using (StreamWriter writer = new(fullpath))
             {
                 writer.Write(ToFileFormat(IOable, format));
             }
@@ -41,15 +41,12 @@ namespace BAVCL.IO
 
         public static string ToFileFormat(IIO writable, string format = "txt")
         {
-            switch (format)
+            return format switch
             {
-                case "txt":
-                    return writable.ToString();
-                case "csv":
-                    return writable.ToCSV();
-                default:
-                    throw new Exception($"No format : {format} available\n Func - ConvertToFormat - IO");
-            }
+                "txt" => writable.ToString(),
+                "csv" => writable.ToCSV(),
+                _ => throw new Exception($"No format : {format} available\n Func - ConvertToFormat - IO"),
+            };
         }
 
 

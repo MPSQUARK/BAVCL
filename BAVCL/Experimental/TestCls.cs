@@ -34,27 +34,27 @@ namespace BAVCL.Experimental
 
             // Perform 4 itterations of Halley algorithm for double accuracy
             float xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             return x;
         }
@@ -85,27 +85,27 @@ namespace BAVCL.Experimental
 
             // Perform 4 itterations of Halley algorithm for double accuracy
             float xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             return x;
         }
@@ -135,27 +135,27 @@ namespace BAVCL.Experimental
 
             // Perform 4 itterations of Halley algorithm for double accuracy
             float xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) / (xcubed + xcubedPlusN));
 
             return x;
         }
@@ -187,27 +187,27 @@ namespace BAVCL.Experimental
 
             // Perform 4 itterations of Halley algorithm for double accuracy
             float xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
 
             xcubed = x * x * x;
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
 
             return x;
         }
@@ -237,27 +237,27 @@ namespace BAVCL.Experimental
 
             // Perform 4 itterations of Halley algorithm for double accuracy
             float xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
 
             xcubed = XMath.Pow(x, 3);
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
 
             xcubed = XMath.Pow(x, 3);
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
 
             xcubed = XMath.Pow(x, 3);
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
 
             xcubed = XMath.Pow(x, 3);
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
 
             xcubed = XMath.Pow(x, 3);
             xcubedPlusN = xcubed + n;
-            x = x * ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
+            x *= ((xcubedPlusN + n) * XMath.Rcp(xcubed + xcubedPlusN));
 
             return x;
         }

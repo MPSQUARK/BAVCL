@@ -23,7 +23,7 @@ namespace BAVCL.Geometric
         public Vector3 Concat_IP(Vertex vertA)
         {
             SyncCPU();
-            UpdateCache(this.Value.Append(vertA.x).Append(vertA.y).Append(vertA.z).ToArray());
+            UpdateCache(this.Value.Append(vertA.X).Append(vertA.Y).Append(vertA.Z).ToArray());
             return this;
         }
         public Vector3 Concat_IP(Vertex[] vertices)
@@ -31,7 +31,7 @@ namespace BAVCL.Geometric
             SyncCPU();
             for (int i = 0; i < vertices.Length; i++)
             {
-                this.Value = this.Value.Append(vertices[i].x).Append(vertices[i].y).Append(vertices[i].z).ToArray();
+                this.Value = this.Value.Append(vertices[i].X).Append(vertices[i].Y).Append(vertices[i].Z).ToArray();
             }
             UpdateCache(this.Value);
             return this;
@@ -41,7 +41,7 @@ namespace BAVCL.Geometric
             SyncCPU();
             for (int i = 0; i < vertices.Count; i++)
             {
-                this.Value = this.Value.Append(vertices[i].x).Append(vertices[i].y).Append(vertices[i].z).ToArray();
+                this.Value = this.Value.Append(vertices[i].X).Append(vertices[i].Y).Append(vertices[i].Z).ToArray();
             }
             UpdateCache(this.Value);
             return this;

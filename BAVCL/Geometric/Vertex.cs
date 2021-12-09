@@ -16,17 +16,17 @@ namespace BAVCL.Geometric
         // VARIABLE BLOCK
         public float[] values;
 
-        public float x 
+        public float X 
         {
             get { return values[0]; }
             set { values[0] = value; } 
         }
-        public float y
+        public float Y
         {
             get { return values[1]; }
             set { values[1] = value; }
         }
-        public float z
+        public float Z
         {
             get { return values[2]; }
             set { values[2] = value; }
@@ -50,7 +50,7 @@ namespace BAVCL.Geometric
         // Print + ToString
         public override string ToString()
         {
-            return $"[ x : {x:0.00} || y : {y:0.00} || z : {z:0.00} ]";
+            return $"[ x : {X:0.00} || y : {Y:0.00} || z : {Z:0.00} ]";
         }
         public void Print()
         {
@@ -60,11 +60,11 @@ namespace BAVCL.Geometric
         // Check Equivalency
         public bool Equals(Vertex vert)
         {
-            return (Util.IsClose(this.x, vert.x)) && (Util.IsClose(this.y, vert.y)) && (Util.IsClose(this.z, vert.z));
+            return (Util.IsClose(this.X, vert.X)) && (Util.IsClose(this.Y, vert.Y)) && (Util.IsClose(this.Z, vert.Z));
         }
-        public bool Equals(Vertex vertA, Vertex vertB)
+        public static bool Equals(Vertex vertA, Vertex vertB)
         {
-            return (Util.IsClose(vertA.x, vertB.x)) && (Util.IsClose(vertA.y, vertB.y)) && (Util.IsClose(vertA.z, vertB.z));
+            return (Util.IsClose(vertA.X, vertB.X)) && (Util.IsClose(vertA.Y, vertB.Y)) && (Util.IsClose(vertA.Z, vertB.Z));
         }
 
 
@@ -108,70 +108,70 @@ namespace BAVCL.Geometric
         #region
         public static Vertex operator -(Vertex vert)
         {
-            return new Vertex(-vert.x, -vert.y, -vert.z);
+            return new Vertex(-vert.X, -vert.Y, -vert.Z);
         }
         public static Vertex operator -(Vertex vertA, Vertex vertB)
         {
             return new Vertex(
-                vertA.x - vertB.x,
-                vertA.y - vertB.y,
-                vertA.z - vertB.z);
+                vertA.X - vertB.X,
+                vertA.Y - vertB.Y,
+                vertA.Z - vertB.Z);
         }
         public static Vertex operator +(Vertex vertA, Vertex vertB)
         {
             return new Vertex(
-                vertA.x + vertB.x,
-                vertA.y + vertB.y,
-                vertA.z + vertB.z);
+                vertA.X + vertB.X,
+                vertA.Y + vertB.Y,
+                vertA.Z + vertB.Z);
         }
         public static Vertex operator +(Vertex vertA, float Scalar)
         {
             return new Vertex(
-                vertA.x + Scalar,
-                vertA.y + Scalar,
-                vertA.z + Scalar);
+                vertA.X + Scalar,
+                vertA.Y + Scalar,
+                vertA.Z + Scalar);
         }
         public static Vertex operator +(float Scalar, Vertex vertA)
         {
             return new Vertex(
-                vertA.x + Scalar,
-                vertA.y + Scalar,
-                vertA.z + Scalar);
+                vertA.X + Scalar,
+                vertA.Y + Scalar,
+                vertA.Z + Scalar);
         }
         public static Vertex operator *(Vertex vertA, Vertex vertB)
         {
             return new Vertex(
-                vertA.x * vertB.x,
-                vertA.y * vertB.y,
-                vertA.z * vertB.z);
+                vertA.X * vertB.X,
+                vertA.Y * vertB.Y,
+                vertA.Z * vertB.Z);
         }
         public static Vertex operator *(Vertex vertA, float Scalar)
         {
             return new Vertex(
-                vertA.x * Scalar,
-                vertA.y * Scalar,
-                vertA.z * Scalar);
+                vertA.X * Scalar,
+                vertA.Y * Scalar,
+                vertA.Z * Scalar);
         }
         public static Vertex operator *(float Scalar, Vertex vertA)
         {
             return new Vertex(
-                vertA.x * Scalar,
-                vertA.y * Scalar,
-                vertA.z * Scalar);
+                vertA.X * Scalar,
+                vertA.Y * Scalar,
+                vertA.Z * Scalar);
         }
         public static Vertex operator /(Vertex vertA, Vertex vertB)
         {
             return new Vertex(
-                vertA.x / vertB.x,
-                vertA.y / vertB.y,
-                vertA.z / vertB.z);
+                vertA.X / vertB.X,
+                vertA.Y / vertB.Y,
+                vertA.Z / vertB.Z);
         }
         public static Vertex operator /(float Scalar, Vertex vert)
         {
             return new Vertex(
-                Scalar / vert.x,
-                Scalar / vert.y,
-                Scalar / vert.z);
+                Scalar / vert.X,
+                Scalar / vert.Y,
+                Scalar / vert.Z);
         }
         public static Vertex operator /(Vertex vertA, float Scalar)
         {
@@ -203,51 +203,51 @@ namespace BAVCL.Geometric
         // Methods (non-static)
         public float Magnitude()
         {
-            return XMath.Sqrt(x * x + y * y + z * z);
+            return XMath.Sqrt(X * X + Y * Y + Z * Z);
         }
         public float MagnitudeSquared()
         {
-            return (x * x + y * y + z * z);
+            return (X * X + Y * Y + Z * Z);
         }
 
 
         // Methods (non-static, with static counterparts)
         public float Distance(Vertex vert)
         {
-            System.Numerics.Vector3 vec = new System.Numerics.Vector3(values[0], values[1], values[2]);
-            System.Numerics.Vector3 vec2 = new System.Numerics.Vector3(vert.values[0], vert.values[1], vert.values[2]);
+            System.Numerics.Vector3 vec = new(values[0], values[1], values[2]);
+            System.Numerics.Vector3 vec2 = new(vert.values[0], vert.values[1], vert.values[2]);
             return System.Numerics.Vector3.Distance(vec, vec2);
         }
         public void Fract_IP()
         {
-            this.x -= XMath.Floor(x);
-            this.y -= XMath.Floor(y);
-            this.z -= XMath.Floor(z);
+            this.X -= XMath.Floor(X);
+            this.Y -= XMath.Floor(Y);
+            this.Z -= XMath.Floor(Z);
             return;
         }
 
         public float Dot(Vertex vertB)
         {
-            return this.x * vertB.x + this.y * vertB.y + this.z * vertB.z;
+            return this.X * vertB.X + this.Y * vertB.Y + this.Z * vertB.Z;
         }
 
         public float Dot(float Scalar)
         {
-            return this.x * Scalar + this.y * Scalar + this.z * Scalar;
+            return this.X * Scalar + this.Y * Scalar + this.Z * Scalar;
         }
         public void Cross_IP(Vertex vert)
         {
-            this.x =   this.y * vert.z - this.z * vert.y;
-            this.y = -(this.x * vert.z - this.z * vert.x);
-            this.z =   this.x * vert.y - this.y * vert.x;
+            this.X =   this.Y * vert.Z - this.Z * vert.Y;
+            this.Y = -(this.X * vert.Z - this.Z * vert.X);
+            this.Z =   this.X * vert.Y - this.Y * vert.X;
             return;
         }
         public void UnitVector_IP()
         {
             float InvMag = 1f/this.Magnitude();
-            this.x *= InvMag;
-            this.y *= InvMag;
-            this.z *= InvMag;
+            this.X *= InvMag;
+            this.Y *= InvMag;
+            this.Z *= InvMag;
             return;
         }
         public void Aces_approx_IP()
@@ -258,16 +258,16 @@ namespace BAVCL.Geometric
             float d = 0.59f;
             float e = 0.14f;
 
-            this.x = XMath.Clamp(((this.x * 0.6f * (a * this.x * 0.6f + b)) / (this.x * 0.6f * (c * this.x * 0.6f + d) + e)), 0f, 1f);
-            this.y = XMath.Clamp(((this.y * 0.6f * (a * this.y * 0.6f + b)) / (this.y * 0.6f * (c * this.y * 0.6f + d) + e)), 0f, 1f);
-            this.z = XMath.Clamp(((this.z * 0.6f * (a * this.z * 0.6f + b)) / (this.z * 0.6f * (c * this.z * 0.6f + d) + e)), 0f, 1f);
+            this.X = XMath.Clamp(((this.X * 0.6f * (a * this.X * 0.6f + b)) / (this.X * 0.6f * (c * this.X * 0.6f + d) + e)), 0f, 1f);
+            this.Y = XMath.Clamp(((this.Y * 0.6f * (a * this.Y * 0.6f + b)) / (this.Y * 0.6f * (c * this.Y * 0.6f + d) + e)), 0f, 1f);
+            this.Z = XMath.Clamp(((this.Z * 0.6f * (a * this.Z * 0.6f + b)) / (this.Z * 0.6f * (c * this.Z * 0.6f + d) + e)), 0f, 1f);
             return;
         }
         public void Reinhard_IP()
         {
-            this.x /= (1f + this.x);
-            this.y /= (1f + this.y);
-            this.z /= (1f + this.z);
+            this.X /= (1f + this.X);
+            this.Y /= (1f + this.Y);
+            this.Z /= (1f + this.Z);
             return;
         }
 
@@ -277,46 +277,46 @@ namespace BAVCL.Geometric
         // Methods (static)
         public static Vertex SetX(Vertex vert, float x)
         {
-            return new Vertex(x, vert.y, vert.z);
+            return new Vertex(x, vert.Y, vert.Z);
         }
         public static Vertex SetY(Vertex vert, float y)
         {
-            return new Vertex(vert.x, y, vert.z);
+            return new Vertex(vert.X, y, vert.Z);
         }
         public static Vertex SetZ(Vertex vert, float z)
         {
-            return new Vertex(vert.x, vert.y, z);
+            return new Vertex(vert.X, vert.Y, z);
         }
         
         public static float Distance(Vertex vertA, Vertex vertB)
         {
-            float dx = vertA.x - vertB.x;
-            float dy = vertA.y - vertB.y;
-            float dz = vertA.z - vertB.z;
+            float dx = vertA.X - vertB.X;
+            float dy = vertA.Y - vertB.Y;
+            float dz = vertA.Z - vertB.Z;
 
             return XMath.Sqrt(dx * dx + dy * dy + dz * dz);
         }
         public static Vertex Fract(Vertex vert)
         {
             return new Vertex(
-                vert.x - XMath.Floor(vert.x),
-                vert.y - XMath.Floor(vert.y),
-                vert.z - XMath.Floor(vert.z));
+                vert.X - XMath.Floor(vert.X),
+                vert.Y - XMath.Floor(vert.Y),
+                vert.Z - XMath.Floor(vert.Z));
         }
         public static float Dot(Vertex vertA, Vertex vertB)
         {
-            return vertA.x * vertB.x + vertA.y * vertB.y + vertA.z * vertB.z;
+            return vertA.X * vertB.X + vertA.Y * vertB.Y + vertA.Z * vertB.Z;
         }
         public static float Dot(Vertex vertA, float Scalar) 
         {
-            return vertA.x * Scalar + vertA.y * Scalar + vertA.z * Scalar;
+            return vertA.X * Scalar + vertA.Y * Scalar + vertA.Z * Scalar;
         }
         public static Vertex Cross(Vertex vertA, Vertex vertB)
         {
             return new Vertex(
-                  vertA.y * vertB.z - vertA.z * vertB.y,
-                -(vertA.x * vertB.z - vertA.z * vertB.x),
-                  vertA.x * vertB.y - vertA.y * vertB.x);
+                  vertA.Y * vertB.Z - vertA.Z * vertB.Y,
+                -(vertA.X * vertB.Z - vertA.Z * vertB.X),
+                  vertA.X * vertB.Y - vertA.Y * vertB.X);
         }
         public static Vertex UnitVector(Vertex vertex)
         {
