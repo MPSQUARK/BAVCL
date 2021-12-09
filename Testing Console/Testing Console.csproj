@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DataScience\BAVCL.csproj" />
+    <ProjectReference Include="..\BAVCL\BAVCL.csproj" />
   </ItemGroup>
 
 </Project>

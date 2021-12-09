@@ -194,8 +194,7 @@ namespace BAVCL
                 uint Id;
                 if (!LRU.TryDequeue(out Id)) 
                 {
-                    return;
-                    //throw new Exception($"LRU Empty Cannot Continue DeCaching");
+                    throw new Exception($"LRU Empty Cannot Continue DeCaching");
                 }
 
                 // Try Get Reference to and the object of ICacheable
