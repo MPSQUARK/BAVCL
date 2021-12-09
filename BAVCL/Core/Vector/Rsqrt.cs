@@ -1,4 +1,5 @@
 ﻿
+using ILGPU;
 using ILGPU.Algorithms;
 using ILGPU.Runtime;
 
@@ -57,10 +58,10 @@ namespace BAVCL
             IncrementLiveCount();
 
             // Get the Memory buffer input/output
-            MemoryBuffer<float> buffer = GetBuffer(); // IO
+            MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
 
             // RUN
-            gpu.rsqrtKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View);
+            gpu.rsqrtKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
 
             // SYNC
             gpu.accelerator.Synchronize();

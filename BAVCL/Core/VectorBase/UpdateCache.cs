@@ -1,4 +1,5 @@
-﻿using ILGPU.Runtime;
+﻿using ILGPU;
+using ILGPU.Runtime;
 using System;
 
 namespace BAVCL.Core
@@ -37,10 +38,11 @@ namespace BAVCL.Core
             // Else if the lengths match update the cache
 
             // Convert Buffer Data to that of this type
-            MemoryBuffer<T> data = (MemoryBuffer<T>)Data;
+            MemoryBuffer1D<T, Stride1D.Dense> data = (MemoryBuffer1D<T, Stride1D.Dense>)Data;
+
 
             // Copy new data to buffer 
-            data.CopyFrom(Value, 0, 0, Value.Length);
+            data.CopyFromCPU(Value);
             if (this.gpu.CachedMemory.TryUpdate(this._id, data, Data)) { return; }
 
 
@@ -75,10 +77,10 @@ namespace BAVCL.Core
             // Else if the lengths match update the cache
 
             // Convert Buffer Data to that of this type
-            MemoryBuffer<T> data = (MemoryBuffer<T>)Data;
+            MemoryBuffer1D<T, Stride1D.Dense> data = (MemoryBuffer1D<T, Stride1D.Dense>)Data;
 
             // Copy new data to buffer 
-            data.CopyFrom(array, 0, 0, array.Length);
+            data.CopyFromCPU(array);
             if (this.gpu.CachedMemory.TryUpdate(_id, data, Data)) { return; }
 
 

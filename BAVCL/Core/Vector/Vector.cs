@@ -3,6 +3,7 @@ using ILGPU.Algorithms;
 using System;
 using BAVCL.Core;
 using BAVCL.Ext;
+using ILGPU;
 
 namespace BAVCL
 {
@@ -318,11 +319,11 @@ namespace BAVCL
             Output.IncrementLiveCount();
 
             // Check if the input & output are in Cache
-            MemoryBuffer<float> 
+            MemoryBuffer1D<float, Stride1D.Dense>
                 buffer = Output.GetBuffer(),        // Output
                 buffer2 = vector.GetBuffer();       // Input
 
-            gpu.s_opFKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
+            gpu.s_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
 
             gpu.accelerator.Synchronize();
 
@@ -337,9 +338,9 @@ namespace BAVCL
             IncrementLiveCount();
 
             // Check if the input & output are in Cache
-            MemoryBuffer<float> buffer = GetBuffer(); // IO
+            MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
 
-            gpu.s_FloatOPKernelIP(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, scalar, new SpecializedValue<int>((int)operation));
+            gpu.s_FloatOPKernelIP(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
 
             gpu.accelerator.Synchronize();
 
@@ -361,13 +362,13 @@ namespace BAVCL
             Output.IncrementLiveCount();
 
             // Check if the input & output are in Cache
-            MemoryBuffer<float> 
+            MemoryBuffer1D<float, Stride1D.Dense>
                 buffer = Output.GetBuffer(),        // Output
                 buffer2 = vectorA.GetBuffer(),      // Input
                 buffer3 = vectorB.GetBuffer();      // Input
 
             // Run the kernel
-            gpu.a_opFKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
+            gpu.a_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
 
             // Synchronise the kernel
             gpu.accelerator.Synchronize();
@@ -386,12 +387,12 @@ namespace BAVCL
             IncrementLiveCount();
 
             // Check if the input & output are in Cache
-            MemoryBuffer<float> 
+            MemoryBuffer1D<float, Stride1D.Dense>
                 buffer = GetBuffer(),               // IO
                 buffer2 = vectorB.GetBuffer();      // Input
 
             // Run the kernel
-            gpu.a_FloatOPKernelIP(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
+            gpu.a_FloatOPKernelIP(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
 
             // Synchronise the kernel
             gpu.accelerator.Synchronize();
@@ -415,7 +416,7 @@ namespace BAVCL
             Output.IncrementLiveCount();
 
             // Check if the input & output are in Cache
-            MemoryBuffer<float> 
+            MemoryBuffer1D<float, Stride1D.Dense>
                 buffer = Output.GetBuffer(),        // Output
                 buffer2 = vector.GetBuffer(),       // Input
                 buffer3 = matrix.GetBuffer();       // Input
@@ -446,7 +447,7 @@ namespace BAVCL
             Output.IncrementLiveCount();
 
             // Check if the input & output are in Cache
-            MemoryBuffer<float> 
+            MemoryBuffer1D<float, Stride1D.Dense>
                 buffer = Output.GetBuffer(),        // Output
                 buffer2 = GetBuffer(),              // Input
                 buffer3 = matrix.GetBuffer();       // Input
@@ -470,9 +471,9 @@ namespace BAVCL
         {
             IncrementLiveCount();
 
-            MemoryBuffer<float> buffer = GetBuffer();
+            MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
 
-            gpu.LogKernel(gpu.accelerator.DefaultStream, buffer.Length, buffer.View, @base);
+            gpu.LogKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, @base);
 
             gpu.accelerator.Synchronize();
 

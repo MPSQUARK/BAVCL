@@ -20,12 +20,12 @@ namespace BAVCL
 
 
         // LRU 
-        public ConcurrentDictionary<uint, WeakReference<ICacheable>> CachedInfo = new ConcurrentDictionary<uint, WeakReference<ICacheable>>();  // Size, LiveCount
-        public ConcurrentDictionary<uint, MemoryBuffer> CachedMemory = new ConcurrentDictionary<uint, MemoryBuffer>(); // Memory Buffer
+        public ConcurrentDictionary<uint, WeakReference<ICacheable>> CachedInfo = new();  // Size, LiveCount
+        public ConcurrentDictionary<uint, MemoryBuffer> CachedMemory = new(); // Memory Buffer
 
 
-        protected internal ConcurrentDictionary<uint, bool> ForceKeepFlags = new ConcurrentDictionary<uint, bool>();
-        protected internal ConcurrentQueue<uint> LRU = new ConcurrentQueue<uint>();                                                
+        protected internal ConcurrentDictionary<uint, bool> ForceKeepFlags = new();
+        protected internal ConcurrentQueue<uint> LRU = new();                                                
         
         protected internal uint CurrentVecId = 0;
         protected internal int LiveTaskCount = 0;
@@ -33,11 +33,11 @@ namespace BAVCL
         // Device Memory
         public readonly long MaxMemory;
         protected internal long MemoryInUse = 0;
-        protected internal float MemoryCap;
-        public float memorycap
+        protected internal float _memoryCap;
+        public float Memorycap
         { 
-            get { return this.MemoryCap; } 
-            set { MemoryCap = Math.Clamp(value, 0f, 1f); } 
+            get { return this._memoryCap; }
+            set { if (0f < value && value < 1f) { this._memoryCap = value; } else { throw new Exception($"Memory Cap CANNOT be less than 0 or moer than 1. Recieved {value}"); } } 
         }
 
 
@@ -47,49 +47,48 @@ namespace BAVCL
         // Variables - Kernels
         #region
         // Test KERNELS
-        public Action<AcceleratorStream, Index1, ArrayView<double>, ArrayView<float>> sumKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>> TestSQRTKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>> TestMYSQRTKernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<double>, ArrayView<float>> sumKernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>> TestSQRTKernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>> TestMYSQRTKernel;
 
 
         // ACTUAL KERNELS
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int> appendKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, float> nanToNumKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<int>> getSliceKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> a_opFKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>> s_opFKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> vectormatrixOpKernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int> appendKernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>, float> nanToNumKernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>> getSliceKernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> a_opFKernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>> s_opFKernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> vectormatrixOpKernel;
 
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> a_FloatOPKernelIP;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, float, SpecializedValue<int>> s_FloatOPKernelIP;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>> diffKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>> reverseKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>> absKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>> rcpKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>> rsqrtKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>> crossKernel;
-        public Action<AcceleratorStream, Index1, ArrayView<float>, ArrayView<float>, int> transposekernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> a_FloatOPKernelIP;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>, float, SpecializedValue<int>> s_FloatOPKernelIP;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>> diffKernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>> reverseKernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>> absKernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>> rcpKernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>> rsqrtKernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>> crossKernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, int> transposekernel;
 
 
 
-        public Action<AcceleratorStream, Index1, ArrayView<float>, float> LogKernel;
+        public Action<AcceleratorStream, Index1D, ArrayView<float>, float> LogKernel;
         #endregion
 
 
         // Constructor
-        public GPU(float memorycap = 0.8f, bool forceCPU = false, ContextFlags flags = ContextFlags.None, OptimizationLevel optimizationLevel = OptimizationLevel.Debug)
+        public GPU(float memorycap = 0.8f, bool forceCPU = false, OptimizationLevel optimizationLevel = OptimizationLevel.Debug)
         {
             // Create Context
-            this.context = new Context(flags, optimizationLevel);
-            this.context.EnableAlgorithms();
+            this.context = Context.Create(builder => builder.Default().EnableAlgorithms());
 
             // Get Accelerator Device
-            this.accelerator = GetGpu(context, forceCPU);
+            this.accelerator = context.GetPreferredDevice(preferCPU: forceCPU).CreateAccelerator(context);
             Console.WriteLine("Device loaded: " + accelerator.Name);
 
             // Set Memory Usage Cap
-            this.memorycap = memorycap;
-            this.MaxMemory = (long)Math.Round(this.accelerator.MemorySize * this.MemoryCap);
+            this.Memorycap = memorycap;
+            this.MaxMemory = (long)Math.Round(this.accelerator.MemorySize * this._memoryCap);
 
             // Load Kernels
             LoadKernels();
@@ -97,68 +96,40 @@ namespace BAVCL
         }
         private void LoadKernels()
         {
-            Stopwatch timer = new Stopwatch();
+            Stopwatch timer = new();
             timer.Start();
 
             // TEST KERNELS
-            sumKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<double>, ArrayView<float>>(SumKernel);
-            TestSQRTKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>>(testsqrtkernel);
-            TestMYSQRTKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>>(testmysqrtkernel);
+            sumKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<double>, ArrayView<float>>(SumKernel);
+            TestSQRTKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>>(Testsqrtkernel);
+            TestMYSQRTKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>>(Testmysqrtkernel);
 
 
-            appendKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(AppendKernel);
-            nanToNumKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, float>(Nan_to_numKernel);
-            getSliceKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<int>>(AccessSliceKernel);
+            appendKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(AppendKernel);
+            nanToNumKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float>(Nan_to_numKernel);
+            getSliceKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>>(AccessSliceKernel);
             
-            a_opFKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernel);
-            s_opFKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernel);
-            vectormatrixOpKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(VectorMatrixKernel);
+            a_opFKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernel);
+            s_opFKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernel);
+            vectormatrixOpKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(VectorMatrixKernel);
 
-            a_FloatOPKernelIP = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernelIP);
-            s_FloatOPKernelIP = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernelIP);
+            a_FloatOPKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernelIP);
+            s_FloatOPKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernelIP);
 
-            diffKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>> (DiffKernel);
-            reverseKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>> (ReverseKernel);
-            absKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(AbsKernel);
-            rcpKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(ReciprocalKernel);
-            rsqrtKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>>(RsqrtKernel);
+            diffKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>> (DiffKernel);
+            reverseKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>> (ReverseKernel);
+            absKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(AbsKernel);
+            rcpKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(ReciprocalKernel);
+            rsqrtKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(RsqrtKernel);
 
-            crossKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, ArrayView<float>>(CrossKernel);
-            transposekernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, ArrayView<float>, int>(TransposeKernel);
+            crossKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>>(CrossKernel);
+            transposekernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, int>(TransposeKernel);
 
 
-            LogKernel = accelerator.LoadAutoGroupedKernel<Index1, ArrayView<float>, float>(logKern);
+            LogKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float>(LogKern);
 
             timer.Stop();
             Console.WriteLine("Kernels Loaded in: " + timer.Elapsed.TotalMilliseconds + " MS");
-        }
-
-
-        // Get 'Best' GPU
-        private Accelerator GetGpu(Context context, bool prefCPU = false)
-        {
-            var groupedAccelerators = Accelerator.Accelerators
-                    .GroupBy(x => x.AcceleratorType)
-                    .ToDictionary(x => x.Key, x => x.ToList());
-
-            if (prefCPU)
-            {
-                return new CPUAccelerator(context);
-            }
-
-            if (groupedAccelerators.TryGetValue(AcceleratorType.Cuda, out var nv))
-            {
-                return Accelerator.Create(context, nv[0]);
-            }
-
-            if (groupedAccelerators.TryGetValue(AcceleratorType.OpenCL, out var cl))
-            {
-                return Accelerator.Create(context, cl[0]);
-            }
-
-            //fallback
-            Console.WriteLine("Warning : Could not find gpu, falling back to Default device");
-            return new CPUAccelerator(context);
         }
 
 
@@ -167,10 +138,10 @@ namespace BAVCL
         {
             return Interlocked.Increment(ref CurrentVecId);
         }
-        private bool IsInCache(uint id)
-        {
-            return this.CachedMemory.ContainsKey(id);
-        }
+        //private bool IsInCache(uint id)
+        //{
+        //    return this.CachedMemory.ContainsKey(id);
+        //}
         public void DeCacheLRU(long required)
         {
             // Check if the memory required doesn't exceed the Maximum available
@@ -251,8 +222,7 @@ namespace BAVCL
         }
         private void RemoveFromLRU(uint Id)
         {
-            if (LRU.Count == 0) { return; }
-            if (!LRU.Contains(Id)) { return; }
+            if (LRU.IsEmpty || !LRU.Contains(Id)) { return; }
 
             uint DequeuedId;
             LRU.TryDequeue(out DequeuedId);
@@ -319,7 +289,7 @@ namespace BAVCL
 
 
         // Test Kernels
-        static void SumKernel(Index1 index, ArrayView<double> Output, ArrayView<float> Input)
+        static void SumKernel(Index1D index, ArrayView<double> Output, ArrayView<float> Input)
         {
             double sum = 0;
             for (int i = index * 100000; i < (index + 1) * 100000; i++)
@@ -333,7 +303,7 @@ namespace BAVCL
 
 
         //Kernels
-        static void AppendKernel(Index1 index, ArrayView<float> Output, ArrayView<float> vecA, ArrayView<float> vecB, int vecAcol, int vecBcol)
+        static void AppendKernel(Index1D index, ArrayView<float> Output, ArrayView<float> vecA, ArrayView<float> vecB, int vecAcol, int vecBcol)
         {
 
             for (int i = 0, j=0; j < vecBcol; i++)
@@ -353,7 +323,7 @@ namespace BAVCL
 
 
 
-        static void Nan_to_numKernel(Index1 index, ArrayView<float> IO, float num)
+        static void Nan_to_numKernel(Index1D index, ArrayView<float> IO, float num)
         {
             if (float.IsNaN(IO[index]) || float.IsInfinity(IO[index]))
             {
@@ -362,7 +332,7 @@ namespace BAVCL
 
         }
 
-        //static void AccessSliceKernel(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, ArrayView<int> ChangeSelectLength)
+        //static void AccessSliceKernel(Index1D index, ArrayView<float> OutPut, ArrayView<float> Input, ArrayView<int> ChangeSelectLength)
         //{
         //    OutPut[index] = Input[
         //        index * ChangeSelectLength[0] * ChangeSelectLength[4] + // iRcL
@@ -371,7 +341,7 @@ namespace BAVCL
         //        ChangeSelectLength[3]];                                 // Cs
         //}
 
-        static void AccessSliceKernel(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, ArrayView<int> ChangeSelectLength)
+        static void AccessSliceKernel(Index1D index, ArrayView<float> OutPut, ArrayView<float> Input, ArrayView<int> ChangeSelectLength)
         {
             OutPut[index] = Input[
                 index * ChangeSelectLength[1] +                         // iRcL
@@ -379,7 +349,7 @@ namespace BAVCL
         }
 
 
-        static void A_FloatOPKernel(Index1 index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, SpecializedValue<int> operation)
+        static void A_FloatOPKernel(Index1D index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, SpecializedValue<int> operation)
         {
             switch ((Operations)operation.Value)
             {
@@ -414,7 +384,7 @@ namespace BAVCL
             }
         }
 
-        static void A_FloatOPKernelIP(Index1 index, ArrayView<float> IO, ArrayView<float> Input, SpecializedValue<int> operation)
+        static void A_FloatOPKernelIP(Index1D index, ArrayView<float> IO, ArrayView<float> Input, SpecializedValue<int> operation)
         {
             switch ((Operations)operation.Value)
             {
@@ -449,7 +419,7 @@ namespace BAVCL
         }
 
 
-        static void S_FloatOPKernel(Index1 index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar, SpecializedValue<int> operation)
+        static void S_FloatOPKernel(Index1D index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar, SpecializedValue<int> operation)
         {
             switch ((Operations)operation.Value)
             {
@@ -483,7 +453,7 @@ namespace BAVCL
             }
         }
 
-        static void S_FloatOPKernelIP(Index1 index, ArrayView<float> IO, float Scalar, SpecializedValue<int> operation)
+        static void S_FloatOPKernelIP(Index1D index, ArrayView<float> IO, float Scalar, SpecializedValue<int> operation)
         {
             switch ((Operations)operation.Value)
             {
@@ -518,7 +488,7 @@ namespace BAVCL
         }
 
 
-        static void VectorMatrixKernel(Index1 index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, int Cols, SpecializedValue<int> operation)
+        static void VectorMatrixKernel(Index1D index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, int Cols, SpecializedValue<int> operation)
         {
             int startidx = index * Cols;
 
@@ -586,14 +556,14 @@ namespace BAVCL
 
 
 
-        static void DiffKernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input)
+        static void DiffKernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
         {
             Output[index] = Input[index + 1] - Input[index];
         }
 
-        static void ReverseKernel(Index1 index, ArrayView<float> IO)
+        static void ReverseKernel(Index1D index, ArrayView<float> IO)
         {
-            int idx = IO.Length - 1 - index;
+            int idx = IO.IntLength - 1 - index;
             float temp = IO[idx];
 
             IO[idx] = IO[index];
@@ -601,31 +571,31 @@ namespace BAVCL
         }
 
 
-        static void AbsKernel(Index1 index, ArrayView<float> IO)
+        static void AbsKernel(Index1D index, ArrayView<float> IO)
         {
             IO[index] = XMath.Abs(IO[index]);
         }
 
-        static void ReciprocalKernel(Index1 index, ArrayView<float> IO)
+        static void ReciprocalKernel(Index1D index, ArrayView<float> IO)
         {
             IO[index] = XMath.Rcp(IO[index]);
         }
 
-        static void RsqrtKernel(Index1 index, ArrayView<float> IO)
+        static void RsqrtKernel(Index1D index, ArrayView<float> IO)
         {
             IO[index] = XMath.Rsqrt(IO[index]);
         }
 
 
 
-        static void CrossKernel(Index1 index, ArrayView<float> Output, ArrayView<float> InputA, ArrayView<float> InputB)
+        static void CrossKernel(Index1D index, ArrayView<float> Output, ArrayView<float> InputA, ArrayView<float> InputB)
         {
             Output[index*3]     = InputA[index * 3 + 1] * InputB[index * 3 + 2] - InputA[index * 3 + 2] * InputB[index * 3 + 1];
             Output[index*3 + 1] = InputA[index * 3 + 2] * InputB[index * 3    ] - InputA[index * 3    ] * InputB[index * 3 + 2];
             Output[index*3 + 2] = InputA[index * 3    ] * InputB[index * 3 + 1] - InputA[index * 3 + 1] * InputB[index * 3    ];
         }
 
-        static void TransposeKernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input, int columns)
+        static void TransposeKernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input, int columns)
         {
             int rows = Input.IntLength / columns;
             int col = index % columns;
@@ -640,19 +610,19 @@ namespace BAVCL
 
 
 
-        static void testsqrtkernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input)
+        static void Testsqrtkernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
         {
             Output[index] = XMath.Sqrt(Input[index]);
         }
 
-        static void testmysqrtkernel(Index1 index, ArrayView<float> Output, ArrayView<float> Input)
+        static void Testmysqrtkernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
         {
             Output[index] = TestCls.sqrt_acc_v2(Input[index]);
         }
 
 
 
-        public static void logKern(Index1 index, ArrayView<float> IO, float @base)
+        public static void LogKern(Index1D index, ArrayView<float> IO, float @base)
         {
             IO[index] = XMath.Log(IO[index],@base);
         }

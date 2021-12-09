@@ -1,18 +1,18 @@
-﻿using ILGPU.Runtime;
+﻿using ILGPU;
+using ILGPU.Runtime;
 
 namespace BAVCL.Core
 {
     public partial class VectorBase<T>
     {
-        public MemoryBuffer<T> GetBuffer()
+        public MemoryBuffer1D<T, Stride1D.Dense> GetBuffer()
         {
-            MemoryBuffer Data;
-            if (!this.gpu.CachedMemory.TryGetValue(this._id, out Data))
+            if (!this.gpu.CachedMemory.TryGetValue(this._id, out MemoryBuffer Data))
             {
                 this.Cache();
                 this.gpu.CachedMemory.TryGetValue(this._id, out Data);
             }
-            return (MemoryBuffer<T>)Data;
+            return (MemoryBuffer1D<T, Stride1D.Dense>)Data;
         }
 
 

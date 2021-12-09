@@ -1,4 +1,5 @@
-﻿using ILGPU.Runtime;
+﻿using ILGPU;
+using ILGPU.Runtime;
 using System.Linq;
 
 namespace BAVCL
@@ -24,9 +25,9 @@ namespace BAVCL
             IncrementLiveCount();
 
             // Check if the input & output are in Cache
-            MemoryBuffer<float> buffer = GetBuffer(); // IO
+            MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
 
-            gpu.reverseKernel(gpu.accelerator.DefaultStream, buffer.Length >> 1, buffer.View);
+            gpu.reverseKernel(gpu.accelerator.DefaultStream, buffer.IntExtent >> 1, buffer.View);
 
             gpu.accelerator.Synchronize();
 

@@ -1,4 +1,5 @@
-﻿using ILGPU.Runtime;
+﻿using ILGPU;
+using ILGPU.Runtime;
 
 namespace BAVCL
 {
@@ -13,7 +14,7 @@ namespace BAVCL
         {
             IncrementLiveCount();
 
-            MemoryBuffer<float> buffer = GetBuffer();
+            MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
 
             gpu.nanToNumKernel(gpu.accelerator.DefaultStream, this._length, buffer.View, num);
 
