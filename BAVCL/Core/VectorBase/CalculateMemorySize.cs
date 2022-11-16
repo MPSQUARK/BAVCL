@@ -7,7 +7,7 @@ namespace BAVCL.Core
 
         public long CalculateMemorySize()
         {
-            return (long)Interop.SizeOf<T>() * (long)this.Value.Length;
+            return (long)Interop.SizeOf<T>() * (long)this.Length;
         }
         public long CalculateMemorySize(T[] array)
         {
