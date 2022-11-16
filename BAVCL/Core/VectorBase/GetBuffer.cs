@@ -7,10 +7,10 @@ namespace BAVCL.Core
     {
         public MemoryBuffer1D<T, Stride1D.Dense> GetBuffer()
         {
-            if (!this.gpu.CachedMemory.TryGetValue(this._id, out MemoryBuffer Data))
+            if (!this.gpu.GPUbuffers.TryGetValue(this._id, out MemoryBuffer Data))
             {
                 this.Cache();
-                this.gpu.CachedMemory.TryGetValue(this._id, out Data);
+                this.gpu.GPUbuffers.TryGetValue(this._id, out Data);
             }
             return (MemoryBuffer1D<T, Stride1D.Dense>)Data;
         }
