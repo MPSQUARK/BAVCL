@@ -1,64 +1,28 @@
-﻿using ILGPU.Runtime;
-using System;
-
-namespace BAVCL.Core
+﻿namespace BAVCL.Core
 {
-    public partial class VectorBase<T>
-    {
-        internal void Cache()
-        {
-            this._memorySize = this.CalculateMemorySize();
+	public partial class VectorBase<T>
+	{
+		internal void Cache()
+		{
+			this.UpdateMemorySize();
+			this.Length = this.Value.Length;
+			
+			// Store info about data to LRU
+			this.ID = this.gpu.Allocate(this, this.Value);
+		}
 
-            // Ensure enough space on gpu for cache
-            this.gpu.DeCacheLRU(this._memorySize);
+		internal void Cache(T[] array)
+		{
+			this.MemorySize = this.CalculateMemorySize(array);
+			this.Length = array.Length;
 
-            // Increase Live task count
-            this.gpu.AddLiveTask();
-
-            // Allocate data to gpu
-            MemoryBuffer Buffer = Allocate();
-
-            // Get a weakreference of buffer
-            WeakReference<ICacheable> VectorReference = new(this);
-
-            // Store info about data to LRU
-            this._id = this.gpu.Allocate(VectorReference, Buffer, this._memorySize);
-
-            this._length = this.Value.Length;
-
-            // Get ID 
-            return;
-        }
-
-        internal void Cache(T[] array)
-        {
-            this._memorySize = this.CalculateMemorySize(array);
-
-            // Ensure enough space on gpu for cache
-            this.gpu.DeCacheLRU(this._memorySize);
-
-            // Increase Live task count
-            this.gpu.AddLiveTask();
-
-            // Allocate data to gpu
-            MemoryBuffer Buffer = Allocate(array);
-
-            // Get a weakreference of buffer
-            WeakReference<ICacheable> VectorReference = new(this);
-
-            // Store info about data to LRU
-            this._id = this.gpu.Allocate(VectorReference, Buffer, this._memorySize);
-
-            // Update Length Property
-            this._length = array.Length;
-
-            // Get ID 
-            return;
-        }
+			// Store info about data to LRU
+			this.ID = this.gpu.Allocate(this, array);
+		}
 
 
 
-    }
+	}
 
 
 }
