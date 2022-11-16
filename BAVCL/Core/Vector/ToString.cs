@@ -1,7 +1,5 @@
 ﻿using BAVCL.Utility;
-using ILGPU.Algorithms;
 using System;
-using System.Linq;
 using System.Text;
 
 
@@ -38,7 +36,6 @@ namespace BAVCL
             Template[^3] = ' '; // Padding
             Template[^2] = ' '; // Padding
             Template[^1] = '|'; // Padding
-
 
 
             StringBuilder stringBuilder = new();
