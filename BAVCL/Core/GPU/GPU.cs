@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading;
 using BAVCL.Core;
 using BAVCL.Experimental;
+using System.Collections.Generic;
 
 namespace BAVCL
 {
@@ -40,7 +41,13 @@ namespace BAVCL
 			set { if (0f < value && value < 1f) { this._memoryCap = value; } else { throw new Exception($"Memory Cap CANNOT be less than 0 or more than 1. Recieved {value}"); } } 
 		}
 
-
+		// Accelerator Preference Order
+		Dictionary<AcceleratorType, int> AcceleratorPrefOrder = new()
+		{
+			{ AcceleratorType.Cuda, 2 },
+			{ AcceleratorType.OpenCL, 1 },
+			{ AcceleratorType.CPU, 0 }
+		};
 
 
 
@@ -83,9 +90,11 @@ namespace BAVCL
 			this.context = Context.Create(builder => builder.Default().EnableAlgorithms());
 			// OptimizationLevel optimizationLevel = OptimizationLevel.Debug
 
+
 			// Get Accelerator Device
-			this.accelerator = context.GetPreferredDevice(preferCPU: forceCPU).CreateAccelerator(context);
-			Console.WriteLine("Device loaded: " + accelerator.Name);
+			//this.accelerator = context.GetPreferredDevice(preferCPU: forceCPU).CreateAccelerator(context);
+			this.accelerator = GetPreferedAccelerator(context, forceCPU);
+			Console.WriteLine($"Device loaded: {accelerator.Name}");
 
 			// Set Memory Usage Cap
 			this.Memorycap = memorycap;
@@ -95,6 +104,41 @@ namespace BAVCL
 			LoadKernels();
 			Console.WriteLine("Device Kernels Loaded");
 		}
+
+		private Accelerator GetPreferedAccelerator(Context context, bool forceCPU)
+        {
+			var devices = context.Devices;
+
+			if (devices.Length == 0) throw new Exception("No Accelerators");
+
+			Device preferedAccelerator = null;
+			for (int i = 0; i < devices.Length; i++)
+			{
+				if (forceCPU && devices[i].AcceleratorType == AcceleratorType.CPU)
+					return devices[i].CreateAccelerator(context);
+				
+				if (preferedAccelerator == null)
+					preferedAccelerator = devices[i];
+
+				if (AcceleratorPrefOrder.TryGetValue(preferedAccelerator.AcceleratorType, out int Prefpriority))
+					if (AcceleratorPrefOrder.TryGetValue(devices[i].AcceleratorType, out int Devicepriority))
+                    {
+						if (Devicepriority > Prefpriority)
+                        {
+							preferedAccelerator = devices[i];
+							continue;
+						}
+
+						if (devices[i].MaxConstantMemory > preferedAccelerator.MaxConstantMemory)
+                        {
+							preferedAccelerator = devices[i];
+							continue;
+						}
+					}
+			}
+			return preferedAccelerator.CreateAccelerator(context);
+		}
+
 		private void LoadKernels()
 		{
 			Stopwatch timer = new();
@@ -130,7 +174,7 @@ namespace BAVCL
 			LogKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float>(LogKern);
 
 			timer.Stop();
-			Console.WriteLine("Kernels Loaded in: " + timer.Elapsed.TotalMilliseconds + " MS");
+			Console.WriteLine($"Kernels Loaded in: {timer.Elapsed.TotalMilliseconds} MS");
 		}
 
 
@@ -173,13 +217,19 @@ namespace BAVCL
 				WeakReference<ICacheable> referenceCacheable;
 				if (!this.CPUrefs.TryGetValue(Id, out referenceCacheable)) 
 				{
-					// Object been GC'ed
-					MemoryBuffer Buffer;
-					GPUbuffers.TryRemove(Id, out Buffer);
-					Interlocked.Add(ref MemoryInUse, -Buffer.LengthInBytes);
-					Buffer.Dispose();
-					Interlocked.Decrement(ref LiveObjectCount);
-					continue;
+                    // Object been GC'ed
+                    try
+                    {
+						bool whatthehell = GPUbuffers.TryRemove(Id, out MemoryBuffer Buffer);
+						Interlocked.Add(ref MemoryInUse, -Buffer.LengthInBytes);
+						Buffer.Dispose();
+						Interlocked.Decrement(ref LiveObjectCount);
+						continue;
+					}
+                    catch (Exception)
+                    {
+						Console.WriteLine("HERE");
+                    }
 				} 
 				ICacheable cacheable;
 				if (!referenceCacheable.TryGetTarget(out cacheable)) 
@@ -562,7 +612,6 @@ namespace BAVCL
 			IO[index] = temp;
 		}
 
-
 		static void AbsKernel(Index1D index, ArrayView<float> IO)
 		{
 			IO[index] = XMath.Abs(IO[index]);
@@ -597,9 +646,6 @@ namespace BAVCL
 
 			Output[idx] = Input[index];
 		}
-
-
-
 
 
 		static void Testsqrtkernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
