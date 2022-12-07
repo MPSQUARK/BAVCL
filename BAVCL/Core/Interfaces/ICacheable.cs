@@ -4,7 +4,7 @@
     {
         public uint LiveCount { get; }
         public uint ID { get; set; }
-        public long MemorySize { get; set; }
+        public long MemorySize { get; }
 
         public bool TryDeCache();
 
