@@ -2,19 +2,15 @@
 {
 	public partial class VectorBase<T>
 	{
-		internal void Cache()
-		{	
-			// Store info about data to LRU
-			this.ID = this.gpu.Allocate(this, this.Value);
-		}
+		/// <summary>
+		/// Store info about data to LRU
+		/// </summary>
+		internal void Cache() => ID = gpu.Allocate(this, Value);
 
-		internal void Cache(T[] array)
-		{
-			// Store info about data to LRU
-			this.ID = this.gpu.Allocate(this, array);
-		}
-
-
+		/// <summary>
+		/// Store info about data to LRU
+		/// </summary>
+		internal void Cache(T[] array) => ID = gpu.Allocate(this, array);
 
 	}
 
