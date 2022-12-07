@@ -16,9 +16,8 @@ namespace BAVCL
         public static Vector GetSliceAsVector(Vector vector, int row_col_index, Enums.Axis axis)
         {
             if (vector.Columns == 1)
-            {
                 throw new Exception("Input Vector cannot be 1D");
-            }
+
 
             return axis switch
             {
@@ -37,9 +36,7 @@ namespace BAVCL
         public Vector GetSliceAsVector(int row_col_index, Enums.Axis axis)
         {
             if (Columns == 1)
-            {
                 throw new Exception("Input Vector cannot be 1D");
-            }
 
             return axis switch
             {
@@ -53,9 +50,8 @@ namespace BAVCL
         public static float[] GetSliceAsArray(Vector vector, int row_col_index, Enums.Axis axis)
         {
             if (vector.Columns == 1)
-            {
                 throw new Exception("Input Vector cannot be 1D");
-            }
+
 
             return axis switch
             {
@@ -68,9 +64,7 @@ namespace BAVCL
         public float[] GetSliceAsArray(int row_col_index, Enums.Axis axis)
         {
             if (Columns == 1)
-            {
                 throw new Exception("Input Vector cannot be 1D");
-            }
 
             return axis switch
             {

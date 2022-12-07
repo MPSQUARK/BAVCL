@@ -28,9 +28,9 @@ namespace BAVCL
             // IF Concat in COLUMN mode
 
             // IF 2D
-            if (this.Columns > 1 && vector.Columns > 1)
+            if (Columns > 1 && vector.Columns > 1)
             {
-                if ((this.RowCount() != vector.RowCount()) && (this.RowCount() != vector.Columns))
+                if ((RowCount() != vector.RowCount()) && (RowCount() != vector.Columns))
                 {
                     throw new Exception(
                         $"Vectors CANNOT be appended. " +
@@ -38,16 +38,16 @@ namespace BAVCL
                         $"The 2D Vector being appended has the shape ({vector.RowCount()},{vector.Columns})");
                 }
 
-                if (this.RowCount() == vector.Columns)
+                if (RowCount() == vector.Columns)
                 {
                     if (!warp)
                     {
                         vector.Transpose_IP();
                     }
 
-                    if (warp && (vector.Length % this.RowCount() == 0))
+                    if (warp && (vector.Length % RowCount() == 0))
                     {
-                        vector.Columns = vector.Value.Length / this.RowCount();
+                        vector.Columns = vector.Value.Length / RowCount();
                     }
 
                 }
@@ -57,17 +57,17 @@ namespace BAVCL
             if (vector.Columns == 1)
             {
 
-                if (vector.Value.Length % this.RowCount() != 0)
+                if (vector.Value.Length % RowCount() != 0)
                 {
                     throw new Exception($"Vectors CANNOT be appended. " +
-                        $"This array has shape ({this.RowCount()},{this.Columns}), 1D vector being appended has {vector.Length} Length");
+                        $"This array has shape ({RowCount()},{Columns}), 1D vector being appended has {vector.Length} Length");
                 }
 
                 vector.Columns = vector.Value.Length / this.RowCount();
 
             }
 
-            Vector Output = new(gpu, new float[vector._length + this._length]);
+            Vector Output = new(gpu, new float[vector.Length + Length]);
 
             IncrementLiveCount();
             vector.IncrementLiveCount();

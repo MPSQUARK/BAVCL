@@ -6,20 +6,18 @@ namespace BAVCL
 {
     public partial class Vector
     {
-        public static Vector Reverse(Vector vector)
-        {
-            return new Vector(vector.gpu, vector.Value.Reverse().ToArray(), vector.Columns);
-        }
+        public static Vector Reverse(Vector vector) => 
+            new(vector.gpu, vector.Value.Reverse().ToArray(), vector.Columns);
+
         public Vector Reverse_IP()
         {
             SyncCPU();
             UpdateCache(this.Value.Reverse().ToArray());
             return this;
         }
-        public static Vector ReverseX(Vector vector)
-        {
-            return vector.Copy().ReverseX_IP();
-        }
+        public static Vector ReverseX(Vector vector) => 
+            vector.Copy().ReverseX_IP();
+
         public Vector ReverseX_IP()
         {
             IncrementLiveCount();

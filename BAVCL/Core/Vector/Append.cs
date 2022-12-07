@@ -12,19 +12,15 @@ namespace BAVCL
         }
         public Vector Append_IP(Vector vector)
         {
-            this.SyncCPU();
+            SyncCPU();
             vector.SyncCPU();
             this.Value = this.Value.Concat(vector.Value).ToArray();
-            this.UpdateCache();
+            UpdateCache();
             return this;
         }
 
 
-        public static Vector Prepend(Vector vectorA, Vector vectorB)
-        {
-            return Vector.Append(vectorB, vectorA);
-        }
-
+        public static Vector Prepend(Vector vectorA, Vector vectorB) => Append(vectorB, vectorA);
 
 
     }

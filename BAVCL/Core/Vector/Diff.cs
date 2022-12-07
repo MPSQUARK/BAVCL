@@ -9,9 +9,7 @@ namespace BAVCL
         public static Vector Diff(Vector vector)
         {
             if (vector.Columns > 1)
-            {
                 throw new Exception("Diff is for use with 1D Vectors ONLY");
-            }
 
             GPU gpu = vector.gpu;
 
@@ -36,10 +34,7 @@ namespace BAVCL
             return Output;
         }
 
-        public Vector Diff_IP()
-        {
-            return TransferBuffer(Diff(this));
-        }
+        public Vector Diff_IP() => TransferBuffer(Diff(this));
 
     }
 

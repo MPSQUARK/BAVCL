@@ -23,30 +23,27 @@ namespace BAVCL
 
         public static Vector Linspace(GPU gpu, float startval, float endval, int steps, int Columns = 1, bool cache = true)
         {
-            if (steps <= 1) { throw new Exception("Cannot make linspace with less than 1 steps"); }
+            if (steps <= 1) throw new Exception("Cannot make linspace with less than 1 steps");
             float interval = (endval - startval) / (steps - 1);
 
             float[] arr = new float[steps];
 
             for (int i = 0; i < steps; i++)
-            {
                 arr[i] = startval + (i * interval);
-            }
+
 
             return new Vector(gpu, arr, Columns, cache);
         }
 
         public static float[] Linspace(float startval, float endval, int steps)
         {
-            if (steps <= 1) { throw new Exception("Cannot make linspace with less than 1 steps"); }
+            if (steps <= 1) throw new Exception("Cannot make linspace with less than 1 steps");
             float interval = (endval - startval) / (steps - 1);
 
             float[] arr = new float[steps];
 
             for (int i = 0; i < steps; i++)
-            {
                 arr[i] = startval + (i * interval);
-            }
 
             return arr;
         }

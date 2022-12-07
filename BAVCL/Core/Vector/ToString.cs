@@ -39,17 +39,16 @@ namespace BAVCL
             Template[^2] = ' '; // Padding
             Template[^1] = '|'; // Padding
 
-
-
             StringBuilder stringBuilder = new();
             char[] clear = new string(' ', Template.Length - 6).ToCharArray();
             int _diff = digits + 4 + decimalplaces;
 
             if (hasinfinity)
             {
-                string inf = new(' ', digits - 3);
-                string afterinf = new(' ', decimalplaces + 1);
-                string nan = new(' ', decimalplaces);
+                string 
+                    inf = new(' ', digits - 3),
+                    afterinf = new(' ', decimalplaces + 1),
+                    nan = new(' ', decimalplaces);
 
 
                 for (int i = 0; i < _length; i++)
@@ -92,7 +91,7 @@ namespace BAVCL
 
             if (hasnegative)
             {
-                for (int i = 0; i < _length; i++)
+                for (int i = 0; i < Length; i++)
                 {
                     if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
@@ -110,7 +109,7 @@ namespace BAVCL
             }
 
 
-            for (int i = 0; i < _length; i++)
+            for (int i = 0; i < Length; i++)
             {
                 if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
