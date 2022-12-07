@@ -14,9 +14,8 @@ namespace BAVCL
             float[] values = new float[steps];
 
             for (int i = 0; i < steps; i++)
-            {
                 values[i] = startval + (i * interval);
-            }
+
 
             return new Vector(gpu, values, Columns, cache);
         }
@@ -31,9 +30,7 @@ namespace BAVCL
             float[] values = new float[steps];
 
             for (int i = 0; i < steps; i++)
-            {
                 values[i] = startval + (i * interval);
-            }
 
             return values;
         }

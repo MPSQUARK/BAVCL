@@ -5,10 +5,9 @@ namespace BAVCL
 {
     public partial class Vector
     {
-        public static Vector Reciprocal(Vector vector)
-        {
-            return vector.Copy().Reciprocal_IP();
-        }
+        public static Vector Reciprocal(Vector vector) =>
+            vector.Copy().Reciprocal_IP();
+
         public Vector Reciprocal_IP()
         {
             IncrementLiveCount();

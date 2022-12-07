@@ -10,10 +10,9 @@ namespace BAVCL
         /// <returns></returns>
         public static bool All(Vector vector)
         {
-            if (vector._id != 0)
-            {
+            if (vector.ID != 0)
                 return !vector.Pull().Contains(0f);
-            }
+
             return !vector.Value.Contains(0f);
         }
 
@@ -23,11 +22,9 @@ namespace BAVCL
         /// <returns></returns>
         public bool All()
         {
-            if (this._id != 0)
-            {
-                return !this.Pull().Contains(0f);
-            }
-            return !this.Value.Contains(0f);
+            if (ID != 0)
+                return !Pull().Contains(0f);
+            return !Value.Contains(0f);
         }
 
     }
