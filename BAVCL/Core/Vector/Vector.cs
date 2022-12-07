@@ -22,15 +22,13 @@ namespace BAVCL
         /// <param name="gpu">The device to use when computing this Vector.</param>
         /// <param name="values">The array of data contained in this Vector.</param>
         /// <param name="columns">The number of Columns IF this is a 2D Vector, for 1D Vectors use the default Columns = 1</param>
-        public Vector(GPU gpu, float[] values, int columns = 1, bool cache = true) : base(gpu, values, columns, cache)
-        {
-        }
-
+        public Vector(GPU gpu, float[] values, int columns = 1, bool cache = true) : 
+            base(gpu, values, columns, cache) { }
 
         public float this[int i]
         {
-            get { return this.Value[i]; }
-            set { this.Value[i] = value; }
+            get => Value[i];
+            set => Value[i] = value; 
         }
 
         public override void Print()
@@ -222,7 +220,7 @@ namespace BAVCL
             vector.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new(gpu, new float[vector._length], vector.Columns);
+            Vector Output = new(gpu, new float[vector.Length], vector.Columns);
 
             Output.IncrementLiveCount();
 
@@ -266,7 +264,7 @@ namespace BAVCL
             vectorB.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new(gpu, new float[vectorA._length], vectorA.Columns);
+            Vector Output = new(gpu, new float[vectorA.Length], vectorA.Columns);
             Output.IncrementLiveCount();
 
             // Check if the input & output are in Cache
@@ -319,7 +317,7 @@ namespace BAVCL
             matrix.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new(gpu, new float[vector._length], vector.Columns);
+            Vector Output = new(gpu, new float[vector.Length], vector.Columns);
 
             Output.IncrementLiveCount();
 
@@ -350,7 +348,7 @@ namespace BAVCL
             matrix.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new(gpu, new float[_length], Columns);
+            Vector Output = new(gpu, new float[Length], Columns);
 
             Output.IncrementLiveCount();
 
