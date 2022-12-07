@@ -1,4 +1,5 @@
-﻿using ILGPU.Runtime;
+﻿using ILGPU;
+using ILGPU.Runtime;
 using System;
 using System.Linq;
 
@@ -8,28 +9,23 @@ namespace BAVCL.Core
 	{
 		protected GPU gpu;
 
-		public T[] Value;
+		public T[] Value = Array.Empty<T>();
 
 		public virtual int Columns
 		{
 			get => _columns;
 			set { _columns = value > 0 ? value : throw new Exception($"Columns must be a positive integer greater than zero. Recieved {value}"); }
 		}
-		public virtual int Length 
-		{ 
-			get => _length; 
-			set => _length = value; 
-		}
+		public int Length => Value.Length;
+
 		public uint ID
 		{
 			get => _id;
-			set => _id = Math.Clamp(value, 0, uint.MaxValue);
+			set => _id = value >= 0 ? value : throw new Exception($"ID CANNOT be less than 0. Recieved: {value}");
 		}
-		public long MemorySize 
-		{ 
-			get => _memorySize; 
-			set => _memorySize = value; 
-		}
+
+		public long MemorySize => (long)Interop.SizeOf<T>() * (long)Value.Length;
+
 		public uint LiveCount 
 		{ 
 			get => _livecount; 
@@ -37,7 +33,6 @@ namespace BAVCL.Core
 		}
 
 		protected internal int _columns = 1;
-		protected internal int _length = 0;
 		protected internal uint _id = 0;
 		protected internal long _memorySize = 0;
 		protected internal uint _livecount = 0;
@@ -48,8 +43,6 @@ namespace BAVCL.Core
 			this.gpu = gpu;
 			this.Columns = columns;
 			this.Value = value;
-			this.Length = value.Length;
-			this.UpdateMemorySize();
 			
 			if (Cache) this.Cache(value);
 		}
@@ -69,7 +62,7 @@ namespace BAVCL.Core
 		public int RowCount()
 		{
 			if (Columns == 1) return 1;
-			return _length / Columns;
+			return Length / Columns;
 		}
 
 		public virtual (int, int) Shape() => (RowCount(), Columns);
