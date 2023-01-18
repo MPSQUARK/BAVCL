@@ -25,7 +25,7 @@ namespace BAVCL
 
             if (Min() > 0f) { return this; }
 
-            for (int i = 0; i < this._length; i++)
+            for (int i = 0; i < this.Length; i++)
             {
                 Value[i] = XMath.Rsqrt(Value[i]);
             }
