@@ -6,7 +6,7 @@
         {
             Inheritee.gpu.DeCache(Inheritee.ID);
             Inheritee.ID = Temp.ID;
-            Inheritee.Length = Temp.Length;
+            Inheritee.Value = Temp.Value;
             if (IncColumns) { Inheritee.Columns = Temp.Columns; }
 
             Temp.ID = 0;
@@ -17,7 +17,7 @@
         {
             gpu.DeCache(ID);
             ID = Temp.ID;
-            Length = Temp.Length;
+            Value = Temp.Value;
             if (IncColumns) { Columns = Temp.Columns; }
 
             Temp.ID = 0;
