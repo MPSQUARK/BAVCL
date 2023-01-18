@@ -51,7 +51,7 @@ namespace BAVCL
                     nan = new(' ', decimalplaces);
 
 
-                for (int i = 0; i < _length; i++)
+                for (int i = 0; i < Length; i++)
                 {
                     if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
