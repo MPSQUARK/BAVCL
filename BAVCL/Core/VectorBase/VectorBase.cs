@@ -41,8 +41,8 @@ namespace BAVCL.Core
 		protected VectorBase(GPU gpu, T[] value, int columns = 1, bool Cache = true)
 		{
 			this.gpu = gpu;
-			this.Columns = columns;
-			this.Value = value;
+			Columns = columns;
+			Value = value;
 			
 			if (Cache) this.Cache(value);
 		}

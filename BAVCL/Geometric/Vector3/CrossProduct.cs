@@ -13,7 +13,7 @@ namespace BAVCL.Geometric
             // Cache the GPU
             GPU gpu = VectorA.gpu;
 
-            Vector3 Output = new(gpu, new float[VectorA._length], true);
+            Vector3 Output = new(gpu, new float[VectorA.Length], true);
 
             VectorA.IncrementLiveCount();
             VectorB.IncrementLiveCount();
@@ -24,7 +24,7 @@ namespace BAVCL.Geometric
                 buffer2 = VectorA.GetBuffer(),      // Input
                 buffer3 = VectorB.GetBuffer();      // Input
 
-            gpu.crossKernel(gpu.accelerator.DefaultStream, VectorA._length / 3, buffer.View, buffer2.View, buffer3.View);
+            gpu.crossKernel(gpu.accelerator.DefaultStream, VectorA.Length / 3, buffer.View, buffer2.View, buffer3.View);
 
             gpu.accelerator.Synchronize();
 
