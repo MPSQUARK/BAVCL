@@ -261,7 +261,7 @@ namespace BAVCL
 			AddLiveTask();
 			
 			WeakReference<ICacheable> CacheableReference = new(Cacheable);
-			MemoryBuffer1D<T, Stride1D.Dense> Buffer = this.accelerator.Allocate1D(values);
+			MemoryBuffer1D<T, Stride1D.Dense> Buffer = accelerator.Allocate1D(values);
 			
 			uint Id = GenerateId();
 			CPUrefs.TryAdd(Id, CacheableReference);
@@ -274,12 +274,11 @@ namespace BAVCL
 		
 		private void RemoveFromLRU(uint Id)
 		{
-			if (LRU.IsEmpty || !LRU.Contains(Id)) { return; }
+			if (LRU.IsEmpty || !LRU.Contains(Id)) return;
 
-			uint DequeuedId;
-			LRU.TryDequeue(out DequeuedId);
+            LRU.TryDequeue(out uint DequeuedId);
 
-			if (DequeuedId == Id) { return; }
+            if (DequeuedId == Id) return;
 
 
 			// Get the number of items in LRU
@@ -307,16 +306,15 @@ namespace BAVCL
 		{
 			// Try to remove weak reference
 			CPUrefs.TryRemove(Id, out _);
-			
-			// Try to remove memory
-			MemoryBuffer Buffer;
-			if (GPUbuffers.TryRemove(Id, out Buffer))
-			{
-				UpdateMemoryUsage(-Buffer.LengthInBytes);
-				Buffer.Dispose();
-			}
 
-			RemoveFromLRU(Id);
+            // Try to remove memory
+            if (GPUbuffers.TryRemove(Id, out MemoryBuffer Buffer))
+            {
+                UpdateMemoryUsage(-Buffer.LengthInBytes);
+                Buffer.Dispose();
+            }
+
+            RemoveFromLRU(Id);
 			SubtractLiveTask();
 			return 0;
 		}
@@ -325,9 +323,9 @@ namespace BAVCL
 
 		public void ShowMemoryUsage(bool percentage = true, string format = "F2")
 		{
-			if (percentage) { Console.WriteLine($"{(((double)this.MemoryInUse / (double)this.MaxMemory) * 100f).ToString(format)}%"); return; }
+			if (percentage) { Console.WriteLine($"{(((double)MemoryInUse / (double)MaxMemory) * 100f).ToString(format)}%"); return; }
 
-			Console.WriteLine( $"{this.MemoryInUse >> 20}/{this.MaxMemory >> 20} MB");
+			Console.WriteLine( $"{MemoryInUse >> 20}/{MaxMemory >> 20} MB");
 		}
 
 
