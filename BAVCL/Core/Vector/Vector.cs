@@ -14,6 +14,7 @@ namespace BAVCL
     /// </summary>
     public partial class Vector : VectorBase<float>
     {
+        public volatile bool InPlace = false;
 
         // CONSTRUCTOR
         /// <summary>
@@ -22,24 +23,18 @@ namespace BAVCL
         /// <param name="gpu">The device to use when computing this Vector.</param>
         /// <param name="values">The array of data contained in this Vector.</param>
         /// <param name="columns">The number of Columns IF this is a 2D Vector, for 1D Vectors use the default Columns = 1</param>
-        public Vector(GPU gpu, float[] values, int columns = 1, bool cache = true) : 
+        public Vector(GPU gpu, float[] values, int columns = 1, bool cache = true) :
             base(gpu, values, columns, cache) { }
 
         public float this[int i]
         {
             get => Value[i];
-            set => Value[i] = value; 
+            set => Value[i] = value;
         }
 
-        public override void Print()
-        {
-            Console.WriteLine(this.ToStr());
-        }
+        public override void Print() => Console.WriteLine(ToStr());
 
-        public void Print(byte decimalplaces = 2, bool syncCPU = true)
-        {
-            Console.WriteLine(this.ToStr(decimalplaces, syncCPU));
-        }
+        public void Print(byte decimalplaces = 2, bool syncCPU = true) => Console.WriteLine(ToStr(decimalplaces, syncCPU));
 
         // METHODS
         public bool Equals(Vector vector)
@@ -63,8 +58,20 @@ namespace BAVCL
             return new Vector(gpu, Pull(), Columns, Cache);
         }
 
+        public Vector SetInplace()
+        {
+            InPlace = true;
+            return this;
+        }
 
-        #region "MATHEMATICAL PROPERTIES "
+        public Vector UnsetInplace()
+        {
+            InPlace = false;
+            return this;
+        }
+
+
+        #region "MATHEMATICAL PROPERTIES"
         public override float Mean() => Sum() / Length;
 
         public float Std() => XMath.Sqrt(Var());
@@ -75,7 +82,7 @@ namespace BAVCL
 
             if (Length < 10000)
             {
-                int 
+                int
                     vectorSize = System.Numerics.Vector<float>.Count,
                     i = 0;
 
@@ -144,27 +151,58 @@ namespace BAVCL
 
 
         #region "OPERATORS"
-        public static Vector operator +(Vector vector) => AbsX(vector);
-        public static Vector operator +(Vector vectorA, Vector vectorB) => OP(vectorA, vectorB, Operations.add);
-        public static Vector operator +(Vector vector, float Scalar) => OP(vector, Scalar, Operations.add);
-        public static Vector operator +(float Scalar, Vector vector) => OP(vector, Scalar, Operations.add);
+        public static Vector operator +(Vector vector) => 
+            vector.InPlace ? vector.AbsX_IP() : AbsX(vector);
+        public static Vector operator +(Vector vectorA, Vector vectorB) => 
+            vectorA.InPlace ? vectorA.IPOP(vectorB, Operations.add) : OP(vectorA, vectorB, Operations.add);
+        public static Vector operator +(Vector vector, float Scalar) => 
+            vector.InPlace ? vector.IPOP(Scalar, Operations.add) : OP(vector, Scalar, Operations.add);
+        public static Vector operator +(float Scalar, Vector vector) => 
+            vector.InPlace ? vector.IPOP(Scalar, Operations.add) : OP(vector, Scalar, Operations.add);
 
-        public static Vector operator -(Vector vector) => OP(vector, -1, Operations.multiply);
-        public static Vector operator -(Vector vectorA, Vector vectorB) => OP(vectorA, vectorB, Operations.subtract);
-        public static Vector operator -(Vector vector, float Scalar) => OP(vector, Scalar, Operations.subtract);
-        public static Vector operator -(float Scalar, Vector vector) => OP(vector, Scalar, Operations.flipSubtract);
+        public static Vector operator -(Vector vector) => 
+            vector.InPlace ? vector.IPOP(-1f, Operations.multiply) : OP(vector, -1, Operations.multiply);
+        public static Vector operator -(Vector vectorA, Vector vectorB) => 
+            vectorA.InPlace ? vectorA.IPOP(vectorB, Operations.subtract) : OP(vectorA, vectorB, Operations.subtract);
+        public static Vector operator -(Vector vector, float scalar) => 
+            vector.InPlace ? vector.IPOP(scalar, Operations.subtract) : OP(vector, scalar, Operations.subtract);
+        public static Vector operator -(float scalar, Vector vector) => 
+            vector.InPlace ? vector.IPOP(scalar, Operations.subtract) : OP(vector, scalar, Operations.flipSubtract);
 
-        public static Vector operator *(Vector vectorA, Vector vectorB) => OP(vectorA, vectorB, Operations.multiply);
-        public static Vector operator *(Vector vector, float Scalar) => OP(vector, Scalar, Operations.multiply);
-        public static Vector operator *(float Scalar, Vector Vector) => OP(Vector, Scalar, Operations.multiply);
+        public static Vector operator *(Vector vectorA, Vector vectorB) => 
+            vectorA.InPlace ? vectorA.IPOP(vectorB, Operations.multiply) : OP(vectorA, vectorB, Operations.multiply);
 
-        public static Vector operator /(Vector vectorA, Vector vectorB) => OP(vectorA, vectorB, Operations.divide);
-        public static Vector operator /(Vector vector, float Scalar) => OP(vector, Scalar, Operations.divide);
-        public static Vector operator /(float Scalar, Vector vector) => OP(vector, Scalar, Operations.flipDivide);
+        public static Vector operator *(Vector vector, float scalar) => 
+            vector.InPlace ? vector.IPOP(scalar, Operations.multiply) : OP(vector, scalar, Operations.multiply);
 
-        public static Vector operator ^(Vector vectorA, Vector vectorB) => OP(vectorA, vectorB, Operations.pow);
-        public static Vector operator ^(Vector vector, float Scalar) => OP(vector, Scalar, Operations.pow);
-        public static Vector operator ^(float Scalar, Vector vector) => OP(vector, Scalar, Operations.flipPow);
+        public static Vector operator *(float scalar, Vector vector) =>
+            vector.InPlace ? vector.IPOP(scalar, Operations.multiply) : OP(vector, scalar, Operations.multiply);
+
+        public static Vector operator /(Vector vectorA, Vector vectorB) => 
+            vectorA.InPlace ? vectorA.IPOP(vectorB, Operations.divide) : OP(vectorA, vectorB, Operations.divide);
+        public static Vector operator /(Vector vector, float scalar) => 
+            vector.InPlace ? vector.IPOP(scalar, Operations.divide) : OP(vector, scalar, Operations.divide);
+        public static Vector operator /(float scalar, Vector vector) =>
+            vector.InPlace ? vector.IPOP(scalar, Operations.divide) : OP(vector, scalar, Operations.flipDivide);
+
+        public static Vector operator ^(Vector vectorA, Vector vectorB) => 
+            vectorA.InPlace ? vectorA.IPOP(vectorB, Operations.pow) : OP(vectorA, vectorB, Operations.pow);
+        public static Vector operator ^(Vector vector, float scalar) => 
+            vector.InPlace ? vector.IPOP(scalar, Operations.pow) : OP(vector, scalar, Operations.pow);
+        public static Vector operator ^(float Scalar, Vector vector) => 
+            vector.InPlace ? vector.IPOP(Scalar, Operations.pow) : OP(vector, Scalar, Operations.flipPow);
+
+        /// <summary>
+        /// Flips the inplace flag on/off
+        /// </summary>
+        /// <param name="vector"></param>
+        /// <returns></returns>
+        public static Vector operator ~(Vector vector)
+        {
+            vector.InPlace = !vector.InPlace;
+            return vector;
+        }
+
 
         #endregion
 
@@ -175,9 +213,8 @@ namespace BAVCL
         {
             // Check function conditions
             if (vectorA.Length == vectorB.Length)
-            {
                 return _VectorVectorOP(vectorA, vectorB, operation);
-            }
+
 
             bool ThisLonger = vectorA.Length > vectorB.Length;
 
@@ -185,21 +222,20 @@ namespace BAVCL
             // If one input is a Vector and other is Matrix
             if ((vectorA.Columns == 1 && vectorB.Columns > 1) || (vectorA.Columns > 1 && vectorB.Columns == 1))
             {
-                if (ThisLonger) { return _VectorMatrixOP(vectorB, vectorA, operation); }
+                if (ThisLonger) return _VectorMatrixOP(vectorB, vectorA, operation);
+
                 return _VectorMatrixOP(vectorA, vectorB, operation);
             }
 
             throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
         }
 
-        public Vector OP_IP(Vector vectorB, Operations operation)
+        public Vector IPOP(Vector vectorB, Operations operation)
         {
             // If the lengths are the same and both 1D vectors
-            if (this.Length == vectorB.Length && vectorB.Columns == 1 && this.Columns == 1)
-            {
-                this._VectorVectorOP_IP(vectorB, operation);
-                return this;
-            }
+            if (Length == vectorB.Length && vectorB.Columns == 1 && this.Columns == 1)
+                return _VectorVectorOP_IP(vectorB, operation);
+
 
             bool ThisLonger = this.Value.Length > vectorB.Value.Length;
 
@@ -239,7 +275,7 @@ namespace BAVCL
             return Output;
         }
 
-        public Vector OP_IP(float scalar, Operations operation)
+        public Vector IPOP(float scalar, Operations operation)
         {
             IncrementLiveCount();
 
