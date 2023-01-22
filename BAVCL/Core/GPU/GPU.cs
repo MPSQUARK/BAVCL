@@ -20,9 +20,97 @@ namespace BAVCL
 		public Accelerator accelerator;
 
 
+		public ConcurrentDictionary<uint, Cache> Caches = new();
+
+		public (uint, MemoryBuffer) Allocate<T>(ICacheable Cacheable, T[] values) where T : unmanaged
+        {
+			uint id;
+			Cache cache;
+			MemoryBuffer1D<T, Stride1D.Dense> buffer;
+
+			lock (this)
+            {
+				GCLRU(Cacheable.MemorySize);
+				UpdateMemoryUsage(Cacheable.MemorySize);
+
+				buffer = accelerator.Allocate1D(values);
+				WeakReference<ICacheable> CacheableReference = new(Cacheable);
+				cache = new(buffer, CacheableReference);
+				id = GenerateId();
+				Caches.TryAdd(id, cache);
+				LRU.Enqueue(id);
+			}
+
+			AddLiveTask();
+			return (id, buffer);
+		}
+
+		public void GCLRU(long memRequired)
+		{
+			// Check if the memory required doesn't exceed the Maximum available
+			if (memRequired > MaxMemory)
+				throw new Exception($"Cannot cache this data onto the GPU, required memory : {memRequired >> 20} MB, max memory available : {MaxMemory >> 20} MB.\n " +
+									$"Consider spliting/breaking the data into multiple smaller sets OR \n Caching to a GPU with more available memory.");
+
+			long memoryInUse = Interlocked.Read(ref MemoryInUse);
+
+			// Keep decaching untill enough space is made to accomodate the data
+			while ((memRequired + memoryInUse) > MaxMemory)
+			{
+
+				if (LiveObjectCount == 0)
+					throw new Exception(
+						$"GPU states {LiveObjectCount} Live Tasks Running, while requiring {memRequired >> 20} MB which is more than available {(MaxMemory - memoryInUse) >> 20} MB. Potential cause: memory leak");
+
+                // Get the ID of the last item
+                if (!LRU.TryDequeue(out uint Id)) throw new Exception($"LRU Empty Cannot Continue DeCaching");
+
+
+                // Try Get Reference to and the object of ICacheable
+                if (Caches.TryGetValue(Id, out Cache cache))
+                {
+					if (cache.LiveCount > 0) { LRU.Enqueue(Id); continue; }
+
+					// sync to vector if newer
+					if (cache.CachedObjRef.TryGetTarget(out ICacheable cacheable))
+						cacheable.SyncCPU(cache.MemoryBuffer);
+
+					lock (this)
+                    {
+						cache.MemoryBuffer.Dispose();
+						Interlocked.Add(ref MemoryInUse, -cache.MemoryBuffer.LengthInBytes);
+						Interlocked.Decrement(ref LiveObjectCount);
+						Caches.TryRemove(Id, out _);
+						memoryInUse = MemoryInUse;
+					}
+				}
+			}
+		}
+
+		public uint DeCacheLRU(uint Id)
+        {
+			if (Caches.TryGetValue(Id, out Cache cache))
+			{
+				if (cache.LiveCount > 0) { LRU.Enqueue(Id); return 0; }
+				WeakReference<ICacheable> referenceCacheable = cache.CachedObjRef;
+				// sync to vector if newer
+
+				lock (this)
+				{
+					cache.MemoryBuffer.Dispose();
+					Interlocked.Add(ref MemoryInUse, -cache.MemoryBuffer.LengthInBytes);
+					Interlocked.Decrement(ref LiveObjectCount);
+					Caches.TryRemove(Id, out _);
+					RemoveFromLRU(Id);
+				}
+			}
+			return 0;
+		}
+
+
 		// LRU 
-		public ConcurrentDictionary<uint, WeakReference<ICacheable>> CPUrefs = new();  // Size, LiveCount
-		public ConcurrentDictionary<uint, MemoryBuffer> GPUbuffers = new(); // Memory Buffer
+		//public ConcurrentDictionary<uint, WeakReference<ICacheable>> CPUrefs = new();  // Size, LiveCount
+		//public ConcurrentDictionary<uint, MemoryBuffer> GPUbuffers = new(); // Memory Buffer
 
 
 		protected internal ConcurrentDictionary<uint, bool> ForceKeepFlags = new();
@@ -49,6 +137,14 @@ namespace BAVCL
 			{ AcceleratorType.CPU, 0 }
 		};
 
+
+		// DEBUG
+		public uint[] GetLRUIDs()
+        {
+			uint[] ids = new uint[LRU.Count];
+			LRU.CopyTo(ids, 0 );
+			return ids;
+        }
 
 
 		// Variables - Kernels
@@ -187,143 +283,136 @@ namespace BAVCL
 		//    return this.CachedMemory.ContainsKey(id);
 		//}
 		
-		public void DeCacheLRU(long required)
-		{
-			// Check if the memory required doesn't exceed the Maximum available
-			if (required > this.MaxMemory)
-			{
-				throw new Exception($"Cannot cache this data onto the GPU, required memory : {required >> 20} MB, max memory available : {this.MaxMemory >> 20} MB.\n " +
-									$"Consider spliting/breaking the data into multiple smaller sets OR \n Caching to a GPU with more available memory.");
-			}
+		//public void DeCacheLRU(long required)
+		//{
+		//	// Check if the memory required doesn't exceed the Maximum available
+		//	if (required > this.MaxMemory)
+		//	{
+		//		throw new Exception($"Cannot cache this data onto the GPU, required memory : {required >> 20} MB, max memory available : {this.MaxMemory >> 20} MB.\n " +
+		//							$"Consider spliting/breaking the data into multiple smaller sets OR \n Caching to a GPU with more available memory.");
+		//	}
 
 
-			// Keep decaching untill enough space is made to accomodate the data
-			while (required > (this.MaxMemory - this.MemoryInUse))
-			{
-				if (this.LiveObjectCount == 0) 
-				{
-					throw new Exception(
-						$"GPU states {this.LiveObjectCount} Live Tasks Running, while requiring {required >> 20} MB which is more than available {(this.MaxMemory - this.MemoryInUse) >> 20} MB. Potential cause: memory leak"); 
-				}
+		//	// Keep decaching untill enough space is made to accomodate the data
+		//	while (required > (this.MaxMemory - this.MemoryInUse))
+		//	{
+		//		if (this.LiveObjectCount == 0) 
+		//		{
+		//			throw new Exception(
+		//				$"GPU states {this.LiveObjectCount} Live Tasks Running, while requiring {required >> 20} MB which is more than available {(this.MaxMemory - this.MemoryInUse) >> 20} MB. Potential cause: memory leak"); 
+		//		}
 
-				// Get the ID of the last item
-				uint Id;
-				if (!LRU.TryDequeue(out Id)) 
-				{
-					throw new Exception($"LRU Empty Cannot Continue DeCaching");
-				}
+  //              // Get the ID of the last item
+  //              if (!LRU.TryDequeue(out uint Id))
+  //              {
+  //                  throw new Exception($"LRU Empty Cannot Continue DeCaching");
+  //              }
 
-				// Try Get Reference to and the object of ICacheable
-				WeakReference<ICacheable> referenceCacheable;
-				if (!this.CPUrefs.TryGetValue(Id, out referenceCacheable)) 
-				{
-                    // Object been GC'ed
-                    try
-                    {
-						bool whatthehell = GPUbuffers.TryRemove(Id, out MemoryBuffer Buffer);
-						Interlocked.Add(ref MemoryInUse, -Buffer.LengthInBytes);
-						Buffer.Dispose();
-						Interlocked.Decrement(ref LiveObjectCount);
-						continue;
-					}
-                    catch (Exception)
-                    {
-						Console.WriteLine("HERE");
-                    }
-				} 
-				ICacheable cacheable;
-				if (!referenceCacheable.TryGetTarget(out cacheable)) 
-				{
-					// Object been GC'ed
-					MemoryBuffer Buffer;
-					GPUbuffers.TryRemove(Id, out Buffer);
-					Interlocked.Add(ref MemoryInUse, -Buffer.LengthInBytes);
-					Buffer.Dispose();
-					Interlocked.Decrement(ref LiveObjectCount);
-					continue;
-				} 
+  //              // Try Get Reference to and the object of ICacheable
+  //              if (!this.CPUrefs.TryGetValue(Id, out WeakReference<ICacheable> referenceCacheable))
+  //              {
+  //                  // Object been GC'ed
+  //                  try
+  //                  {
+  //                      bool whatthehell = GPUbuffers.TryRemove(Id, out MemoryBuffer Buffer);
+  //                      Interlocked.Add(ref MemoryInUse, -Buffer.LengthInBytes);
+  //                      Buffer.Dispose();
+  //                      Interlocked.Decrement(ref LiveObjectCount);
+  //                      continue;
+  //                  }
+  //                  catch (Exception)
+  //                  {
+  //                      Console.WriteLine("HERE");
+  //                  }
+  //              }
 
-				// Try to decache the data
-				if (!cacheable.TryDeCache()) { LRU.Enqueue(Id); }
+  //              if (!referenceCacheable.TryGetTarget(out ICacheable cacheable))
+  //              {
+  //                  // Object been GC'ed
+  //                  GPUbuffers.TryRemove(Id, out MemoryBuffer Buffer);
+  //                  Interlocked.Add(ref MemoryInUse, -Buffer.LengthInBytes);
+  //                  Buffer.Dispose();
+  //                  Interlocked.Decrement(ref LiveObjectCount);
+  //                  continue;
+  //              }
 
-			}
+  //              // Try to decache the data
+  //              if (!cacheable.TryDeCache()) { LRU.Enqueue(Id); }
 
-			return;
-		}
+		//	}
 
-		private void UpdateMemoryUsage(long size) => Interlocked.Add(ref MemoryInUse, size); 
-		
-		public uint Allocate<T>(ICacheable Cacheable, T[] values) where T: unmanaged
-		{
-			DeCacheLRU(Cacheable.MemorySize);
-			UpdateMemoryUsage(Cacheable.MemorySize);
-			
-			AddLiveTask();
-			
-			WeakReference<ICacheable> CacheableReference = new(Cacheable);
-			MemoryBuffer1D<T, Stride1D.Dense> Buffer = accelerator.Allocate1D(values);
-			
-			uint Id = GenerateId();
-			CPUrefs.TryAdd(Id, CacheableReference);
-			GPUbuffers.TryAdd(Id, Buffer);
-			LRU.Enqueue(Id);
+		//	return;
+		//}
 
-			return Id;
-		}
-		
-		
-		private void RemoveFromLRU(uint Id)
-		{
-			if (LRU.IsEmpty || !LRU.Contains(Id)) return;
+		private void UpdateMemoryUsage(long size) => Interlocked.Add(ref MemoryInUse, size);
+
+        //public uint Allocate<T>(ICacheable Cacheable, T[] values) where T: unmanaged
+        //{
+        //	DeCacheLRU(Cacheable.MemorySize);
+        //	UpdateMemoryUsage(Cacheable.MemorySize);
+
+        //	AddLiveTask();
+
+        //	WeakReference<ICacheable> CacheableReference = new(Cacheable);
+        //	MemoryBuffer1D<T, Stride1D.Dense> Buffer = accelerator.Allocate1D(values);
+
+        //	uint Id = GenerateId();
+        //	CPUrefs.TryAdd(Id, CacheableReference);
+        //	GPUbuffers.TryAdd(Id, Buffer);
+        //	LRU.Enqueue(Id);
+
+        //	return Id;
+        //}
+
+
+        private void RemoveFromLRU(uint Id)
+        {
+            if (LRU.IsEmpty || !LRU.Contains(Id)) return;
 
             LRU.TryDequeue(out uint DequeuedId);
 
             if (DequeuedId == Id) return;
 
+            // Put back the De-queued Id since it didn't match the Disposed Id
+            LRU.Enqueue(DequeuedId);
 
-			// Get the number of items in LRU
-			int length = LRU.Count;
-
-			// Put back the De-queued Id since it didn't match the Disposed Id
-			LRU.Enqueue(DequeuedId);
-
-			// shuffle through LRU to remove the disposed Id
-			for (int i = 0; i < length; i++)
-			{
-				LRU.TryDequeue(out DequeuedId);
-
-				// Id matching the one disposed will not be re-enqueued 
-				// Order will be preserved
-				if (Id != DequeuedId)
-				{
-					LRU.Enqueue(DequeuedId);
-				}
-			}
-			return;
-		}
-		
-		public uint DeCache(uint Id)
-		{
-			// Try to remove weak reference
-			CPUrefs.TryRemove(Id, out _);
-
-            // Try to remove memory
-            if (GPUbuffers.TryRemove(Id, out MemoryBuffer Buffer))
+            // shuffle through LRU to remove the disposed Id
+            for (int i = 0; i < LRU.Count; i++)
             {
-                UpdateMemoryUsage(-Buffer.LengthInBytes);
-                Buffer.Dispose();
+                LRU.TryDequeue(out DequeuedId);
+
+                // Id matching the one disposed will not be re-enqueued 
+                // Order will be preserved
+                if (Id != DequeuedId)
+                {
+                    LRU.Enqueue(DequeuedId);
+                }
             }
+            return;
+        }
 
-            RemoveFromLRU(Id);
-			SubtractLiveTask();
-			return 0;
-		}
+        //public uint DeCache(uint Id)
+        //{
+        //	// Try to remove weak reference
+        //	CPUrefs.TryRemove(Id, out _);
+
+        //          // Try to remove memory
+        //          if (GPUbuffers.TryRemove(Id, out MemoryBuffer Buffer))
+        //          {
+        //              UpdateMemoryUsage(-Buffer.LengthInBytes);
+        //              Buffer.Dispose();
+        //          }
+
+        //          RemoveFromLRU(Id);
+        //	SubtractLiveTask();
+        //	return 0;
+        //}
 
 
 
-		public void ShowMemoryUsage(bool percentage = true, string format = "F2")
+        public void ShowMemoryUsage(bool percentage = true, string format = "F2")
 		{
-			if (percentage) { Console.WriteLine($"{(((double)MemoryInUse / (double)MaxMemory) * 100f).ToString(format)}%"); return; }
+			if (!percentage) { Console.WriteLine($"{(((double)MemoryInUse / (double)MaxMemory) * 100f).ToString(format)}%"); return; }
 
 			Console.WriteLine( $"{MemoryInUse >> 20}/{MaxMemory >> 20} MB");
 		}
@@ -593,9 +682,6 @@ namespace BAVCL
 		}
 
 
-
-
-
 		static void DiffKernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
 		{
 			Output[index] = Input[index + 1] - Input[index];
@@ -678,5 +764,6 @@ namespace BAVCL
 		flipSubtract = 6,
 		flipPow = 7,
 		subtractSquare = 8, // square the difference of two values
+
 	}
 }
