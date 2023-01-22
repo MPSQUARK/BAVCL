@@ -1,7 +1,5 @@
 ﻿using BAVCL.Utility;
-using ILGPU.Algorithms;
 using System;
-using System.Linq;
 using System.Text;
 
 
@@ -16,9 +14,9 @@ namespace BAVCL
 
         public string ToStr(byte decimalplaces = 2, bool syncCPU = true)
         {
-            if ((this.Value == null) || syncCPU) { this.SyncCPU(); }
+            if ((Value == null) || syncCPU) { SyncCPU(); }
 
-            (float min, float max, bool hasinfinity) = Util.MinMaxInf(this.Value);
+            (float min, float max, bool hasinfinity) = Util.MinMaxInf(Value);
 
             bool hasnegative = min < 0f;
 
@@ -57,29 +55,29 @@ namespace BAVCL
 
                     Template[2] = Value[i] < 0f ? '-' : ' ';
 
-                    if (float.IsFinite(this.Value[i]))
+                    if (float.IsFinite(Value[i]))
                     {
                         clear.CopyTo(Template, 3);
-                        string val = Math.Abs(this.Value[i]).ToString(format);
+                        string val = Math.Abs(Value[i]).ToString(format);
                         val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                         stringBuilder.Append(Template);
                         continue;
                     }
 
-                    if (float.IsPositiveInfinity(this.Value[i]))
+                    if (float.IsPositiveInfinity(Value[i]))
                     {
                         stringBuilder.Append($"|  {inf}INF{afterinf} |");
                         continue;
                     }
 
-                    if (float.IsNaN(this.Value[i]))
+                    if (float.IsNaN(Value[i]))
                     {
                         stringBuilder.Append($"|  {inf}NaN{afterinf} |");
                         continue;
                     }
 
-                    if (float.IsNegativeInfinity(this.Value[i]))
+                    if (float.IsNegativeInfinity(Value[i]))
                     {
                         stringBuilder.Append($"| -{inf}INF{nan}  |");
                         continue;
@@ -98,7 +96,7 @@ namespace BAVCL
                     Template[2] = Value[i] < 0f ? '-' : ' ';
 
                     clear.CopyTo(Template, 3);
-                    string val = Math.Abs(this.Value[i]).ToString(format);
+                    string val = Math.Abs(Value[i]).ToString(format);
                     val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                     stringBuilder.Append(Template);
@@ -114,7 +112,7 @@ namespace BAVCL
                 if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
                 clear.CopyTo(Template, 3);
-                string val = this.Value[i].ToString(format);
+                string val = Value[i].ToString(format);
                 val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                 stringBuilder.Append(Template);

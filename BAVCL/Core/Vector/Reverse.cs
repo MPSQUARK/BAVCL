@@ -12,7 +12,7 @@ namespace BAVCL
         public Vector Reverse_IP()
         {
             SyncCPU();
-            UpdateCache(this.Value.Reverse().ToArray());
+            UpdateCache(Value.Reverse().ToArray());
             return this;
         }
         public static Vector ReverseX(Vector vector) => 
