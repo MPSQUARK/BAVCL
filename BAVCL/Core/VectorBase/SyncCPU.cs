@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ILGPU;
+using ILGPU.Runtime;
 
 namespace BAVCL.Core
 {
@@ -6,18 +7,12 @@ namespace BAVCL.Core
     {
         public void SyncCPU()
         {
-            if (this._id != 0)
-            {
-                this.Value = this.Pull();
-                return;
-            }
+            if (ID != 0) Value = Pull();
+        }
 
-            if (this.Value != null)
-            {
-                return;
-            }
-
-            throw new Exception($"No Data Found On GPU. Vector Cache ID = {this._id}");
+        public void SyncCPU(MemoryBuffer buffer)
+        {
+            Value = ((MemoryBuffer1D<T, Stride1D.Dense>)buffer).GetAsArray1D();
         }
 
 
