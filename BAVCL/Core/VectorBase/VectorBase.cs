@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace BAVCL.Core
 {
-	public abstract partial class VectorBase<T> : ICacheable, IIO where T : unmanaged 
+	public abstract partial class VectorBase<T> : ICacheable, IIO where T : unmanaged
 	{
 		protected GPU gpu;
 
@@ -26,16 +26,16 @@ namespace BAVCL.Core
 
 		public long MemorySize => (long)Interop.SizeOf<T>() * (long)Value.Length;
 
-		public uint LiveCount 
-		{ 
-			get => _livecount; 
-			set => _livecount = value; 
+		public uint LiveCount
+		{
+			get => _livecount;
+			set => _livecount = value;
 		}
 
 		protected internal int _columns = 1;
 		protected internal uint _id = 0;
 		protected internal long _memorySize = 0;
-		protected internal uint _livecount = 0;
+		protected volatile internal uint _livecount = 0;
 
 
 		protected VectorBase(GPU gpu, T[] value, int columns = 1, bool Cache = true)
@@ -43,7 +43,7 @@ namespace BAVCL.Core
 			this.gpu = gpu;
 			Columns = columns;
 			Value = value;
-			
+
 			if (Cache) this.Cache(value);
 		}
 
@@ -52,7 +52,7 @@ namespace BAVCL.Core
 		public T GetValue(int row, int col)
 		{
 			SyncCPU();
-			return this.Value[row * this.Columns + col];
+			return Value[row * Columns + col];
 		}
 
 		// PRINT + CSV
