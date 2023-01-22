@@ -86,14 +86,14 @@ namespace BAVCL
         public static float[] GetColumnAsArray(Vector vector, int column)
         {
             Vector output = vector.GetColumnAsVector(column);
-            output.TryDeCache();
+            output.DeCache();
             return output.Value;
         }
 
         public float[] GetColumnAsArray(int column)
         {
             Vector output = GetColumnAsVector(column);
-            output.TryDeCache();
+            output.DeCache();
             return output.Value;
         }
 
