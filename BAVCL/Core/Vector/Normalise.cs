@@ -6,7 +6,7 @@
             OP(vectorA, 1f / vectorA.Sum(), Operations.multiply);
 
         public Vector Normalise_IP() =>
-            OP_IP(1f / Sum(), Operations.multiply);
+            IPOP(1f / Sum(), Operations.multiply);
 
     }
 }
