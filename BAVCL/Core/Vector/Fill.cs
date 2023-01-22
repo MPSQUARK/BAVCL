@@ -11,8 +11,8 @@ namespace BAVCL
         /// <param name="Length"></param>
         /// <param name="Columns"></param>
         /// <returns></returns>
-        public static Vector Fill(GPU gpu, float Value, int Length, int Columns = 1) =>
-            new(gpu, Enumerable.Repeat(Value, Length).ToArray(), Columns);
+        public static Vector Fill(GPU gpu, float Value, int Length, int Columns = 1, bool Cache = true) =>
+            new(gpu, Enumerable.Repeat(Value, Length).ToArray(), Columns, Cache);
 
 
         /// <summary>
