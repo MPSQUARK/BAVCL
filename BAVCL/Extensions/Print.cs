@@ -66,6 +66,29 @@ namespace BAVCL.Core
 
         #endregion
 
+        #region "UINTS"
+
+        public static void Print(this uint value)
+        {
+            Console.WriteLine(value.ToString());
+        }
+
+        public static void Print(this uint[] arr)
+        {
+            for (int i = 0; i < arr.Length-1; i++)
+            {
+                Console.Write($"{arr[i]},");
+            }
+            Console.Write($"{arr[^1]}\n");
+        }
+
+        public static void Print(this uint[,] arr)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
         #region "LONG"
 
         public static void Print(this long value)
