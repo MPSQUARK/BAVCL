@@ -12,7 +12,7 @@ namespace BAVCL
         {
             this.MatrixShape = shape;
 
-            ID = gpu.DeCacheLRU(ID);
+            ID = gpu.GCItem(ID);
             throw new System.NotImplementedException();
         }
 

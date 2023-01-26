@@ -67,7 +67,7 @@ namespace BAVCL
 
             }
 
-            Vector Output = new(gpu, new float[vector.Length + Length]);
+            Vector Output = new(gpu, vector.Length + Length);
 
             IncrementLiveCount();
             vector.IncrementLiveCount();

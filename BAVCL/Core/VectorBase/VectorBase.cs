@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace BAVCL.Core
 {
-	public abstract partial class VectorBase<T> : ICacheable, IIO where T : unmanaged
+	public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unmanaged
 	{
 		protected GPU gpu;
 
@@ -16,7 +16,8 @@ namespace BAVCL.Core
 			get => _columns;
 			set { _columns = value > 0 ? value : throw new Exception($"Columns must be a positive integer greater than zero. Recieved {value}"); }
 		}
-		public int Length => Value.Length;
+
+		public int Length { get; set; }
 
 		public uint ID
 		{
@@ -33,7 +34,7 @@ namespace BAVCL.Core
 		}
 
 		protected internal int _columns = 1;
-		protected internal uint _id = 0;
+		protected volatile internal uint _id = 0;
 		protected internal long _memorySize = 0;
 		protected volatile internal uint _livecount = 0;
 
@@ -43,9 +44,20 @@ namespace BAVCL.Core
 			this.gpu = gpu;
 			Columns = columns;
 			Value = value;
+			Length = value.Length;
 
 			if (Cache) this.Cache(value);
 		}
+
+		protected VectorBase(GPU gpu, int length, int columns = 1)
+        {
+			this.gpu = gpu;
+			Columns = columns;
+			Value = null;
+			Length = length;
+			CacheEmpty(length);
+        }
+
 
 		public T[] Pull() => GetBuffer().GetAsArray1D();
 
@@ -54,6 +66,9 @@ namespace BAVCL.Core
 			SyncCPU();
 			return Value[row * Columns + col];
 		}
+
+		public T[] GetValues() => Value;
+
 
 		// PRINT + CSV
 		public virtual void Print() => Console.WriteLine(this.ToString());
@@ -74,8 +89,7 @@ namespace BAVCL.Core
 		public abstract T Sum();
 		public bool IsRectangular() => this.Length % this.Columns == 0;
 
-
-	}
+    }
 
 
 }

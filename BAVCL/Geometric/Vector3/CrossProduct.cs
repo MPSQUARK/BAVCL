@@ -13,7 +13,7 @@ namespace BAVCL.Geometric
             // Cache the GPU
             GPU gpu = VectorA.gpu;
 
-            Vector3 Output = new(gpu, new float[VectorA.Length], true);
+            Vector3 Output = new(gpu, VectorA.Length);
 
             VectorA.IncrementLiveCount();
             VectorB.IncrementLiveCount();
