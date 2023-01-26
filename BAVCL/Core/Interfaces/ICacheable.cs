@@ -20,5 +20,10 @@ namespace BAVCL.Core
 
     }
 
+    public interface ICacheable<T> : ICacheable where T : unmanaged
+    {
+        public T[] GetValues();
+    }
+
 
 }
