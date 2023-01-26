@@ -12,7 +12,14 @@ namespace BAVCL.Core
 
         public void SyncCPU(MemoryBuffer buffer)
         {
-            Value = ((MemoryBuffer1D<T, Stride1D.Dense>)buffer).GetAsArray1D();
+            if (Value == null || Value.Length != buffer.Length)
+                Value = new T[buffer.Length];
+
+            buffer.AsArrayView<T>(0, buffer.Length).CopyToCPU(Value);
+
+            //buffer.CopyToCPU<T>(ref Value);
+
+            //Value = ((MemoryBuffer1D<T, Stride1D.Dense>)buffer).GetAsArray1D();
         }
 
 
