@@ -17,7 +17,7 @@ namespace BAVCL.Geometric
             vectorB.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector3 Output = new(gpu, new float[vectorA.Length]);
+            Vector3 Output = new(gpu, vectorA.Length);
             Output.IncrementLiveCount();
 
             // Check if the input & output are in Cache
@@ -47,7 +47,7 @@ namespace BAVCL.Geometric
             vector.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector3 Output = new(gpu, new float[Length]);
+            Vector3 Output = new(gpu, vector.Length);
             Output.IncrementLiveCount();
 
             // Check if the input & output are in Cache
@@ -78,7 +78,7 @@ namespace BAVCL.Geometric
             vector.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector3 Output = new(gpu, new float[vector.Length]);
+            Vector3 Output = new(gpu, vector.Length);
 
             Output.IncrementLiveCount();
 
@@ -103,7 +103,7 @@ namespace BAVCL.Geometric
             IncrementLiveCount();
 
             // Make the Output Vector
-            Vector3 Output = new(gpu, new float[Length]);
+            Vector3 Output = new(gpu, Length);
 
             Output.IncrementLiveCount();
 

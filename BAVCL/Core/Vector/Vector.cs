@@ -12,9 +12,8 @@ namespace BAVCL
     /// Class for 1D and 2D Vector support
     /// Float Precision
     /// </summary>
-    public partial class Vector : VectorBase<float>
+    public sealed partial class Vector : VectorBase<float>
     {
-        public volatile bool InPlace = false;
 
         // CONSTRUCTOR
         /// <summary>
@@ -25,6 +24,9 @@ namespace BAVCL
         /// <param name="columns">The number of Columns IF this is a 2D Vector, for 1D Vectors use the default Columns = 1</param>
         public Vector(GPU gpu, float[] values, int columns = 1, bool cache = true) :
             base(gpu, values, columns, cache) { }
+
+        public Vector(GPU gpu, int length, int columns = 1) :
+            base(gpu, length, columns) { }
 
         public float this[int i]
         {
@@ -57,19 +59,6 @@ namespace BAVCL
 
             return new Vector(gpu, Pull(), Columns, Cache);
         }
-
-        public Vector SetInplace()
-        {
-            InPlace = true;
-            return this;
-        }
-
-        public Vector UnsetInplace()
-        {
-            InPlace = false;
-            return this;
-        }
-
 
         #region "MATHEMATICAL PROPERTIES"
         public override float Mean() => Sum() / Length;
@@ -152,56 +141,45 @@ namespace BAVCL
 
         #region "OPERATORS"
         public static Vector operator +(Vector vector) => 
-            vector.InPlace ? vector.AbsX_IP() : AbsX(vector);
+            AbsX(vector);
         public static Vector operator +(Vector vectorA, Vector vectorB) => 
-            vectorA.InPlace ? vectorA.IPOP(vectorB, Operations.add) : OP(vectorA, vectorB, Operations.add);
+            OP(vectorA, vectorB, Operations.add);
         public static Vector operator +(Vector vector, float Scalar) => 
-            vector.InPlace ? vector.IPOP(Scalar, Operations.add) : OP(vector, Scalar, Operations.add);
+            OP(vector, Scalar, Operations.add);
         public static Vector operator +(float Scalar, Vector vector) => 
-            vector.InPlace ? vector.IPOP(Scalar, Operations.add) : OP(vector, Scalar, Operations.add);
+            OP(vector, Scalar, Operations.add);
 
         public static Vector operator -(Vector vector) => 
-            vector.InPlace ? vector.IPOP(-1f, Operations.multiply) : OP(vector, -1, Operations.multiply);
+            OP(vector, -1, Operations.multiply);
         public static Vector operator -(Vector vectorA, Vector vectorB) => 
-            vectorA.InPlace ? vectorA.IPOP(vectorB, Operations.subtract) : OP(vectorA, vectorB, Operations.subtract);
+            OP(vectorA, vectorB, Operations.subtract);
         public static Vector operator -(Vector vector, float scalar) => 
-            vector.InPlace ? vector.IPOP(scalar, Operations.subtract) : OP(vector, scalar, Operations.subtract);
+            OP(vector, scalar, Operations.subtract);
         public static Vector operator -(float scalar, Vector vector) => 
-            vector.InPlace ? vector.IPOP(scalar, Operations.subtract) : OP(vector, scalar, Operations.flipSubtract);
+            OP(vector, scalar, Operations.flipSubtract);
 
         public static Vector operator *(Vector vectorA, Vector vectorB) => 
-            vectorA.InPlace ? vectorA.IPOP(vectorB, Operations.multiply) : OP(vectorA, vectorB, Operations.multiply);
+            OP(vectorA, vectorB, Operations.multiply);
 
         public static Vector operator *(Vector vector, float scalar) => 
-            vector.InPlace ? vector.IPOP(scalar, Operations.multiply) : OP(vector, scalar, Operations.multiply);
+            OP(vector, scalar, Operations.multiply);
 
         public static Vector operator *(float scalar, Vector vector) =>
-            vector.InPlace ? vector.IPOP(scalar, Operations.multiply) : OP(vector, scalar, Operations.multiply);
+            OP(vector, scalar, Operations.multiply);
 
         public static Vector operator /(Vector vectorA, Vector vectorB) => 
-            vectorA.InPlace ? vectorA.IPOP(vectorB, Operations.divide) : OP(vectorA, vectorB, Operations.divide);
+            OP(vectorA, vectorB, Operations.divide);
         public static Vector operator /(Vector vector, float scalar) => 
-            vector.InPlace ? vector.IPOP(scalar, Operations.divide) : OP(vector, scalar, Operations.divide);
+            OP(vector, scalar, Operations.divide);
         public static Vector operator /(float scalar, Vector vector) =>
-            vector.InPlace ? vector.IPOP(scalar, Operations.divide) : OP(vector, scalar, Operations.flipDivide);
+            OP(vector, scalar, Operations.flipDivide);
 
         public static Vector operator ^(Vector vectorA, Vector vectorB) => 
-            vectorA.InPlace ? vectorA.IPOP(vectorB, Operations.pow) : OP(vectorA, vectorB, Operations.pow);
+            OP(vectorA, vectorB, Operations.pow);
         public static Vector operator ^(Vector vector, float scalar) => 
-            vector.InPlace ? vector.IPOP(scalar, Operations.pow) : OP(vector, scalar, Operations.pow);
+            OP(vector, scalar, Operations.pow);
         public static Vector operator ^(float Scalar, Vector vector) => 
-            vector.InPlace ? vector.IPOP(Scalar, Operations.pow) : OP(vector, Scalar, Operations.flipPow);
-
-        /// <summary>
-        /// Flips the inplace flag on/off
-        /// </summary>
-        /// <param name="vector"></param>
-        /// <returns></returns>
-        public static Vector operator ~(Vector vector)
-        {
-            vector.InPlace = !vector.InPlace;
-            return vector;
-        }
+            OP(vector, Scalar, Operations.flipPow);
 
 
         #endregion
@@ -256,7 +234,7 @@ namespace BAVCL
             vector.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new(gpu, new float[vector.Length], vector.Columns);
+            Vector Output = new(gpu, vector.Length, vector.Columns);
 
             Output.IncrementLiveCount();
 
@@ -300,7 +278,7 @@ namespace BAVCL
             vectorB.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new(gpu, new float[vectorA.Length], vectorA.Columns);
+            Vector Output = new(gpu, vectorA.Length, vectorA.Columns);
             Output.IncrementLiveCount();
 
             // Check if the input & output are in Cache
@@ -353,7 +331,7 @@ namespace BAVCL
             matrix.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new(gpu, new float[vector.Length], vector.Columns);
+            Vector Output = new(gpu, vector.Length, vector.Columns);
 
             Output.IncrementLiveCount();
 
@@ -384,7 +362,7 @@ namespace BAVCL
             matrix.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new(gpu, new float[Length], Columns);
+            Vector Output = new(gpu, matrix.Length, Columns);
 
             Output.IncrementLiveCount();
 

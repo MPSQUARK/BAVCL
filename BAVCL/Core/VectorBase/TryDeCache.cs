@@ -12,7 +12,7 @@
 
             // Else Decache
             Value = Pull();
-            ID = gpu.DeCacheLRU(ID);
+            ID = gpu.GCItem(ID);
         }
 
 
