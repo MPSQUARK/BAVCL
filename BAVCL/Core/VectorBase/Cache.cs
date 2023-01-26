@@ -9,8 +9,7 @@ namespace BAVCL.Core
 		/// </summary>
 		internal MemoryBuffer Cache()
         {
-			MemoryBuffer buffer;
-			(ID, buffer) = gpu.Allocate(this, Value);
+			(ID, MemoryBuffer buffer) = gpu.Allocate(this);
 			return buffer;
 		}
 			
@@ -20,10 +19,17 @@ namespace BAVCL.Core
 		/// </summary>
 		internal MemoryBuffer Cache(T[] array)
         {
-			MemoryBuffer buffer;
-			(ID, buffer) = gpu.Allocate(this, array);
+			(ID, MemoryBuffer buffer) = gpu.Allocate(this,array);
 			return buffer;
 		}
+
+
+		internal MemoryBuffer CacheEmpty(int length)
+        {
+			(ID, MemoryBuffer buffer) = gpu.AllocateEmpty<T>(this, length);
+			return buffer;
+		}
+
 
 	}
 
