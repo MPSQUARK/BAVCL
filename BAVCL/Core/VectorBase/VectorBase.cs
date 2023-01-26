@@ -59,7 +59,13 @@ namespace BAVCL.Core
         }
 
 
-		public T[] Pull() => GetBuffer().GetAsArray1D();
+		public T[] Pull() 
+		{
+            MemoryBuffer1D<T, Stride1D.Dense> buffer = GetBuffer();
+            T[] values = new T[buffer.Length];
+            buffer.AsArrayView<T>(0, buffer.Length).CopyToCPU(values);
+			return values;
+        } 
 
 		public T GetValue(int row, int col)
 		{
