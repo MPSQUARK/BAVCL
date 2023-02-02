@@ -9,13 +9,11 @@ namespace BAVCL
     {
         public MemoryBuffer MemoryBuffer;
         public WeakReference<ICacheable> CachedObjRef;
-        public uint LiveCount;
 
         public Cache(MemoryBuffer memoryBuffer, WeakReference<ICacheable> cachedObjRef)
         {
             MemoryBuffer = memoryBuffer;
             CachedObjRef = cachedObjRef;
-            LiveCount = 0;
         }
     }
 }
