@@ -1,6 +1,4 @@
-﻿using ILGPU;
-using ILGPU.Runtime;
-using System;
+﻿using ILGPU.Runtime;
 
 namespace BAVCL.Core
 {
@@ -8,6 +6,7 @@ namespace BAVCL.Core
     {
         public MemoryBuffer UpdateCache()
         {
+            Length = Value.Length;
             if (ID == 0) return Cache();
 
             ID = gpu.GCItem(ID);
@@ -16,6 +15,7 @@ namespace BAVCL.Core
 
         public MemoryBuffer UpdateCache(T[] array)
         {
+            Length = array.Length;
             (ID, MemoryBuffer buffer) = gpu.UpdateBuffer(this, array);
             return buffer;
         }
