@@ -127,21 +127,16 @@ namespace BAVCL.Core
                     throw new Exception(
                         $"GPU states {_liveObjectCount} Live Tasks Running, while requiring {memRequired >> 20} MB which is more than available {(AvailableMemory - MemoryUsed) >> 20} MB. Potential cause: memory leak");
 
-                // Get the ID of the last item
-                if (!_lru.TryDequeue(out uint Id)) throw new Exception($"LRU Empty Cannot Continue DeCaching");
-
-
-                // Try Get Reference to and the object of ICacheable
-                if (Caches.TryGetValue(Id, out Cache cache))
+                lock (this)
                 {
-                    if (cache.LiveCount > 0) { _lru.Enqueue(Id); continue; }
+                    // Get the ID of the last item
+                    if (!_lru.TryDequeue(out uint Id)) throw new Exception($"LRU Empty Cannot Continue DeCaching");
 
-                    // sync to vector if newer
-                    if (cache.CachedObjRef.TryGetTarget(out ICacheable cacheable))
-                        cacheable.SyncCPU(cache.MemoryBuffer);
-
-                    lock (this)
+                    // Try Get Reference to and the object of ICacheable
+                    if (Caches.TryGetValue(Id, out Cache cache))
                     {
+                        if (IsICacheableLive(cache, Id)) continue;    
+
                         cache.MemoryBuffer.Dispose();
                         UpdateMemoryUsage(-cache.MemoryBuffer.LengthInBytes);
                         SubtractLiveTask();
@@ -153,22 +148,43 @@ namespace BAVCL.Core
 
         public uint GCItem(uint Id)
         {
-            if (Caches.TryGetValue(Id, out Cache cache))
-            {
-                if (cache.LiveCount > 0) { _lru.Enqueue(Id); return 0; }
-                WeakReference<ICacheable> referenceCacheable = cache.CachedObjRef;
-                // sync to vector if newer
+            if (!Caches.TryGetValue(Id, out Cache cache)) return 0;
 
-                lock (this)
-                {
-                    cache.MemoryBuffer.Dispose();
-                    UpdateMemoryUsage(-cache.MemoryBuffer.LengthInBytes);
-                    SubtractLiveTask();
-                    Caches.TryRemove(Id, out _);
-                    RemoveFromLRU(Id);
-                }
+            lock (this)
+            {
+                if (IsICacheableLive(cache, Id)) return Id;
+
+                cache.MemoryBuffer.Dispose();
+                UpdateMemoryUsage(-cache.MemoryBuffer.LengthInBytes);
+                SubtractLiveTask();
+                Caches.TryRemove(Id, out _);
+                RemoveFromLRU(Id);
             }
+
             return 0;
+        }
+
+        /// <summary>
+        /// If ICachable is live, it will re-add it back to the LRU
+        /// If not live, will sync the data back to the cpu
+        /// If not present, will say data can be decached
+        /// </summary>
+        /// <param name="cache"></param>
+        /// <param name="Id"></param>
+        /// <returns></returns>
+        private bool IsICacheableLive(Cache cache, uint Id)
+        {
+            if (!cache.CachedObjRef.TryGetTarget(out ICacheable cacheable))
+                return false;
+            
+            if (cacheable.LiveCount == 0)
+            {
+                cacheable.SyncCPU(cache.MemoryBuffer);
+                return false;
+            }
+
+            _lru.Enqueue(Id);
+            return true;
         }
 
         private void RemoveFromLRU(uint Id)
