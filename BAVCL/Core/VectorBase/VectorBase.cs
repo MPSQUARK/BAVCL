@@ -17,7 +17,11 @@ namespace BAVCL.Core
 			set { _columns = value > 0 ? value : throw new Exception($"Columns must be a positive integer greater than zero. Recieved {value}"); }
 		}
 
-		public int Length { get; set; }
+		public int Length
+		{ 
+			get => _length; 
+			set => _length = value; 
+		}
 
 		public uint ID
 		{
@@ -34,10 +38,10 @@ namespace BAVCL.Core
 		}
 
 		protected internal int _columns = 1;
-		protected volatile internal uint _id = 0;
 		protected internal long _memorySize = 0;
-		protected volatile internal uint _livecount = 0;
-
+        protected volatile internal uint _id = 0;
+        protected volatile internal uint _livecount = 0;
+		protected volatile internal int _length = 0;
 
 		protected VectorBase(GPU gpu, T[] value, int columns = 1, bool Cache = true)
 		{
