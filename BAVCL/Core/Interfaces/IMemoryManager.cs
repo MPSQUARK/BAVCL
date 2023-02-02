@@ -32,9 +32,10 @@ namespace BAVCL.Core.Interfaces
             string usage;
 
             if (percentage)
-                usage = $"{MemoryUsed >> 20}/{AvailableMemory >> 20} MB";
-            else
                 usage = $"{(((double)MemoryUsed / (double)AvailableMemory) * 100f).ToString(format)}%";
+            else
+                usage = $"{(MemoryUsed >> 20).ToString(format)}/{(AvailableMemory >> 20).ToString(format)} MB";
+            // TODO: Add view in Bytes/KB/GB too
 
             Console.WriteLine(usage);
             return usage;
