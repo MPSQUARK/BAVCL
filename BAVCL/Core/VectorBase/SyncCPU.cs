@@ -8,6 +8,7 @@ namespace BAVCL.Core
         public void SyncCPU()
         {
             if (ID != 0) Value = Pull();
+            Length = Value.Length;
         }
 
         public void SyncCPU(MemoryBuffer buffer)
@@ -16,6 +17,7 @@ namespace BAVCL.Core
                 Value = new T[buffer.Length];
 
             buffer.AsArrayView<T>(0, buffer.Length).CopyToCPU(Value);
+            Length = Value.Length;
 
             //buffer.CopyToCPU<T>(ref Value);
 
