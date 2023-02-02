@@ -82,16 +82,13 @@ namespace BAVCL
 		public (uint, MemoryBuffer) Allocate<T>(ICacheable cacheable, T[] values) where T : unmanaged => memoryManager.Allocate(cacheable, values, accelerator);
 		public (uint, MemoryBuffer) AllocateEmpty<T>(ICacheable cacheable, int length) where T : unmanaged => memoryManager.AllocateEmpty<T>(cacheable, length, accelerator);
 		public MemoryBuffer TryGetBuffer<T>(uint Id) where T : unmanaged => memoryManager.GetBuffer(Id);
-
 		public (uint, MemoryBuffer) UpdateBuffer<T>(ICacheable cacheable, T[] values) where T : unmanaged => memoryManager.UpdateBuffer(cacheable, values, accelerator);
-
         public (uint, MemoryBuffer) UpdateBuffer<T>(ICacheable<T> cacheable) where T : unmanaged => memoryManager.UpdateBuffer(cacheable, accelerator);
-
-
         public uint GCItem(uint Id) => memoryManager.GCItem(Id);
+		public string PrintMemoryUsage(bool percentage, string format = "F2") => memoryManager.PrintMemoryUsage(percentage, format);
+		public string GetMemUsage() => memoryManager.MemoryUsed.ToString();
 
-
-		private Accelerator GetPreferedAccelerator(Context context, bool forceCPU)
+        private Accelerator GetPreferedAccelerator(Context context, bool forceCPU)
         {
 			var devices = context.Devices;
 
