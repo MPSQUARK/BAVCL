@@ -8,13 +8,13 @@ namespace BAVCL
     {
         public static Vector Transpose(Vector vector)
         {
-            if (vector.Columns == 1 || vector.Columns >= vector._length) { throw new Exception("Cannot transpose 1D Vector"); }
+            if (vector.Columns == 1 || vector.Columns >= vector.Length) { throw new Exception("Cannot transpose 1D Vector"); }
 
             // Prevent from decache
             vector.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new(vector.gpu, new float[vector._length], vector.RowCount());
+            Vector Output = new(vector.gpu, vector.Length, vector.RowCount());
 
             // Prevent from decache
             Output.IncrementLiveCount();

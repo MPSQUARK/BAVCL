@@ -7,7 +7,7 @@ namespace BAVCL.Geometric
     {
         public float GetValue(int i)
         {
-            if (i < 0 || i > _length) { throw new IndexOutOfRangeException(); }
+            if (i < 0 || i > Length) { throw new IndexOutOfRangeException(); }
             SyncCPU();
             return this.Value[i];
         }
@@ -24,12 +24,12 @@ namespace BAVCL.Geometric
                 case IndexingMode.Normal:
                     return GetValue(i);
                 case IndexingMode.NoCPUSync:
-                    if (i < 0 || i > _length) { throw new IndexOutOfRangeException(); }
+                    if (i < 0 || i > Length) { throw new IndexOutOfRangeException(); }
                     return this.Value[i];
                 case IndexingMode.NoGPUSync:
                     throw new Exception("Get values does not utilize GPUSync. Method call ambigious. Please use another mode.");
                 case IndexingMode.NoSync:
-                    if (i < 0 || i > _length) { throw new IndexOutOfRangeException(); }
+                    if (i < 0 || i > Length) { throw new IndexOutOfRangeException(); }
                     return this.Value[i];
                 default:
                     return GetValue(i);

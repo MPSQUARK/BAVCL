@@ -11,11 +11,11 @@ namespace BAVCL.Geometric
         #endregion
 
         // CONSTRUCTOR
-        public Vector3(GPU gpu, float[] value, bool cache = true) : base(gpu, value, 3, true)
-        {
-        }
+        public Vector3(GPU gpu, float[] value, bool cache = true) : 
+            base(gpu, value, 3, cache) {}
 
-
+        public Vector3(GPU gpu, int length) : 
+            base(gpu, length, 3) {}
 
 
         // Create Vector3

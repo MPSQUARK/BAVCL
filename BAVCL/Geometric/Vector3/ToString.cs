@@ -50,7 +50,7 @@ namespace BAVCL.Geometric
                 string nan = new(' ', decimalplaces);
 
 
-                for (int i = 0; i < _length; i++)
+                for (int i = 0; i < Length; i++)
                 {
                     if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
@@ -90,7 +90,7 @@ namespace BAVCL.Geometric
 
             if (hasnegative)
             {
-                for (int i = 0; i < _length; i++)
+                for (int i = 0; i < Length; i++)
                 {
                     if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
@@ -108,7 +108,7 @@ namespace BAVCL.Geometric
             }
 
 
-            for (int i = 0; i < _length; i++)
+            for (int i = 0; i < Length; i++)
             {
                 if (i % Columns == 0) { stringBuilder.AppendLine(); }
 

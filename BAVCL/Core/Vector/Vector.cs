@@ -12,7 +12,7 @@ namespace BAVCL
     /// Class for 1D and 2D Vector support
     /// Float Precision
     /// </summary>
-    public partial class Vector : VectorBase<float>
+    public sealed partial class Vector : VectorBase<float>
     {
 
         // CONSTRUCTOR
@@ -22,27 +22,21 @@ namespace BAVCL
         /// <param name="gpu">The device to use when computing this Vector.</param>
         /// <param name="values">The array of data contained in this Vector.</param>
         /// <param name="columns">The number of Columns IF this is a 2D Vector, for 1D Vectors use the default Columns = 1</param>
-        public Vector(GPU gpu, float[] values, int columns = 1, bool cache = true) : base(gpu, values, columns, cache)
-        {
-        }
+        public Vector(GPU gpu, float[] values, int columns = 1, bool cache = true) :
+            base(gpu, values, columns, cache) { }
 
+        public Vector(GPU gpu, int length, int columns = 1) :
+            base(gpu, length, columns) { }
 
         public float this[int i]
         {
-            get { return this.Value[i]; }
-            set { this.Value[i] = value; }
+            get => Value[i];
+            set => Value[i] = value;
         }
 
-        public override void Print()
-        {
-            Console.WriteLine(this.ToStr());
-            return;
-        }
-        public void Print(byte decimalplaces = 2, bool syncCPU = true)
-        {
-            Console.WriteLine(this.ToStr(decimalplaces, syncCPU));
-            return;
-        }
+        public override void Print() => Console.WriteLine(ToStr());
+
+        public void Print(byte decimalplaces = 2, bool syncCPU = true) => Console.WriteLine(ToStr(decimalplaces, syncCPU));
 
         // METHODS
         public bool Equals(Vector vector)
@@ -50,43 +44,36 @@ namespace BAVCL
             SyncCPU();
             vector.SyncCPU();
 
-            if (this._length != vector._length) { return false; }
+            if (Length != vector.Length) return false;
 
-            for (int i = 0; i < vector._length; i++)
-            {
-                if (this.Value[i] != vector.Value[i]) { return false; }
-            }
+            for (int i = 0; i < Length; i++)
+                if (this.Value[i] != vector.Value[i]) return false;
 
             return true;
         }
+
         public Vector Copy(bool Cache = true)
         {
-            if (this._id == 0)
-            {
-                return new Vector(this.gpu, this.Value[..], this.Columns, Cache);
-            }
+            if (ID == 0)
+                return new Vector(gpu, Value[..], Columns, Cache);
 
-            return new Vector(this.gpu, this.Pull(), this.Columns, Cache);
+            return new Vector(gpu, Pull(), Columns, Cache);
         }
 
+        #region "MATHEMATICAL PROPERTIES"
+        public override float Mean() => Sum() / Length;
 
-        #region "MATHEMATICAL PROPERTIES "
-        public override float Mean()
-        {
-            return Sum() / _length;
-        }
-        public float Std()
-        {
-            return XMath.Sqrt(Var());
-        }
+        public float Std() => XMath.Sqrt(Var());
+
         public float Var()
         {
             SyncCPU();
 
-            if (this._length < 1e4f)
+            if (Length < 10000)
             {
-                int vectorSize = System.Numerics.Vector<float>.Count;
-                int i = 0;
+                int
+                    vectorSize = System.Numerics.Vector<float>.Count,
+                    i = 0;
 
                 float[] array = this.Value;
 
@@ -99,42 +86,29 @@ namespace BAVCL
                 for (; i <= array.Length - vectorSize; i += vectorSize)
                 {
                     System.Numerics.Vector<float> input = new(array, i);
-
                     System.Numerics.Vector<float> difference = input - meanvec;
 
                     sumVector += (difference * difference);
-
                 }
 
                 float sum = 0;
 
                 for (int j = 0; j < vectorSize; j++)
-                {
                     sum += sumVector[j];
-                }
 
                 for (; i < array.Length; i++)
-                {
                     sum += XMath.Pow((array[i] - mean), 2f);
-                }
 
-                return sum / this.Length;
+                return sum / Length;
             }
 
             //Vector diff = Vector.AbsX(this - this.Mean());
 
             //return (diff * diff).Sum() / this.Length();
-            return Vector.OP(this, this.Mean(), Operations.subtractSquare).Sum() / this._length;
+            return OP(this, Mean(), Operations.subtractSquare).Sum() / Length;
         }
-        public override float Range()
-        {
-            return Max() - Min();
-        }
-        
-        public void Flatten()
-        {
-            this.Columns = 1;
-        }
+        public override float Range() => Max() - Min();
+        public void Flatten() => this.Columns = 1;
 
         public override float Min()
         {
@@ -155,108 +129,57 @@ namespace BAVCL
 
         public Geometric.Vector3 ToVector3()
         {
-            if (this.Length % 3 != 0) { throw new Exception("Vector length must be a multiple of 3"); }
-            if (this._id != 0)
-            {
-                return new Geometric.Vector3(this.gpu, this.Pull());
-            }
-            return new Geometric.Vector3(this.gpu, this.Value);
+            if (Length % 3 != 0) { throw new Exception("Vector length must be a multiple of 3"); }
+            if (ID != 0)
+                return new Geometric.Vector3(gpu, Pull());
+
+            return new Geometric.Vector3(gpu, Value);
         }
 
         #endregion
 
 
         #region "OPERATORS"
-        public static Vector operator +(Vector vector)
-        {
-            return Vector.AbsX(vector);
-        }
+        public static Vector operator +(Vector vector) => 
+            AbsX(vector);
+        public static Vector operator +(Vector vectorA, Vector vectorB) => 
+            OP(vectorA, vectorB, Operations.add);
+        public static Vector operator +(Vector vector, float Scalar) => 
+            OP(vector, Scalar, Operations.add);
+        public static Vector operator +(float Scalar, Vector vector) => 
+            OP(vector, Scalar, Operations.add);
 
+        public static Vector operator -(Vector vector) => 
+            OP(vector, -1, Operations.multiply);
+        public static Vector operator -(Vector vectorA, Vector vectorB) => 
+            OP(vectorA, vectorB, Operations.subtract);
+        public static Vector operator -(Vector vector, float scalar) => 
+            OP(vector, scalar, Operations.subtract);
+        public static Vector operator -(float scalar, Vector vector) => 
+            OP(vector, scalar, Operations.flipSubtract);
 
+        public static Vector operator *(Vector vectorA, Vector vectorB) => 
+            OP(vectorA, vectorB, Operations.multiply);
 
-        public static Vector operator +(Vector vectorA, Vector vectorB)
-        {
-            return Vector.OP(vectorA, vectorB, Operations.add);
-        }
-        public static Vector operator +(Vector vector, float Scalar)
-        {
-            return Vector.OP(vector, Scalar, Operations.add);
-        }
-        public static Vector operator +(float Scalar, Vector vector)
-        {
-            return Vector.OP(vector, Scalar, Operations.add);
-        }
+        public static Vector operator *(Vector vector, float scalar) => 
+            OP(vector, scalar, Operations.multiply);
 
+        public static Vector operator *(float scalar, Vector vector) =>
+            OP(vector, scalar, Operations.multiply);
 
+        public static Vector operator /(Vector vectorA, Vector vectorB) => 
+            OP(vectorA, vectorB, Operations.divide);
+        public static Vector operator /(Vector vector, float scalar) => 
+            OP(vector, scalar, Operations.divide);
+        public static Vector operator /(float scalar, Vector vector) =>
+            OP(vector, scalar, Operations.flipDivide);
 
-        public static Vector operator -(Vector vector)
-        {
-            return Vector.OP(vector, -1, Operations.multiply);
-        }
-
-
-
-        public static Vector operator -(Vector vectorA, Vector vectorB)
-        {
-            return Vector.OP(vectorA, vectorB, Operations.subtract);
-        }
-        public static Vector operator -(Vector vector, float Scalar)
-        {
-            return Vector.OP(vector, Scalar, Operations.subtract);
-        }
-
-        public static Vector operator -(float Scalar, Vector vector)
-        {
-            return Vector.OP(vector, Scalar, Operations.flipSubtract);
-        }
-
-
-
-        public static Vector operator *(Vector vectorA, Vector vectorB)
-        {
-            return Vector.OP(vectorA, vectorB, Operations.multiply);
-        }
-        public static Vector operator *(Vector vector, float Scalar)
-        {
-            return Vector.OP(vector, Scalar, Operations.multiply);
-        }
-        public static Vector operator *(float Scalar, Vector Vector)
-        {
-            return Vector.OP(Vector, Scalar, Operations.multiply);
-        }
-
-
-
-        public static Vector operator /(Vector vectorA, Vector vectorB)
-        {
-            return Vector.OP(vectorA, vectorB, Operations.divide);
-        }
-        public static Vector operator /(Vector vector, float Scalar)
-        {
-            return Vector.OP(vector, Scalar, Operations.divide);
-        }
-        public static Vector operator /(float Scalar, Vector vector)
-        {
-            return Vector.OP(vector, Scalar, Operations.flipDivide);
-        }
-
-
-
-        public static Vector operator ^(Vector vectorA, Vector vectorB)
-        {
-            return Vector.OP(vectorA, vectorB, Operations.pow);
-        }
-        public static Vector operator ^(Vector vector, float Scalar)
-        {
-            return Vector.OP(vector, Scalar, Operations.pow);
-        }
-        public static Vector operator ^(float Scalar, Vector vector)
-        {
-            return Vector.OP(vector, Scalar, Operations.flipPow);
-        }
-
-
-
+        public static Vector operator ^(Vector vectorA, Vector vectorB) => 
+            OP(vectorA, vectorB, Operations.pow);
+        public static Vector operator ^(Vector vector, float scalar) => 
+            OP(vector, scalar, Operations.pow);
+        public static Vector operator ^(float Scalar, Vector vector) => 
+            OP(vector, Scalar, Operations.flipPow);
 
 
         #endregion
@@ -267,33 +190,30 @@ namespace BAVCL
         public static Vector OP(Vector vectorA, Vector vectorB, Operations operation, bool Warp = false)
         {
             // Check function conditions
-            if (vectorA._length == vectorB._length)
-            {
+            if (vectorA.Length == vectorB.Length)
                 return _VectorVectorOP(vectorA, vectorB, operation);
-            }
 
-            bool ThisLonger = vectorA._length > vectorB._length;
+
+            bool ThisLonger = vectorA.Length > vectorB.Length;
 
 
             // If one input is a Vector and other is Matrix
             if ((vectorA.Columns == 1 && vectorB.Columns > 1) || (vectorA.Columns > 1 && vectorB.Columns == 1))
             {
-                if (ThisLonger) { return _VectorMatrixOP(vectorB, vectorA, operation); }
+                if (ThisLonger) return _VectorMatrixOP(vectorB, vectorA, operation);
+
                 return _VectorMatrixOP(vectorA, vectorB, operation);
             }
-
 
             throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
         }
 
-        public Vector OP_IP(Vector vectorB, Operations operation)
+        public Vector IPOP(Vector vectorB, Operations operation)
         {
             // If the lengths are the same and both 1D vectors
-            if (this._length == vectorB._length && vectorB.Columns == 1 && this.Columns == 1)
-            {
-                this._VectorVectorOP_IP(vectorB, operation);
-                return this;
-            }
+            if (Length == vectorB.Length && vectorB.Columns == 1 && this.Columns == 1)
+                return _VectorVectorOP_IP(vectorB, operation);
+
 
             bool ThisLonger = this.Value.Length > vectorB.Value.Length;
 
@@ -314,7 +234,7 @@ namespace BAVCL
             vector.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new(gpu, new float[vector._length], vector.Columns);
+            Vector Output = new(gpu, vector.Length, vector.Columns);
 
             Output.IncrementLiveCount();
 
@@ -333,7 +253,7 @@ namespace BAVCL
             return Output;
         }
 
-        public Vector OP_IP(float scalar, Operations operation)
+        public Vector IPOP(float scalar, Operations operation)
         {
             IncrementLiveCount();
 
@@ -358,7 +278,7 @@ namespace BAVCL
             vectorB.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new(gpu, new float[vectorA._length], vectorA.Columns);
+            Vector Output = new(gpu, vectorA.Length, vectorA.Columns);
             Output.IncrementLiveCount();
 
             // Check if the input & output are in Cache
@@ -411,7 +331,7 @@ namespace BAVCL
             matrix.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new Vector(gpu, new float[vector._length], vector.Columns);
+            Vector Output = new(gpu, vector.Length, vector.Columns);
 
             Output.IncrementLiveCount();
 
@@ -442,7 +362,7 @@ namespace BAVCL
             matrix.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new(gpu, new float[_length], Columns);
+            Vector Output = new(gpu, matrix.Length, Columns);
 
             Output.IncrementLiveCount();
 
@@ -481,16 +401,6 @@ namespace BAVCL
 
             return this;
         }
-
-
-
-
-
-
-
-
-
-
 
     }
 

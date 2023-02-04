@@ -13,10 +13,8 @@ namespace BAVCL
         /// </summary>
         /// <param name="vector"></param>
         /// <returns></returns>
-        public static Vector Rsqrt(Vector vector)
-        {
-            return vector.Copy().Rsqrt_IP();
-        }
+        public static Vector Rsqrt(Vector vector) => vector.Copy().Rsqrt_IP();
+        
         /// <summary>
         /// Takes the absolute value of all values in this Vector.
         /// IMPORTANT : Use this method for Vectors of Length less than 100,000
@@ -27,7 +25,7 @@ namespace BAVCL
 
             if (Min() > 0f) { return this; }
 
-            for (int i = 0; i < this._length; i++)
+            for (int i = 0; i < this.Length; i++)
             {
                 Value[i] = XMath.Rsqrt(Value[i]);
             }
@@ -36,6 +34,7 @@ namespace BAVCL
 
             return this;
         }
+
         /// <summary>
         /// Runs on Accelerator. (GPU : Default)
         /// Takes the absolute value of all the values in the Vector.
@@ -43,10 +42,8 @@ namespace BAVCL
         /// </summary>
         /// <param name="vector"></param>
         /// <returns></returns>
-        public static Vector RsqrtX(Vector vector)
-        {
-            return vector.Copy().Rsqrt_IP();
-        }
+        public static Vector RsqrtX(Vector vector) => vector.Copy().Rsqrt_IP();
+
         /// <summary>
         /// Runs on Accelerator. (GPU : Default)
         /// Takes the absolute value of all the values in this Vector.
