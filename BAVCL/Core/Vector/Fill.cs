@@ -11,10 +11,9 @@ namespace BAVCL
         /// <param name="Length"></param>
         /// <param name="Columns"></param>
         /// <returns></returns>
-        public static Vector Fill(GPU gpu, float Value, int Length, int Columns = 1)
-        {
-            return new Vector(gpu, Enumerable.Repeat(Value, Length).ToArray(), Columns);
-        }
+        public static Vector Fill(GPU gpu, float Value, int Length, int Columns = 1, bool Cache = true) =>
+            new(gpu, Enumerable.Repeat(Value, Length).ToArray(), Columns, Cache);
+
 
         /// <summary>
         /// Sets all values in THIS Vector to value, of a set size and columns
@@ -28,5 +27,6 @@ namespace BAVCL
             this.Columns = Columns;
             return this;
         }
+
     }
 }

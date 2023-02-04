@@ -4,23 +4,23 @@
     {
         public static Vector TransferBuffer(Vector Inheritee, Vector Temp, bool IncColumns = false)
         {
-            Inheritee.gpu.DeCache(Inheritee._id);
-            Inheritee._id = Temp._id;
-            Inheritee._length = Temp._length;
-            if (IncColumns) { Inheritee._columns = Temp._columns; }
+            Inheritee.gpu.GCItem(Inheritee.ID);
+            Inheritee.ID = Temp.ID;
+            Inheritee.Value = Temp.Value;
+            if (IncColumns) { Inheritee.Columns = Temp.Columns; }
 
-            Temp._id = 0;
+            Temp.ID = 0;
             return Inheritee;
         }
 
         public Vector TransferBuffer(Vector Temp, bool IncColumns=false)
         {
-            gpu.DeCache(_id);
-            _id = Temp._id;
-            _length = Temp._length;
-            if (IncColumns) { _columns = Temp._columns; }
+            gpu.GCItem(ID);
+            ID = Temp.ID;
+            Value = Temp.Value;
+            if (IncColumns) { Columns = Temp.Columns; }
 
-            Temp._id = 0;
+            Temp.ID = 0;
             return this;
         }
 

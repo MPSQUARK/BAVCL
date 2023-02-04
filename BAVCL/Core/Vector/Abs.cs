@@ -26,7 +26,7 @@ namespace BAVCL
 
             if (Min() > 0f) { return this; }
 
-            for (int i = 0; i < this._length; i++)
+            for (int i = 0; i < Length; i++)
             {
                 Value[i] = MathF.Abs(Value[i]);
             }

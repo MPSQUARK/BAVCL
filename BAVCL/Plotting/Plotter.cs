@@ -56,7 +56,7 @@ namespace BAVCL.Plotting
             Array.Fill(Data, 255);
 
             Vector range = Vector.Arange(gpu, p1[0], p2[0], 1);
-            range.OP_IP(m, Operations.multiply).OP_IP(p1[1], Operations.add);
+            range.IPOP(m, Operations.multiply).IPOP(p1[1], Operations.add);
 
             range.SyncCPU();
             HashSet<float> idxs = range.Value.ToHashSet();

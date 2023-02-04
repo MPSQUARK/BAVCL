@@ -14,9 +14,9 @@ namespace BAVCL
 
         public string ToStr(byte decimalplaces = 2, bool syncCPU = true)
         {
-            if ((this.Value == null) || syncCPU) { this.SyncCPU(); }
+            if ((Value == null) || syncCPU) { SyncCPU(); }
 
-            (float min, float max, bool hasinfinity) = Util.MinMaxInf(this.Value);
+            (float min, float max, bool hasinfinity) = Util.MinMaxInf(Value);
 
             bool hasnegative = min < 0f;
 
@@ -37,47 +37,47 @@ namespace BAVCL
             Template[^2] = ' '; // Padding
             Template[^1] = '|'; // Padding
 
-
             StringBuilder stringBuilder = new();
             char[] clear = new string(' ', Template.Length - 6).ToCharArray();
             int _diff = digits + 4 + decimalplaces;
 
             if (hasinfinity)
             {
-                string inf = new(' ', digits - 3);
-                string afterinf = new(' ', decimalplaces + 1);
-                string nan = new(' ', decimalplaces);
+                string 
+                    inf = new(' ', digits - 3),
+                    afterinf = new(' ', decimalplaces + 1),
+                    nan = new(' ', decimalplaces);
 
 
-                for (int i = 0; i < _length; i++)
+                for (int i = 0; i < Length; i++)
                 {
                     if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
                     Template[2] = Value[i] < 0f ? '-' : ' ';
 
-                    if (float.IsFinite(this.Value[i]))
+                    if (float.IsFinite(Value[i]))
                     {
                         clear.CopyTo(Template, 3);
-                        string val = Math.Abs(this.Value[i]).ToString(format);
+                        string val = Math.Abs(Value[i]).ToString(format);
                         val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                         stringBuilder.Append(Template);
                         continue;
                     }
 
-                    if (float.IsPositiveInfinity(this.Value[i]))
+                    if (float.IsPositiveInfinity(Value[i]))
                     {
                         stringBuilder.Append($"|  {inf}INF{afterinf} |");
                         continue;
                     }
 
-                    if (float.IsNaN(this.Value[i]))
+                    if (float.IsNaN(Value[i]))
                     {
                         stringBuilder.Append($"|  {inf}NaN{afterinf} |");
                         continue;
                     }
 
-                    if (float.IsNegativeInfinity(this.Value[i]))
+                    if (float.IsNegativeInfinity(Value[i]))
                     {
                         stringBuilder.Append($"| -{inf}INF{nan}  |");
                         continue;
@@ -89,14 +89,14 @@ namespace BAVCL
 
             if (hasnegative)
             {
-                for (int i = 0; i < _length; i++)
+                for (int i = 0; i < Length; i++)
                 {
                     if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
                     Template[2] = Value[i] < 0f ? '-' : ' ';
 
                     clear.CopyTo(Template, 3);
-                    string val = Math.Abs(this.Value[i]).ToString(format);
+                    string val = Math.Abs(Value[i]).ToString(format);
                     val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                     stringBuilder.Append(Template);
@@ -107,12 +107,12 @@ namespace BAVCL
             }
 
 
-            for (int i = 0; i < _length; i++)
+            for (int i = 0; i < Length; i++)
             {
                 if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
                 clear.CopyTo(Template, 3);
-                string val = this.Value[i].ToString(format);
+                string val = Value[i].ToString(format);
                 val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                 stringBuilder.Append(Template);

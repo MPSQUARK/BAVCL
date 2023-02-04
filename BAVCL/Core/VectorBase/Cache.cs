@@ -1,64 +1,37 @@
 ﻿using ILGPU.Runtime;
-using System;
 
 namespace BAVCL.Core
 {
-    public partial class VectorBase<T>
-    {
-        internal void Cache()
+	public partial class VectorBase<T>
+	{
+		/// <summary>
+		/// Store info about data to LRU
+		/// </summary>
+		internal MemoryBuffer Cache()
         {
-            this._memorySize = this.CalculateMemorySize();
+			(ID, MemoryBuffer buffer) = gpu.Allocate(this);
+			return buffer;
+		}
+			
 
-            // Ensure enough space on gpu for cache
-            this.gpu.DeCacheLRU(this._memorySize);
-
-            // Increase Live task count
-            this.gpu.AddLiveTask();
-
-            // Allocate data to gpu
-            MemoryBuffer Buffer = Allocate();
-
-            // Get a weakreference of buffer
-            WeakReference<ICacheable> VectorReference = new(this);
-
-            // Store info about data to LRU
-            this._id = this.gpu.Allocate(VectorReference, Buffer, this._memorySize);
-
-            this._length = this.Value.Length;
-
-            // Get ID 
-            return;
-        }
-
-        internal void Cache(T[] array)
+		/// <summary>
+		/// Store info about data to LRU
+		/// </summary>
+		internal MemoryBuffer Cache(T[] array)
         {
-            this._memorySize = this.CalculateMemorySize(array);
-
-            // Ensure enough space on gpu for cache
-            this.gpu.DeCacheLRU(this._memorySize);
-
-            // Increase Live task count
-            this.gpu.AddLiveTask();
-
-            // Allocate data to gpu
-            MemoryBuffer Buffer = Allocate(array);
-
-            // Get a weakreference of buffer
-            WeakReference<ICacheable> VectorReference = new(this);
-
-            // Store info about data to LRU
-            this._id = this.gpu.Allocate(VectorReference, Buffer, this._memorySize);
-
-            // Update Length Property
-            this._length = array.Length;
-
-            // Get ID 
-            return;
-        }
+			(ID, MemoryBuffer buffer) = gpu.Allocate(this,array);
+			return buffer;
+		}
 
 
+		internal MemoryBuffer CacheEmpty(int length)
+        {
+			(ID, MemoryBuffer buffer) = gpu.AllocateEmpty<T>(this, length);
+			return buffer;
+		}
 
-    }
+
+	}
 
 
 }
