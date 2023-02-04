@@ -1,6 +1,5 @@
 ﻿using System;
 using BenchmarkDotNet.Running;
-
 using BAVCL;
 using BAVCL.Core;
 using BAVCL.Geometric;
@@ -11,6 +10,7 @@ using ILGPU.Runtime;
 using ILGPU;
 
 GPU gpu = new();
+Vector vec = Vector.Arange(gpu,0f, 20000000f, 0.5f,5);
 
 int len = 3;
 
