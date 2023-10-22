@@ -31,6 +31,7 @@ namespace BAVCL
 		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>> crossKernel;
 		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, int> transposekernel;
 		public Action<AcceleratorStream, Index1D, ArrayView<float>, float> LogKernel;
+		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> simdVectorKernel
 		
 		
 		public void LoadKernels()
@@ -45,6 +46,8 @@ namespace BAVCL
 			a_opFKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernel);
 			s_opFKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernel);
 			vectormatrixOpKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(VectorMatrixKernel);
+
+			simdVectorKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(SIMDVectorKernel);
 
 			a_FloatOPKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernelIP);
 			s_FloatOPKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernelIP);
@@ -232,7 +235,6 @@ namespace BAVCL
 					break;
 			}
 		}
-
 		static void VectorMatrixKernel(Index1D index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, int Cols, SpecializedValue<int> operation)
 		{
 			int startidx = index * Cols;
@@ -283,6 +285,33 @@ namespace BAVCL
 			}
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="index"></param>
+		/// <param name="Output"></param>
+		/// <param name="InputA"></param>
+		/// <param name="InputB"></param>
+		/// <param name="Cols"></param>
+		/// <param name="operation"></param>
+		static void SIMDVectorKernel(Index1D index, ArrayView<float> Output, ArrayView<float> InputA, ArrayView<float> InputB, int Cols, SpecializedValue<int> operation)
+		{
+			int startidx = index * Cols;
+			
+			switch ((Operations)operation.Value)
+			{
+				case Operations.multiply:
+					for (int i = 0; i < Cols; i++)
+						Output[index] += InputA[startidx + i] * InputB[startidx + i];
+					break;
+				case Operations.distance:
+					for (int i = 0; i < Cols; i++)
+						Output[index] += XMath.Pow(InputA[startidx + i] - InputB[startidx + i], 2f);
+					Output[index] = XMath.Sqrt(Output[index]);
+					break;
+			}
+		}
+		
 		static void DiffKernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
 		{
 			Output[index] = Input[index + 1] - Input[index];
