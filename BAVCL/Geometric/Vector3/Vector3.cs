@@ -4,91 +4,96 @@ using BAVCL.Core;
 namespace BAVCL.Geometric
 {
 
-    public partial class Vector3 : VectorBase<float>
-    {
-        #region "Variables"
-        public override int Columns { get { return _columns; } set { _columns = 3; } }
-        #endregion
+	public sealed partial class Vector3 : VectorBase<float>
+	{
+		#region "Variables"
+		public override int Columns { get { return _columns; } set { _columns = 3; } }
+		#endregion
 
-        // CONSTRUCTOR
-        public Vector3(GPU gpu, float[] value, bool cache = true) : 
-            base(gpu, value, 3, cache) {}
+		// CONSTRUCTOR
+		public Vector3(GPU gpu, float[] value, bool cache = true) : 
+			base(gpu, value, 3, cache) {}
 
-        public Vector3(GPU gpu, int length) : 
-            base(gpu, length, 3) {}
-
-
-        // Create Vector3
-        public static Vector3 Fill(GPU gpu, float Value, int Length)
-        {
-            return new Vector3(gpu, Enumerable.Repeat(Value, Length).ToArray());
-        }
-        public static Vector3 Zeros(GPU gpu, int Length)
-        {
-            return new Vector3(gpu, new float[Length]);
-        }
+		public Vector3(GPU gpu, int length) : 
+			base(gpu, length, 3) {}
 
 
-        // DATA Management
-        public Vector3 Copy()
-        {
-            if (_id != 0)
-            {
-                return new Vector3(gpu, Pull());
-            }
-            return new Vector3(gpu, Value[..]);
-        }
-
-        public static Vector3 AccessRow(Vector3 vector, int vert_row)
-        {
-            vector.SyncCPU();
-            return new Vector3(vector.gpu, vector.Value[(vert_row * 3)..((vert_row + 1) * 3)]);
-        }
+		// Create Vector3
+		public static Vector3 Fill(GPU gpu, float Value, int Length)
+		{
+			return new Vector3(gpu, Enumerable.Repeat(Value, Length).ToArray());
+		}
+		public static Vector3 Zeros(GPU gpu, int Length)
+		{
+			return new Vector3(gpu, new float[Length]);
+		}
 
 
-        // CONVERT TO GENERIC VECTOR
-        public Vector ToVector(bool cache = true)
-        {
-            if (_id != 0)
-            {
-                return new Vector(this.gpu, Pull(), this.Columns, cache);
-            }
-            return new Vector(this.gpu, this.Value, this.Columns, cache);
-        }
-        public Vector ToVector(int Columns, bool cache = true)
-        {
-            if (_id != 0)
-            {
-                return new Vector(this.gpu, Pull(), this.Columns, cache);
-            }
-            return new Vector(this.gpu, this.Value, Columns, cache);
-        }
+		// DATA Management
+		public Vector3 Copy()
+		{
+			if (_id != 0)
+			{
+				return new Vector3(gpu, Pull());
+			}
+			return new Vector3(gpu, Value[..]);
+		}
+
+		public static Vector3 AccessRow(Vector3 vector, int vert_row)
+		{
+			vector.SyncCPU();
+			return new Vector3(vector.gpu, vector.Value[(vert_row * 3)..((vert_row + 1) * 3)]);
+		}
 
 
-        // MATHEMATICAL PROPERTIES 
-        #region
-        public override float Mean()
-        {
-            SyncCPU();
-            return this.Value.Average();
-        }
-        public override float Range()
-        {
-            return Max() - Min();
-        }
-        public override float Sum()
-        {
-            SyncCPU();
-            return this.Value.Sum();
-        }
+		// CONVERT TO GENERIC VECTOR
+		/*
+		* TODO: Conversion between the vector types can be optimised by simply passing the 
+		* Memory buffer reference to the new vector, i.e. the ID if not 0
+		*/ 
+		public Vector ToVector(bool cache = true)
+		{
+			if (_id != 0)
+			{
+				return new Vector(this.gpu, Pull(), this.Columns, cache);
+			}
+			return new Vector(this.gpu, this.Value, this.Columns, cache);
+		}
+		public Vector ToVector(int Columns, bool cache = true)
+		{
+			if (_id != 0)
+			{
+				return new Vector(this.gpu, Pull(), this.Columns, cache);
+			}
+			return new Vector(this.gpu, this.Value, Columns, cache);
+		}
 
 
-        #endregion
+		// MATHEMATICAL PROPERTIES 
+		// TODO: needs rework... not suitable for vec3
+		#region
+		public override float Mean()
+		{
+			SyncCPU();
+			return this.Value.Average();
+		}
+		public override float Range()
+		{
+			return Max() - Min();
+		}
+		public override float Sum()
+		{
+			SyncCPU();
+			return this.Value.Sum();
+		}
+
+
+		#endregion
 
 
 
 
-    }
+	}
 
 
 
