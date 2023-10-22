@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using BAVCL.Core;
 
 namespace BAVCL.Geometric
@@ -11,9 +12,20 @@ namespace BAVCL.Geometric
 		#endregion
 
 		// CONSTRUCTOR
-		public Vector3(GPU gpu, float[] value, bool cache = true) : base(gpu, value, 3, cache) {}
+		public Vector3(GPU gpu, float[] value, bool cache = true) : base(gpu, ValidateVectorLength(value), 3, cache) {}
 
-		public Vector3(GPU gpu, int length) : base(gpu, length, 3) {}
+		public Vector3(GPU gpu, int length) : base(gpu, ValidateVectorLength(length), 3) {}
+
+		private static float[] ValidateVectorLength(float[] values)
+		{
+			if (values.Length != 3) { throw new Exception($"Vector3 must have a length of 3. Recieved {values.Length}"); }
+			return values;
+		}
+		private static int ValidateVectorLength(int Length)
+		{
+			if (Length != 3) { throw new Exception($"Vector3 must have a length of 3. Recieved {Length}"); }
+			return Length;
+		}
 
 		// CONVERT TO GENERIC VECTOR
 		/*
