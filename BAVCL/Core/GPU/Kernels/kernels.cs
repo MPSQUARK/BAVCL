@@ -283,6 +283,57 @@ namespace BAVCL
 			}
 		}
 
+		// static void FloatMatrixKernel(Index1D index, ArrayView<float> Output, ArrayView<float> InputA, int Cols, SpecializedValue<int> operation)
+		// {
+		// 	int startidx = index * Cols;
+			
+		// 	switch ((Operations)operation.Value)
+		// 	{
+		// 		case Operations.multiply:
+		// 			for (int i = 0; i < Cols; i++)
+		// 				OutPut[index] += InputA[i] * InputA[startidx + i];
+		// 			break;
+		// 		case Operations.add:
+		// 			for (int i = 0; i < Cols; i++)
+		// 				OutPut[index] += InputA[i] + InputA[startidx + i];
+		// 			break;
+		// 		case Operations.subtract:
+		// 			for (int i = 0; i < Cols; i++)
+		// 				OutPut[index] += InputA[i] - InputA[startidx + i];
+		// 			break;
+		// 		case Operations.flipSubtract:
+		// 			for (int i = 0; i < Cols; i++)
+		// 				OutPut[index] += InputB[startidx + i] - InputA[i];
+		// 			break;
+		// 		case Operations.divide:
+		// 			for (int i = 0; i < Cols; i++)
+		// 				OutPut[index] += InputA[i] / InputA[startidx + i];
+		// 			break;
+		// 		case Operations.flipDivide:
+		// 			for (int i = 0; i < Cols; i++)
+		// 				OutPut[index] += InputB[startidx + i] / InputA[i];
+		// 			break;
+		// 		case Operations.pow:
+		// 			for (int i = 0; i < Cols; i++)
+		// 				OutPut[index] += XMath.Pow(InputA[i], InputB[startidx + i]);
+		// 			break;
+		// 		case Operations.flipPow:
+		// 			for (int i = 0; i < Cols; i++)
+		// 				OutPut[index] += XMath.Pow(InputB[startidx + i], InputA[i]);
+		// 			break;
+		// 		case Operations.differenceSquared:
+		// 			for (int i = 0; i < Cols; i++)
+		// 				OutPut[index] += XMath.Pow(InputA[i] - InputB[startidx + i], 2f);
+		// 			break;
+		// 		case Operations.distance:
+		// 			for (int i = 0; i < Cols; i++)
+		// 				OutPut[index] += XMath.Pow(InputA[i] - InputB[startidx + i], 2f);
+		// 			OutPut[index] = XMath.Sqrt(OutPut[index]);
+		// 			break;
+		// 	}		
+		
+		// }
+
 		static void DiffKernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
 		{
 			Output[index] = Input[index + 1] - Input[index];
