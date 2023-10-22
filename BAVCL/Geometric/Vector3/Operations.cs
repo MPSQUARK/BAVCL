@@ -9,6 +9,29 @@ namespace BAVCL.Geometric
 	public partial class Vector3
 	{
 		
+		public static Vector VOP(Vector3 vector, Operations operation)
+		{
+			GPU gpu = vector.gpu;
+
+			vector.IncrementLiveCount();
+
+			// Make the Output Vector
+			Vector output = Vector.Zeros(gpu, vector.RowCount());
+			output.IncrementLiveCount();
+			
+			MemoryBuffer1D<float, Stride1D.Dense>
+				buffer = output.GetBuffer(),        // Output
+				buffer2 = vector.GetBuffer();      // Input
+				
+			gpu.simdVectorKernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer2.View, 3, new SpecializedValue<int>((int)operation));
+			gpu.Synchronize();
+			
+			vector.DecrementLiveCount();
+			output.DecrementLiveCount();
+			
+			return output;
+		}
+		
 		public static Vector VOP(Vector3 vectorA, Vector3 vectorB, Operations operation)
 		{
 			GPU gpu = vectorA.gpu;
