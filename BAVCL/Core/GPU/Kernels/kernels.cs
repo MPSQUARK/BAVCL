@@ -31,7 +31,7 @@ namespace BAVCL
 		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>> crossKernel;
 		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, int> transposekernel;
 		public Action<AcceleratorStream, Index1D, ArrayView<float>, float> LogKernel;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> simdVectorKernel
+		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> simdVectorKernel;
 		
 		
 		public void LoadKernels()
