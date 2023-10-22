@@ -241,59 +241,45 @@ namespace BAVCL
 			{
 				case Operations.multiply:
 					for (int i = 0; i < Cols; i++)
-					{
 						OutPut[index] += InputA[i] * InputB[startidx + i];
-					}
 					break;
 				case Operations.add:
 					for (int i = 0; i < Cols; i++)
-					{
 						OutPut[index] += InputA[i] + InputB[startidx + i];
-					}
 					break;
 				case Operations.subtract:
 					for (int i = 0; i < Cols; i++)
-					{
 						OutPut[index] += InputA[i] - InputB[startidx + i];
-					}
 					break;
 				case Operations.flipSubtract:
 					for (int i = 0; i < Cols; i++)
-					{
 						OutPut[index] += InputB[startidx + i] - InputA[i];
-					}
 					break;
 				case Operations.divide:
 					for (int i = 0; i < Cols; i++)
-					{
 						OutPut[index] += InputA[i] / InputB[startidx + i];
-					}
 					break;
 				case Operations.flipDivide:
 					for (int i = 0; i < Cols; i++)
-					{
 						OutPut[index] += InputB[startidx + i] / InputA[i];
-					}
 					break;
 				case Operations.pow:
 					for (int i = 0; i < Cols; i++)
-					{
 						OutPut[index] += XMath.Pow(InputA[i], InputB[startidx + i]);
-					}
 					break;
 				case Operations.flipPow:
 					for (int i = 0; i < Cols; i++)
-					{
 						OutPut[index] += XMath.Pow(InputB[startidx + i], InputA[i]);
-					}
 					break;
 				case Operations.differenceSquared:
 					for (int i = 0; i < Cols; i++)
-					{
-						OutPut[index] += XMath.Pow((InputA[i] - InputB[startidx + i]), 2f);
-					}
+						OutPut[index] += XMath.Pow(InputA[i] - InputB[startidx + i], 2f);
 					break;
-
+				case Operations.distance:
+					for (int i = 0; i < Cols; i++)
+						OutPut[index] += XMath.Pow(InputA[i] - InputB[startidx + i], 2f);
+					OutPut[index] = XMath.Sqrt(OutPut[index]);
+					break;
 			}
 		}
 
@@ -325,7 +311,7 @@ namespace BAVCL
 
 		static void CrossKernel(Index1D index, ArrayView<float> Output, ArrayView<float> InputA, ArrayView<float> InputB)
 		{
-            Index1D startIdx = index * 3;
+			Index1D startIdx = index * 3;
 			Output[startIdx]     = InputA[startIdx + 1] * InputB[startIdx + 2] - InputA[startIdx + 2] * InputB[startIdx + 1];
 			Output[startIdx + 1] = InputA[startIdx + 2] * InputB[startIdx    ] - InputA[startIdx    ] * InputB[startIdx + 2];
 			Output[startIdx + 2] = InputA[startIdx    ] * InputB[startIdx + 1] - InputA[startIdx + 1] * InputB[startIdx    ];
