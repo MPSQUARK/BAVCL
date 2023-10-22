@@ -38,10 +38,6 @@ namespace BAVCL
 			Stopwatch timer = new();
 			timer.Start();
 
-			// TEST KERNELS
-			// TestSQRTKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>>(Testsqrtkernel);
-			// TestMYSQRTKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>>(Testmysqrtkernel);
-
 			appendKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(AppendKernel);
 			nanToNumKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float>(Nan_to_numKernel);
 			getSliceKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>>(AccessSliceKernel);
@@ -82,9 +78,7 @@ namespace BAVCL
 
 				Output[index * (vecAcol + vecBcol) + i] = vecB[index * vecBcol + j];
 				j++;
-
 			}
-
 		}
 
 		static void Nan_to_numKernel(Index1D index, ArrayView<float> IO, float num)
@@ -102,7 +96,6 @@ namespace BAVCL
 				index * ChangeSelectLength[1] +                         // iRcL
 				ChangeSelectLength[0]];                                 // Cs
 		}
-
 
 		static void A_FloatOPKernel(Index1D index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, SpecializedValue<int> operation)
 		{
@@ -304,7 +297,6 @@ namespace BAVCL
 			}
 		}
 
-
 		static void DiffKernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
 		{
 			Output[index] = Input[index + 1] - Input[index];
@@ -347,16 +339,6 @@ namespace BAVCL
 			int idx = col * rows + row;
 
 			Output[idx] = Input[index];
-		}
-		
-		static void Testsqrtkernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
-		{
-			Output[index] = XMath.Sqrt(Input[index]);
-		}
-
-		static void Testmysqrtkernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
-		{
-			Output[index] = TestCls.sqrt_acc_v2(Input[index]);
 		}
 
 		public static void LogKern(Index1D index, ArrayView<float> IO, float @base)
