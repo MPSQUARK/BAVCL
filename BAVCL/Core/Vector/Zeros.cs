@@ -2,8 +2,7 @@
 {
     public partial class Vector
     {
-        public static Vector Zeros(GPU gpu, int Length, int Columns = 1) =>
-            new(gpu, new float[Length], Columns);
+        public static Vector Zeros(GPU gpu, int Length, int Columns = 1) => new(gpu, Length, Columns);
 
         public Vector Zeros_IP(int Length, int Columns = 1)
         {
