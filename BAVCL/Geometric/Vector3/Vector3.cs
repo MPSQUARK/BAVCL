@@ -18,12 +18,12 @@ namespace BAVCL.Geometric
 
 		private static float[] ValidateVectorLength(float[] values)
 		{
-			if (values.Length != 3) { throw new Exception($"Vector3 must have a length of 3. Recieved {values.Length}"); }
+			if (values.Length % 3 != 0) throw new Exception($"Vector3 must have a length that is a multiple of 3. Recieved {values.Length}");
 			return values;
 		}
 		private static int ValidateVectorLength(int Length)
 		{
-			if (Length != 3) { throw new Exception($"Vector3 must have a length of 3. Recieved {Length}"); }
+			if (Length % 3 != 0) throw new Exception($"Vector3 must have a length that is a multiple of 3. Recieved {Length}");
 			return Length;
 		}
 
