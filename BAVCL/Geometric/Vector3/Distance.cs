@@ -14,4 +14,6 @@ public sealed partial class Vector3 : VectorBase<float>
 		
 		return VOP(vectorA, vectorB, Operations.distance);
 	}
+	
+	public Vector Distance(Vector3 vector) => Distance(this, vector);
 }
