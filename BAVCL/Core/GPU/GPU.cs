@@ -11,6 +11,8 @@ namespace BAVCL
 	{
 		protected internal Context context;
 		public Accelerator accelerator;
+		public AcceleratorStream DefaultStream => accelerator.DefaultStream;
+		public void Synchronize() => accelerator.Synchronize();
 		private IMemoryManager memoryManager;
 		
 		// Accelerator Preference Order
