@@ -1,17 +1,25 @@
-// using System;
-// using BAVCL.Core;
+using System;
+using BAVCL.Core;
 
-// namespace BAVCL.Geometric;
+namespace BAVCL.Geometric;
 
-// public sealed partial class Vector3 : VectorBase<float>
-// {
-// 	public static Vector Magnitude(Vector3 vectorA, Vector3 vectorB)
-// 	{
-// 		if (vectorA.Length != vectorB.Length) 
-// 		{ 
-// 			throw new Exception($"Cannot Cross Product two Vector3's together of different lengths. {vectorA.Length} != {vectorB.Length}"); 
-// 		}
+public sealed partial class Vector3 : VectorBase<float>
+{
+	public static Vector Magnitude(Vector3 vectorA, Vector3 vectorB)
+	{
+		if (vectorA.Length != vectorB.Length) 
+		{ 
+			throw new Exception($"Cannot Cross Product two Vector3's together of different lengths. {vectorA.Length} != {vectorB.Length}"); 
+		}
 		
-// 		return VOP(vectorA, vectorB, Operations.distance);
-// 	}
-// }
+		return VOP(vectorA, vectorB, Operations.magnitude);
+	}
+	
+	public static Vector Magnitude(Vector3 vector)
+	{
+		return VOP(vector, Operations.magnitude);
+	}
+	
+	public Vector Magnitude() => Magnitude(this);
+	
+}
