@@ -125,7 +125,7 @@ namespace BAVCL
 				case Operations.flipPow:
 					OutPut[index] = XMath.Pow(InputB[index], InputA[index]);
 					break;
-				case Operations.subtractSquare:
+				case Operations.differenceSquared:
 					OutPut[index] = XMath.Pow((InputA[index] - InputB[index]), 2f);
 					break;
 
@@ -160,7 +160,7 @@ namespace BAVCL
 				case Operations.flipPow:
 					IO[index] = XMath.Pow(IO[index], Input[index]);
 					break;
-				case Operations.subtractSquare:
+				case Operations.differenceSquared:
 					IO[index] = XMath.Pow((IO[index] - Input[index]), 2f);
 					break;
 			}
@@ -194,7 +194,7 @@ namespace BAVCL
 				case Operations.flipPow:
 					OutPut[index] = XMath.Pow(Scalar, Input[index]);
 					break;
-				case Operations.subtractSquare:
+				case Operations.differenceSquared:
 					OutPut[index] = XMath.Pow((Input[index] - Scalar), 2f);
 					break;
 			}
@@ -227,7 +227,7 @@ namespace BAVCL
 				case Operations.flipPow:
 					IO[index] = XMath.Pow(Scalar, IO[index]);
 					break;
-				case Operations.subtractSquare:
+				case Operations.differenceSquared:
 					IO[index] = XMath.Pow((IO[index] - Scalar), 2f);
 					break;
 			}
@@ -287,7 +287,7 @@ namespace BAVCL
 						OutPut[index] += XMath.Pow(InputB[startidx + i], InputA[i]);
 					}
 					break;
-				case Operations.subtractSquare:
+				case Operations.differenceSquared:
 					for (int i = 0; i < Cols; i++)
 					{
 						OutPut[index] += XMath.Pow((InputA[i] - InputB[startidx + i]), 2f);
