@@ -320,7 +320,7 @@ namespace BAVCL
 					break;				
 			}
 		}
-		
+
 		static void DiffKernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
 		{
 			Output[index] = Input[index + 1] - Input[index];
