@@ -304,11 +304,20 @@ namespace BAVCL
 					for (int i = 0; i < Cols; i++)
 						Output[index] += InputA[startidx + i] * InputB[startidx + i];
 					break;
+				case Operations.add:
+					for (int i = 0; i < Cols; i++)
+						Output[index] += InputA[startidx + i] + InputB[startidx + i];
+					break;
 				case Operations.distance:
 					for (int i = 0; i < Cols; i++)
 						Output[index] += XMath.Pow(InputA[startidx + i] - InputB[startidx + i], 2f);
 					Output[index] = XMath.Sqrt(Output[index]);
 					break;
+				case Operations.magnitude:
+					for (int i = 0; i < Cols; i++)
+						Output[index] += InputA[startidx + i] * InputB[startidx + i];
+					Output[index] = XMath.Sqrt(Output[index]);
+					break;				
 			}
 		}
 		
