@@ -325,9 +325,10 @@ namespace BAVCL
 
 		static void CrossKernel(Index1D index, ArrayView<float> Output, ArrayView<float> InputA, ArrayView<float> InputB)
 		{
-			Output[index*3]     = InputA[index * 3 + 1] * InputB[index * 3 + 2] - InputA[index * 3 + 2] * InputB[index * 3 + 1];
-			Output[index*3 + 1] = InputA[index * 3 + 2] * InputB[index * 3    ] - InputA[index * 3    ] * InputB[index * 3 + 2];
-			Output[index*3 + 2] = InputA[index * 3    ] * InputB[index * 3 + 1] - InputA[index * 3 + 1] * InputB[index * 3    ];
+            Index1D startIdx = index * 3;
+			Output[startIdx]     = InputA[startIdx + 1] * InputB[startIdx + 2] - InputA[startIdx + 2] * InputB[startIdx + 1];
+			Output[startIdx + 1] = InputA[startIdx + 2] * InputB[startIdx    ] - InputA[startIdx    ] * InputB[startIdx + 2];
+			Output[startIdx + 2] = InputA[startIdx    ] * InputB[startIdx + 1] - InputA[startIdx + 1] * InputB[startIdx    ];
 		}
 
 		static void TransposeKernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input, int columns)
