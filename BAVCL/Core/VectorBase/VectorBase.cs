@@ -39,8 +39,8 @@ namespace BAVCL.Core
 
 		protected internal int _columns = 1;
 		protected internal long _memorySize = 0;
-        protected volatile internal uint _id = 0;
-        protected volatile internal uint _livecount = 0;
+		protected volatile internal uint _id = 0;
+		protected volatile internal uint _livecount = 0;
 		protected volatile internal int _length = 0;
 
 		protected VectorBase(GPU gpu, T[] value, int columns = 1, bool Cache = true)
@@ -54,22 +54,22 @@ namespace BAVCL.Core
 		}
 
 		protected VectorBase(GPU gpu, int length, int columns = 1)
-        {
+		{
 			this.gpu = gpu;
 			Columns = columns;
 			Value = null;
 			Length = length;
 			CacheEmpty(length);
-        }
+		}
 
 
 		public T[] Pull() 
 		{
-            MemoryBuffer1D<T, Stride1D.Dense> buffer = GetBuffer();
-            T[] values = new T[buffer.Length];
-            buffer.AsArrayView<T>(0, buffer.Length).CopyToCPU(values);
+			MemoryBuffer1D<T, Stride1D.Dense> buffer = GetBuffer();
+			T[] values = new T[buffer.Length];
+			buffer.AsArrayView<T>(0, buffer.Length).CopyToCPU(values);
 			return values;
-        } 
+		} 
 
 		public T GetValue(int row, int col)
 		{
@@ -98,8 +98,9 @@ namespace BAVCL.Core
 		public abstract T Range();
 		public abstract T Sum();
 		public bool IsRectangular() => this.Length % this.Columns == 0;
+		public bool Is1D() => this.Columns == 1;
 
-    }
+	}
 
 
 }
