@@ -12,5 +12,7 @@
 		flipPow = 7,
 		differenceSquared = 8, // square the difference of two values
 		distance = 9, // square root of the difference squared
+		magnitude = 10,
+		
 	}
 }

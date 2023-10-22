@@ -5,7 +5,7 @@
 
 // public sealed partial class Vector3 : VectorBase<float>
 // {
-// 	public static Vector Distance(Vector3 vectorA, Vector3 vectorB)
+// 	public static Vector Magnitude(Vector3 vectorA, Vector3 vectorB)
 // 	{
 // 		if (vectorA.Length != vectorB.Length) 
 // 		{ 
