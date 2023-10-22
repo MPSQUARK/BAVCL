@@ -1,3 +1,4 @@
+using System.Linq;
 using BAVCL.Core;
 
 namespace BAVCL.Geometric;
