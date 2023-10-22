@@ -105,7 +105,7 @@ namespace BAVCL
             //Vector diff = Vector.AbsX(this - this.Mean());
 
             //return (diff * diff).Sum() / this.Length();
-            return OP(this, Mean(), Operations.subtractSquare).Sum() / Length;
+            return OP(this, Mean(), Operations.differenceSquared).Sum() / Length;
         }
         public override float Range() => Max() - Min();
         public void Flatten() => this.Columns = 1;

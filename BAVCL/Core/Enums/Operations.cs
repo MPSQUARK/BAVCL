@@ -10,6 +10,6 @@
         flipDivide = 5,
         flipSubtract = 6,
         flipPow = 7,
-        subtractSquare = 8, // square the difference of two values
+        differenceSquared = 8, // square the difference of two values
     }
 }
