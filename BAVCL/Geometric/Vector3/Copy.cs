@@ -1,11 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using BAVCL.Core;
 
-namespace BAVCL.Geometric.Vector3;
+namespace BAVCL.Geometric;
 
-public class Copy
+public sealed partial class Vector3 : VectorBase<float>
 {
-    
+    public Vector3 Copy()
+    {
+        if (_id != 0)
+        {
+            return new Vector3(gpu, Pull());
+        }
+        return new Vector3(gpu, Value[..]);
+    }
 }

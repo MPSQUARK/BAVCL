@@ -4,9 +4,8 @@ namespace BAVCL.Geometric;
 
 public sealed partial class Vector3 : VectorBase<float>
 {
-    public static Vector3 AccessRow(Vector3 vector, int vert_row)
+    public static Vector3 Zeros(GPU gpu, int Length)
     {
-        vector.SyncCPU();
-        return new Vector3(vector.gpu, vector.Value[(vert_row * 3)..((vert_row + 1) * 3)]);
+        return new Vector3(gpu, new float[Length]);
     }
 }
