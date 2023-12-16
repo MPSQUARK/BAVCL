@@ -57,7 +57,7 @@ namespace BAVCL.Core
 		{
 			this.gpu = gpu;
 			Columns = columns;
-			Value = null;
+			Value = Array.Empty<T>();
 			Length = length;
 			CacheEmpty(length);
 		}
