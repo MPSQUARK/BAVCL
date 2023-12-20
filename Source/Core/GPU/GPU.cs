@@ -13,7 +13,7 @@ namespace BAVCL
 		public Accelerator accelerator;
 		public AcceleratorStream DefaultStream => accelerator.DefaultStream;
 		public void Synchronize() => accelerator.Synchronize();
-		private IMemoryManager memoryManager;
+		private IMemoryManager _memoryManager;
 		
 		// Accelerator Preference Order
 		Dictionary<AcceleratorType, int> AcceleratorPrefOrder = new()
@@ -36,22 +36,24 @@ namespace BAVCL
 			Console.WriteLine($"Device loaded: {accelerator.Name}");
 
 			// Set Memory Usage Cap
-			memoryManager = new LRU(accelerator.MemorySize, memorycap);
+			_memoryManager = new LRU(accelerator.MemorySize, memorycap);
 
 			// Load Kernels
 			LoadKernels();
 		}
 
 		// Wrappers for Memory Manager
-		public (uint, MemoryBuffer) Allocate<T>(ICacheable<T> cacheable) where T : unmanaged => memoryManager.Allocate(cacheable, accelerator);
-		public (uint, MemoryBuffer) Allocate<T>(ICacheable cacheable, T[] values) where T : unmanaged => memoryManager.Allocate(cacheable, values, accelerator);
-		public (uint, MemoryBuffer) AllocateEmpty<T>(ICacheable cacheable, int length) where T : unmanaged => memoryManager.AllocateEmpty<T>(cacheable, length, accelerator);
-		public MemoryBuffer TryGetBuffer<T>(uint Id) where T : unmanaged => memoryManager.GetBuffer(Id);
-		public (uint, MemoryBuffer) UpdateBuffer<T>(ICacheable cacheable, T[] values) where T : unmanaged => memoryManager.UpdateBuffer(cacheable, values, accelerator);
-		public (uint, MemoryBuffer) UpdateBuffer<T>(ICacheable<T> cacheable) where T : unmanaged => memoryManager.UpdateBuffer(cacheable, accelerator);
-		public uint GCItem(uint Id) => memoryManager.GCItem(Id);
-		public string PrintMemoryUsage(bool percentage, string format = "F2") => memoryManager.PrintMemoryUsage(percentage, format);
-		public string GetMemUsage() => memoryManager.MemoryUsed.ToString();
+		public (uint, MemoryBuffer) Allocate<T>(ICacheable<T> cacheable) where T : unmanaged => _memoryManager.Allocate(cacheable, accelerator);
+		public (uint, MemoryBuffer) Allocate<T>(ICacheable cacheable, T[] values) where T : unmanaged => _memoryManager.Allocate(cacheable, values, accelerator);
+		public (uint, MemoryBuffer) AllocateEmpty<T>(ICacheable cacheable, int length) where T : unmanaged => _memoryManager.AllocateEmpty<T>(cacheable, length, accelerator);
+		public MemoryBuffer TryGetBuffer<T>(uint Id) where T : unmanaged => _memoryManager.GetBuffer(Id);
+		public (uint, MemoryBuffer) UpdateBuffer<T>(ICacheable cacheable, T[] values) where T : unmanaged => _memoryManager.UpdateBuffer(cacheable, values, accelerator);
+		public (uint, MemoryBuffer) UpdateBuffer<T>(ICacheable<T> cacheable) where T : unmanaged => _memoryManager.UpdateBuffer(cacheable, accelerator);
+		public bool IsStored(uint Id) => _memoryManager.IsStored(Id);
+		public HashSet<uint> StoredIDs() => _memoryManager.StoredIDs();
+		public uint GCItem(uint Id) => _memoryManager.GCItem(Id);
+		public string PrintMemoryUsage(bool percentage, string format = "F2") => _memoryManager.PrintMemoryUsage(percentage, format);
+		public string GetMemUsage() => _memoryManager.MemoryUsed.ToString();
 
 		private Accelerator GetPreferedAccelerator(Context context, bool forceCPU)
 		{
