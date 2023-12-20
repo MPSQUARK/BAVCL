@@ -18,7 +18,7 @@ public interface IMemoryManager
 	#endregion
 
 	#region Get
-	public MemoryBuffer GetBuffer(uint Id);
+	public MemoryBuffer? GetBuffer(uint Id);
 	#endregion
 
 	#region Garbage Collection
