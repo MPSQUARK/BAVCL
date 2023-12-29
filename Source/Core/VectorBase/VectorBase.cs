@@ -9,6 +9,12 @@ namespace BAVCL.Core
 	{
 		protected GPU gpu;
 
+		/// <summary>
+		/// The value of the vector. This is the data that is stored on the CPU.
+		/// May be different from the value stored on the GPU if not synced.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
 		public T[] Value = Array.Empty<T>();
 
 		/// <summary>
@@ -20,13 +26,13 @@ namespace BAVCL.Core
 		public virtual int Columns
 		{
 			get => _columns;
-			set { _columns = value >= 0 ? value : throw new Exception($"Columns must be a positive integer greater than zero. Recieved {value}"); }
+			set { _columns = value >= 0 ? value : throw new Exception($"Columns must be a positive integer greater than or equal to zero. Recieved {value}"); }
 		}
 
 		public int Length
-		{ 
-			get => _length; 
-			set => _length = value; 
+		{
+			get => _length;
+			set => _length = value;
 		}
 
 		public uint ID
@@ -63,19 +69,19 @@ namespace BAVCL.Core
 		{
 			this.gpu = gpu;
 			Columns = columns;
-			Value = Array.Empty<T>();
+			Value = new T[length];
 			Length = length;
 			CacheEmpty(length);
 		}
 
 
-		public T[] Pull() 
+		public T[] Pull()
 		{
 			MemoryBuffer1D<T, Stride1D.Dense> buffer = GetBuffer();
 			T[] values = new T[buffer.Length];
 			buffer.AsArrayView<T>(0, buffer.Length).CopyToCPU(values);
 			return values;
-		} 
+		}
 
 		public T GetValue(int row, int col)
 		{
@@ -90,16 +96,12 @@ namespace BAVCL.Core
 		public virtual void Print() => Console.WriteLine(this.ToString());
 
 		// MATHEMATICAL PROPERTIES 
-		public int Rows()
-		{
-			if (Columns == 0) return 1;
-			return Length / Columns;
-		}
+		public int Rows => Columns == 0 ? 1 : Length / Columns;
 
-		public virtual (int, int) Shape() => (Rows(), Columns);
+		public virtual (int, int) Shape() => (Rows, Columns);
 
 		public virtual T Max() { SyncCPU(); return Value.Max(); }
-		public virtual T Min() { SyncCPU(); return Value.Min();}
+		public virtual T Min() { SyncCPU(); return Value.Min(); }
 		public abstract T Mean();
 		public abstract T Range();
 		public abstract T Sum();

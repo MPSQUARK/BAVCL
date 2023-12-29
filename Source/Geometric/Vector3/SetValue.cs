@@ -15,9 +15,9 @@ namespace BAVCL.Geometric
         }
         public void SetValue(int row, Coord coord, float value)
         {
-            if (row < 0 || row > Rows()) { throw new IndexOutOfRangeException(); }
+            if (row < 0 || row > Rows) { throw new IndexOutOfRangeException(); }
             SyncCPU();
-            this.Value[row+row+row + (int)coord] = value;
+            this.Value[row + row + row + (int)coord] = value;
             UpdateCache();
         }
         public void SetValue(int i, IndexingMode mode, float value)
@@ -54,17 +54,17 @@ namespace BAVCL.Geometric
                     SetValue(row, coord, value);
                     break;
                 case IndexingMode.NoCPUSync:
-                    if (row < 0 || row > Rows()) { throw new IndexOutOfRangeException(); }
+                    if (row < 0 || row > Rows) { throw new IndexOutOfRangeException(); }
                     this.Value[row + row + row + (int)coord] = value;
                     UpdateCache();
                     break;
                 case IndexingMode.NoGPUSync:
-                    if (row < 0 || row > Rows()) { throw new IndexOutOfRangeException(); }
+                    if (row < 0 || row > Rows) { throw new IndexOutOfRangeException(); }
                     SyncCPU();
                     this.Value[row + row + row + (int)coord] = value;
                     break;
                 case IndexingMode.NoSync:
-                    if (row < 0 || row > Rows()) { throw new IndexOutOfRangeException(); }
+                    if (row < 0 || row > Rows) { throw new IndexOutOfRangeException(); }
                     this.Value[row + row + row + (int)coord] = value;
                     break;
                 default:

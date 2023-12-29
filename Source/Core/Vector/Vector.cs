@@ -22,8 +22,9 @@ namespace BAVCL
 		/// <param name="gpu">The device to use when computing this Vector.</param>
 		/// <param name="values">The array of data contained in this Vector.</param>
 		/// <param name="columns">The number of Columns IF this is a 2D Vector, for 1D Vectors use the default Columns = 1</param>
-		public Vector(GPU gpu, float[] values, int columns = 1, bool cache = true) :
-			base(gpu, values, columns, cache) { }
+		public Vector(GPU gpu, float[] values, int columns = 0, bool cache = true) :
+			base(gpu, values, columns, cache)
+		{ }
 
 		/// <summary>
 		/// Constructs a Vector object of length 'length' with all values set to default or 0.
@@ -33,8 +34,9 @@ namespace BAVCL
 		/// <param name="length"></param>
 		/// <param name="columns"></param>
 		/// <returns></returns>
-		public Vector(GPU gpu, int length, int columns = 1) :
-			base(gpu, length, columns) { }
+		public Vector(GPU gpu, int length, int columns = 0) :
+			base(gpu, length, columns)
+		{ }
 
 		public float this[int i]
 		{
@@ -148,45 +150,45 @@ namespace BAVCL
 
 
 		#region "OPERATORS"
-		public static Vector operator +(Vector vector) => 
+		public static Vector operator +(Vector vector) =>
 			AbsX(vector);
-		public static Vector operator +(Vector vectorA, Vector vectorB) => 
+		public static Vector operator +(Vector vectorA, Vector vectorB) =>
 			OP(vectorA, vectorB, Operations.add);
-		public static Vector operator +(Vector vector, float Scalar) => 
+		public static Vector operator +(Vector vector, float Scalar) =>
 			OP(vector, Scalar, Operations.add);
-		public static Vector operator +(float Scalar, Vector vector) => 
+		public static Vector operator +(float Scalar, Vector vector) =>
 			OP(vector, Scalar, Operations.add);
 
-		public static Vector operator -(Vector vector) => 
+		public static Vector operator -(Vector vector) =>
 			OP(vector, -1, Operations.multiply);
-		public static Vector operator -(Vector vectorA, Vector vectorB) => 
+		public static Vector operator -(Vector vectorA, Vector vectorB) =>
 			OP(vectorA, vectorB, Operations.subtract);
-		public static Vector operator -(Vector vector, float scalar) => 
+		public static Vector operator -(Vector vector, float scalar) =>
 			OP(vector, scalar, Operations.subtract);
-		public static Vector operator -(float scalar, Vector vector) => 
+		public static Vector operator -(float scalar, Vector vector) =>
 			OP(vector, scalar, Operations.flipSubtract);
 
-		public static Vector operator *(Vector vectorA, Vector vectorB) => 
+		public static Vector operator *(Vector vectorA, Vector vectorB) =>
 			OP(vectorA, vectorB, Operations.multiply);
 
-		public static Vector operator *(Vector vector, float scalar) => 
+		public static Vector operator *(Vector vector, float scalar) =>
 			OP(vector, scalar, Operations.multiply);
 
 		public static Vector operator *(float scalar, Vector vector) =>
 			OP(vector, scalar, Operations.multiply);
 
-		public static Vector operator /(Vector vectorA, Vector vectorB) => 
+		public static Vector operator /(Vector vectorA, Vector vectorB) =>
 			OP(vectorA, vectorB, Operations.divide);
-		public static Vector operator /(Vector vector, float scalar) => 
+		public static Vector operator /(Vector vector, float scalar) =>
 			OP(vector, scalar, Operations.divide);
 		public static Vector operator /(float scalar, Vector vector) =>
 			OP(vector, scalar, Operations.flipDivide);
 
-		public static Vector operator ^(Vector vectorA, Vector vectorB) => 
+		public static Vector operator ^(Vector vectorA, Vector vectorB) =>
 			OP(vectorA, vectorB, Operations.pow);
-		public static Vector operator ^(Vector vector, float scalar) => 
+		public static Vector operator ^(Vector vector, float scalar) =>
 			OP(vector, scalar, Operations.pow);
-		public static Vector operator ^(float Scalar, Vector vector) => 
+		public static Vector operator ^(float Scalar, Vector vector) =>
 			OP(vector, Scalar, Operations.flipPow);
 
 
@@ -227,8 +229,8 @@ namespace BAVCL
 			// If one input is a Vector and other is Matrix
 			if ((this.Columns == 1 && vectorB.Columns > 1) || (this.Columns > 1 && vectorB.Columns == 1))
 			{
-				
-				
+
+
 			}
 
 			throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
@@ -349,7 +351,7 @@ namespace BAVCL
 				buffer3 = matrix.GetBuffer();       // Input
 
 			// Run the kernel
-			gpu.vectormatrixOpKernel(gpu.accelerator.DefaultStream, matrix.Rows(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
+			gpu.vectormatrixOpKernel(gpu.accelerator.DefaultStream, matrix.Rows, buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
 
 			// Synchronise the kernel
 			gpu.accelerator.Synchronize();
@@ -380,7 +382,7 @@ namespace BAVCL
 				buffer3 = matrix.GetBuffer();       // Input
 
 			// Run the kernel
-			gpu.vectormatrixOpKernel(gpu.accelerator.DefaultStream, matrix.Rows(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
+			gpu.vectormatrixOpKernel(gpu.accelerator.DefaultStream, matrix.Rows, buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
 
 			// Synchronise the kernel
 			gpu.accelerator.Synchronize();
