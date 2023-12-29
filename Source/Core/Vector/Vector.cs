@@ -349,7 +349,7 @@ namespace BAVCL
 				buffer3 = matrix.GetBuffer();       // Input
 
 			// Run the kernel
-			gpu.vectormatrixOpKernel(gpu.accelerator.DefaultStream, matrix.RowCount(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
+			gpu.vectormatrixOpKernel(gpu.accelerator.DefaultStream, matrix.Rows(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
 
 			// Synchronise the kernel
 			gpu.accelerator.Synchronize();
@@ -380,7 +380,7 @@ namespace BAVCL
 				buffer3 = matrix.GetBuffer();       // Input
 
 			// Run the kernel
-			gpu.vectormatrixOpKernel(gpu.accelerator.DefaultStream, matrix.RowCount(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
+			gpu.vectormatrixOpKernel(gpu.accelerator.DefaultStream, matrix.Rows(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
 
 			// Synchronise the kernel
 			gpu.accelerator.Synchronize();

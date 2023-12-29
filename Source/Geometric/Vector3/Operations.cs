@@ -16,7 +16,7 @@ namespace BAVCL.Geometric
 			vector.IncrementLiveCount();
 
 			// Make the Output Vector
-			Vector output = Vector.Zeros(gpu, vector.RowCount());
+			Vector output = Vector.Zeros(gpu, vector.Rows());
 			output.IncrementLiveCount();
 			
 			MemoryBuffer1D<float, Stride1D.Dense>
@@ -40,7 +40,7 @@ namespace BAVCL.Geometric
 			vectorB.IncrementLiveCount();
 
 			// Make the Output Vector
-			Vector output = Vector.Zeros(gpu, vectorA.RowCount());
+			Vector output = Vector.Zeros(gpu, vectorA.Rows());
 			output.IncrementLiveCount();
 			
 			MemoryBuffer1D<float, Stride1D.Dense>

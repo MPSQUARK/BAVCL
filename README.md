@@ -1,2 +1,2 @@
 # README
-Nothing here yet.
+Updated how dimensionality works - branch is probably broken.

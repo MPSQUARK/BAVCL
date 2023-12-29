@@ -11,10 +11,16 @@ namespace BAVCL.Core
 
 		public T[] Value = Array.Empty<T>();
 
+		/// <summary>
+		/// The number of columns in the vector. If the vector is 1D, this is 0 or equal to the length of the vector.
+		/// Columns of 0 => 1D Vector e.g. [1, 2, 3, 4, 5] (horizontal)
+		/// Columns of vector length => 1D Vector e.g. Transpose([1, 2, 3, 4, 5]) (vertical)
+		/// </summary>
+		/// <value></value>
 		public virtual int Columns
 		{
 			get => _columns;
-			set { _columns = value > 0 ? value : throw new Exception($"Columns must be a positive integer greater than zero. Recieved {value}"); }
+			set { _columns = value >= 0 ? value : throw new Exception($"Columns must be a positive integer greater than zero. Recieved {value}"); }
 		}
 
 		public int Length
@@ -43,7 +49,7 @@ namespace BAVCL.Core
 		protected volatile internal uint _livecount = 0;
 		protected volatile internal int _length = 0;
 
-		protected VectorBase(GPU gpu, T[] value, int columns = 1, bool Cache = true)
+		protected VectorBase(GPU gpu, T[] value, int columns = 0, bool Cache = true)
 		{
 			this.gpu = gpu;
 			Columns = columns;
@@ -53,7 +59,7 @@ namespace BAVCL.Core
 			if (Cache) this.Cache(value);
 		}
 
-		protected VectorBase(GPU gpu, int length, int columns = 1)
+		protected VectorBase(GPU gpu, int length, int columns = 0)
 		{
 			this.gpu = gpu;
 			Columns = columns;
@@ -84,13 +90,13 @@ namespace BAVCL.Core
 		public virtual void Print() => Console.WriteLine(this.ToString());
 
 		// MATHEMATICAL PROPERTIES 
-		public int RowCount()
+		public int Rows()
 		{
-			if (Columns == 1) return 1;
+			if (Columns == 0) return 1;
 			return Length / Columns;
 		}
 
-		public virtual (int, int) Shape() => (RowCount(), Columns);
+		public virtual (int, int) Shape() => (Rows(), Columns);
 
 		public virtual T Max() { SyncCPU(); return Value.Max(); }
 		public virtual T Min() { SyncCPU(); return Value.Min();}
@@ -98,7 +104,8 @@ namespace BAVCL.Core
 		public abstract T Range();
 		public abstract T Sum();
 		public bool IsRectangular() => this.Length % this.Columns == 0;
-		public bool Is1D() => this.Columns == 1;
+		public bool Is1D() => this.Columns == 0 || this.Columns == this.Length;
+		public bool Is2D() => !Is1D();
 
 	}
 

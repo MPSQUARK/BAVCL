@@ -30,24 +30,24 @@ namespace BAVCL
             // IF 2D
             if (Columns > 1 && vector.Columns > 1)
             {
-                if ((RowCount() != vector.RowCount()) && (RowCount() != vector.Columns))
+                if ((Rows() != vector.Rows()) && (Rows() != vector.Columns))
                 {
                     throw new Exception(
                         $"Vectors CANNOT be appended. " +
-                        $"This Vector has the shape ({this.RowCount()},{this.Columns}). " +
-                        $"The 2D Vector being appended has the shape ({vector.RowCount()},{vector.Columns})");
+                        $"This Vector has the shape ({this.Rows()},{this.Columns}). " +
+                        $"The 2D Vector being appended has the shape ({vector.Rows()},{vector.Columns})");
                 }
 
-                if (RowCount() == vector.Columns)
+                if (Rows() == vector.Columns)
                 {
                     if (!warp)
                     {
                         vector.Transpose_IP();
                     }
 
-                    if (warp && (vector.Length % RowCount() == 0))
+                    if (warp && (vector.Length % Rows() == 0))
                     {
-                        vector.Columns = vector.Value.Length / RowCount();
+                        vector.Columns = vector.Value.Length / Rows();
                     }
 
                 }
@@ -57,13 +57,13 @@ namespace BAVCL
             if (vector.Columns == 1)
             {
 
-                if (vector.Value.Length % RowCount() != 0)
+                if (vector.Value.Length % Rows() != 0)
                 {
                     throw new Exception($"Vectors CANNOT be appended. " +
-                        $"This array has shape ({RowCount()},{Columns}), 1D vector being appended has {vector.Length} Length");
+                        $"This array has shape ({Rows()},{Columns}), 1D vector being appended has {vector.Length} Length");
                 }
 
-                vector.Columns = vector.Value.Length / this.RowCount();
+                vector.Columns = vector.Value.Length / this.Rows();
 
             }
 
@@ -78,7 +78,7 @@ namespace BAVCL
                 buffer2 = GetBuffer(),              // Input
                 buffer3 = vector.GetBuffer();       // Input
 
-            gpu.appendKernel(gpu.accelerator.DefaultStream, this.RowCount(), buffer.View, buffer2.View, buffer3.View, this.Columns, vector.Columns);
+            gpu.appendKernel(gpu.accelerator.DefaultStream, this.Rows(), buffer.View, buffer2.View, buffer3.View, this.Columns, vector.Columns);
 
             gpu.accelerator.Synchronize();
 

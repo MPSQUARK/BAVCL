@@ -15,7 +15,7 @@ namespace BAVCL
             vector.IncrementLiveCount();
 
             // Make Output Vector
-            Vector Output = new(vector.gpu, vector.RowCount());
+            Vector Output = new(vector.gpu, vector.Rows());
             
             // Secure the Output
             Output.IncrementLiveCount();
@@ -30,7 +30,7 @@ namespace BAVCL
                 buffer3 = vector.gpu.accelerator.Allocate1D(select);      // Config
 
             // RUN
-            vector.gpu.getSliceKernel(vector.gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
+            vector.gpu.getSliceKernel(vector.gpu.accelerator.DefaultStream, vector.Rows(), buffer.View, buffer2.View, buffer3.View);
 
             // SYNC
             vector.gpu.accelerator.Synchronize();
@@ -54,7 +54,7 @@ namespace BAVCL
             IncrementLiveCount();
 
             // Make Output Vector
-            Vector Output = new(gpu, RowCount());
+            Vector Output = new(gpu, Rows());
 
             Output.IncrementLiveCount();
 
@@ -68,7 +68,7 @@ namespace BAVCL
                 buffer3 = gpu.accelerator.Allocate1D(select);     // Config
 
             // RUN
-            gpu.getSliceKernel(gpu.accelerator.DefaultStream, RowCount(), buffer.View, buffer2.View, buffer3.View);
+            gpu.getSliceKernel(gpu.accelerator.DefaultStream, Rows(), buffer.View, buffer2.View, buffer3.View);
 
             // SYNC
             gpu.accelerator.Synchronize();
