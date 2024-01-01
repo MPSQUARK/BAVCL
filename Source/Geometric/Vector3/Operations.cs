@@ -24,7 +24,7 @@ namespace BAVCL.Geometric
 				buffer = output.GetBuffer(),        // Output
 				buffer2 = vector.GetBuffer();      // Input
 
-			var kernel = gpu.GetKernel<SIMDVectorKernel>(Kernels.SIMD);
+			var kernel = gpu.GetKernel<DualVectorOPKernel>(Kernels.SIMD);
 			kernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer2.View, 3, new SpecializedValue<int>((int)operation));
 			gpu.Synchronize();
 
@@ -50,7 +50,7 @@ namespace BAVCL.Geometric
 				buffer2 = vectorA.GetBuffer(),      // Input
 				buffer3 = vectorB.GetBuffer();      // Input
 
-			var kernel = gpu.GetKernel<SIMDVectorKernel>(Kernels.SIMD);
+			var kernel = gpu.GetKernel<DualVectorOPKernel>(Kernels.SIMD);
 			kernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, 3, new SpecializedValue<int>((int)operation));
 			gpu.Synchronize();
 

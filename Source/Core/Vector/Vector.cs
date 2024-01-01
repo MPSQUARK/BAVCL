@@ -355,7 +355,7 @@ namespace BAVCL
 				buffer3 = matrix.GetBuffer();       // Input
 
 			// Run the kernel
-			var kernel = gpu.GetKernel<VectorMatrixKernel>(Kernels.MatrixOp);
+			var kernel = gpu.GetKernel<DualVectorOPKernel>(Kernels.MatrixOp);
 			kernel(gpu.accelerator.DefaultStream, matrix.Rows, buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
 
 			// Synchronise the kernel
@@ -387,7 +387,7 @@ namespace BAVCL
 				buffer3 = matrix.GetBuffer();       // Input
 
 			// Run the kernel
-			var kernel = gpu.GetKernel<VectorMatrixKernel>(Kernels.MatrixOp);
+			var kernel = gpu.GetKernel<DualVectorOPKernel>(Kernels.MatrixOp);
 			kernel(gpu.accelerator.DefaultStream, matrix.Rows, buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
 
 			// Synchronise the kernel
