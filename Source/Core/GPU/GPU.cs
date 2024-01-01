@@ -14,6 +14,11 @@ namespace BAVCL
 		public AcceleratorStream DefaultStream => accelerator.DefaultStream;
 		public void Synchronize() => accelerator.Synchronize();
 		private IMemoryManager _memoryManager;
+
+		private Delegate[] Kernels { get; set; } = Array.Empty<Delegate>();
+		
+		public T GetKernel<T>(Kernels kernel) where T : Delegate 
+			=> (T)Kernels[(int)kernel];
 		
 		// Accelerator Preference Order
 		Dictionary<AcceleratorType, int> AcceleratorPrefOrder = new()
@@ -38,8 +43,7 @@ namespace BAVCL
 			// Set Memory Usage Cap
 			_memoryManager = new LRU(accelerator.MemorySize, memorycap);
 
-			// Load Kernels
-			LoadKernels();
+			AddKernels();
 		}
 
 		// Wrappers for Memory Manager
@@ -61,15 +65,16 @@ namespace BAVCL
 
 			if (devices.Length == 0) throw new Exception("No Accelerators");
 
-			Device preferedAccelerator = null;
-			for (int i = 0; i < devices.Length; i++)
+			Device preferedAccelerator = devices[0];
+			
+			for (int i = 1; i < devices.Length; i++)
 			{
 				if (forceCPU && devices[i].AcceleratorType == AcceleratorType.CPU)
-					return devices[i].CreateAccelerator(context);
-				
-				if (preferedAccelerator == null)
+				{
 					preferedAccelerator = devices[i];
-
+					break;
+				}
+				
 				if (AcceleratorPrefOrder.TryGetValue(preferedAccelerator.AcceleratorType, out int Prefpriority))
 					if (AcceleratorPrefOrder.TryGetValue(devices[i].AcceleratorType, out int Devicepriority))
 					{
@@ -86,6 +91,7 @@ namespace BAVCL
 						}
 					}
 			}
+			
 			return preferedAccelerator.CreateAccelerator(context);
 		}
 	

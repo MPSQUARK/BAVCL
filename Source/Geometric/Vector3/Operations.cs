@@ -1,5 +1,6 @@
 ﻿
 
+using BAVCL.Core;
 using ILGPU;
 using ILGPU.Runtime;
 
@@ -23,7 +24,8 @@ namespace BAVCL.Geometric
 				buffer = output.GetBuffer(),        // Output
 				buffer2 = vector.GetBuffer();      // Input
 
-			gpu.simdVectorKernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer2.View, 3, new SpecializedValue<int>((int)operation));
+			var kernel = gpu.GetKernel<SIMDVectorKernel>(Kernels.SIMD);
+			kernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer2.View, 3, new SpecializedValue<int>((int)operation));
 			gpu.Synchronize();
 
 			vector.DecrementLiveCount();
@@ -48,7 +50,8 @@ namespace BAVCL.Geometric
 				buffer2 = vectorA.GetBuffer(),      // Input
 				buffer3 = vectorB.GetBuffer();      // Input
 
-			gpu.simdVectorKernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, 3, new SpecializedValue<int>((int)operation));
+			var kernel = gpu.GetKernel<SIMDVectorKernel>(Kernels.SIMD);
+			kernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, 3, new SpecializedValue<int>((int)operation));
 			gpu.Synchronize();
 
 			vectorA.DecrementLiveCount();
@@ -76,7 +79,8 @@ namespace BAVCL.Geometric
 				buffer3 = vectorB.GetBuffer();      // Input
 
 			// Run the kernel
-			gpu.a_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
+			var kernel = gpu.GetKernel<A_FloatOPKernel>(Kernels.AFloatOP);
+			kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
 
 			// Synchronise the kernel
 			gpu.accelerator.Synchronize();
@@ -106,7 +110,8 @@ namespace BAVCL.Geometric
 				buffer3 = vector.GetBuffer();       // Input
 
 			// Run the kernel
-			gpu.a_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
+			var kernel = gpu.GetKernel<A_FloatOPKernel>(Kernels.AFloatOP);
+			kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
 
 			// Synchronise the kernel
 			gpu.accelerator.Synchronize();
@@ -136,7 +141,8 @@ namespace BAVCL.Geometric
 				buffer = Output.GetBuffer(),        // Output
 				buffer2 = vector.GetBuffer();       // Input
 
-			gpu.s_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
+			var kernel = gpu.GetKernel<S_FloatOPKernel>(Kernels.SFloatOP);
+			kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
 
 			gpu.accelerator.Synchronize();
 
@@ -161,7 +167,8 @@ namespace BAVCL.Geometric
 				buffer = Output.GetBuffer(),        // Output
 				buffer2 = this.GetBuffer();         // Input
 
-			gpu.s_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
+			var kernel = gpu.GetKernel<S_FloatOPKernel>(Kernels.SFloatOP);
+			kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
 
 			gpu.accelerator.Synchronize();
 
@@ -184,7 +191,8 @@ namespace BAVCL.Geometric
 				buffer2 = vector.GetBuffer();       // Input
 
 			// Run the kernel
-			gpu.a_FloatOPKernelIP(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
+			var kernel = gpu.GetKernel<A_FloatOPKernelIP>(Kernels.AFloatOPIP);
+			kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
 
 			// Synchronise the kernel
 			gpu.accelerator.Synchronize();
@@ -201,7 +209,8 @@ namespace BAVCL.Geometric
 			// Check if the input & output are in Cache
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
 
-			gpu.s_FloatOPKernelIP(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
+			var kernel = gpu.GetKernel<S_FloatOPKernelIP>(Kernels.SFloatOPIP);
+			kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
 
 			gpu.accelerator.Synchronize();
 

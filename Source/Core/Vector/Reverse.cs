@@ -1,38 +1,40 @@
-﻿using ILGPU;
+﻿using BAVCL.Core;
+using ILGPU;
 using ILGPU.Runtime;
 using System.Linq;
 
 namespace BAVCL
 {
-    public partial class Vector
-    {
-        public static Vector Reverse(Vector vector) => 
-            new(vector.gpu, vector.Value.Reverse().ToArray(), vector.Columns);
+	public partial class Vector
+	{
+		public static Vector Reverse(Vector vector) => 
+			new(vector.gpu, vector.Value.Reverse().ToArray(), vector.Columns);
 
-        public Vector Reverse_IP()
-        {
-            SyncCPU();
-            UpdateCache(Value.Reverse().ToArray());
-            return this;
-        }
-        public static Vector ReverseX(Vector vector) => 
-            vector.Copy().ReverseX_IP();
+		public Vector Reverse_IP()
+		{
+			SyncCPU();
+			UpdateCache(Value.Reverse().ToArray());
+			return this;
+		}
+		public static Vector ReverseX(Vector vector) => 
+			vector.Copy().ReverseX_IP();
 
-        public Vector ReverseX_IP()
-        {
-            IncrementLiveCount();
+		public Vector ReverseX_IP()
+		{
+			IncrementLiveCount();
 
-            // Check if the input & output are in Cache
-            MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
+			// Check if the input & output are in Cache
+			MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
 
-            gpu.reverseKernel(gpu.accelerator.DefaultStream, buffer.IntExtent >> 1, buffer.View);
+			var kernel = gpu.GetKernel<ReverseKernel>(Kernels.Reverse);
+			kernel(gpu.accelerator.DefaultStream, buffer.IntExtent >> 1, buffer.View);
 
-            gpu.accelerator.Synchronize();
+			gpu.accelerator.Synchronize();
 
-            DecrementLiveCount();
+			DecrementLiveCount();
 
-            return this;
-        }
+			return this;
+		}
 
-    }
+	}
 }

@@ -1,41 +1,46 @@
-﻿using ILGPU;
+﻿using BAVCL.Core;
+using ILGPU;
 using ILGPU.Runtime;
 using System;
 
 namespace BAVCL
 {
-    public partial class Vector
-    {
-        public static Vector Transpose(Vector vector)
-        {
-            if (vector.Columns == 1 || vector.Columns >= vector.Length) { throw new Exception("Cannot transpose 1D Vector"); }
+	public partial class Vector
+	{
+		public static Vector Transpose(Vector vector)
+		{
+			if (vector.Columns == 1 || vector.Columns >= vector.Length) { throw new Exception("Cannot transpose 1D Vector"); }
 
-            // Prevent from decache
-            vector.IncrementLiveCount();
+			// Get reference to gpu
+			GPU gpu = vector.gpu;
 
-            // Make the Output Vector
-            Vector Output = new(vector.gpu, vector.Length, vector.Rows);
+			// Prevent from decache
+			vector.IncrementLiveCount();
 
-            // Prevent from decache
-            Output.IncrementLiveCount();
+			// Make the Output Vector
+			Vector Output = new(gpu, vector.Length, vector.Rows);
 
-            MemoryBuffer1D<float, Stride1D.Dense>
-                buffer = Output.GetBuffer(), // Output
-                buffer2 = vector.GetBuffer(); // Input
+			// Prevent from decache
+			Output.IncrementLiveCount();
 
-            vector.gpu.transposekernel(vector.gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, vector.Columns);
+			MemoryBuffer1D<float, Stride1D.Dense>
+				buffer = Output.GetBuffer(), // Output
+				buffer2 = vector.GetBuffer(); // Input
 
-            vector.gpu.accelerator.Synchronize();
+			var kernel = gpu.GetKernel<TransposeKernel>(Kernels.Transpose); 
+			kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, vector.Columns);
 
-            vector.DecrementLiveCount();
-            Output.DecrementLiveCount();
+			gpu.accelerator.Synchronize();
 
-            return Output;
-        }
-        public Vector Transpose_IP()
-        {
-            return TransferBuffer(Transpose(this), true);
-        }
+			vector.DecrementLiveCount();
+			Output.DecrementLiveCount();
 
-    }
+			return Output;
+		}
+		public Vector Transpose_IP()
+		{
+			return TransferBuffer(Transpose(this), true);
+		}
+
+	}
 }

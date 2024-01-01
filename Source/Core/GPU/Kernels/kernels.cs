@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using BAVCL.Experimental;
 using ILGPU;
 using ILGPU.Algorithms;
 using ILGPU.Runtime;
@@ -9,59 +8,47 @@ namespace BAVCL
 {
 	public partial class GPU
 	{
-		// TEST KERNELS
-		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>> TestSQRTKernel;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>> TestMYSQRTKernel;
 		
-		// CORE KERNELS
-		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int> appendKernel;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>, float> nanToNumKernel;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>> getSliceKernel;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> a_opFKernel;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>> s_opFKernel;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> vectormatrixOpKernel;
-
-		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> a_FloatOPKernelIP;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>, float, SpecializedValue<int>> s_FloatOPKernelIP;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>> diffKernel;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>> reverseKernel;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>> absKernel;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>> rcpKernel;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>> rsqrtKernel;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>> crossKernel;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, int> transposekernel;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>, float> LogKernel;
-		public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> simdVectorKernel;
-		
-		
-		public void LoadKernels()
+		public void AddKernels()
 		{
-			Stopwatch timer = new();
-			timer.Start();
-
-			appendKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(AppendKernel);
-			nanToNumKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float>(Nan_to_numKernel);
-			getSliceKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>>(AccessSliceKernel);
-			
-			a_opFKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernel);
-			s_opFKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernel);
-			vectormatrixOpKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(VectorMatrixKernel);
-
-			simdVectorKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(SIMDVectorKernel);
-
-			a_FloatOPKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernelIP);
-			s_FloatOPKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernelIP);
-
-			diffKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>> (DiffKernel);
-			reverseKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>> (ReverseKernel);
-			absKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(AbsKernel);
-			rcpKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(ReciprocalKernel);
-			rsqrtKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(RsqrtKernel);
-
-			crossKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>>(CrossKernel);
-			transposekernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, int>(TransposeKernel);
-
-			LogKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float>(LogKern);
+			Stopwatch timer = Stopwatch.StartNew();
+			Kernels = new Delegate[]
+			{
+				// Append Kernel
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(AppendKernel),
+				// Nan_to_num Kernel
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float>(Nan_to_numKernel),
+				// Access Slice Kernel
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>>(AccessSliceKernel),
+				// A_FloatOP Kernel
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernel),
+				// S_FloatOP Kernel
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernel),
+				// vectormatrixOpKernel
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(VectorMatrixKernel),
+				// simdVectorKernel
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(SIMDVectorKernel),
+				// A_FloatOPKernelIP
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernelIP),
+				// S_FloatOPKernelIP
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernelIP),
+				// DiffKernel
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>> (DiffKernel),
+				// ReverseKernel
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(ReverseKernel),
+				// AbsKernel
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(AbsKernel),
+				// ReciprocalKernel
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(ReciprocalKernel),
+				// RsqrtKernel
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(RsqrtKernel),
+				// CrossKernel
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>>(CrossKernel),
+				// TransposeKernel
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, int>(TransposeKernel),
+				// LogKernel
+				accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float>(LogKern),
+			};
 
 			timer.Stop();
 			Console.WriteLine($"Kernels Loaded in: {timer.Elapsed.TotalMilliseconds} MS");
