@@ -13,10 +13,10 @@ public delegate void S_FloatOPKernelIP(AcceleratorStream stream, Index1D index, 
 public delegate void VectorMatrixKernel(AcceleratorStream stream, Index1D index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, int Cols, SpecializedValue<int> operation);
 public delegate void SIMDVectorKernel(AcceleratorStream stream, Index1D index, ArrayView<float> Output, ArrayView<float> InputA, ArrayView<float> InputB, int Cols, SpecializedValue<int> operation);
 public delegate void DiffKernel(AcceleratorStream stream, Index1D index, ArrayView<float> Output, ArrayView<float> Input);
-public delegate void ReverseKernel(AcceleratorStream stream, Index1D index, ArrayView<float> IO);
-public delegate void AbsKernel(AcceleratorStream stream, Index1D index, ArrayView<float> IO);
-public delegate void ReciprocalKernel(AcceleratorStream stream, Index1D index, ArrayView<float> IO);
-public delegate void RsqrtKernel(AcceleratorStream stream, Index1D index, ArrayView<float> IO);
+
 public delegate void CrossKernel(AcceleratorStream stream, Index1D index, ArrayView<float> Output, ArrayView<float> InputA, ArrayView<float> InputB);
 public delegate void TransposeKernel(AcceleratorStream stream, Index1D index, ArrayView<float> Output, ArrayView<float> Input, int columns);
 public delegate void LogKern(AcceleratorStream stream, Index1D index, ArrayView<float> IO, float @base);
+
+
+public delegate void IOKernel(AcceleratorStream stream, Index1D index, ArrayView<float> IO);

@@ -61,7 +61,7 @@ namespace BAVCL
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
 
 			// RUN
-			var kernel = gpu.GetKernel<AbsKernel>(Kernels.Abs);
+			var kernel = gpu.GetKernel<IOKernel>(Kernels.Abs);
 			kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
 
 			// SYNC
