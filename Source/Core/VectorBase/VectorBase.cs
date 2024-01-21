@@ -2,10 +2,12 @@
 using ILGPU.Runtime;
 using System;
 using System.Linq;
+using System.Numerics;
 
 namespace BAVCL.Core
 {
-	public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unmanaged
+	public abstract partial class VectorBase<T> : ICacheable<T>, IIO 
+		where T : unmanaged, INumber<T>
 	{
 		protected GPU gpu;
 
@@ -61,7 +63,7 @@ namespace BAVCL.Core
 			Columns = columns;
 			Value = value;
 			Length = value.Length;
-
+			
 			if (Cache) this.Cache(value);
 		}
 
