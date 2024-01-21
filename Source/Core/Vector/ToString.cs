@@ -14,7 +14,7 @@ namespace BAVCL
 
         public string ToStr(byte decimalplaces = 2, bool syncCPU = true)
         {
-            if ((Value == null) || syncCPU) { SyncCPU(); }
+            if (syncCPU) SyncCPU();
 
             (float min, float max, bool hasinfinity) = Util.MinMaxInf(Value);
 
@@ -109,7 +109,7 @@ namespace BAVCL
 
             for (int i = 0; i < Length; i++)
             {
-                if (i % Columns == 0) { stringBuilder.AppendLine(); }
+                if (Is2D() && i % Columns == 0) { stringBuilder.AppendLine(); }
 
                 clear.CopyTo(Template, 3);
                 string val = Value[i].ToString(format);
