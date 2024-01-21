@@ -1,10 +1,9 @@
-﻿namespace BAVCL.Core
+﻿namespace BAVCL.Core;
+
+public interface IIO
 {
-    public interface IIO
-    {
 
-        public void Print();
-        public string ToCSV();
+	public void Print();
+	public string ToCSV();
 
-    }
 }
