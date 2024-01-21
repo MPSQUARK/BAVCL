@@ -12,6 +12,7 @@ namespace BAVCL
 		public void AddKernels()
 		{
 			Stopwatch timer = Stopwatch.StartNew();
+			
 			Kernels = new Delegate[]
 			{
 				// Append Kernel
