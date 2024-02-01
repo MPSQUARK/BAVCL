@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Numerics;
 
-namespace BAVCL.Extensions;
+namespace BAVCL.Ext;
 
 public static partial class Extensions
 {
