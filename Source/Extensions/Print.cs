@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 using System.Text;
 
 namespace BAVCL.Core;
@@ -6,17 +7,18 @@ namespace BAVCL.Core;
 public static partial class Extensions
 {
 	
-	public static void Print(this object obj) => Console.WriteLine(obj.ToString());
-	public static void Print(this object[] arr, char separator = ',')
+	public static void Print<T>(this T number) where T : INumber<T>
+		=> Console.WriteLine(number.ToString());
+	public static void Print<T>(this T[] arr, char separator = ',')
 	{
 		StringBuilder sb = new();
 		for (int i = 0; i < arr.Length - 1; i++)
 			sb.Append($"{arr[i]}{separator}");
 			
-		sb.Append($"{arr[^1]}\n");
+		sb.Append($"{arr[^1]}");
 		Console.WriteLine(sb.ToString());
 	}
-	public static void Print(this object[,] objects, char separator = ',')
+	public static void Print<T>(this T[,] objects, char separator = ',')
 	{
 		StringBuilder sb = new();
 		for (int i = 0; i < objects.GetLength(0); i++)
