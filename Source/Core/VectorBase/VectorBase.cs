@@ -40,7 +40,7 @@ namespace BAVCL.Core
 		public uint ID
 		{
 			get => _id;
-			set => _id = value >= 0 ? value : throw new Exception($"ID CANNOT be less than 0. Recieved: {value}");
+			set => _id = value;
 		}
 
 		public long MemorySize => (long)Interop.SizeOf<T>() * (long)Value.Length;
@@ -52,7 +52,6 @@ namespace BAVCL.Core
 		}
 
 		protected internal int _columns = 1;
-		protected internal long _memorySize = 0;
 		protected volatile internal uint _id = 0;
 		protected volatile internal uint _livecount = 0;
 		protected volatile internal int _length = 0;
