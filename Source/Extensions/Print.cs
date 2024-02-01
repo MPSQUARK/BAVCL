@@ -1,117 +1,41 @@
-﻿using BAVCL.Utility;
-using System;
+﻿using System;
 using System.Text;
 
-namespace BAVCL.Core
+namespace BAVCL.Core;
+
+public static partial class Extensions
 {
-    public static partial class Extensions
-    {
+	
+	public static void Print(this object obj) => Console.WriteLine(obj.ToString());
+	public static void Print(this object[] arr, char separator = ',')
+	{
+		StringBuilder sb = new();
+		for (int i = 0; i < arr.Length - 1; i++)
+			sb.Append($"{arr[i]}{separator}");
+			
+		sb.Append($"{arr[^1]}\n");
+		Console.WriteLine(sb.ToString());
+	}
+	public static void Print(this object[,] objects, char separator = ',')
+	{
+		StringBuilder sb = new();
+		for (int i = 0; i < objects.GetLength(0); i++)
+		{
+			int j = 0;
+			for (; j < objects.GetLength(1) - 1; j++)
+				sb.Append($"{objects[i, j]}{separator}");
+			sb.Append($"{objects[i, j]}\n");
+		}
+		Console.WriteLine(sb.ToString());
+	}
 
-        #region "FLOAT"
+	public static void Print(this float value, byte decimalplaces = 2) => 
+		Console.WriteLine(value.ToString($"F{decimalplaces}"));
 
-        public static void Print(this float value, byte decimalplaces = 2)
-        {
-            Console.WriteLine(value.ToString($"F{decimalplaces}"));
-        }
+	public static void Print(this float[] arr, byte decimalplaces = 2) => 
+		Console.WriteLine(arr.ToStr(decimalplaces));
 
-        public static void Print(this float[] arr, byte decimalplaces = 2)
-        {
-            Console.WriteLine();
-            Console.WriteLine(arr.ToStr(decimalplaces));
-        }
-
-        public static void Print(this float[,] arr, byte decimalplaces = 2)
-        {
-            throw new NotImplementedException();
-        }
-
-
-        #endregion
-
-        #region "DOUBLE"
-
-        public static void Print(this double value, byte decimalplaces = 2)
-        {
-            Console.WriteLine(value.ToString($"F{decimalplaces}"));
-        }
-
-        public static void Print(this double[] arr, byte decimalplaces = 2)
-        {
-            throw new NotImplementedException();
-        }
-
-        public static void Print(this double[,] arr, byte decimalplaces = 2)
-        {
-            throw new NotImplementedException();
-        }
-
-        #endregion
-
-        #region "INTS"
-
-        public static void Print(this int value)
-        {
-            Console.WriteLine(value.ToString());
-        }
-
-        public static void Print(this int[] arr)
-        {
-            throw new NotImplementedException();
-        }
-
-        public static void Print(this int[,] arr)
-        {
-            throw new NotImplementedException();
-        }
-
-        #endregion
-
-        #region "UINTS"
-
-        public static void Print(this uint value)
-        {
-            Console.WriteLine(value.ToString());
-        }
-
-        public static void Print(this uint[] arr)
-        {
-            for (int i = 0; i < arr.Length-1; i++)
-            {
-                Console.Write($"{arr[i]},");
-            }
-            Console.Write($"{arr[^1]}\n");
-        }
-
-        public static void Print(this uint[,] arr)
-        {
-            throw new NotImplementedException();
-        }
-
-        #endregion
-
-        #region "LONG"
-
-        public static void Print(this long value)
-        {
-            Console.WriteLine(value.ToString());
-        }
-
-        public static void Print(this long[] arr)
-        {
-            throw new NotImplementedException();
-        }
-
-        public static void Print(this long[,] arr)
-        {
-            throw new NotImplementedException();
-        }
-
-        #endregion
-
-
-        
-
-    }
-
+	public static void Print(this double value, byte decimalplaces = 2) => 
+		Console.WriteLine(value.ToString($"F{decimalplaces}"));
 
 }
