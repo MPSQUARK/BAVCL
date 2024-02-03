@@ -1,9 +1,7 @@
-﻿using BAVCL.Core;
-using ILGPU.Runtime;
+﻿using ILGPU.Runtime;
 using System;
 
-
-namespace BAVCL;
+namespace BAVCL.MemoryManagement;
 
 public struct Cache
 {

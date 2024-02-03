@@ -1,4 +1,4 @@
-﻿namespace BAVCL.Core;
+﻿namespace BAVCL.IO;
 
 public interface IIO
 {

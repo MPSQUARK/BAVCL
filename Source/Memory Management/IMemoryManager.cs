@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace BAVCL.Core.Interfaces;
+namespace BAVCL.MemoryManagement;
 
 public interface IMemoryManager
 {

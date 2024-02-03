@@ -1,6 +1,6 @@
 ﻿using ILGPU.Runtime;
 
-namespace BAVCL.Core;
+namespace BAVCL.MemoryManagement;
 
 public interface ICacheable
 {

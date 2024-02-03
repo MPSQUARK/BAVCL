@@ -1,5 +1,4 @@
-﻿using BAVCL.Core.Interfaces;
-using ILGPU;
+﻿using ILGPU;
 using ILGPU.Runtime;
 using System;
 using System.Collections.Concurrent;
@@ -8,7 +7,7 @@ using System.Linq;
 using System.Threading;
 
 
-namespace BAVCL.Core;
+namespace BAVCL.MemoryManagement;
 
 internal class LRU : IMemoryManager
 {
