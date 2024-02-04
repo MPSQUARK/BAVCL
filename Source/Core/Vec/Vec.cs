@@ -1,7 +1,7 @@
 using System;
 using System.Numerics;
 using System.Threading;
-using BAVCL.Core;
+using BAVCL.MemoryManagement;
 using ILGPU;
 using ILGPU.Runtime;
 
@@ -122,4 +122,19 @@ public class Vec<T> : ICacheable<T>
 		buffer.AsArrayView<T>(0, buffer.Length).CopyToCPU(Values);
 		Length = Values.Length;
 	}
+	
+	public void OP(Vec<T> vector, Operations operation)
+	{
+		if (vector.Length != Length) throw new ArgumentException("Vectors must be of the same length");
+		
+		this.IncrementLiveCount();
+		vector.IncrementLiveCount();
+		
+		MemoryBuffer1D<T, Stride1D.Dense> buffer = GetBuffer();
+		MemoryBuffer1D<T, Stride1D.Dense> vectorBuffer = vector.GetBuffer();
+		
+		//var kernel = Gpu.GetKernel(Kernels);
+		
+	}
+	
 }

@@ -2,8 +2,8 @@
 using ILGPU.Runtime;
 using System;
 using System.Collections.Generic;
-using BAVCL.Core.Interfaces;
-using BAVCL.Core;
+using BAVCL.MemoryManagement;
+using BAVCL.Core.Enums;
 
 namespace BAVCL;
 

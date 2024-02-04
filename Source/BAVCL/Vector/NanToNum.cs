@@ -1,31 +1,29 @@
-﻿using BAVCL.Core;
+﻿using BAVCL.Core.Enums;
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace BAVCL
+namespace BAVCL;
+
+public partial class Vector
 {
-	public partial class Vector
+
+	public static Vector Nan_to_num(Vector vector, float num) =>
+		vector.Copy().Nan_to_num_IP(num);
+
+	public Vector Nan_to_num_IP(float num)
 	{
+		IncrementLiveCount();
 
-		public static Vector Nan_to_num(Vector vector, float num) =>
-			vector.Copy().Nan_to_num_IP(num);
+		MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
 
-		public Vector Nan_to_num_IP(float num)
-		{
-			IncrementLiveCount();
+		var kernel = gpu.GetKernel<SIOKernel>(Kernels.NanToNum);
+		kernel(gpu.accelerator.DefaultStream, Length, buffer.View, num);
 
-			MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
+		gpu.accelerator.Synchronize();
 
-			var kernel = gpu.GetKernel<SIOKernel>(Kernels.NanToNum);
-			kernel(gpu.accelerator.DefaultStream, Length, buffer.View, num);
+		DecrementLiveCount();
 
-			gpu.accelerator.Synchronize();
-
-			DecrementLiveCount();
-
-			return this;
-		}
-
-
+		return this;
 	}
+
 }

@@ -1,8 +1,12 @@
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Numerics;
+using BAVCL.CustomMath;
 using ILGPU;
 using ILGPU.Algorithms;
 using ILGPU.Runtime;
+using ILGPU.Util;
 
 namespace BAVCL;
 
@@ -49,6 +53,9 @@ public partial class GPU
 			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, int>(TransposeKernel),
 			// LogKernel
 			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float>(LogKern),
+			// SeqOPKern
+			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(SeqOPKern),
+			
 		};
 
 		timer.Stop();
@@ -85,6 +92,38 @@ public partial class GPU
 		OutPut[index] = Input[
 			index * ChangeSelectLength[1] +                         // iRcL
 			ChangeSelectLength[0]];                                 // Cs
+	}
+	
+	static void SeqOPKern<T>(Index1D index, ArrayView<T> OutPut, ArrayView<T> InputA, ArrayView<T> InputB, SpecializedValue<int> operation)
+		where T : unmanaged, INumber<T>
+	{
+		switch ((Operations)operation.Value)
+		{
+			case Operations.add:
+				OutPut[index] = InputA[index] + InputB[index];
+				break;
+			case Operations.subtract:
+				OutPut[index] = InputA[index] - InputB[index];
+				break;
+			case Operations.multiply:
+				OutPut[index] = InputA[index] * InputB[index];
+				break;
+			case Operations.divide:
+				OutPut[index] = InputA[index] / InputB[index];
+				break;
+			case Operations.flipDivide:
+				OutPut[index] = InputB[index] / InputA[index];
+				break;
+			case Operations.pow:
+				OutPut[index] = CMath.Pow(InputA[index], InputB[index]);
+				break;
+			case Operations.flipPow:
+				OutPut[index] = CMath.Pow(InputB[index], InputA[index]);
+				break;
+			case Operations.differenceSquared:
+				OutPut[index] = CMath.Square(InputA[index] - InputB[index]);
+				break;
+		}
 	}
 
 	static void A_FloatOPKernel(Index1D index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, SpecializedValue<int> operation)

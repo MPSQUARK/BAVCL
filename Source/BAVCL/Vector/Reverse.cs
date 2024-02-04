@@ -1,40 +1,39 @@
-﻿using BAVCL.Core;
+﻿using BAVCL.Core.Enums;
 using ILGPU;
 using ILGPU.Runtime;
 using System.Linq;
 
-namespace BAVCL
+namespace BAVCL;
+
+public partial class Vector
 {
-	public partial class Vector
+	public static Vector Reverse(Vector vector) =>
+		new(vector.gpu, vector.Value.Reverse().ToArray(), vector.Columns);
+
+	public Vector Reverse_IP()
 	{
-		public static Vector Reverse(Vector vector) => 
-			new(vector.gpu, vector.Value.Reverse().ToArray(), vector.Columns);
-
-		public Vector Reverse_IP()
-		{
-			SyncCPU();
-			UpdateCache(Value.Reverse().ToArray());
-			return this;
-		}
-		public static Vector ReverseX(Vector vector) => 
-			vector.Copy().ReverseX_IP();
-
-		public Vector ReverseX_IP()
-		{
-			IncrementLiveCount();
-
-			// Check if the input & output are in Cache
-			MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
-
-			var kernel = gpu.GetKernel<IOKernel>(Kernels.Reverse);
-			kernel(gpu.accelerator.DefaultStream, buffer.IntExtent >> 1, buffer.View);
-
-			gpu.accelerator.Synchronize();
-
-			DecrementLiveCount();
-
-			return this;
-		}
-
+		SyncCPU();
+		UpdateCache(Value.Reverse().ToArray());
+		return this;
 	}
+	public static Vector ReverseX(Vector vector) =>
+		vector.Copy().ReverseX_IP();
+
+	public Vector ReverseX_IP()
+	{
+		IncrementLiveCount();
+
+		// Check if the input & output are in Cache
+		MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
+
+		var kernel = gpu.GetKernel<IOKernel>(Kernels.Reverse);
+		kernel(gpu.accelerator.DefaultStream, buffer.IntExtent >> 1, buffer.View);
+
+		gpu.accelerator.Synchronize();
+
+		DecrementLiveCount();
+
+		return this;
+	}
+
 }

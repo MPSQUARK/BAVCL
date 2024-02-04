@@ -4,6 +4,7 @@ using System;
 using BAVCL.Core;
 using BAVCL.Ext;
 using ILGPU;
+using BAVCL.Core.Enums;
 
 namespace BAVCL;
 
