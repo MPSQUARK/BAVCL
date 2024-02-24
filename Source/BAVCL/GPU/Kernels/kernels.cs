@@ -1,17 +1,58 @@
 using System;
-using System.ComponentModel;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
+using BAVCL.Core.Enums;
 using BAVCL.CustomMath;
 using ILGPU;
 using ILGPU.Algorithms;
 using ILGPU.Runtime;
-using ILGPU.Util;
 
 namespace BAVCL;
 
 public partial class GPU
 {
+	
+	private Dictionary<(Type, KernelType), Delegate> _kernels_new = new();
+	
+	public void RegisterKernels<T>() where T : unmanaged
+	{
+		_kernels_new.Add(
+			(typeof(T), KernelType.Append),
+			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, ArrayView<T>, ArrayView<T>, int, int>(AppendKernel)
+		);
+		_kernels_new.Add(
+			(typeof(T), KernelType.Access),
+			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, ArrayView<T>, ArrayView<int>>(AccessSliceKernel)
+		);
+
+	}
+	
+	public void RegisterNumberKernels<T>() where T : unmanaged, INumber<T>
+	{
+		_kernels_new.Add((typeof(T), KernelType.NanToNum),
+			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, T>(Nan_to_numKernel)
+		);
+		_kernels_new.Add(
+			(typeof(T), KernelType.SeqOPKern),
+			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, ArrayView<T>, ArrayView<T>, SpecializedValue<int>>(SeqOPKern)
+		);
+		_kernels_new.Add(
+			(typeof(T), KernelType.SeqIPOPKern),
+			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, ArrayView<T>, SpecializedValue<int>>(SeqIPOPKern)
+		);
+		_kernels_new.Add(
+			(typeof(T), KernelType.ScalarOPKern),
+			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, ArrayView<T>, T, SpecializedValue<int>>(ScalarOPKern)
+		);
+		_kernels_new.Add(
+			(typeof(T), KernelType.ScalarIPOPKern),
+			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, T, SpecializedValue<int>>(ScalarIPOPKern)
+		);
+		
+		
+	}
+	
 	
 	public void AddKernels()
 	{
@@ -19,24 +60,10 @@ public partial class GPU
 		
 		Kernels = new Delegate[]
 		{
-			// Append Kernel
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(AppendKernel),
-			// Nan_to_num Kernel
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float>(Nan_to_numKernel),
-			// Access Slice Kernel
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>>(AccessSliceKernel),
-			// A_FloatOP Kernel
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernel),
-			// S_FloatOP Kernel
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernel),
 			// vectormatrixOpKernel
 			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(VectorMatrixKernel),
 			// simdVectorKernel
 			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(SIMDVectorKernel),
-			// A_FloatOPKernelIP
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernelIP),
-			// S_FloatOPKernelIP
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernelIP),
 			// DiffKernel
 			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>> (DiffKernel),
 			// ReverseKernel
@@ -62,7 +89,8 @@ public partial class GPU
 		Console.WriteLine($"Kernels Loaded in: {timer.Elapsed.TotalMilliseconds} MS");
 	}
 	
-	static void AppendKernel(Index1D index, ArrayView<float> Output, ArrayView<float> vecA, ArrayView<float> vecB, int vecAcol, int vecBcol)
+	static void AppendKernel<T>(Index1D index, ArrayView<T> Output, ArrayView<T> vecA, ArrayView<T> vecB, int vecAcol, int vecBcol)
+		where T : unmanaged
 	{
 
 		for (int i = 0, j=0; j < vecBcol; i++)
@@ -78,20 +106,17 @@ public partial class GPU
 		}
 	}
 
-	static void Nan_to_numKernel(Index1D index, ArrayView<float> IO, float num)
+	static void Nan_to_numKernel<T>(Index1D index, ArrayView<T> IO, T num) where T : unmanaged, INumber<T>
 	{
-		if (float.IsNaN(IO[index]) || float.IsInfinity(IO[index]))
-		{
+		if (T.IsNaN(IO[index]) || T.IsInfinity(IO[index]))
 			IO[index] = num;
-		}
-
 	}
 
-	static void AccessSliceKernel(Index1D index, ArrayView<float> OutPut, ArrayView<float> Input, ArrayView<int> ChangeSelectLength)
+	static void AccessSliceKernel<T>(Index1D index, ArrayView<T> OutPut, ArrayView<T> Input, ArrayView<int> ChangeSelectLength)
+		where T : unmanaged
 	{
-		OutPut[index] = Input[
-			index * ChangeSelectLength[1] +                         // iRcL
-			ChangeSelectLength[0]];                                 // Cs
+						// iRcL                             + //Cs
+		OutPut[index] = Input[index * ChangeSelectLength[1] + ChangeSelectLength[0]];
 	}
 	
 	static void SeqOPKern<T>(Index1D index, ArrayView<T> OutPut, ArrayView<T> InputA, ArrayView<T> InputB, SpecializedValue<int> operation)
@@ -104,6 +129,9 @@ public partial class GPU
 				break;
 			case Operations.subtract:
 				OutPut[index] = InputA[index] - InputB[index];
+				break;
+			case Operations.flipSubtract:
+				OutPut[index] = InputB[index] - InputA[index];
 				break;
 			case Operations.multiply:
 				OutPut[index] = InputA[index] * InputB[index];
@@ -126,48 +154,11 @@ public partial class GPU
 		}
 	}
 
-	static void A_FloatOPKernel(Index1D index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, SpecializedValue<int> operation)
+	static void SeqIPOPKern<T>(Index1D index, ArrayView<T> IO, ArrayView<T> Input, SpecializedValue<int> operation)
+		where T : unmanaged, INumber<T>
 	{
 		switch ((Operations)operation.Value)
 		{
-			case Operations.multiply:
-				OutPut[index] = InputA[index] * InputB[index];
-				break;
-			case Operations.add:
-				OutPut[index] = InputA[index] + InputB[index];
-				break;
-			case Operations.subtract:
-				OutPut[index] = InputA[index] - InputB[index];
-				break;
-			case Operations.flipSubtract:
-				OutPut[index] = InputB[index] - InputA[index];
-				break;
-			case Operations.divide:
-				OutPut[index] = InputA[index] / InputB[index];
-				break;
-			case Operations.flipDivide:
-				OutPut[index] = InputB[index] / InputA[index];
-				break;
-			case Operations.pow:
-				OutPut[index] = XMath.Pow(InputA[index], InputB[index]);
-				break;
-			case Operations.flipPow:
-				OutPut[index] = XMath.Pow(InputB[index], InputA[index]);
-				break;
-			case Operations.differenceSquared:
-				OutPut[index] = XMath.Pow((InputA[index] - InputB[index]), 2f);
-				break;
-
-		}
-	}
-
-	static void A_FloatOPKernelIP(Index1D index, ArrayView<float> IO, ArrayView<float> Input, SpecializedValue<int> operation)
-	{
-		switch ((Operations)operation.Value)
-		{
-			case Operations.multiply:
-				IO[index] = IO[index] * Input[index];
-				break;
 			case Operations.add:
 				IO[index] = IO[index] + Input[index];
 				break;
@@ -175,33 +166,34 @@ public partial class GPU
 				IO[index] = IO[index] - Input[index];
 				break;
 			case Operations.flipSubtract:
-				IO[index] = IO[index] - Input[index];
+				IO[index] = Input[index] - IO[index];
+				break;
+			case Operations.multiply:
+				IO[index] = IO[index] * Input[index];
 				break;
 			case Operations.divide:
 				IO[index] = IO[index] / Input[index];
 				break;
 			case Operations.flipDivide:
-				IO[index] = IO[index] / Input[index];
+				IO[index] = Input[index] / IO[index];
 				break;
 			case Operations.pow:
-				IO[index] = XMath.Pow(IO[index], Input[index]);
+				IO[index] = CMath.Pow(IO[index], Input[index]);
 				break;
 			case Operations.flipPow:
-				IO[index] = XMath.Pow(IO[index], Input[index]);
+				IO[index] = CMath.Pow(Input[index], IO[index]);
 				break;
 			case Operations.differenceSquared:
-				IO[index] = XMath.Pow((IO[index] - Input[index]), 2f);
+				IO[index] = CMath.Square(IO[index] - Input[index]);
 				break;
 		}
 	}
 
-	static void S_FloatOPKernel(Index1D index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar, SpecializedValue<int> operation)
+	static void ScalarOPKern<T>(Index1D index, ArrayView<T> OutPut, ArrayView<T> Input, T Scalar, SpecializedValue<int> operation)
+		where T : unmanaged, INumber<T>
 	{
 		switch ((Operations)operation.Value)
 		{
-			case Operations.multiply:
-				OutPut[index] = Input[index] * Scalar;
-				break;
 			case Operations.add:
 				OutPut[index] = Input[index] + Scalar;
 				break;
@@ -211,6 +203,9 @@ public partial class GPU
 			case Operations.flipSubtract:
 				OutPut[index] = Scalar - Input[index];
 				break;
+			case Operations.multiply:
+				OutPut[index] = Input[index] * Scalar;
+				break;
 			case Operations.divide:
 				OutPut[index] = Input[index] / Scalar;
 				break;
@@ -218,23 +213,22 @@ public partial class GPU
 				OutPut[index] = Scalar / Input[index];
 				break;
 			case Operations.pow:
-				OutPut[index] = XMath.Pow(Input[index], Scalar);
+				OutPut[index] = CMath.Pow(Input[index], Scalar);
 				break;
 			case Operations.flipPow:
-				OutPut[index] = XMath.Pow(Scalar, Input[index]);
+				OutPut[index] = CMath.Pow(Scalar, Input[index]);
 				break;
 			case Operations.differenceSquared:
-				OutPut[index] = XMath.Pow((Input[index] - Scalar), 2f);
-				break;
+				OutPut[index] = CMath.Square(Input[index] - Scalar);
+				break;	
 		}
 	}
-	static void S_FloatOPKernelIP(Index1D index, ArrayView<float> IO, float Scalar, SpecializedValue<int> operation)
+
+	static void ScalarIPOPKern<T>(Index1D index, ArrayView<T> IO, T Scalar, SpecializedValue<int> operation)
+		where T : unmanaged, INumber<T>
 	{
 		switch ((Operations)operation.Value)
 		{
-			case Operations.multiply:
-				IO[index] = IO[index] * Scalar;
-				break;
 			case Operations.add:
 				IO[index] = IO[index] + Scalar;
 				break;
@@ -244,6 +238,9 @@ public partial class GPU
 			case Operations.flipSubtract:
 				IO[index] = Scalar - IO[index];
 				break;
+			case Operations.multiply:
+				IO[index] = IO[index] * Scalar;
+				break;
 			case Operations.divide:
 				IO[index] = IO[index] / Scalar;
 				break;
@@ -251,17 +248,20 @@ public partial class GPU
 				IO[index] = Scalar / IO[index];
 				break;
 			case Operations.pow:
-				IO[index] = XMath.Pow(IO[index], Scalar);
+				IO[index] = CMath.Pow(IO[index], Scalar);
 				break;
 			case Operations.flipPow:
-				IO[index] = XMath.Pow(Scalar, IO[index]);
+				IO[index] = CMath.Pow(Scalar, IO[index]);
 				break;
 			case Operations.differenceSquared:
-				IO[index] = XMath.Pow((IO[index] - Scalar), 2f);
+				IO[index] = CMath.Square(IO[index] - Scalar);
 				break;
 		}
 	}
-	static void VectorMatrixKernel(Index1D index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, int Cols, SpecializedValue<int> operation)
+
+
+	static void VectorMatrixKernel<T>(Index1D index, ArrayView<T> OutPut, ArrayView<T> InputA, ArrayView<T> InputB, int Cols, SpecializedValue<int> operation)
+		where T : unmanaged, INumber<T>
 	{
 		int startidx = index * Cols;
 
@@ -293,20 +293,20 @@ public partial class GPU
 				break;
 			case Operations.pow:
 				for (int i = 0; i < Cols; i++)
-					OutPut[index] += XMath.Pow(InputA[i], InputB[startidx + i]);
+					OutPut[index] += CMath.Pow(InputA[i], InputB[startidx + i]);
 				break;
 			case Operations.flipPow:
 				for (int i = 0; i < Cols; i++)
-					OutPut[index] += XMath.Pow(InputB[startidx + i], InputA[i]);
+					OutPut[index] += CMath.Pow(InputB[startidx + i], InputA[i]);
 				break;
 			case Operations.differenceSquared:
 				for (int i = 0; i < Cols; i++)
-					OutPut[index] += XMath.Pow(InputA[i] - InputB[startidx + i], 2f);
+					OutPut[index] += CMath.Square(InputA[i] - InputB[startidx + i]);
 				break;
 			case Operations.distance:
 				for (int i = 0; i < Cols; i++)
-					OutPut[index] += XMath.Pow(InputA[i] - InputB[startidx + i], 2f);
-				OutPut[index] = XMath.Sqrt(OutPut[index]);
+					OutPut[index] += CMath.Square(InputA[i] - InputB[startidx + i]);
+				OutPut[index] = CMath.Sqrt(OutPut[index]);
 				break;
 		}
 	}
@@ -320,7 +320,8 @@ public partial class GPU
 	/// <param name="InputB"></param>
 	/// <param name="Cols"></param>
 	/// <param name="operation"></param>
-	static void SIMDVectorKernel(Index1D index, ArrayView<float> Output, ArrayView<float> InputA, ArrayView<float> InputB, int Cols, SpecializedValue<int> operation)
+	static void SIMDVectorKernel<T>(Index1D index, ArrayView<T> Output, ArrayView<T> InputA, ArrayView<T> InputB, int Cols, SpecializedValue<int> operation)
+		where T : unmanaged, INumber<T>
 	{
 		int startidx = index * Cols;
 		
@@ -336,44 +337,48 @@ public partial class GPU
 				break;
 			case Operations.distance:
 				for (int i = 0; i < Cols; i++)
-					Output[index] += XMath.Pow(InputA[startidx + i] - InputB[startidx + i], 2f);
-				Output[index] = XMath.Sqrt(Output[index]);
+					Output[index] += CMath.Square(InputA[startidx + i] - InputB[startidx + i]);
+				Output[index] = CMath.Sqrt(Output[index]);
 				break;
 			case Operations.magnitude:
 				for (int i = 0; i < Cols; i++)
 					Output[index] += InputA[startidx + i] * InputB[startidx + i];
-				Output[index] = XMath.Sqrt(Output[index]);
+				Output[index] = CMath.Sqrt(Output[index]);
 				break;				
 		}
 	}
 
-	static void DiffKernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
+	// TODO: Maybe this can be merged into the OP kernel?
+	static void DiffKernel<T>(Index1D index, ArrayView<T> Output, ArrayView<T> Input)
+		where T : unmanaged, INumber<T>
 	{
 		Output[index] = Input[index + 1] - Input[index];
 	}
 
-	static void ReverseKernel(Index1D index, ArrayView<float> IO)
+	// TODO: This and other kernels only using one input could be merged?
+	static void ReverseKernel<T>(Index1D index, ArrayView<T> IO) where T: unmanaged
 	{
 		int idx = IO.IntLength - 1 - index;
 		(IO[index], IO[idx]) = (IO[idx], IO[index]);
 	}
 
-	static void AbsKernel(Index1D index, ArrayView<float> IO)
+	static void AbsKernel<T>(Index1D index, ArrayView<T> IO) where T: unmanaged, INumber<T>
 	{
-		IO[index] = XMath.Abs(IO[index]);
+		IO[index] = CMath.Abs(IO[index]);
 	}
 
-	static void ReciprocalKernel(Index1D index, ArrayView<float> IO)
+	static void ReciprocalKernel<T>(Index1D index, ArrayView<T> IO) where T: unmanaged, INumber<T>
 	{
-		IO[index] = XMath.Rcp(IO[index]);
+		IO[index] = CMath.Rcp(IO[index]);
 	}
 
-	static void RsqrtKernel(Index1D index, ArrayView<float> IO)
+	static void RsqrtKernel<T>(Index1D index, ArrayView<T> IO) where T: unmanaged, INumber<T>
 	{
-		IO[index] = XMath.Rsqrt(IO[index]);
+		IO[index] = CMath.Rsqrt(IO[index]);
 	}
 
-	static void CrossKernel(Index1D index, ArrayView<float> Output, ArrayView<float> InputA, ArrayView<float> InputB)
+	static void CrossKernel<T>(Index1D index, ArrayView<T> Output, ArrayView<T> InputA, ArrayView<T> InputB)
+		where T : unmanaged, INumber<T>
 	{
 		Index1D startIdx = index * 3;
 		Output[startIdx]     = InputA[startIdx + 1] * InputB[startIdx + 2] - InputA[startIdx + 2] * InputB[startIdx + 1];
@@ -381,7 +386,8 @@ public partial class GPU
 		Output[startIdx + 2] = InputA[startIdx    ] * InputB[startIdx + 1] - InputA[startIdx + 1] * InputB[startIdx    ];
 	}
 
-	static void TransposeKernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input, int columns)
+	static void TransposeKernel<T>(Index1D index, ArrayView<T> Output, ArrayView<T> Input, int columns)
+		where T : unmanaged
 	{
 		int rows = Input.IntLength / columns;
 		int col = index % columns;
@@ -392,9 +398,10 @@ public partial class GPU
 		Output[idx] = Input[index];
 	}
 
-	public static void LogKern(Index1D index, ArrayView<float> IO, float @base)
+	public static void LogKern<T>(Index1D index, ArrayView<T> IO, T @base)
+		where T : unmanaged, INumber<T>
 	{
-		IO[index] = XMath.Log(IO[index],@base);
+		IO[index] = CMath.Log(IO[index], @base);
 	}
 	
 }
