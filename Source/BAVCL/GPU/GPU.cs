@@ -17,7 +17,7 @@ public partial class GPU
 
 	private Delegate[] Kernels { get; set; } = Array.Empty<Delegate>();
 
-	public T GetKernel<T>(Kernels kernel) where T : Delegate
+	public T GetKernel<T>(KernelType kernel) where T : Delegate
 		=> (T)Kernels[(int)kernel];
 
 	// Accelerator Preference Order

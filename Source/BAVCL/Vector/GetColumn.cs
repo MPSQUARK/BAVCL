@@ -34,7 +34,7 @@ public partial class Vector
 			buffer3 = gpu.accelerator.Allocate1D(select);      // Config
 
 		// RUN
-		var kernel = gpu.GetKernel<AccessSliceKernel>(Kernels.Access);
+		var kernel = gpu.GetKernel<AccessSliceKernel>(KernelType.Access);
 		kernel(gpu.accelerator.DefaultStream, vector.Rows, buffer.View, buffer2.View, buffer3.View);
 
 		// SYNC
@@ -73,7 +73,7 @@ public partial class Vector
 			buffer3 = gpu.accelerator.Allocate1D(select);     // Config
 
 		// RUN
-		var kernel = gpu.GetKernel<AccessSliceKernel>(Kernels.Access);
+		var kernel = gpu.GetKernel<AccessSliceKernel>(KernelType.Access);
 		kernel(gpu.accelerator.DefaultStream, Rows, buffer.View, buffer2.View, buffer3.View);
 
 		// SYNC

@@ -59,7 +59,7 @@ public partial class Vector
 		MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
 
 		// RUN
-		var kernel = gpu.GetKernel<IOKernel>(Kernels.Rsqrt);
+		var kernel = gpu.GetKernel<IOKernel>(KernelType.Rsqrt);
 		kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
 
 		// SYNC

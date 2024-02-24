@@ -26,7 +26,7 @@ public partial class Vector
 		// Check if the input & output are in Cache
 		MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
 
-		var kernel = gpu.GetKernel<IOKernel>(Kernels.Reverse);
+		var kernel = gpu.GetKernel<IOKernel>(KernelType.Reverse);
 		kernel(gpu.accelerator.DefaultStream, buffer.IntExtent >> 1, buffer.View);
 
 		gpu.accelerator.Synchronize();

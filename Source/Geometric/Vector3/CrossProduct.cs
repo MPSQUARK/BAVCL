@@ -24,7 +24,7 @@ public partial class Vector3
 			buffer2 = VectorA.GetBuffer(),      // Input
 			buffer3 = VectorB.GetBuffer();      // Input
 
-		var kernel = gpu.GetKernel<CrossKernel>(Kernels.Cross);
+		var kernel = gpu.GetKernel<CrossKernel>(KernelType.Cross);
 		kernel(gpu.accelerator.DefaultStream, VectorA.Length / 3, buffer.View, buffer2.View, buffer3.View);
 
 		gpu.accelerator.Synchronize();

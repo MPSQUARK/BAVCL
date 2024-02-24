@@ -1,10 +1,14 @@
 namespace BAVCL.Core.Enums;
 
-public enum Kernels
+public enum KernelType
 {
 	Append,
 	NanToNum,
 	Access,
+	SeqOPKern,
+	SeqIPOPKern,
+	ScalarOPKern,
+	ScalarIPOPKern,
 	AFloatOP,
 	SFloatOP,
 	MatrixOp,
@@ -19,4 +23,5 @@ public enum Kernels
 	Cross,
 	Transpose,
 	Log,
+	
 }
