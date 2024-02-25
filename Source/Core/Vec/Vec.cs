@@ -8,8 +8,7 @@ using ILGPU.Runtime;
 
 namespace BAVCL;
 
-public class Vec<T> : ICacheable<T> 
-	where T : unmanaged, INumber<T>
+public class Vec<T> : ICacheable<T> where T : unmanaged, INumber<T>
 {
 	protected GPU Gpu;
 	public T[] Values = Array.Empty<T>();
@@ -97,11 +96,9 @@ public class Vec<T> : ICacheable<T>
 		ID = Gpu.GCItem(ID);
 	}
 
-	public void DecrementLiveCount() =>
-		Interlocked.Decrement(ref _livecount);
+	public void DecrementLiveCount() => Interlocked.Decrement(ref _livecount);
 	
-	public void IncrementLiveCount() =>
-		Interlocked.Increment(ref _livecount);
+	public void IncrementLiveCount() => Interlocked.Increment(ref _livecount);
 
 	/*
 	* TODO: [OPTIMISATION] If the gpu memory manager can store a flag to track data divergence between CPU/GPU,
@@ -111,6 +108,12 @@ public class Vec<T> : ICacheable<T>
 	{
 		if (ID != 0) Values = Pull();
 		Length = Values.Length;
+	}
+	
+	public Vec<T> SyncCPUSelf()
+	{
+		SyncCPU();
+		return this;
 	}
 
 	public void SyncCPU(MemoryBuffer buffer)
@@ -147,11 +150,75 @@ public class Vec<T> : ICacheable<T>
 		vectorA.DecrementLiveCount();
 		vectorB.DecrementLiveCount();
 		output.DecrementLiveCount();
-		
+			
 		return output;
 	}
 	
-	public static Vec<T> operator +(Vec<T> vectorA, Vec<T> vectorB) =>
-		OP(vectorA, vectorB, Operations.add);
+	public static Vec<T> OP(Vec<T> vectorA, T scalar, Operations operation)
+	{
+		GPU gpu = vectorA.Gpu;
+		
+		vectorA.IncrementLiveCount();
+		
+		Vec<T> output = new(gpu, vectorA.Length, vectorA.Columns);
+		output.IncrementLiveCount();
+		
+		MemoryBuffer1D<T, Stride1D.Dense> 
+			buffer = output.GetBuffer(),
+			buffer2 = vectorA.GetBuffer();
+		
+		var kernel = (Action<AcceleratorStream, Index1D, ArrayView<T>, ArrayView<T>, T, SpecializedValue<int>>)gpu.GetKernel<T>(KernelType.ScalarOP);
+		kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
+		
+		gpu.accelerator.Synchronize();
+		
+		vectorA.DecrementLiveCount();
+		output.DecrementLiveCount();
+			
+		return output;
+	}
+	
+	public Vec<T> AbsXIP()
+	{
+		// Secure data
+		IncrementLiveCount();
+
+		// Get the Memory buffer input/output
+		MemoryBuffer1D<T, Stride1D.Dense> buffer = GetBuffer(); // IO
+
+		// RUN
+		var kernel = (Action<AcceleratorStream,Index1D, ArrayView<T>>)Gpu.GetKernel<T>(KernelType.Abs);
+		kernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
+
+		// SYNC
+		Gpu.accelerator.Synchronize();
+
+		// Remove Security
+		DecrementLiveCount();
+
+		// Output
+		return this;
+	}
+	
+	public static Vec<T> operator +(Vec<T> vectorA) => vectorA.AbsXIP();
+	public static Vec<T> operator +(Vec<T> vectorA, Vec<T> vectorB) => OP(vectorA, vectorB, Operations.add);
+	public static Vec<T> operator +(Vec<T> vectorA, T scalar) => OP(vectorA, scalar, Operations.add);
+	public static Vec<T> operator +(T scalar, Vec<T> vectorA) => OP(vectorA, scalar, Operations.add);
+		
+	public static Vec<T> operator -(Vec<T> vectorA, Vec<T> vectorB) => OP(vectorA, vectorB, Operations.subtract);
+	public static Vec<T> operator -(Vec<T> vectorA, T scalar) => OP(vectorA, scalar, Operations.subtract);
+	public static Vec<T> operator -(T scalar, Vec<T> vectorA) => OP(vectorA, scalar, Operations.flipSubtract);
+		
+	public static Vec<T> operator *(Vec<T> vectorA, Vec<T> vectorB) => OP(vectorA, vectorB, Operations.multiply);
+	public static Vec<T> operator *(Vec<T> vectorA, T scalar) => OP(vectorA, scalar, Operations.multiply);
+	public static Vec<T> operator *(T scalar, Vec<T> vectorA) => OP(vectorA, scalar, Operations.multiply);
+		
+	public static Vec<T> operator /(Vec<T> vectorA, Vec<T> vectorB) => OP(vectorA, vectorB, Operations.divide);
+	public static Vec<T> operator /(Vec<T> vectorA, T scalar) => OP(vectorA, scalar, Operations.divide);
+	public static Vec<T> operator /(T scalar, Vec<T> vectorA) => OP(vectorA, scalar, Operations.flipDivide);
+		
+	public static Vec<T> operator ^(Vec<T> vectorA, Vec<T> vectorB) => OP(vectorA, vectorB, Operations.pow);
+	public static Vec<T> operator ^(Vec<T> vectorA, T scalar) => OP(vectorA, scalar, Operations.pow);
+	public static Vec<T> operator ^(T scalar, Vec<T> vectorA) => OP(vectorA, scalar, Operations.flipPow);
 	
 }
