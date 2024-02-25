@@ -12,82 +12,89 @@ namespace BAVCL;
 
 public partial class GPU
 {
+	private Dictionary<(Type, KernelType), Delegate> _kernels = new();
 	
-	private Dictionary<(Type, KernelType), Delegate> _kernels_new = new();
+	public Signature GetKernel<Signature, T>(KernelType kernel) where Signature : Delegate where T : unmanaged
+		=> (Signature)_kernels[(typeof(T), kernel)];
+	public Delegate GetKernel<T>(KernelType kernel) where T : unmanaged
+		=> _kernels[(typeof(T), kernel)];
 	
 	public void RegisterKernels<T>() where T : unmanaged
 	{
-		_kernels_new.Add(
+		_kernels.Add(
 			(typeof(T), KernelType.Append),
 			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, ArrayView<T>, ArrayView<T>, int, int>(AppendKernel)
 		);
-		_kernels_new.Add(
+		_kernels.Add(
 			(typeof(T), KernelType.Access),
 			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, ArrayView<T>, ArrayView<int>>(AccessSliceKernel)
 		);
-
+		_kernels.Add(
+			(typeof(T), KernelType.Reverse),
+			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>>(ReverseKernel)
+		);
+		_kernels.Add(
+			(typeof(T), KernelType.Transpose),
+			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, ArrayView<T>, int>(TransposeKernel)
+		);
 	}
 	
 	public void RegisterNumberKernels<T>() where T : unmanaged, INumber<T>
 	{
-		_kernels_new.Add((typeof(T), KernelType.NanToNum),
+		_kernels.Add((typeof(T), KernelType.NanToNum),
 			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, T>(Nan_to_numKernel)
 		);
-		_kernels_new.Add(
-			(typeof(T), KernelType.SeqOPKern),
+		_kernels.Add(
+			(typeof(T), KernelType.SeqOP),
 			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, ArrayView<T>, ArrayView<T>, SpecializedValue<int>>(SeqOPKern)
 		);
-		_kernels_new.Add(
-			(typeof(T), KernelType.SeqIPOPKern),
+		_kernels.Add(
+			(typeof(T), KernelType.SeqIPOP),
 			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, ArrayView<T>, SpecializedValue<int>>(SeqIPOPKern)
 		);
-		_kernels_new.Add(
-			(typeof(T), KernelType.ScalarOPKern),
+		_kernels.Add(
+			(typeof(T), KernelType.ScalarOP),
 			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, ArrayView<T>, T, SpecializedValue<int>>(ScalarOPKern)
 		);
-		_kernels_new.Add(
-			(typeof(T), KernelType.ScalarIPOPKern),
+		_kernels.Add(
+			(typeof(T), KernelType.ScalarIPOP),
 			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, T, SpecializedValue<int>>(ScalarIPOPKern)
 		);
-		
+		_kernels.Add(
+			(typeof(T), KernelType.Diff),
+			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, ArrayView<T>>(DiffKernel)
+		);
+		_kernels.Add(
+			(typeof(T), KernelType.Abs),
+			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>>(AbsKernel)
+		);
+		_kernels.Add(
+			(typeof(T), KernelType.Reciprocal),
+			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>>(ReciprocalKernel)
+		);
+		_kernels.Add(
+			(typeof(T), KernelType.Rsqrt),
+			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>>(RsqrtKernel)
+		);
+		_kernels.Add(
+			(typeof(T), KernelType.Cross),
+			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, ArrayView<T>, ArrayView<T>>(CrossKernel)
+		);
+		_kernels.Add(
+			(typeof(T), KernelType.Log),
+			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<T>, T>(LogKern)
+		);
 		
 	}
 	
-	
-	public void AddKernels()
+	public void RegisterDefaultKernels()
 	{
-		Stopwatch timer = Stopwatch.StartNew();
-		
-		Kernels = new Delegate[]
-		{
-			// vectormatrixOpKernel
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(VectorMatrixKernel),
-			// simdVectorKernel
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(SIMDVectorKernel),
-			// DiffKernel
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>> (DiffKernel),
-			// ReverseKernel
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(ReverseKernel),
-			// AbsKernel
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(AbsKernel),
-			// ReciprocalKernel
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(ReciprocalKernel),
-			// RsqrtKernel
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(RsqrtKernel),
-			// CrossKernel
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>>(CrossKernel),
-			// TransposeKernel
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, int>(TransposeKernel),
-			// LogKernel
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float>(LogKern),
-			// SeqOPKern
-			accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(SeqOPKern),
-			
-		};
-
-		timer.Stop();
-		Console.WriteLine($"Kernels Loaded in: {timer.Elapsed.TotalMilliseconds} MS");
-	}
+		Stopwatch sw = Stopwatch.StartNew();
+		RegisterKernels<float>();
+		RegisterNumberKernels<float>();
+		sw.Stop();
+		Console.WriteLine($"Default Kernels Registered in: {sw.Elapsed.TotalMilliseconds} MS");
+	}	
 	
 	static void AppendKernel<T>(Index1D index, ArrayView<T> Output, ArrayView<T> vecA, ArrayView<T> vecB, int vecAcol, int vecBcol)
 		where T : unmanaged
