@@ -16,7 +16,7 @@ public partial class Vector
 
 		MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
 
-		var kernel = gpu.GetKernel<SIOKernel>(KernelType.NanToNum);
+		var kernel = gpu.GetKernel<SIOKernel, float>(KernelType.NanToNum);
 		kernel(gpu.accelerator.DefaultStream, Length, buffer.View, num);
 
 		gpu.accelerator.Synchronize();

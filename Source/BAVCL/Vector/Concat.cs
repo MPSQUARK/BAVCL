@@ -79,7 +79,7 @@ public partial class Vector
 			buffer2 = GetBuffer(),              // Input
 			buffer3 = vector.GetBuffer();       // Input
 
-		var kernel = gpu.GetKernel<AppendKernel>(KernelType.Append);
+		var kernel = gpu.GetKernel<AppendKernel, float>(KernelType.Append);
 		kernel(gpu.accelerator.DefaultStream, Rows, buffer.View, buffer2.View, buffer3.View, Columns, vector.Columns);
 
 		gpu.accelerator.Synchronize();

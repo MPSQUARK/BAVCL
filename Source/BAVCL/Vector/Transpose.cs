@@ -27,7 +27,7 @@ public partial class Vector
 			buffer = Output.GetBuffer(), // Output
 			buffer2 = vector.GetBuffer(); // Input
 
-		var kernel = gpu.GetKernel<TransposeKernel>(KernelType.Transpose);
+		var kernel = gpu.GetKernel<TransposeKernel, float>(KernelType.Transpose);
 		kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, vector.Columns);
 
 		gpu.accelerator.Synchronize();

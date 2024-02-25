@@ -253,7 +253,7 @@ public sealed partial class Vector : VectorBase<float>
 			buffer = Output.GetBuffer(),        // Output
 			buffer2 = vector.GetBuffer();       // Input
 
-		var kernel = gpu.GetKernel<S_FloatOPKernel>(KernelType.SFloatOP);
+		var kernel = gpu.GetKernel<S_FloatOPKernel, float>(KernelType.ScalarOP);
 		kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
 
 		gpu.accelerator.Synchronize();
@@ -271,7 +271,7 @@ public sealed partial class Vector : VectorBase<float>
 		// Check if the input & output are in Cache
 		MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
 
-		var kernel = gpu.GetKernel<S_FloatOPKernelIP>(KernelType.SFloatOPIP);
+		var kernel = gpu.GetKernel<S_FloatOPKernelIP, float>(KernelType.ScalarIPOP);
 		kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
 
 		gpu.accelerator.Synchronize();
@@ -300,7 +300,7 @@ public sealed partial class Vector : VectorBase<float>
 			buffer3 = vectorB.GetBuffer();      // Input
 
 		// Run the kernel
-		var kernel = gpu.GetKernel<A_FloatOPKernel>(KernelType.AFloatOP);
+		var kernel = gpu.GetKernel<A_FloatOPKernel, float>(KernelType.SeqOP);
 		kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
 
 		// Synchronise the kernel
@@ -325,7 +325,7 @@ public sealed partial class Vector : VectorBase<float>
 			buffer2 = vectorB.GetBuffer();      // Input
 
 		// Run the kernel
-		var kernel = gpu.GetKernel<A_FloatOPKernelIP>(KernelType.AFloatOPIP);
+		var kernel = gpu.GetKernel<A_FloatOPKernelIP, float>(KernelType.SeqIPOP);
 		kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
 
 		// Synchronise the kernel
@@ -356,7 +356,7 @@ public sealed partial class Vector : VectorBase<float>
 			buffer3 = matrix.GetBuffer();       // Input
 
 		// Run the kernel
-		var kernel = gpu.GetKernel<DualVectorOPKernel>(KernelType.MatrixOp);
+		var kernel = gpu.GetKernel<DualVectorOPKernel, float>(KernelType.MatrixOp);
 		kernel(gpu.accelerator.DefaultStream, matrix.Rows, buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
 
 		// Synchronise the kernel
@@ -388,7 +388,7 @@ public sealed partial class Vector : VectorBase<float>
 			buffer3 = matrix.GetBuffer();       // Input
 
 		// Run the kernel
-		var kernel = gpu.GetKernel<DualVectorOPKernel>(KernelType.MatrixOp);
+		var kernel = gpu.GetKernel<DualVectorOPKernel, float>(KernelType.MatrixOp);
 		kernel(gpu.accelerator.DefaultStream, matrix.Rows, buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
 
 		// Synchronise the kernel
@@ -409,7 +409,7 @@ public sealed partial class Vector : VectorBase<float>
 
 		MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
 
-		var kernel = gpu.GetKernel<SIOKernel>(KernelType.Log);
+		var kernel = gpu.GetKernel<SIOKernel, float>(KernelType.Log);
 		kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, @base);
 
 		gpu.accelerator.Synchronize();

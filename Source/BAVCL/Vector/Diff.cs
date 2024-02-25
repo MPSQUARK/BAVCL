@@ -25,7 +25,7 @@ public partial class Vector
 			buffer = Output.GetBuffer(),        // Output
 			buffer2 = vector.GetBuffer();       // Input
 
-		var kernel = gpu.GetKernel<DiffKernel>(KernelType.Diff);
+		var kernel = gpu.GetKernel<DiffKernel, float>(KernelType.Diff);
 		kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View);
 
 		gpu.accelerator.Synchronize();
