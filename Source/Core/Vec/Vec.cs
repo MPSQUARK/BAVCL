@@ -1,6 +1,7 @@
 using System;
 using System.Numerics;
 using System.Threading;
+using BAVCL.Core.Enums;
 using BAVCL.MemoryManagement;
 using ILGPU;
 using ILGPU.Runtime;
@@ -83,8 +84,6 @@ public class Vec<T> : ICacheable<T>
 	public MemoryBuffer1D<T, Stride1D.Dense> GetBuffer() =>
 		(MemoryBuffer1D<T, Stride1D.Dense>)(Gpu.TryGetBuffer<T>(ID) ?? Cache());
 	
-	
-	
 	public void DeCache()
 	{
 		// If the vector is not cached - it's rechnically already decached
@@ -123,18 +122,36 @@ public class Vec<T> : ICacheable<T>
 		Length = Values.Length;
 	}
 	
-	public void OP(Vec<T> vector, Operations operation)
+	public static Vec<T> OP(Vec<T> vectorA, Vec<T> vectorB, Operations operation)
 	{
-		if (vector.Length != Length) throw new ArgumentException("Vectors must be of the same length");
+		if (vectorA.Length != vectorB.Length) throw new ArgumentException("Vectors must be of the same length");
 		
-		this.IncrementLiveCount();
-		vector.IncrementLiveCount();
+		GPU gpu = vectorA.Gpu;
 		
-		MemoryBuffer1D<T, Stride1D.Dense> buffer = GetBuffer();
-		MemoryBuffer1D<T, Stride1D.Dense> vectorBuffer = vector.GetBuffer();
+		vectorA.IncrementLiveCount();
+		vectorB.IncrementLiveCount();
 		
-		//var kernel = Gpu.GetKernel(Kernels);
+		Vec<T> output = new(gpu, vectorA.Length, vectorA.Columns);
+		output.IncrementLiveCount();
 		
+		MemoryBuffer1D<T, Stride1D.Dense> 
+			buffer = output.GetBuffer(),
+			buffer2 = vectorA.GetBuffer(),
+			buffer3 = vectorB.GetBuffer();
+		
+		var kernel = (Action<AcceleratorStream, Index1D, ArrayView<T>, ArrayView<T>, ArrayView<T>, SpecializedValue<int>>)gpu.GetKernel<T>(KernelType.SeqOP);
+		kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
+		
+		gpu.accelerator.Synchronize();
+		
+		vectorA.DecrementLiveCount();
+		vectorB.DecrementLiveCount();
+		output.DecrementLiveCount();
+		
+		return output;
 	}
+	
+	public static Vec<T> operator +(Vec<T> vectorA, Vec<T> vectorB) =>
+		OP(vectorA, vectorB, Operations.add);
 	
 }
