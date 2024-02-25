@@ -15,11 +15,6 @@ public partial class GPU
 	public void Synchronize() => accelerator.Synchronize();
 	private IMemoryManager _memoryManager;
 
-	private Delegate[] Kernels { get; set; } = Array.Empty<Delegate>();
-
-	public T GetKernel<T>(KernelType kernel) where T : Delegate
-		=> (T)Kernels[(int)kernel];
-
 	// Accelerator Preference Order
 	Dictionary<AcceleratorType, int> AcceleratorPrefOrder = new()
 		{
@@ -43,7 +38,24 @@ public partial class GPU
 		// Set Memory Usage Cap
 		_memoryManager = new LRU(accelerator.MemorySize, memorycap);
 
-		AddKernels();
+		RegisterDefaultKernels();
+	}
+	
+	public GPU(IMemoryManager memoryManager, float memorycap = 0.8f, bool forceCPU = false)
+	{
+		// Create Context
+		context = Context.Create(builder => builder.Default().EnableAlgorithms());
+		// OptimizationLevel optimizationLevel = OptimizationLevel.Debug
+
+		// Get Accelerator Device
+		//this.accelerator = context.GetPreferredDevice(preferCPU: forceCPU).CreateAccelerator(context);
+		accelerator = GetPreferedAccelerator(context, forceCPU);
+		Console.WriteLine($"Device loaded: {accelerator.Name}");
+
+		// Set Memory Usage Cap
+		_memoryManager = memoryManager;
+
+		RegisterDefaultKernels();
 	}
 
 	// Wrappers for Memory Manager
