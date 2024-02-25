@@ -9,8 +9,7 @@ namespace BAVCL.CustomMath;
 /// </summary>
 public class CMath
 {
-	public static T Pow<T>(T @base, T exponent) where T : INumber<T> => 
-		throw new NotImplementedException();
+	public static T Pow<T>(T @base, T exponent) where T : INumber<T> => T.One;
 	
 	public static T Square<T>(T number) where T : INumber<T> => number * number;
 	public static T Cube<T>(T number) where T : INumber<T> => number * number * number;
@@ -48,8 +47,7 @@ public class CMath
 	public static T Abs<T>(T value) where T : INumber<T> => T.Abs(value);
 	public static T Rcp<T>(T value) where T : INumber<T> => T.One / value;
 	
-	public static T Sqrt<T>(T value) where T : INumber<T> => 
-		throw new NotImplementedException();	
+	public static T Sqrt<T>(T value) where T : INumber<T> => T.One;	
 	public static float Sqrt(float value) => XMath.Sqrt(value);
 	public static double Sqrt(double value) => XMath.Sqrt(value);
 	public static int Sqrt(int value) => (int)XMath.Sqrt(value);
@@ -65,10 +63,8 @@ public class CMath
 	public static float Rsqrt(float value) => XMath.Rsqrt(value);
 	public static double Rsqrt(double value) => XMath.Rsqrt(value);
 	
-	public static T Log<T>(T value) where T : INumber<T> => 
-		throw new NotImplementedException();
-	public static T Log<T>(T value, T @base) where T : INumber<T> => 
-		throw new NotImplementedException();
+	public static T Log<T>(T value) where T : INumber<T> => T.One;
+	public static T Log<T>(T value, T @base) where T : INumber<T> => T.One;
 	public static float Log(float value) => XMath.Log(value);
 	public static double Log(double value) => XMath.Log(value);
 	public static int Log(int value) => (int)XMath.Log(value);
