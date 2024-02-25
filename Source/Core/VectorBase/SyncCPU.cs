@@ -1,5 +1,4 @@
-﻿using ILGPU;
-using ILGPU.Runtime;
+﻿using ILGPU.Runtime;
 
 namespace BAVCL.Core
 {
@@ -13,6 +12,13 @@ namespace BAVCL.Core
 		{
 			if (ID != 0) Value = Pull();
 			Length = Value.Length;
+		}
+		
+		public VectorBase<T> SyncCPUSelf()
+		{
+			if (ID != 0) Value = Pull();
+			Length = Value.Length;
+			return this;
 		}
 
 		public void SyncCPU(MemoryBuffer buffer)
