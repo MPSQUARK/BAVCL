@@ -13,7 +13,7 @@ public partial class Vec<T> : ICacheable<T> where T : unmanaged, INumber<T>
     /// <param name="Length"></param>
     /// <param name="Columns"></param>
     /// <returns></returns>
-    public static Vec<T> Fill(GPU gpu, T Value, int Length, uint Columns = 1, bool Cache = true) =>
+    public static Vec<T> Fill(GPU gpu, T Value, int Length, int Columns = 1, bool Cache = true) =>
         new(gpu, Enumerable.Repeat(Value, Length).ToArray(), Columns, Cache);
 
 
@@ -23,7 +23,7 @@ public partial class Vec<T> : ICacheable<T> where T : unmanaged, INumber<T>
     /// <param name="Value"></param>
     /// <param name="Length"></param>
     /// <param name="Columns"></param>
-    public Vec<T> Fill_IP(T Value, int Length, uint Columns = 1)
+    public Vec<T> Fill_IP(T Value, int Length, int Columns = 1)
     {
         UpdateCache(Enumerable.Repeat(Value, Length).ToArray());
         this.Columns = Columns;

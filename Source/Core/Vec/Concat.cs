@@ -49,7 +49,7 @@ public partial class Vec<T> : ICacheable<T> where T : unmanaged, INumber<T>
 
 				if (warp && (vector.Length % Rows == 0))
 				{
-					vector.Columns = (uint)(vector.Values.Length / Rows);
+					vector.Columns = vector.Values.Length / Rows;
 				}
 
 			}
@@ -65,7 +65,7 @@ public partial class Vec<T> : ICacheable<T> where T : unmanaged, INumber<T>
 					$"This array has shape ({Rows},{Columns}), 1D vector being appended has {vector.Length} Length");
 			}
 
-			vector.Columns = (uint)(vector.Values.Length / this.Rows);
+			vector.Columns = vector.Values.Length / this.Rows;
 
 		}
 

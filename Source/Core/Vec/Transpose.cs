@@ -20,7 +20,7 @@ public partial class Vec<T> : ICacheable<T> where T : unmanaged, INumber<T>
         vector.IncrementLiveCount();
 
         // Make the Output Vector
-        Vec<T> Output = new(gpu, vector.Length, (uint)vector.Rows);
+        Vec<T> Output = new(gpu, vector.Length, vector.Rows);
 
         // Prevent from decache
         Output.IncrementLiveCount();
@@ -30,7 +30,7 @@ public partial class Vec<T> : ICacheable<T> where T : unmanaged, INumber<T>
             buffer2 = vector.GetBuffer(); // Input
 
         var kernel = (Action<AcceleratorStream, Index1D, ArrayView<T>, ArrayView<T>, int>)gpu.GetKernel<T>(KernelType.Transpose);
-        kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, (int)vector.Columns);
+        kernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, vector.Columns);
 
         gpu.accelerator.Synchronize();
 
