@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 
-namespace BAVCL.Source.Utilities;
+namespace BAVCL.Ext;
 
 public static class Generators
 {
