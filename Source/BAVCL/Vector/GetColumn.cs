@@ -13,7 +13,7 @@ public partial class Vector
 		GPU gpu = vector.gpu;
 
 		// Get config data needed
-		int[] select = new int[2] { column, vector.Columns };
+		int[] select = [column, vector.Columns];
 
 		// Secure the Input
 		vector.IncrementLiveCount();
