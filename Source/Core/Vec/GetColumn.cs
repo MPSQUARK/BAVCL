@@ -1,16 +1,19 @@
-﻿using BAVCL.Core.Enums;
+using System;
+using System.Numerics;
+using BAVCL.Core.Enums;
+using BAVCL.MemoryManagement;
 using ILGPU;
 using ILGPU.Runtime;
 
 namespace BAVCL;
 
-public partial class Vector
+public partial class Vec<T> : ICacheable<T> where T : unmanaged, INumber<T>
 {
 
-	public static Vector GetColumnAsVector(Vector vector, int column)
+	public static Vec<T> GetColumnAsVector(Vec<T> vector, int column)
 	{
 		// Get a reference to the GPU
-		GPU gpu = vector.gpu;
+		GPU gpu = vector.Gpu;
 
 		// Get config data needed
 		int[] select = [column, vector.Columns];
@@ -19,13 +22,13 @@ public partial class Vector
 		vector.IncrementLiveCount();
 
 		// Make Output Vector
-		Vector Output = new(gpu, vector.Rows);
+		Vec<T> Output = new(gpu, vector.Rows);
 
 		// Secure the Output
 		Output.IncrementLiveCount();
 
 		// Get Memory buffer Data
-		MemoryBuffer1D<float, Stride1D.Dense>
+		MemoryBuffer1D<T, Stride1D.Dense>
 			buffer = Output.GetBuffer(),        // Output
 			buffer2 = vector.GetBuffer();       // Input
 
@@ -34,7 +37,7 @@ public partial class Vector
 			buffer3 = gpu.accelerator.Allocate1D(select);      // Config
 
 		// RUN
-		var kernel = gpu.GetKernel<AccessSliceKernel, float>(KernelType.Access);
+		var kernel = (Action<AcceleratorStream, Index1D, ArrayView<T>, ArrayView<T>, ArrayView<int>>)gpu.GetKernel<T>(KernelType.Access);
 		kernel(gpu.accelerator.DefaultStream, vector.Rows, buffer.View, buffer2.View, buffer3.View);
 
 		// SYNC
@@ -50,34 +53,34 @@ public partial class Vector
 		return Output;
 	}
 
-	public Vector GetColumnAsVector(int column)
+	public Vec<T> GetColumnAsVector(int column)
 	{
 		// Get config data needed
-		int[] select = new int[2] { column, Columns };
+		int[] select = [column, Columns];
 
 		// Secure the Input & Output
 		IncrementLiveCount();
 
 		// Make Output Vector
-		Vector Output = new(gpu, Rows);
+		Vec<T> Output = new(Gpu, Rows);
 
 		Output.IncrementLiveCount();
 
 		// Get Memory buffer Data
-		MemoryBuffer1D<float, Stride1D.Dense>
+		MemoryBuffer1D<T, Stride1D.Dense>
 			buffer = Output.GetBuffer(),        // Output
 			buffer2 = GetBuffer();              // Input
 
 		// Allocate config Data onto GPU
 		MemoryBuffer1D<int, Stride1D.Dense>
-			buffer3 = gpu.accelerator.Allocate1D(select);     // Config
+			buffer3 = Gpu.accelerator.Allocate1D(select);     // Config
 
 		// RUN
-		var kernel = gpu.GetKernel<AccessSliceKernel, float>(KernelType.Access);
-		kernel(gpu.accelerator.DefaultStream, Rows, buffer.View, buffer2.View, buffer3.View);
+		var kernel = (Action<AcceleratorStream, Index1D, ArrayView<T>, ArrayView<T>, ArrayView<int>>)Gpu.GetKernel<T>(KernelType.Access);
+		kernel(Gpu.accelerator.DefaultStream, Rows, buffer.View, buffer2.View, buffer3.View);
 
 		// SYNC
-		gpu.accelerator.Synchronize();
+		Gpu.accelerator.Synchronize();
 
 		// Dispose of Config
 		buffer3.Dispose();
@@ -89,18 +92,13 @@ public partial class Vector
 		return Output;
 	}
 
-	public static float[] GetColumnAsArray(Vector vector, int column)
-	{
-		Vector output = vector.GetColumnAsVector(column);
-		output.DeCache();
-		return output.Value;
-	}
+	public static T[] GetColumnAsArray(Vec<T> vector, int column) => vector.GetColumnAsArray(column);
 
-	public float[] GetColumnAsArray(int column)
+	public T[] GetColumnAsArray(int column)
 	{
-		Vector output = GetColumnAsVector(column);
+		Vec<T> output = GetColumnAsVector(column);
 		output.DeCache();
-		return output.Value;
+		return output.Values;
 	}
 
 }

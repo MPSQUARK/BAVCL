@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 /VBTestApp
 BAVCL/Notes/Checklist.md
+Source/Core/Vec/Template.cs
