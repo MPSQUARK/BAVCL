@@ -1,7 +1,6 @@
 using System;
 using System.Numerics;
 using System.Threading;
-using BAVCL.Core.Enums;
 using BAVCL.MemoryManagement;
 using ILGPU;
 using ILGPU.Runtime;
