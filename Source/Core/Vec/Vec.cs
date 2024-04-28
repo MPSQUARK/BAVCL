@@ -8,7 +8,7 @@ using ILGPU.Runtime;
 
 namespace BAVCL;
 
-public class Vec<T> : ICacheable<T> where T : unmanaged, INumber<T>
+public partial class Vec<T> : ICacheable<T> where T : unmanaged, INumber<T>
 {
 	protected GPU Gpu;
 	public T[] Values = Array.Empty<T>();
@@ -125,6 +125,14 @@ public class Vec<T> : ICacheable<T> where T : unmanaged, INumber<T>
 		Length = Values.Length;
 	}
 	
+	public Vec<T> Copy(bool Cache = true)
+	{
+		if (ID == 0)
+			return new Vec<T>(Gpu, Values[..], Columns, Cache);
+
+		return new Vec<T>(Gpu, Pull(), Columns, Cache);
+	}
+	
 	public static Vec<T> OP(Vec<T> vectorA, Vec<T> vectorB, Operations operation)
 	{
 		if (vectorA.Length != vectorB.Length) throw new ArgumentException("Vectors must be of the same length");
@@ -176,28 +184,6 @@ public class Vec<T> : ICacheable<T> where T : unmanaged, INumber<T>
 		output.DecrementLiveCount();
 			
 		return output;
-	}
-	
-	public Vec<T> AbsXIP()
-	{
-		// Secure data
-		IncrementLiveCount();
-
-		// Get the Memory buffer input/output
-		MemoryBuffer1D<T, Stride1D.Dense> buffer = GetBuffer(); // IO
-
-		// RUN
-		var kernel = (Action<AcceleratorStream,Index1D, ArrayView<T>>)Gpu.GetKernel<T>(KernelType.Abs);
-		kernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
-
-		// SYNC
-		Gpu.accelerator.Synchronize();
-
-		// Remove Security
-		DecrementLiveCount();
-
-		// Output
-		return this;
 	}
 	
 	public static Vec<T> operator +(Vec<T> vectorA) => vectorA.AbsXIP();
