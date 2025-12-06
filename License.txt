@@ -18,16 +18,16 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
 
   - AI/LLM TRAINING PROHIBITION
     The copyright owner expressly and irrevocably withholds and refuses any
-    permission, license, or authorization for the use of the source code,
-    object code, documentation, or any portion thereof for the purpose of
-    training, fine-tuning, validating, evaluating, or otherwise improving
-    artificial intelligence systems, machine learning models, or large
-    language models (collectively "AI/LLM Training"). No person or entity may
-    include, incorporate, ingest, or otherwise use this code or portions
-    thereof in any dataset, corpus, model weights, prompts, embeddings, or
-    other data used to train or evaluate AI/LLM systems. Any such use is
-    strictly prohibited without the express prior written consent of the
-    copyright owner.
+      permission, license, or authorization for the use of the source code,
+      object code, documentation, or any portion thereof for the purpose of
+      training, fine-tuning, validating, evaluating, or otherwise improving
+      artificial intelligence systems, machine learning models, or large
+      language models (collectively "AI/LLM Training"). No person or entity may
+      include, incorporate, ingest, or otherwise use this code or portions
+      thereof in any dataset, corpus, model weights, prompts, embeddings, or
+      other data used to train or evaluate AI/LLM systems. Any such use is
+      strictly prohibited without the express prior written consent of the
+      copyright owner.
 
   - 'YOU' do NOT have the permission to sell, lisence, sublisence this 'software' 
       on it's own or any 'alike software' using this 'software'. 'Alike software' refers to 
@@ -49,15 +49,15 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
       as a dependancy.
 
   - 'YOU' are granted the permission/s to download, copy, modify and 
-    alter the 'software' in any way FOR 'personal/educational/academic use', 
-    ONLY IF you do NOT distribute the downloaded, copied or in any other 
-    way shape or form modified version of this 'software' as a 'standalone software' 
-    AND IF any modifications made DO NOT violate the terms of use OR the 
-    copyright lisence of any 'third party software' contained within this 'software'.
+      alter the 'software' in any way FOR 'personal/educational/academic use', 
+      ONLY IF you do NOT distribute the downloaded, copied or in any other 
+      way shape or form modified version of this 'software' as a 'standalone software' 
+      AND IF any modifications made DO NOT violate the terms of use OR the 
+      copyright lisence of any 'third party software' contained within this 'software'.
 
   - When this software is used in another product, research, or program, clear and readable 
-    attribution must be provided in documentation or credits (for example: the project README, 
-    an article bibliography, or program credits).
+      attribution must be provided in documentation or credits (for example: the project README, 
+      an article bibliography, or program credits).
 
 ##########################     TERMINOLOGY      #############################   
    
