@@ -18,9 +18,9 @@ namespace BAVCL.Core
 		}
 
 		public int Length
-		{ 
-			get => _length; 
-			set => _length = value; 
+		{
+			get => _length;
+			set => _length = value;
 		}
 
 		public uint ID
@@ -43,6 +43,14 @@ namespace BAVCL.Core
 		protected volatile internal uint _livecount = 0;
 		protected volatile internal int _length = 0;
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="VectorBase{T}"/> class.
+		/// </summary>
+		/// <param name="gpu"></param>
+		/// <param name="value"></param>
+		/// <param name="columns"></param>
+		/// <param name="Cache">Preloads the vector onto the GPU at creation time.</param>
+		/// <summary>
 		protected VectorBase(GPU gpu, T[] value, int columns = 1, bool Cache = true)
 		{
 			this.gpu = gpu;
@@ -63,13 +71,13 @@ namespace BAVCL.Core
 		}
 
 
-		public T[] Pull() 
+		public T[] Pull()
 		{
 			MemoryBuffer1D<T, Stride1D.Dense> buffer = GetBuffer();
 			T[] values = new T[buffer.Length];
 			buffer.AsArrayView<T>(0, buffer.Length).CopyToCPU(values);
 			return values;
-		} 
+		}
 
 		public T GetValue(int row, int col)
 		{
@@ -93,7 +101,7 @@ namespace BAVCL.Core
 		public virtual (int, int) Shape() => (RowCount(), Columns);
 
 		public virtual T Max() { SyncCPU(); return Value.Max(); }
-		public virtual T Min() { SyncCPU(); return Value.Min();}
+		public virtual T Min() { SyncCPU(); return Value.Min(); }
 		public abstract T Mean();
 		public abstract T Range();
 		public abstract T Sum();
