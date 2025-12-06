@@ -1,5 +1,4 @@
-﻿using ILGPU;
-using ILGPU.Runtime;
+﻿using ILGPU.Runtime;
 
 namespace BAVCL.Core
 {
@@ -8,7 +7,7 @@ namespace BAVCL.Core
 		/*
 		* TODO: [OPTIMISATION] If the gpu memory manager can store a flag to track data divergence between CPU/GPU,
 		* then this can be used to avoid unnecessary data transfers on this function call
-		*/ 
+		*/
 		public void SyncCPU()
 		{
 			if (ID != 0) Value = Pull();
