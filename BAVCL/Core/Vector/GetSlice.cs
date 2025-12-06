@@ -13,7 +13,7 @@ namespace BAVCL
         /// <param name="row_col_index"></param>
         /// <param name="axis"></param>
         /// <returns></returns>
-        public static Vector GetSliceAsVector(Vector vector, int row_col_index, Enums.Axis axis)
+        public static Vector GetSliceAsVector(Vector vector, int row_col_index, Axis axis)
         {
             if (vector.Columns == 1)
                 throw new Exception("Input Vector cannot be 1D");
@@ -21,9 +21,9 @@ namespace BAVCL
 
             return axis switch
             {
-                Enums.Axis.Row => vector.GetRowAsVector(row_col_index),
-                Enums.Axis.Column => vector.GetColumnAsVector(row_col_index),
-                _ => throw new Exception("Please select a valid Axis from Enums.Axis. This is a 2D Vector so ONLY Row and Column axis are valid."),
+                Axis.Row => vector.GetRowAsVector(row_col_index),
+                Axis.Column => vector.GetColumnAsVector(row_col_index),
+                _ => throw new Exception("Please select a valid Axis. This is a 2D Vector so ONLY Row and Column axis are valid."),
             };
         }
 
@@ -33,21 +33,21 @@ namespace BAVCL
         /// <param name="row_col_index"></param>
         /// <param name="axis"></param>
         /// <returns></returns>
-        public Vector GetSliceAsVector(int row_col_index, Enums.Axis axis)
+        public Vector GetSliceAsVector(int row_col_index, Axis axis)
         {
             if (Columns == 1)
                 throw new Exception("Input Vector cannot be 1D");
 
             return axis switch
             {
-                Enums.Axis.Row => GetRowAsVector(row_col_index),
-                Enums.Axis.Column => GetColumnAsVector(row_col_index),
-                _ => throw new Exception("Please select a valid Axis from Enums.Axis. This is a 2D Vector so ONLY Row and Column axis are valid."),
+                Axis.Row => GetRowAsVector(row_col_index),
+                Axis.Column => GetColumnAsVector(row_col_index),
+                _ => throw new Exception("Please select a valid Axis. This is a 2D Vector so ONLY Row and Column axis are valid."),
             };
         }
 
 
-        public static float[] GetSliceAsArray(Vector vector, int row_col_index, Enums.Axis axis)
+        public static float[] GetSliceAsArray(Vector vector, int row_col_index, Axis axis)
         {
             if (vector.Columns == 1)
                 throw new Exception("Input Vector cannot be 1D");
@@ -55,22 +55,22 @@ namespace BAVCL
 
             return axis switch
             {
-                Enums.Axis.Row => vector.GetRowAsArray(row_col_index),
-                Enums.Axis.Column => vector.GetColumnAsArray(row_col_index),
-                _ => throw new Exception("Please select a valid Axis from Enums.Axis. This is a 2D Vector so ONLY Row and Column axis are valid."),
+                Axis.Row => vector.GetRowAsArray(row_col_index),
+                Axis.Column => vector.GetColumnAsArray(row_col_index),
+                _ => throw new Exception("Please select a valid Axis. This is a 2D Vector so ONLY Row and Column axis are valid."),
             };
         }
 
-        public float[] GetSliceAsArray(int row_col_index, Enums.Axis axis)
+        public float[] GetSliceAsArray(int row_col_index, Axis axis)
         {
             if (Columns == 1)
                 throw new Exception("Input Vector cannot be 1D");
 
             return axis switch
             {
-                Enums.Axis.Row => GetRowAsArray(row_col_index),
-                Enums.Axis.Column => GetColumnAsArray(row_col_index),
-                _ => throw new Exception("Please select a valid Axis from Enums.Axis. This is a 2D Vector so ONLY Row and Column axis are valid."),
+                Axis.Row => GetRowAsArray(row_col_index),
+                Axis.Column => GetColumnAsArray(row_col_index),
+                _ => throw new Exception("Please select a valid Axis This is a 2D Vector so ONLY Row and Column axis are valid."),
             };
         }
 
