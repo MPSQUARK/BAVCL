@@ -79,42 +79,7 @@ namespace BAVCL.Core
 			return values;
 		}
 
-		public T GetValue(int index)
-		{
-			SyncCPU();
-			return Value[index];
-		}
-
-		public T GetValue(int row, int col)
-		{
-			SyncCPU();
-			return Value[row * Columns + col];
-		}
-
-		public T this[int i]
-		{
-			get => Value[i];
-			set => Value[i] = value;
-		}
-
-		public T this[int row, int col]
-		{
-			get
-			{
-				if (Columns == 1)
-					throw new Exception("This Vector is 1D. Use single index access.");
-				return Value[row * Columns + col];
-			}
-			set
-			{
-				if (Columns == 1)
-					throw new Exception("This Vector is 1D. Use single index access.");
-				Value[row * Columns + col] = value;
-			}
-		}
-
 		public T[] GetValues() => Value;
-
 
 		// PRINT + CSV
 		public virtual void Print() => Console.WriteLine(this.ToString());
