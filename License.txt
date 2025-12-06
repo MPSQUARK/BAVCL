@@ -55,13 +55,9 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
     AND IF any modifications made DO NOT violate the terms of use OR the 
     copyright lisence of any 'third party software' contained within this 'software'.
 
-  - In any situation when this 'SOFTWARE' is used in another product,
-    program, software or equivalent, or in research the appropriate 
-    reference/acreditation/citation must be performed in an easily accessible 
-    and visible location appropriate to the situation, for example in the 
-    bibliography at the end of an article, or in the credits of a 
-    program/software or equivalent in a font size equivalent to that 
-    of 11 in Calibri.
+  - When this software is used in another product, research, or program, clear and readable 
+    attribution must be provided in documentation or credits (for example: the project README, 
+    an article bibliography, or program credits).
 
 ##########################     TERMINOLOGY      #############################   
    
