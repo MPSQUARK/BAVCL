@@ -1,11 +1,11 @@
-#   DataScience Library for ILGPU
-#   Developed by Marcel Pawelczyk
-#
-#   PROGRAM STILL IN DEVELOPMENT
-# 
-#   BY USING THIS 'SOFTWARE' 'YOU' AGREE TO THE 'TERMS AND CONDITIONS'
-#
-#   'SOFTWARE' intended for personal, educational and/or academic use FREE to use
+DataScience Library for ILGPU
+Developed by Marcel Pawelczyk
+
+PROGRAM STILL IN DEVELOPMENT
+
+BY USING THIS 'SOFTWARE' 'YOU' AGREE TO THE 'TERMS AND CONDITIONS'
+
+'SOFTWARE' intended for personal, educational and/or academic use FREE to use
 
 ########################## TERMS AND CONDITIONS #############################
  
@@ -16,76 +16,72 @@ OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.  
 
-#       - AI/LLM TRAINING PROHIBITION
-#         The copyright owner expressly and irrevocably withholds and refuses any
-#         permission, license, or authorization for the use of the source code,
-#         object code, documentation, or any portion thereof for the purpose of
-#         training, fine-tuning, validating, evaluating, or otherwise improving
-#         artificial intelligence systems, machine learning models, or large
-#         language models (collectively "AI/LLM Training"). No person or entity may
-#         include, incorporate, ingest, or otherwise use this code or portions
-#         thereof in any dataset, corpus, model weights, prompts, embeddings, or
-#         other data used to train or evaluate AI/LLM systems. Any such use is
-#         strictly prohibited without the express prior written consent of the
-#         copyright owner.
-# 
-#      - 'YOU' do NOT have the permission to sell, lisence, sublisence this 'software' 
-#         on it's own or any 'alike software' using this 'software'. 'Alike software' refers to 
-#         the use case of projects/software developed by 'YOU', i.e. this 'software' 
-#         may not be used as a part of another class library or evivalent software whose 
-#         purpose is similar to that of this 'software'. 
-#         
-#      -  This 'software' must be used as an addition to a project AND constitute 
-#         only a small portion of that project, i.e. used as a dependancy in a larger
-#         project/software.
-#         
-#      - 'YOU' do NOT have the permission to redistribute, this 'SOFTWARE', this
-#         includes but is not limited to the 'SOFTWARE' as a whole, any part of 
-#         the 'SOFTWARE', the files or code contained in the 'SOFTWARE' or 
-#         any version of the 'SOFTWARE' modified by 'YOU'. This is UNLESS this 'software'
-#         is being modified within a project/software developed by 'YOU' where it
-#         is used as a dependancy, OR redistributed as a part of/dependacy of
-#         any projects/software developed by 'YOU' in which this 'software' is used
-#         as a dependancy.
-#
-#      - 'YOU' are granted the permission/s to download, copy, modify and 
-#        alter the 'software' in any way FOR 'personal/educational/academic use', 
-#        ONLY IF you do NOT distribute the downloaded, copied or in any other 
-#        way shape or form modified version of this 'software' as a 'standalone software' 
-#        AND IF any modifications made DO NOT violate the terms of use OR the 
-#        copyright lisence of any 'third party software' contained within this 'software'.
-#
-#      - In any situation when this 'SOFTWARE' is used in another product,
-#        program, software or equivalent, or in research the appropriate 
-#        reference/acreditation/citation must be performed in an easily accessible 
-#        and visible location appropriate to the situation, for example in the 
-#        bibliography at the end of an article, or in the credits of a 
-#        program/software or equivalent in a font size equivalent to that 
-#        of 11 in Calibri.
-#
-#    
+  - AI/LLM TRAINING PROHIBITION
+    The copyright owner expressly and irrevocably withholds and refuses any
+    permission, license, or authorization for the use of the source code,
+    object code, documentation, or any portion thereof for the purpose of
+    training, fine-tuning, validating, evaluating, or otherwise improving
+    artificial intelligence systems, machine learning models, or large
+    language models (collectively "AI/LLM Training"). No person or entity may
+    include, incorporate, ingest, or otherwise use this code or portions
+    thereof in any dataset, corpus, model weights, prompts, embeddings, or
+    other data used to train or evaluate AI/LLM systems. Any such use is
+    strictly prohibited without the express prior written consent of the
+    copyright owner.
+
+  - 'YOU' do NOT have the permission to sell, lisence, sublisence this 'software' 
+      on it's own or any 'alike software' using this 'software'. 'Alike software' refers to 
+      the use case of projects/software developed by 'YOU', i.e. this 'software' 
+      may not be used as a part of another class library or evivalent software whose 
+      purpose is similar to that of this 'software'. 
+    
+  -  This 'software' must be used as an addition to a project AND constitute 
+      only a small portion of that project, i.e. used as a dependancy in a larger
+      project/software.
+      
+  - 'YOU' do NOT have the permission to redistribute, this 'SOFTWARE', this
+      includes but is not limited to the 'SOFTWARE' as a whole, any part of 
+      the 'SOFTWARE', the files or code contained in the 'SOFTWARE' or 
+      any version of the 'SOFTWARE' modified by 'YOU'. This is UNLESS this 'software'
+      is being modified within a project/software developed by 'YOU' where it
+      is used as a dependancy, OR redistributed as a part of/dependacy of
+      any projects/software developed by 'YOU' in which this 'software' is used
+      as a dependancy.
+
+  - 'YOU' are granted the permission/s to download, copy, modify and 
+    alter the 'software' in any way FOR 'personal/educational/academic use', 
+    ONLY IF you do NOT distribute the downloaded, copied or in any other 
+    way shape or form modified version of this 'software' as a 'standalone software' 
+    AND IF any modifications made DO NOT violate the terms of use OR the 
+    copyright lisence of any 'third party software' contained within this 'software'.
+
+  - In any situation when this 'SOFTWARE' is used in another product,
+    program, software or equivalent, or in research the appropriate 
+    reference/acreditation/citation must be performed in an easily accessible 
+    and visible location appropriate to the situation, for example in the 
+    bibliography at the end of an article, or in the credits of a 
+    program/software or equivalent in a font size equivalent to that 
+    of 11 in Calibri.
 
 ##########################     TERMINOLOGY      #############################   
    
-#     - 'SOFTWARE' - refers to all the folders, files, source code, and
-#                    everything else contained within this repository
-#
-#     - 'YOU'      - refers to the person/s, who are using or have 
-#                    used this 'software', this includes individuals,
-#                    company and/or organisation.
-#
-#     - 'STANDALONE SOFTWARE'  - refers to this 'software', when it is not 
-#                                implemented into/used in a project/software 
-#                                developed by 'YOU'.
-#
-#     - 'TERMS AND CONDITIONS' - refers to the terms 'you' agree to when
-#                                using this 'software'
-#
-#     - 'THIRD PARTY SOFTWARE' - refers to any software incorporated into this
-#                                'SOFTWARE' which has not been developed by the
-#                                contributors of this 'software'
-#
+  - 'SOFTWARE' - refers to all the folders, files, source code, and
+                everything else contained within this repository
 
+  - 'YOU'      - refers to the person/s, who are using or have 
+                used this 'software', this includes individuals,
+                company and/or organisation.
+
+  - 'STANDALONE SOFTWARE'  - refers to this 'software', when it is not 
+                            implemented into/used in a project/software 
+                            developed by 'YOU'.
+
+  - 'TERMS AND CONDITIONS' - refers to the terms 'you' agree to when
+                            using this 'software'
+
+  - 'THIRD PARTY SOFTWARE' - refers to any software incorporated into this
+                            'SOFTWARE' which has not been developed by the
+                            contributors of this 'software'
 
 ##############     Third Party Terms Of Use & License's     ################# 
 
