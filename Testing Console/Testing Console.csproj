@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>Testing_Console</RootNamespace>
     <StartupObject></StartupObject>
   </PropertyGroup>
@@ -22,5 +22,4 @@
   <ItemGroup>
     <ProjectReference Include="..\BAVCL\BAVCL.csproj" />
   </ItemGroup>
-
 </Project>

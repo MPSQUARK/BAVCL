@@ -79,14 +79,7 @@ namespace BAVCL.Core
 			return values;
 		}
 
-		public T GetValue(int row, int col)
-		{
-			SyncCPU();
-			return Value[row * Columns + col];
-		}
-
 		public T[] GetValues() => Value;
-
 
 		// PRINT + CSV
 		public virtual void Print() => Console.WriteLine(this.ToString());
