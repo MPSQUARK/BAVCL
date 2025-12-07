@@ -17,10 +17,7 @@ namespace BAVCL
             if ((Value == null) || syncCPU)
                 SyncCPU();
 
-            if (Value == null)
-                throw new Exception("Vector has no data to convert to string\n Func - ToString - Vector");
-
-            (float min, float max, bool hasinfinity) = Util.MinMaxInf(Value);
+            (float min, float max, bool hasinfinity) = Util.MinMaxInf(Value!);
 
             bool hasnegative = min < 0f;
 
@@ -57,12 +54,12 @@ namespace BAVCL
                 {
                     if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
-                    Template[2] = Value[i] < 0f ? '-' : ' ';
+                    Template[2] = Value![i] < 0f ? '-' : ' ';
 
-                    if (float.IsFinite(Value[i]))
+                    if (float.IsFinite(Value![i]))
                     {
                         clear.CopyTo(Template, 3);
-                        string val = Math.Abs(Value[i]).ToString(format);
+                        string val = Math.Abs(Value![i]).ToString(format);
                         val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                         stringBuilder.Append(Template);
@@ -97,10 +94,10 @@ namespace BAVCL
                 {
                     if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
-                    Template[2] = Value[i] < 0f ? '-' : ' ';
+                    Template[2] = Value![i] < 0f ? '-' : ' ';
 
                     clear.CopyTo(Template, 3);
-                    string val = Math.Abs(Value[i]).ToString(format);
+                    string val = Math.Abs(Value![i]).ToString(format);
                     val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                     stringBuilder.Append(Template);
@@ -116,7 +113,7 @@ namespace BAVCL
                 if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
                 clear.CopyTo(Template, 3);
-                string val = Value[i].ToString(format);
+                string val = Value![i].ToString(format);
                 val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                 stringBuilder.Append(Template);
