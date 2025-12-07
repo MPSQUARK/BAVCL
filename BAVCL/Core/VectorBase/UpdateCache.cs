@@ -1,27 +1,20 @@
 ﻿using ILGPU.Runtime;
 
-namespace BAVCL.Core
+namespace BAVCL.Core;
+
+public partial class VectorBase<T>
 {
-    public partial class VectorBase<T>
+    public MemoryBuffer UpdateCache()
     {
-        public MemoryBuffer UpdateCache()
-        {
-            Length = Value.Length;
-            if (ID == 0) return Cache();
-
-            ID = Gpu.GCItem(ID);
-            return Cache();
-        }
-
-        public MemoryBuffer UpdateCache(T[] array)
-        {
-            Length = array.Length;
-            (ID, MemoryBuffer buffer) = Gpu.UpdateBuffer(this, array);
-            return buffer;
-        }
-
-
+        Length = Value.Length;
+        (ID, MemoryBuffer buffer) = Gpu.UpdateBuffer(this);
+        return buffer;
     }
 
-
+    public MemoryBuffer UpdateCache(T[] array)
+    {
+        Length = array.Length;
+        (ID, MemoryBuffer buffer) = Gpu.UpdateBuffer(this, array);
+        return buffer;
+    }
 }
