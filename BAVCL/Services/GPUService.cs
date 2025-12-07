@@ -10,7 +10,7 @@ namespace BAVCL.Services;
 public static class GPUManager
 {
     private static readonly object _lock = new();
-    private static Lazy<Context> _context = new(
+    private static readonly Lazy<Context> _context = new(
         () => Context.Create(builder => builder.Default().EnableAlgorithms())
     );
     private static GPU? _defaultGPU = null;
@@ -23,7 +23,17 @@ public static class GPUManager
     };
     public static Context Context => _context.Value;
     public static bool IsInitialized => _context.IsValueCreated;
-    public static GPU Default => _defaultGPU ??= GetGPU();
+    public static GPU Default
+    {
+        get
+        {
+            lock (_lock)
+            {
+                _defaultGPU ??= GetGPU();
+            }
+            return _defaultGPU;
+        }
+    }
     internal static Accelerator GetPreferedAccelerator(bool forceCPU)
     {
         var devices = Context.Devices;
@@ -62,10 +72,8 @@ public static class GPUManager
 
     public static GPU GetGPU(float memorycap = 0.8f, bool forceCPU = false)
     {
-        lock (_lock)
-        {
-            return GetGPU<LRU>(memorycap, forceCPU);
-        }
+        Console.WriteLine("Getting GPU...");
+        return GetGPU<LRU>(memorycap, forceCPU);
     }
     public static GPU GetGPU<TMem>(float memorycap = 0.8f, bool forceCPU = false) where TMem : IMemoryManager, new()
     {
