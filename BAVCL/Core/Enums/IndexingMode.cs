@@ -6,7 +6,7 @@ namespace BAVCL.Core.Enums;
 public enum IndexingMode
 {
     Normal = 0,
-    NoCPUSync = 1,
-    NoGPUSync = 2,
-    NoSync = 3,
+    SyncCPU = 1,
+    SyncGPU = 2,
+    SyncBoth = 3,
 }

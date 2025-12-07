@@ -41,14 +41,13 @@ public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unman
     public T GetAt(int index)
     {
         ValidateIndex(index);
-        SyncCPU();
         return Value[index];
     }
 
     public T GetAt(int index, IndexingMode mode)
     {
         ValidateIndex(index);
-        if (!mode.HasFlag(IndexingMode.NoCPUSync))
+        if (mode.HasFlag(IndexingMode.SyncCPU))
             SyncCPU();
         return Value[index];
     }
@@ -57,7 +56,6 @@ public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unman
     {
         var computedIndex = GetIndexFromCoordinates(row, col);
         ValidateIndex(computedIndex);
-        SyncCPU();
         return Value[computedIndex];
     }
 
@@ -65,7 +63,7 @@ public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unman
     {
         var computedIndex = GetIndexFromCoordinates(index, col);
         ValidateIndex(computedIndex);
-        if (!mode.HasFlag(IndexingMode.NoCPUSync))
+        if (mode.HasFlag(IndexingMode.SyncCPU))
             SyncCPU();
         return Value[computedIndex];
     }
@@ -73,36 +71,32 @@ public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unman
     public void SetAt(int index, T val)
     {
         ValidateIndex(index);
-        SyncCPU();
         Value[index] = val;
-        UpdateCache();
     }
 
     public void SetAt(int index, IndexingMode mode, T val)
     {
         ValidateIndex(index);
-        if (!mode.HasFlag(IndexingMode.NoCPUSync))
+        if (mode.HasFlag(IndexingMode.SyncCPU))
             SyncCPU();
         Value[index] = val;
-        if (!mode.HasFlag(IndexingMode.NoSync))
+        if (mode.HasFlag(IndexingMode.SyncGPU))
             UpdateCache();
     }
 
     public void SetAt(int row, int col, T val)
     {
         var computedIndex = GetIndexFromCoordinates(row, col);
-        SyncCPU();
         Value[computedIndex] = val;
-        UpdateCache();
     }
 
     public void SetAt(int index, int col, IndexingMode mode, T val)
     {
         var computedIndex = GetIndexFromCoordinates(index, col);
-        if (!mode.HasFlag(IndexingMode.NoCPUSync))
+        if (mode.HasFlag(IndexingMode.SyncCPU))
             SyncCPU();
         Value[computedIndex] = val;
-        if (!mode.HasFlag(IndexingMode.NoSync))
+        if (mode.HasFlag(IndexingMode.SyncGPU))
             UpdateCache();
     }
 }
