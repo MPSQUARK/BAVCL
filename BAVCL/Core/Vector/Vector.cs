@@ -27,8 +27,9 @@ namespace BAVCL
 		{ }
 
 		/// <summary>
-		/// Constructs a Vector object of length 'length' with all values set to default or 0.
-		/// Should be more efficient for creating output vectors, and zero/default initiased vectors.
+		/// Constructs a Vector object of length 'length' with uninitialized values.
+		/// Ideal for creating output vectors. JUST REMEMBER TO SET/UPDATE ALL VALUES.
+		/// WARNING: Values are NOT initialized to zero, and you may get random leftover data.
 		/// </summary>
 		/// <param name="gpu"></param>
 		/// <param name="length"></param>

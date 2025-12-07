@@ -61,9 +61,17 @@ namespace BAVCL.Core
 			if (Cache) this.Cache(value);
 		}
 
+		/// <summary>
+		/// Creates an 'empty' vector of specified length.
+		/// Warning: May contain random leftover data. 
+		///	Initialize values before use OR use `Zeros` method.  
+		/// </summary>
+		/// <param name="gpu"></param>
+		/// <param name="length"></param>
+		/// <param name="columns"></param>
 		protected VectorBase(GPU gpu, int length, int columns = 1)
 		{
-			this.Gpu = gpu;
+			Gpu = gpu;
 			Columns = columns;
 			Value = [];
 			Length = length;
@@ -98,8 +106,8 @@ namespace BAVCL.Core
 		public abstract T Mean();
 		public abstract T Range();
 		public abstract T Sum();
-		public bool IsRectangular() => this.Length % this.Columns == 0;
-		public bool Is1D() => this.Columns == 1;
+		public bool IsRectangular() => Length % Columns == 0;
+		public bool Is1D() => Columns == 1;
 
 	}
 
