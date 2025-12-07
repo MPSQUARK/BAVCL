@@ -23,20 +23,7 @@ public static class GPUManager
     };
     public static Context Context => _context.Value;
     public static bool IsInitialized => _context.IsValueCreated;
-    public static GPU Default
-    {
-        get
-        {
-            if (_defaultGPU == null)
-            {
-                lock (_lock)
-                {
-                    _defaultGPU = GetGPU();
-                }
-            }
-            return _defaultGPU;
-        }
-    }
+    public static GPU Default => _defaultGPU ??= GetGPU();
     internal static Accelerator GetPreferedAccelerator(bool forceCPU)
     {
         var devices = Context.Devices;
@@ -73,8 +60,13 @@ public static class GPUManager
         return preferedAccelerator.CreateAccelerator(Context);
     }
 
-    public static GPU GetGPU(float memorycap = 0.8f, bool forceCPU = false) =>
-        GetGPU<LRU>(memorycap, forceCPU);
+    public static GPU GetGPU(float memorycap = 0.8f, bool forceCPU = false)
+    {
+        lock (_lock)
+        {
+            return GetGPU<LRU>(memorycap, forceCPU);
+        }
+    }
     public static GPU GetGPU<TMem>(float memorycap = 0.8f, bool forceCPU = false) where TMem : IMemoryManager, new()
     {
         var accelerator = GetPreferedAccelerator(forceCPU);
