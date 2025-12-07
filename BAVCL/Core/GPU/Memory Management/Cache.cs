@@ -3,17 +3,10 @@ using ILGPU.Runtime;
 using System;
 
 
-namespace BAVCL
-{
-    public struct Cache
-    {
-        public MemoryBuffer MemoryBuffer;
-        public WeakReference<ICacheable> CachedObjRef;
+namespace BAVCL;
 
-        public Cache(MemoryBuffer memoryBuffer, WeakReference<ICacheable> cachedObjRef)
-        {
-            MemoryBuffer = memoryBuffer;
-            CachedObjRef = cachedObjRef;
-        }
-    }
+public struct Cache(MemoryBuffer memoryBuffer, WeakReference<ICacheable> cachedObjRef)
+{
+    public MemoryBuffer MemoryBuffer = memoryBuffer;
+    public WeakReference<ICacheable> CachedObjRef = cachedObjRef;
 }
