@@ -184,6 +184,7 @@ namespace BAVCL.Core
 
             if (cacheable.LiveCount == 0)
             {
+                // TODO: ONlY sync back to CPU if data was changed/is different
                 cacheable.SyncCPU(cache.MemoryBuffer);
                 return false;
             }
