@@ -61,7 +61,6 @@ namespace BAVCL.Core
             {
                 GC(memNeeded);
                 UpdateMemoryUsage(memNeeded);
-
                 buffer = accelerator.Allocate1D<T>(length);
                 Caches.TryAdd(id, new Cache(buffer, new WeakReference<ICacheable>(cacheable)));
                 _lru.Enqueue(id);
