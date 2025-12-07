@@ -52,7 +52,7 @@ namespace BAVCL
 			if (Length != vector.Length) return false;
 
 			for (int i = 0; i < Length; i++)
-				if (this.Value[i] != vector.Value[i]) return false;
+				if (Value[i] != vector.Value[i]) return false;
 
 			return true;
 		}
@@ -80,7 +80,7 @@ namespace BAVCL
 					vectorSize = System.Numerics.Vector<float>.Count,
 					i = 0;
 
-				float[] array = this.Value;
+				float[] array = Value;
 
 				float mean = Mean();
 
@@ -113,7 +113,7 @@ namespace BAVCL
 			return OP(this, Mean(), Operations.differenceSquared).Sum() / Length;
 		}
 		public override float Range() => Max() - Min();
-		public void Flatten() => this.Columns = 1;
+		public void Flatten() => Columns = 1;
 
 		public override float Min()
 		{
@@ -215,14 +215,14 @@ namespace BAVCL
 		public Vector IPOP(Vector vectorB, Operations operation)
 		{
 			// If the lengths are the same and both 1D vectors
-			if (Length == vectorB.Length && vectorB.Columns == 1 && this.Columns == 1)
+			if (Length == vectorB.Length && vectorB.Columns == 1 && Columns == 1)
 				return _VectorVectorOP_IP(vectorB, operation);
 
 
-			bool ThisLonger = this.Value.Length > vectorB.Value.Length;
+			bool ThisLonger = Value.Length > vectorB.Value.Length;
 
 			// If one input is a Vector and other is Matrix
-			if ((this.Columns == 1 && vectorB.Columns > 1) || (this.Columns > 1 && vectorB.Columns == 1))
+			if ((Columns == 1 && vectorB.Columns > 1) || (Columns > 1 && vectorB.Columns == 1))
 			{
 
 
