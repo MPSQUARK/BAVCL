@@ -10,7 +10,7 @@ namespace BAVCL.Geometric
         {
             if (VectorA.Length != VectorB.Length) { throw new Exception($"Cannot Cross Product two Vector3's together of different lengths. {VectorA.Length} != {VectorB.Length}"); }
 
-            GPU gpu = VectorA.gpu;
+            GPU gpu = VectorA.Gpu;
 
             Vector3 Output = new(gpu, VectorA.Length);
 
@@ -34,7 +34,7 @@ namespace BAVCL.Geometric
             return Output;
 
         }
-    
-    
+
+
     }
 }

@@ -11,10 +11,10 @@ namespace BAVCL.IO
         // WRITE TO FILE
 
         // GENERIC
-        public static void WriteToFile(string input, string filename="new file", string format="txt" ,string path = "")
+        public static void WriteToFile(string input, string filename = "new file", string format = "txt", string path = "")
         {
             if (path == "") { path = AppDomain.CurrentDomain.BaseDirectory; }
-            Directory.CreateDirectory(path+@"\saved_data\");
+            Directory.CreateDirectory(path + @"\saved_data\");
             string fullpath = $"{path}/saved_data/{filename}.{format}";
 
             using (StreamWriter writer = new(fullpath))
@@ -43,7 +43,7 @@ namespace BAVCL.IO
         {
             return format switch
             {
-                "txt" => writable.ToString(),
+                "txt" => writable.ToString()!,
                 "csv" => writable.ToCSV(),
                 _ => throw new Exception($"No format : {format} available\n Func - ConvertToFormat - IO"),
             };
@@ -52,15 +52,15 @@ namespace BAVCL.IO
 
         // READ FROM FILE
 
-        public static Vector CSV2Vector(GPU gpu, string filename, string format="csv", string path="")
+        public static Vector CSV2Vector(GPU gpu, string filename, string format = "csv", string path = "")
         {
             if (path == "") { path = AppDomain.CurrentDomain.BaseDirectory; }
-            
+
             string contents = File.ReadAllText($"{path}/saved_data/{filename}.{format}");
 
             // CSV
 
-            int columns = Regex.Match(contents, @"^.*?(?=\n)").ToString().Split(",").Length-1;
+            int columns = Regex.Match(contents, @"^.*?(?=\n)").ToString().Split(",").Length - 1;
 
             float[] Output = Array.ConvertAll(contents.Replace("\r\n", "").Split(",").ToArray()[..^1], float.Parse);
 

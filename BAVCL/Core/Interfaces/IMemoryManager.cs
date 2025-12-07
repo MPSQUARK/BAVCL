@@ -5,6 +5,9 @@ namespace BAVCL.Core.Interfaces
 {
     public interface IMemoryManager
     {
+
+        public void LimitAccessibleMemory(long maxMemory, float memoryCap);
+
         #region Allocate
         public (uint, MemoryBuffer) Allocate<T>(ICacheable<T> Cacheable, Accelerator accelerator) where T : unmanaged;
         public (uint, MemoryBuffer) Allocate<T>(ICacheable Cacheable, T[] values, Accelerator accelerator) where T : unmanaged;
@@ -17,7 +20,7 @@ namespace BAVCL.Core.Interfaces
         #endregion
 
         #region Get
-        public MemoryBuffer GetBuffer(uint Id);
+        public MemoryBuffer? GetBuffer(uint Id);
         #endregion
 
         #region Garbage Collection
@@ -47,7 +50,7 @@ namespace BAVCL.Core.Interfaces
         /// The amount of memory available to be used accounting for headroom. 
         /// AvailableMemory <= MaxMemory.
         /// </summary>
-        public long AvailableMemory { get; init; }
+        public long AvailableMemory { get; }
         public long MemoryUsed { get; }
         protected internal long MemoryFree => AvailableMemory - MemoryUsed;
         #endregion
