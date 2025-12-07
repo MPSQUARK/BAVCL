@@ -20,8 +20,7 @@ namespace BAVCL.Core
 
         #region Constructor
         public LRU() { }
-
-        public void LimitAccessibleMemory(long maxMemory, float memoryCap)
+        public LRU(long maxMemory, float memoryCap)
         {
             if (memoryCap <= 0f || memoryCap >= 1f)
                 throw new Exception($"Memory Cap CANNOT be less than 0 or more than 1. Recieved {memoryCap}");
@@ -40,8 +39,11 @@ namespace BAVCL.Core
         #endregion
 
         #region Properties
-
-        public long AvailableMemory { get; private set; }
+        /// <summary>
+        /// The available memory for allocation, accounting for any memory cap.
+        /// </summary>
+        /// <value>Initialised to -1 to prevent any data allocation if this is not set correctly.</value>
+        public long AvailableMemory { get; set; } = -1;
         /// <summary>
         /// Thread Safe Memory Used Read
         /// </summary>
@@ -68,35 +70,35 @@ namespace BAVCL.Core
             AddLiveTask();
             return (id, buffer);
         }
-        public (uint, MemoryBuffer) Allocate<T>(ICacheable<T> Cacheable, Accelerator accelerator) where T : unmanaged
+        public (uint, MemoryBuffer) Allocate<T>(ICacheable<T> cacheable, Accelerator accelerator) where T : unmanaged
         {
             uint id = GenerateId();
             MemoryBuffer1D<T, Stride1D.Dense> buffer;
 
             lock (this)
             {
-                GC(Cacheable.MemorySize);
-                UpdateMemoryUsage(Cacheable.MemorySize);
+                GC(cacheable.MemorySize);
+                UpdateMemoryUsage(cacheable.MemorySize);
 
-                buffer = accelerator.Allocate1D(Cacheable.GetValues());
-                Caches.TryAdd(id, new Cache(buffer, new WeakReference<ICacheable>(Cacheable)));
+                buffer = accelerator.Allocate1D(cacheable.GetValues());
+                Caches.TryAdd(id, new Cache(buffer, new WeakReference<ICacheable>(cacheable)));
                 _lru.Enqueue(id);
             }
 
             AddLiveTask();
             return (id, buffer);
         }
-        public (uint, MemoryBuffer) Allocate<T>(ICacheable Cacheable, T[] values, Accelerator accelerator) where T : unmanaged
+        public (uint, MemoryBuffer) Allocate<T>(ICacheable cacheable, T[] values, Accelerator accelerator) where T : unmanaged
         {
             uint id = GenerateId();
             MemoryBuffer1D<T, Stride1D.Dense> buffer;
 
             lock (this)
             {
-                GC(Cacheable.MemorySize);
-                UpdateMemoryUsage(Cacheable.MemorySize);
+                GC(cacheable.MemorySize);
+                UpdateMemoryUsage(cacheable.MemorySize);
                 buffer = accelerator.Allocate1D(values);
-                Caches.TryAdd(id, new Cache(buffer, new WeakReference<ICacheable>(Cacheable)));
+                Caches.TryAdd(id, new Cache(buffer, new WeakReference<ICacheable>(cacheable)));
                 _lru.Enqueue(id);
             }
 

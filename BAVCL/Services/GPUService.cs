@@ -70,18 +70,23 @@ public static class GPUManager
         return preferedAccelerator.CreateAccelerator(Context);
     }
 
-    public static GPU GetGPU(float memorycap = 0.8f, bool forceCPU = false)
+    public static GPU GetGPU(float memoryCap = 0.8f, bool forceCPU = false)
     {
         Console.WriteLine("Getting GPU...");
-        return GetGPU<LRU>(memorycap, forceCPU);
+        return GetGPU<LRU>(memoryCap, forceCPU);
     }
-    public static GPU GetGPU<TMem>(float memorycap = 0.8f, bool forceCPU = false) where TMem : IMemoryManager, new()
+    public static GPU GetGPU<TMem>(float memoryCap = 0.8f, bool forceCPU = false) where TMem : IMemoryManager, new()
     {
+        if (memoryCap <= 0f || memoryCap >= 1f)
+            throw new Exception($"Memory Cap CANNOT be less than 0 or more than 1. Recieved {memoryCap}");
+
         var accelerator = GetPreferedAccelerator(forceCPU);
         Console.WriteLine($"Device loaded: {accelerator.Name}");
 
-        var memoryManager = new TMem();
-        memoryManager.LimitAccessibleMemory(accelerator.MemorySize, memorycap);
+        var memoryManager = new TMem()
+        {
+            AvailableMemory = (long)Math.Round(accelerator.MemorySize * memoryCap)
+        };
 
         var gpu = new GPU(accelerator, memoryManager);
 

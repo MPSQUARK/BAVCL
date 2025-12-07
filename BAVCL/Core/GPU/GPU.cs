@@ -9,7 +9,7 @@ public sealed partial class GPU(Accelerator accelerator, IMemoryManager memoryMa
 {
 	private readonly IMemoryManager _memoryManager = memoryManager;
 	public Accelerator accelerator = accelerator;
-	internal AcceleratorStream _defaultStream => accelerator.DefaultStream;
+	internal AcceleratorStream DefaultStream => accelerator.DefaultStream;
 	internal void Synchronize() => accelerator.Synchronize();
 
 	// Wrappers for Memory Manager

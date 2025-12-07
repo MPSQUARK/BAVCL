@@ -23,7 +23,7 @@ namespace BAVCL.Geometric
 				buffer = output.GetBuffer(),        // Output
 				buffer2 = vector.GetBuffer();      // Input
 
-			gpu.simdVectorKernel(gpu._defaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer2.View, 3, new SpecializedValue<int>((int)operation));
+			gpu.simdVectorKernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer2.View, 3, new SpecializedValue<int>((int)operation));
 			gpu.Synchronize();
 
 			vector.DecrementLiveCount();
@@ -48,7 +48,7 @@ namespace BAVCL.Geometric
 				buffer2 = vectorA.GetBuffer(),      // Input
 				buffer3 = vectorB.GetBuffer();      // Input
 
-			gpu.simdVectorKernel(gpu._defaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, 3, new SpecializedValue<int>((int)operation));
+			gpu.simdVectorKernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, 3, new SpecializedValue<int>((int)operation));
 			gpu.Synchronize();
 
 			vectorA.DecrementLiveCount();
