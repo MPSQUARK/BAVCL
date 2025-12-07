@@ -60,10 +60,10 @@ namespace BAVCL
             MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
 
             // RUN
-            gpu.absKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
+            Gpu.absKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
 
             // SYNC
-            gpu.accelerator.Synchronize();
+            Gpu.accelerator.Synchronize();
 
             // Remove Security
             DecrementLiveCount();

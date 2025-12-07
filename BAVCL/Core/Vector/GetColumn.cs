@@ -15,8 +15,8 @@ namespace BAVCL
             vector.IncrementLiveCount();
 
             // Make Output Vector
-            Vector Output = new(vector.gpu, vector.RowCount());
-            
+            Vector Output = new(vector.Gpu, vector.RowCount());
+
             // Secure the Output
             Output.IncrementLiveCount();
 
@@ -27,13 +27,13 @@ namespace BAVCL
 
             // Allocate config Data onto GPU
             MemoryBuffer1D<int, Stride1D.Dense>
-                buffer3 = vector.gpu.accelerator.Allocate1D(select);      // Config
+                buffer3 = vector.Gpu.accelerator.Allocate1D(select);      // Config
 
             // RUN
-            vector.gpu.getSliceKernel(vector.gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
+            vector.Gpu.getSliceKernel(vector.Gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
 
             // SYNC
-            vector.gpu.accelerator.Synchronize();
+            vector.Gpu.accelerator.Synchronize();
 
             // Dispose of Config
             buffer3.Dispose();
@@ -54,7 +54,7 @@ namespace BAVCL
             IncrementLiveCount();
 
             // Make Output Vector
-            Vector Output = new(gpu, RowCount());
+            Vector Output = new(Gpu, RowCount());
 
             Output.IncrementLiveCount();
 
@@ -65,13 +65,13 @@ namespace BAVCL
 
             // Allocate config Data onto GPU
             MemoryBuffer1D<int, Stride1D.Dense>
-                buffer3 = gpu.accelerator.Allocate1D(select);     // Config
+                buffer3 = Gpu.accelerator.Allocate1D(select);     // Config
 
             // RUN
-            gpu.getSliceKernel(gpu.accelerator.DefaultStream, RowCount(), buffer.View, buffer2.View, buffer3.View);
+            Gpu.getSliceKernel(Gpu.accelerator.DefaultStream, RowCount(), buffer.View, buffer2.View, buffer3.View);
 
             // SYNC
-            gpu.accelerator.Synchronize();
+            Gpu.accelerator.Synchronize();
 
             // Dispose of Config
             buffer3.Dispose();

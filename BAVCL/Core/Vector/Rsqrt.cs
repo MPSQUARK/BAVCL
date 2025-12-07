@@ -14,7 +14,7 @@ namespace BAVCL
         /// <param name="vector"></param>
         /// <returns></returns>
         public static Vector Rsqrt(Vector vector) => vector.Copy().Rsqrt_IP();
-        
+
         /// <summary>
         /// Takes the absolute value of all values in this Vector.
         /// IMPORTANT : Use this method for Vectors of Length less than 100,000
@@ -58,10 +58,10 @@ namespace BAVCL
             MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
 
             // RUN
-            gpu.rsqrtKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
+            Gpu.rsqrtKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
 
             // SYNC
-            gpu.accelerator.Synchronize();
+            Gpu.accelerator.Synchronize();
 
             // Remove Security
             DecrementLiveCount();

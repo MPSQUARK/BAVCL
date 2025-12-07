@@ -9,21 +9,22 @@ namespace BAVCL
     {
         public override string ToString()
         {
-            return ToStr(2,false);
+            return ToStr(2, false);
         }
 
         public string ToStr(byte decimalplaces = 2, bool syncCPU = true)
         {
-            if ((Value == null) || syncCPU) { SyncCPU(); }
+            if ((Value == null) || syncCPU)
+                SyncCPU();
 
-            (float min, float max, bool hasinfinity) = Util.MinMaxInf(Value);
+            (float min, float max, bool hasinfinity) = Util.MinMaxInf(Value!);
 
             bool hasnegative = min < 0f;
 
             int high = max.ToString().Length;
             int low = hasnegative ? min.ToString().Length - 1 : min.ToString().Length;
 
-            int digits = high > low ? high: low;
+            int digits = high > low ? high : low;
 
             string format = $"F{decimalplaces}";
 
@@ -43,7 +44,7 @@ namespace BAVCL
 
             if (hasinfinity)
             {
-                string 
+                string
                     inf = new(' ', digits - 3),
                     afterinf = new(' ', decimalplaces + 1),
                     nan = new(' ', decimalplaces);
@@ -53,12 +54,12 @@ namespace BAVCL
                 {
                     if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
-                    Template[2] = Value[i] < 0f ? '-' : ' ';
+                    Template[2] = Value![i] < 0f ? '-' : ' ';
 
-                    if (float.IsFinite(Value[i]))
+                    if (float.IsFinite(Value![i]))
                     {
                         clear.CopyTo(Template, 3);
-                        string val = Math.Abs(Value[i]).ToString(format);
+                        string val = Math.Abs(Value![i]).ToString(format);
                         val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                         stringBuilder.Append(Template);
@@ -93,10 +94,10 @@ namespace BAVCL
                 {
                     if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
-                    Template[2] = Value[i] < 0f ? '-' : ' ';
+                    Template[2] = Value![i] < 0f ? '-' : ' ';
 
                     clear.CopyTo(Template, 3);
-                    string val = Math.Abs(Value[i]).ToString(format);
+                    string val = Math.Abs(Value![i]).ToString(format);
                     val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                     stringBuilder.Append(Template);
@@ -112,7 +113,7 @@ namespace BAVCL
                 if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
                 clear.CopyTo(Template, 3);
-                string val = Value[i].ToString(format);
+                string val = Value![i].ToString(format);
                 val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                 stringBuilder.Append(Template);

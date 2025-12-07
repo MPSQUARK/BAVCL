@@ -27,8 +27,9 @@ namespace BAVCL
 		{ }
 
 		/// <summary>
-		/// Constructs a Vector object of length 'length' with all values set to default or 0.
-		/// Should be more efficient for creating output vectors, and zero/default initiased vectors.
+		/// Constructs a Vector object of length 'length' with uninitialized values.
+		/// Ideal for creating output vectors. JUST REMEMBER TO SET/UPDATE ALL VALUES.
+		/// WARNING: Values are NOT initialized to zero, and you may get random leftover data.
 		/// </summary>
 		/// <param name="gpu"></param>
 		/// <param name="length"></param>
@@ -59,9 +60,9 @@ namespace BAVCL
 		public Vector Copy(bool Cache = true)
 		{
 			if (ID == 0)
-				return new Vector(gpu, Value[..], Columns, Cache);
+				return new Vector(Gpu, Value[..], Columns, Cache);
 
-			return new Vector(gpu, Pull(), Columns, Cache);
+			return new Vector(Gpu, Pull(), Columns, Cache);
 		}
 
 		#region "MATHEMATICAL PROPERTIES"
@@ -135,9 +136,9 @@ namespace BAVCL
 		{
 			if (Length % 3 != 0) { throw new Exception("Vector length must be a multiple of 3"); }
 			if (ID != 0)
-				return new Geometric.Vector3(gpu, Pull());
+				return new Geometric.Vector3(Gpu, Pull());
 
-			return new Geometric.Vector3(gpu, Value);
+			return new Geometric.Vector3(Gpu, Value);
 		}
 
 		#endregion
@@ -232,7 +233,7 @@ namespace BAVCL
 
 		public static Vector OP(Vector vector, float scalar, Operations operation)
 		{
-			GPU gpu = vector.gpu;
+			GPU gpu = vector.Gpu;
 
 			vector.IncrementLiveCount();
 
@@ -263,9 +264,9 @@ namespace BAVCL
 			// Check if the input & output are in Cache
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
 
-			gpu.s_FloatOPKernelIP(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
+			Gpu.s_FloatOPKernelIP(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
 
-			gpu.accelerator.Synchronize();
+			Gpu.accelerator.Synchronize();
 
 			DecrementLiveCount();
 
@@ -275,7 +276,7 @@ namespace BAVCL
 
 		internal static Vector _VectorVectorOP(Vector vectorA, Vector vectorB, Operations operation)
 		{
-			GPU gpu = vectorA.gpu;
+			GPU gpu = vectorA.Gpu;
 
 			vectorA.IncrementLiveCount();
 			vectorB.IncrementLiveCount();
@@ -315,10 +316,10 @@ namespace BAVCL
 				buffer2 = vectorB.GetBuffer();      // Input
 
 			// Run the kernel
-			gpu.a_FloatOPKernelIP(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
+			Gpu.a_FloatOPKernelIP(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
 
 			// Synchronise the kernel
-			gpu.accelerator.Synchronize();
+			Gpu.accelerator.Synchronize();
 
 			vectorB.DecrementLiveCount();
 			DecrementLiveCount();
@@ -328,7 +329,7 @@ namespace BAVCL
 
 		internal static Vector _VectorMatrixOP(Vector vector, Vector matrix, Operations operation)
 		{
-			GPU gpu = vector.gpu;
+			GPU gpu = vector.Gpu;
 
 			vector.IncrementLiveCount();
 			matrix.IncrementLiveCount();
@@ -365,7 +366,7 @@ namespace BAVCL
 			matrix.IncrementLiveCount();
 
 			// Make the Output Vector
-			Vector Output = new(gpu, matrix.Length, Columns);
+			Vector Output = new(Gpu, matrix.Length, Columns);
 
 			Output.IncrementLiveCount();
 
@@ -376,10 +377,10 @@ namespace BAVCL
 				buffer3 = matrix.GetBuffer();       // Input
 
 			// Run the kernel
-			gpu.vectormatrixOpKernel(gpu.accelerator.DefaultStream, matrix.RowCount(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
+			Gpu.vectormatrixOpKernel(Gpu.accelerator.DefaultStream, matrix.RowCount(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
 
 			// Synchronise the kernel
-			gpu.accelerator.Synchronize();
+			Gpu.accelerator.Synchronize();
 
 			DecrementLiveCount();
 			matrix.DecrementLiveCount();
@@ -396,9 +397,9 @@ namespace BAVCL
 
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
 
-			gpu.LogKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, @base);
+			Gpu.LogKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, @base);
 
-			gpu.accelerator.Synchronize();
+			Gpu.accelerator.Synchronize();
 
 			DecrementLiveCount();
 
