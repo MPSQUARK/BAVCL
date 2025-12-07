@@ -106,7 +106,7 @@ namespace BAVCL.Core
 		public abstract T Mean();
 		public abstract T Range();
 		public abstract T Sum();
-		public bool IsRectangular() => Length % Columns == 0;
+		public bool IsRectangular() => this.Length % this.Columns == 0;
 		public bool Is1D() => Columns == 1;
 
 	}
