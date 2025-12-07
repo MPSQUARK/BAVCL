@@ -9,14 +9,14 @@ namespace BAVCL.Core
             Length = Value.Length;
             if (ID == 0) return Cache();
 
-            ID = gpu.GCItem(ID);
+            ID = Gpu.GCItem(ID);
             return Cache();
         }
 
         public MemoryBuffer UpdateCache(T[] array)
         {
             Length = array.Length;
-            (ID, MemoryBuffer buffer) = gpu.UpdateBuffer(this, array);
+            (ID, MemoryBuffer buffer) = Gpu.UpdateBuffer(this, array);
             return buffer;
         }
 

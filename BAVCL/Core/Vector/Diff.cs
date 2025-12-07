@@ -11,7 +11,7 @@ namespace BAVCL
             if (vector.Columns > 1)
                 throw new Exception("Diff is for use with 1D Vectors ONLY");
 
-            GPU gpu = vector.gpu;
+            GPU gpu = vector.Gpu;
 
             vector.IncrementLiveCount();
 

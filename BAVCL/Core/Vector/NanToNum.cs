@@ -15,9 +15,9 @@ namespace BAVCL
 
             MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
 
-            gpu.nanToNumKernel(gpu.accelerator.DefaultStream, Length, buffer.View, num);
+            Gpu.nanToNumKernel(Gpu.accelerator.DefaultStream, Length, buffer.View, num);
 
-            gpu.accelerator.Synchronize();
+            Gpu.accelerator.Synchronize();
 
             DecrementLiveCount();
 

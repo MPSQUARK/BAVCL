@@ -9,12 +9,16 @@ namespace BAVCL
     {
         public override string ToString()
         {
-            return ToStr(2,false);
+            return ToStr(2, false);
         }
 
         public string ToStr(byte decimalplaces = 2, bool syncCPU = true)
         {
-            if ((Value == null) || syncCPU) { SyncCPU(); }
+            if ((Value == null) || syncCPU)
+                SyncCPU();
+
+            if (Value == null)
+                throw new Exception("Vector has no data to convert to string\n Func - ToString - Vector");
 
             (float min, float max, bool hasinfinity) = Util.MinMaxInf(Value);
 
@@ -23,7 +27,7 @@ namespace BAVCL
             int high = max.ToString().Length;
             int low = hasnegative ? min.ToString().Length - 1 : min.ToString().Length;
 
-            int digits = high > low ? high: low;
+            int digits = high > low ? high : low;
 
             string format = $"F{decimalplaces}";
 
@@ -43,7 +47,7 @@ namespace BAVCL
 
             if (hasinfinity)
             {
-                string 
+                string
                     inf = new(' ', digits - 3),
                     afterinf = new(' ', decimalplaces + 1),
                     nan = new(' ', decimalplaces);

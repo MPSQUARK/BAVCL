@@ -7,9 +7,9 @@ namespace BAVCL.Core
 {
 	public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unmanaged
 	{
-		protected GPU gpu;
+		protected GPU Gpu;
 
-		public T[] Value = Array.Empty<T>();
+		public T[] Value = [];
 
 		public virtual int Columns
 		{
@@ -53,7 +53,7 @@ namespace BAVCL.Core
 		/// <summary>
 		protected VectorBase(GPU gpu, T[] value, int columns = 1, bool Cache = true)
 		{
-			this.gpu = gpu;
+			Gpu = gpu;
 			Columns = columns;
 			Value = value;
 			Length = value.Length;
@@ -63,9 +63,9 @@ namespace BAVCL.Core
 
 		protected VectorBase(GPU gpu, int length, int columns = 1)
 		{
-			this.gpu = gpu;
+			this.Gpu = gpu;
 			Columns = columns;
-			Value = null;
+			Value = [];
 			Length = length;
 			CacheEmpty(length);
 		}

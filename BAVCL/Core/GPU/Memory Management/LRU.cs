@@ -19,25 +19,29 @@ namespace BAVCL.Core
         protected internal uint _currentVecId = 0;
 
         #region Constructor
-        public LRU(long maxMemory, float memoryCap)
+        public LRU() { }
+
+        public void LimitAccessibleMemory(long maxMemory, float memoryCap)
         {
             if (memoryCap <= 0f || memoryCap >= 1f)
                 throw new Exception($"Memory Cap CANNOT be less than 0 or more than 1. Recieved {memoryCap}");
             AvailableMemory = (long)Math.Round(maxMemory * memoryCap);
         }
+
         #endregion
 
         #region Debug
-        public uint[] StoredIDs() 
+        public uint[] StoredIDs()
         {
             uint[] ids = new uint[_lru.Count];
-            _lru.CopyTo(ids, 0 );
-			return ids;
+            _lru.CopyTo(ids, 0);
+            return ids;
         }
         #endregion
 
         #region Properties
-        public long AvailableMemory { get; init; }
+
+        public long AvailableMemory { get; private set; }
         /// <summary>
         /// Thread Safe Memory Used Read
         /// </summary>
@@ -103,7 +107,7 @@ namespace BAVCL.Core
         #endregion
 
         #region Get
-        public MemoryBuffer GetBuffer(uint id)
+        public MemoryBuffer? GetBuffer(uint id)
         {
             if (Caches.TryGetValue(id, out Cache cache))
                 return cache.MemoryBuffer;
@@ -135,7 +139,7 @@ namespace BAVCL.Core
                     // Try Get Reference to and the object of ICacheable
                     if (Caches.TryGetValue(Id, out Cache cache))
                     {
-                        if (IsICacheableLive(cache, Id)) continue;    
+                        if (IsICacheableLive(cache, Id)) continue;
 
                         cache.MemoryBuffer.Dispose();
                         UpdateMemoryUsage(-cache.MemoryBuffer.LengthInBytes);
@@ -174,9 +178,9 @@ namespace BAVCL.Core
         /// <returns></returns>
         private bool IsICacheableLive(Cache cache, uint Id)
         {
-            if (!cache.CachedObjRef.TryGetTarget(out ICacheable cacheable))
+            if (!cache.CachedObjRef.TryGetTarget(out ICacheable? cacheable))
                 return false;
-            
+
             if (cacheable.LiveCount == 0)
             {
                 cacheable.SyncCPU(cache.MemoryBuffer);
@@ -247,7 +251,7 @@ namespace BAVCL.Core
 
             // If lengths don't match
             GCItem(id);
-            return Allocate(cacheable,accelerator);
+            return Allocate(cacheable, accelerator);
         }
         public (uint, MemoryBuffer) UpdateBuffer<T>(ICacheable cacheable, T[] values, Accelerator accelerator) where T : unmanaged
         {
@@ -266,7 +270,7 @@ namespace BAVCL.Core
             {
                 buffer.AsArrayView<T>(0, values.Length).CopyFromCPU(values);
                 cache.MemoryBuffer = buffer;
-                    Caches.AddOrUpdate(id, cache, (id, oldcache) => cache);
+                Caches.AddOrUpdate(id, cache, (id, oldcache) => cache);
                 return (id, buffer);
             }
 
