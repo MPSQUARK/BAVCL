@@ -1,25 +1,24 @@
-﻿namespace BAVCL.Core
+﻿namespace BAVCL.Core;
+
+public enum FileTypes
 {
-    public enum FileTypes
-    {
-        CSV = 0,
-        TXT = 1,
-        // FITS
-        // JSON
-        // XML
+    CSV = 0,
+    TXT = 1,
+    // FITS
+    // JSON
+    // XML
 
-    }
+}
 
-    public enum Axis
-    {
-        Row = 0,
-        Column = 1,
-    }
+public enum Axis
+{
+    Row = 0,
+    Column = 1,
+}
 
-    public enum AsType
-    {
-        Vector = 0,
-        Vector3 = 1,
-        Array = 2,
-    }
+public enum AsType
+{
+    Vector = 0,
+    Vector3 = 1,
+    Array = 2,
 }

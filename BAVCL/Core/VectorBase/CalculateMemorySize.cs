@@ -1,20 +1,17 @@
 ﻿using ILGPU;
 
-namespace BAVCL.Core
+namespace BAVCL.Core;
+
+public partial class VectorBase<T>
 {
-    public partial class VectorBase<T>
+
+    public long CalculateMemorySize()
     {
-
-        public long CalculateMemorySize()
-        {
-            return (long)Interop.SizeOf<T>() * (long)this.Length;
-        }
-        public long CalculateMemorySize(T[] array)
-        {
-            return (long)Interop.SizeOf<T>() * (long)array.Length;
-        }
-
-
+        return (long)Interop.SizeOf<T>() * (long)this.Length;
+    }
+    public long CalculateMemorySize(T[] array)
+    {
+        return (long)Interop.SizeOf<T>() * (long)array.Length;
     }
 
 

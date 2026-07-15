@@ -2,43 +2,38 @@
 using ILGPU.Runtime;
 using System;
 
-namespace BAVCL
+namespace BAVCL;
+
+public partial class Vector
 {
-    public partial class Vector
+    public static Vector Diff(Vector vector)
     {
-        public static Vector Diff(Vector vector)
-        {
-            if (vector.Columns > 1)
-                throw new Exception("Diff is for use with 1D Vectors ONLY");
+        if (vector.Columns > 1)
+            throw new Exception("Diff is for use with 1D Vectors ONLY");
 
-            GPU gpu = vector.Gpu;
+        GPU gpu = vector.Gpu;
 
-            vector.IncrementLiveCount();
+        vector.IncrementLiveCount();
 
-            // Make the Output Vector
-            Vector Output = new(gpu, vector.Length - 1, vector.Columns);
+        // Make the Output Vector
+        Vector Output = new(gpu, vector.Length - 1, vector.Columns);
 
-            Output.IncrementLiveCount();
+        Output.IncrementLiveCount();
 
-            MemoryBuffer1D<float, Stride1D.Dense>
-                buffer = Output.GetBuffer(),        // Output
-                buffer2 = vector.GetBuffer();       // Input
+        MemoryBuffer1D<float, Stride1D.Dense>
+            buffer = Output.GetBuffer(),        // Output
+            buffer2 = vector.GetBuffer();       // Input
 
-            gpu.diffKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View);
+        gpu.diffKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View);
 
-            gpu.accelerator.Synchronize();
+        gpu.accelerator.Synchronize();
 
-            vector.DecrementLiveCount();
-            Output.DecrementLiveCount();
+        vector.DecrementLiveCount();
+        Output.DecrementLiveCount();
 
-            return Output;
-        }
-
-        public Vector Diff_IP() => TransferBuffer(Diff(this));
-
+        return Output;
     }
 
-
-
+    public Vector Diff_IP() => TransferBuffer(Diff(this));
 
 }
