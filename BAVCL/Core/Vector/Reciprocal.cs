@@ -1,28 +1,27 @@
 ﻿using ILGPU;
 using ILGPU.Runtime;
 
-namespace BAVCL
+namespace BAVCL;
+
+public partial class Vector
 {
-    public partial class Vector
+    public static Vector Reciprocal(Vector vector) =>
+        vector.Copy().Reciprocal_IP();
+
+    public Vector Reciprocal_IP()
     {
-        public static Vector Reciprocal(Vector vector) =>
-            vector.Copy().Reciprocal_IP();
+        IncrementLiveCount();
 
-        public Vector Reciprocal_IP()
-        {
-            IncrementLiveCount();
+        // Check if the input & output are in Cache
+        MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
 
-            // Check if the input & output are in Cache
-            MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
+        Gpu.rcpKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
 
-            Gpu.rcpKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
+        Gpu.accelerator.Synchronize();
 
-            Gpu.accelerator.Synchronize();
+        DecrementLiveCount();
 
-            DecrementLiveCount();
-
-            return this;
-        }
-
+        return this;
     }
+
 }

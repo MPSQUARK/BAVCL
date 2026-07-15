@@ -1,9 +1,5 @@
-﻿namespace BAVCL.Core
+﻿namespace BAVCL.Core;
+
+class Table
 {
-    class Table
-    {
-    }
-
-
-
 }
