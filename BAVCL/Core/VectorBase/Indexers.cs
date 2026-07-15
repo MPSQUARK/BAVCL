@@ -31,11 +31,7 @@ public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unman
 
     public T this[int index, IndexingMode mode]
     {
-        get => GetAt(index, mode);
-        set
-        {
-
-        }
+        get => GetAt(index, mode); set => SetAt(index, mode, value);
     }
 
     public T GetAt(int index)
