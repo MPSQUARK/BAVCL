@@ -5,7 +5,7 @@ namespace BAVCL.Geometric.Enums;
 /// </summary>
 public enum Coord
 {
-    x = 1,
-    y = 2,
-    z = 3,
+    x = 0,
+    y = 1,
+    z = 2,
 }
