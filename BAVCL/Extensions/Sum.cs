@@ -60,7 +60,7 @@ public static partial class Extensions
     {
         Vector<double> sumVector = Vector<double>.Zero;
         int i = 0;
-        int vectorSize = Vector<float>.Count;
+        int vectorSize = Vector<double>.Count;
 
         for (; i <= arr.Length - vectorSize; i += vectorSize)
             sumVector += new Vector<double>(arr, i);
