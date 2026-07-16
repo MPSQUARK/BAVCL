@@ -8,10 +8,7 @@ namespace BAVCL.Utility;
 public class Util
 {
 
-    public static bool IsClose(float val1, float val2, float threshold = 1e-5f)
-    {
-        return XMath.Abs(val1 - val2) < threshold ? true : false;
-    }
+    public static bool IsClose(float val1, float val2, float threshold = 1e-5f) => XMath.Abs(val1 - val2) <= threshold;
 
     public static float Max(float[] arr, bool NonInf = true)
     {
