@@ -334,8 +334,8 @@ public sealed partial class Vector : VectorBase<float>
 		vector.IncrementLiveCount();
 		matrix.IncrementLiveCount();
 
-		// Make the Output Vector
-		Vector Output = new(gpu, vector.Length, vector.Columns);
+		// Make the Output Vector — one scalar per matrix row
+		Vector Output = new(gpu, matrix.RowCount(), 1);
 
 		Output.IncrementLiveCount();
 
