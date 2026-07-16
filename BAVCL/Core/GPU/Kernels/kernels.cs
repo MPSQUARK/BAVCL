@@ -29,6 +29,8 @@ public partial class GPU
 		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(s_opFKernel));
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> vectormatrixOpKernel
 		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(vectormatrixOpKernel));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int> matmulKernel
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(matmulKernel));
 
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> a_FloatOPKernelIP
 		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(a_FloatOPKernelIP));
@@ -65,6 +67,7 @@ public partial class GPU
 		a_opFKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernel);
 		s_opFKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernel);
 		vectormatrixOpKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(VectorMatrixKernel);
+		matmulKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(MatMulKernel);
 
 		simdVectorKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(SIMDVectorKernel);
 
@@ -301,6 +304,27 @@ public partial class GPU
 					OutPut[index] += XMath.Pow(InputA[i] - InputB[startidx + i], 2f);
 				OutPut[index] = XMath.Sqrt(OutPut[index]);
 				break;
+		}
+	}
+
+	static void MatMulKernel(
+		Index1D row,
+		ArrayView<float> output,
+		ArrayView<float> inputA,
+		ArrayView<float> inputB,
+		int colsA,
+		int colsB)
+	{
+		int outputRow = row * colsB;
+		int inputRow = row * colsA;
+
+		for (int col = 0; col < colsB; col++)
+		{
+			float sum = 0f;
+			for (int k = 0; k < colsA; k++)
+				sum += inputA[inputRow + k] * inputB[k * colsB + col];
+
+			output[outputRow + col] = sum;
 		}
 	}
 

@@ -9,7 +9,7 @@ public sealed partial class Vector3 : VectorBase<float>
 	public static Vector Distance(Vector3 vectorA, Vector3 vectorB)
 	{
 		if (vectorA.Length != vectorB.Length) 
-			throw new Vector3LengthMismatchException(nameof(Distance), vectorA.Length, vectorB.Length);
+			throw new LengthMismatchException(nameof(Distance), vectorA.Length, vectorB.Length);
 		
 		return VOP(vectorA, vectorB, Operations.distance);
 	}
