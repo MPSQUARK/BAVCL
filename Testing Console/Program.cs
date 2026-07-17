@@ -5,11 +5,14 @@ using BAVCL.Geometric;
 using BAVCL.Services;
 
 GPU gpu = GPUManager.Default;
-Vector3 vec = new(gpu, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-Vector3 vec2 = new(gpu, [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]);
+Vector vec = new(gpu, [1, 2, 3, 4, 5, 6], 2);
+Vector vec2 = new(gpu, [5, 5, 5, 5, 5, 5], 3);
 
 vec.Print();
-vec.Magnitude().Print(6);
-vec.Distance(vec2).Print(6);
+vec2.Print();
 
-vec[1, 2].Print();
+Vector vec3 = Vector.Cross(vec, vec2);
+Vector vec4 = Vector.Cross(vec2, vec);
+
+vec3.Print();
+vec4.Print();
