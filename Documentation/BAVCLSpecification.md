@@ -343,12 +343,12 @@ This section documents **what exists in code today**. See [Section 19](#19-code-
 
 | Method / Property                             | Description                                |
 | --------------------------------------------- | ------------------------------------------ |
-| `Vector(GPU, float[], columns=1, cache=true)` | Construct from array; optional GPU preload |
-| `Vector(GPU, int length, columns=1)`          | Uninitialized length (may contain garbage) |
+| `Vector(GPU, float[], columns=0, cache=true)` | Construct from array; `columns=0` row 1D (default), `1` column, `N>1` matrix |
+| `Vector(GPU, int length, columns=0)`          | Uninitialized length (may contain garbage) |
 | `Copy(cache=true)`                            | Deep copy                                  |
 | `Equals(Vector)`                              | Element-wise equality after CPU sync       |
 | `Shape()`                                     | `(rows, cols)` tuple                       |
-| `Flatten()`                                   | Set`Columns = 1`                           |
+| `Flatten()`                                   | Set `Columns = 0` (1D row storage)         |
 | `ToVector3()`                                 | Convert when length % 3 == 0               |
 
 #### 4.2.2 Statistical Properties (CPU)
@@ -388,18 +388,42 @@ This section documents **what exists in code today**. See [Section 19](#19-code-
 
 #### 4.2.5 Binary Operations and Operators
 
-All binary `+`, `-`, `*`, `/`, `^` operator overloads route through GPU kernels via `OP()`:
+Binary `+`, `-`, `*`, `/`, `^` operator overloads use **NumPy-style element-wise broadcast** via `OP()` / `IPOP()`. Three separate API families exist for different semantics:
+
+| Family | Methods | Semantics |
+| ------ | ------- | --------- |
+| **Broadcast (default)** | `OP`, `IPOP`, operators | NumPy element-wise broadcast via `broadcastOpKernel` / `broadcastOpKernelIP` |
+| **Matrix calculator** | `MatrixAdd`, `MatrixSubtract`, `MatrixDivide`, `MatrixPow`, `MatrixMultiply`, `Cross` | Strict 2D rules: same shape for add/sub/div/pow; inner-dimension match for multiply |
+| **Row reduction** | `ReduceOP` | `reduceRowOpKernel` — one output per matrix row (not broadcast, not matmul) |
 
 | Method                        | Description                              |
 | ----------------------------- | ---------------------------------------- |
-| `OP(vecA, vecB, Operations)`  | Vector-vector or vector-matrix broadcast |
+| `OP(vecA, vecB, Operations)`  | NumPy broadcast element-wise             |
 | `OP(vec, scalar, Operations)` | Vector-scalar                            |
-| `IPOP(vecB, Operations)`      | In-place vector-vector                   |
+| `IPOP(vecB, Operations)`      | In-place broadcast when left shape equals output shape |
 | `IPOP(scalar, Operations)`    | In-place vector-scalar                   |
+| `MatrixAdd` / `MatrixSubtract` / `MatrixDivide` / `MatrixPow` | Identical `(M,N)` matrices, element-wise |
+| `MatrixMultiply` / `Cross`    | Matrix multiply `(M,K) × (K,N)` — `Cross` is the primary name; `MatrixMultiply` is an alias |
+| `ReduceOP(vector, matrix, op)` | 1D row coefficient (`Columns=0`), length == matrix columns; allocates output length == matrix rows |
+| `Dot(vecA, vecB)`             | Scalar inner product (equal length only) |
 
 **`Operations` enum** (`BAVCL/Core/Enums/Operations.cs`): `multiply`, `add`, `subtract`, `divide`, `pow`, `flipDivide`, `flipSubtract`, `flipPow`, `differenceSquared`, `distance`, `magnitude`.
 
-**Broadcasting:** Equal-length vectors use element-wise kernel. Mixed 1D/2D uses `vectormatrixOpKernel` for row-wise reduction.
+**Storage (`Columns`):**
+
+| `Columns` | Logical shape | Example |
+| --------- | ------------- | ------- |
+| `0` (default) | `(1, N)` row | `[1,2,3,4]` |
+| `1` | `(N, 1)` column | `[[1],[2],[3],[4]]` |
+| `N > 1` | `(Length/N, N)` matrix | `[[1,2,3],[4,5,6]]` |
+
+`RowCount()` and `Shape()` derive from `Columns` and `Length` as above. `Is1D()` is true only when `Columns == 0`.
+
+**No in-place row reduce:** `ReduceIPOP` is intentionally omitted. Row reduction reads a full coefficient vector (`Length == matrix.Columns`) and writes one scalar per row (`Length == matrix.RowCount()`). A single buffer cannot satisfy both layouts except on square matrices, and even then the row-wise kernel reads every coefficient element on each thread while writing row outputs into the same buffer — unsafe GPU aliasing without a coefficient snapshot. A column-wise per-thread scheme would avoid aliasing but would not implement shared-coefficient row reduction and would harm row-major coalescing. Use allocating `ReduceOP` instead.
+
+**Broadcasting:** `broadcastOpKernel` / `broadcastOpKernelIP` derive per-operand indices from logical shape (`rows==1` → column index, `cols==1` → row index, scalar → 0, else `flatOut`). Operand shapes and `outCols` are passed as `SpecializedValue<int>` for compile-time branch folding. Incompatible shapes throw `ShapeMismatchException`. `IPOP` throws `PerformanceException` (prefix: *This operation will lead to degraded performance:*) when the left operand would need resizing.
+
+**Note:** `Vector3.Cross` is a separate optimised 3D geometric kernel — not related to `Vector.Cross` (matrix multiply).
 
 **Note:** Unary `+` operator currently calls `AbsX` (likely unintentional).
 
@@ -478,7 +502,9 @@ Loaded in `LoadKernels()` — all at once:
 | `getSliceKernel`                          | Slice extraction                                |
 | `a_opFKernel` / `s_opFKernel`             | Binary ops (array/scalar)                       |
 | `a_FloatOPKernelIP` / `s_FloatOPKernelIP` | In-place binary ops                             |
-| `vectormatrixOpKernel`                    | Vector-matrix broadcast                         |
+| `broadcastOpKernel` / `broadcastOpKernelIP` | NumPy-style element-wise broadcast (per-operand index from shape, coalesced `flatOut`) |
+| `reduceRowOpKernel` | Row-wise vector-matrix reduction (`ReduceOP`) |
+| `matmulKernel`                            | Matrix multiply (`Cross` / `MatrixMultiply`)    |
 | `simdVectorKernel`                        | Per-row 3-wide ops (Vector3 magnitude/distance) |
 | `diffKernel`                              | Adjacent difference                             |
 | `reverseKernel`                           | Reverse in-place                                |
