@@ -19,7 +19,7 @@ public partial class Vector
     //    return new Vector(gpu, (from val in Enumerable.Range(0, steps) select startval + (val * interval)).ToArray(), Columns, cache);
     //}
 
-    public static Vector Linspace(GPU gpu, float startval, float endval, int steps, int Columns = 1, bool cache = true)
+    public static Vector Linspace(GPU gpu, float startval, float endval, int steps, int Columns = 0, bool cache = true)
     {
         if (steps <= 1) throw new Exception("Cannot make linspace with less than 1 steps");
         float interval = (endval - startval) / (steps - 1);
@@ -45,7 +45,4 @@ public partial class Vector
 
         return arr;
     }
-
-
-
 }

@@ -5,7 +5,7 @@ namespace BAVCL;
 public partial class Vector
 {
 
-    public static Vector Arange(GPU gpu, float startval, float endval, float interval, int Columns = 1, bool cache = true)
+    public static Vector Arange(GPU gpu, float startval, float endval, float interval, int Columns = 0, bool cache = true)
     {
         float[] values = Arange(startval, endval, interval);
         return new Vector(gpu, values, Columns, cache);

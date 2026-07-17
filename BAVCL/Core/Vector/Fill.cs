@@ -11,7 +11,7 @@ public partial class Vector
     /// <param name="Length"></param>
     /// <param name="Columns"></param>
     /// <returns></returns>
-    public static Vector Fill(GPU gpu, float Value, int Length, int Columns = 1, bool Cache = true) =>
+    public static Vector Fill(GPU gpu, float Value, int Length, int Columns = 0, bool Cache = true) =>
         new(gpu, Enumerable.Repeat(Value, Length).ToArray(), Columns, Cache);
 
 
@@ -21,7 +21,7 @@ public partial class Vector
     /// <param name="Value"></param>
     /// <param name="Length"></param>
     /// <param name="Columns"></param>
-    public Vector Fill_IP(float Value, int Length, int Columns = 1)
+    public Vector Fill_IP(float Value, int Length, int Columns = 0)
     {
         UpdateCache(Enumerable.Repeat(Value, Length).ToArray());
         this.Columns = Columns;

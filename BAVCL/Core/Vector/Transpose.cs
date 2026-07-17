@@ -8,7 +8,7 @@ public partial class Vector
 {
     public static Vector Transpose(Vector vector)
     {
-        if (vector.Columns == 1 || vector.Columns >= vector.Length) { throw new Exception("Cannot transpose 1D Vector"); }
+        if (vector.Is1D() || vector.Columns >= vector.Length) { throw new Exception("Cannot transpose 1D Vector"); }
 
         // Prevent from decache
         vector.IncrementLiveCount();

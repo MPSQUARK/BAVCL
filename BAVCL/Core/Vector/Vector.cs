@@ -21,8 +21,8 @@ public sealed partial class Vector : VectorBase<float>
 	/// </summary>
 	/// <param name="gpu">The device to use when computing this Vector.</param>
 	/// <param name="values">The array of data contained in this Vector.</param>
-	/// <param name="columns">The number of Columns IF this is a 2D Vector, for 1D Vectors use the default Columns = 1</param>
-	public Vector(GPU gpu, float[] values, int columns = 1, bool cache = true) :
+	/// <param name="columns">0 = 1D row (default), 1 = column vector, N&gt;1 = matrix width</param>
+	public Vector(GPU gpu, float[] values, int columns = 0, bool cache = true) :
 		base(gpu, values, columns, cache)
 	{ }
 
@@ -35,7 +35,7 @@ public sealed partial class Vector : VectorBase<float>
 	/// <param name="length"></param>
 	/// <param name="columns"></param>
 	/// <returns></returns>
-	public Vector(GPU gpu, int length, int columns = 1) :
+	public Vector(GPU gpu, int length, int columns = 0) :
 		base(gpu, length, columns)
 	{ }
 
@@ -113,7 +113,7 @@ public sealed partial class Vector : VectorBase<float>
 		return OP(this, Mean(), Operations.differenceSquared).Sum() / Length;
 	}
 	public override float Range() => Max() - Min();
-	public void Flatten() => Columns = 1;
+	public void Flatten() => Columns = 0;
 
 	public override float Min()
 	{
@@ -187,51 +187,16 @@ public sealed partial class Vector : VectorBase<float>
 		OP(vector, Scalar, Operations.flipPow);
 
 
-	#endregion
+    #endregion
 
 
 
-	// FUNCTIONS
-	public static Vector OP(Vector vectorA, Vector vectorB, Operations operation, bool Warp = false)
-	{
-		// Check function conditions
-		if (vectorA.Length == vectorB.Length)
-			return _VectorVectorOP(vectorA, vectorB, operation);
+    // FUNCTIONS
+    public static Vector OP(Vector vectorA, Vector vectorB, Operations operation) => _BroadcastOP(vectorA, vectorB, operation);
 
+    public Vector IPOP(Vector vectorB, Operations operation) => _BroadcastOP_IP(vectorB, operation);
 
-		bool isVectorALonger = vectorA.Length > vectorB.Length;
-
-		// If one input is a Vector and other is Matrix
-		if ((vectorA.Is1D() && vectorB.Is1D()) || (vectorA.Columns > 1 && vectorB.Is1D()))
-		{
-			if (isVectorALonger) return _VectorMatrixOP(vectorB, vectorA, operation);
-
-			return _VectorMatrixOP(vectorA, vectorB, operation);
-		}
-
-		throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
-	}
-
-	public Vector IPOP(Vector vectorB, Operations operation)
-	{
-		// If the lengths are the same and both 1D vectors
-		if (Length == vectorB.Length && vectorB.Columns == 1 && Columns == 1)
-			return _VectorVectorOP_IP(vectorB, operation);
-
-
-		bool ThisLonger = Value.Length > vectorB.Value.Length;
-
-		// If one input is a Vector and other is Matrix
-		if ((Columns == 1 && vectorB.Columns > 1) || (Columns > 1 && vectorB.Columns == 1))
-		{
-
-
-		}
-
-		throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
-	}
-
-	public static Vector OP(Vector vector, float scalar, Operations operation)
+    public static Vector OP(Vector vector, float scalar, Operations operation)
 	{
 		GPU gpu = vector.Gpu;
 
@@ -327,66 +292,37 @@ public sealed partial class Vector : VectorBase<float>
 		return this;
 	}
 
-	internal static Vector _VectorMatrixOP(Vector vector, Vector matrix, Operations operation)
+	internal static Vector RunReduceRowOp(Vector vector, Vector matrix, Operations operation)
 	{
 		GPU gpu = vector.Gpu;
 
 		vector.IncrementLiveCount();
 		matrix.IncrementLiveCount();
 
-		// Make the Output Vector — one scalar per matrix row
-		Vector Output = new(gpu, matrix.RowCount(), 1);
+		Vector output = new(gpu, matrix.RowCount(), 1);
+		output.IncrementLiveCount();
 
-		Output.IncrementLiveCount();
-
-		// Check if the input & output are in Cache
 		MemoryBuffer1D<float, Stride1D.Dense>
-			buffer = Output.GetBuffer(),        // Output
-			buffer2 = vector.GetBuffer(),       // Input
-			buffer3 = matrix.GetBuffer();       // Input
+			buffer = output.GetBuffer(),
+			buffer2 = vector.GetBuffer(),
+			buffer3 = matrix.GetBuffer();
 
-		// Run the kernel
-		gpu.vectormatrixOpKernel(gpu.accelerator.DefaultStream, matrix.RowCount(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
+		gpu.reduceRowOpKernel(
+			gpu.accelerator.DefaultStream,
+			matrix.RowCount(),
+			buffer.View,
+			buffer2.View,
+			buffer3.View,
+			matrix.Columns,
+			new SpecializedValue<int>((int)operation));
 
-		// Synchronise the kernel
 		gpu.accelerator.Synchronize();
 
 		vector.DecrementLiveCount();
 		matrix.DecrementLiveCount();
-		Output.DecrementLiveCount();
+		output.DecrementLiveCount();
 
-		// Return the result
-		return Output;
-	}
-
-	internal Vector _VectorMatrixOP_IP(Vector matrix, Operations operation)
-	{
-
-		IncrementLiveCount();
-		matrix.IncrementLiveCount();
-
-		// Make the Output Vector
-		Vector Output = new(Gpu, matrix.Length, Columns);
-
-		Output.IncrementLiveCount();
-
-		// Check if the input & output are in Cache
-		MemoryBuffer1D<float, Stride1D.Dense>
-			buffer = Output.GetBuffer(),        // Output
-			buffer2 = GetBuffer(),              // Input
-			buffer3 = matrix.GetBuffer();       // Input
-
-		// Run the kernel
-		Gpu.vectormatrixOpKernel(Gpu.accelerator.DefaultStream, matrix.RowCount(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
-
-		// Synchronise the kernel
-		Gpu.accelerator.Synchronize();
-
-		DecrementLiveCount();
-		matrix.DecrementLiveCount();
-		Output.DecrementLiveCount();
-
-		return this;
+		return output;
 	}
 
 

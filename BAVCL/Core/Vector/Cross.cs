@@ -14,13 +14,16 @@ public partial class Vector
 	/// </summary>
 	public static Vector Cross(Vector vectorA, Vector vectorB)
 	{
+		if (vectorA.RowCount() == 1 && vectorB.Columns > 1 && vectorA.Columns == vectorB.RowCount())
+			return CrossMatMul2D(vectorA, vectorB);
+
 		if (IsMatMul2D(vectorA, vectorB))
 			return CrossMatMul2D(vectorA, vectorB);
 
 		if (vectorA.Is1D() && vectorB.Columns > 1)
 			return CrossVectorMatrix(vectorA, vectorB);
 
-		if (vectorA.Columns > 1 && vectorB.Is1D())
+		if (vectorA.Columns > 1 && (vectorB.Is1D() || vectorB.Columns == 1))
 			return CrossMatrixVector(vectorA, vectorB);
 
 		throw new ArgumentException(
@@ -85,7 +88,7 @@ public partial class Vector
 				vector.Length);
 		}
 
-		return _VectorMatrixOP(vector, matrix, Operations.multiply);
+		return RunReduceRowOp(vector, matrix, Operations.multiply);
 	}
 
 	internal static Vector CrossMatrixVector(Vector matrix, Vector vector)
@@ -98,6 +101,6 @@ public partial class Vector
 				vector.Length);
 		}
 
-		return _VectorMatrixOP(vector, matrix, Operations.multiply);
+		return RunReduceRowOp(vector, matrix, Operations.multiply);
 	}
 }
