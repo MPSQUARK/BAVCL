@@ -54,7 +54,7 @@ public partial class Vector
 
         }
         // IF 1D
-        if (vector.Columns == 1)
+        if (vector.Is1D())
         {
 
             if (vector.Value.Length % RowCount() != 0)

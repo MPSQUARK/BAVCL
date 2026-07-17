@@ -1,44 +1,40 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 
 namespace BAVCL.Core;
 
 public partial class VectorBase<T>
 {
+	public string ToCSV()
+	{
+		SyncCPU();
+		var stringBuilder = new StringBuilder();
 
-    public string ToCSV()
-    {
-        SyncCPU();
-        StringBuilder stringBuilder = new();
+		if (Columns > 1)
+		{
+			for (int i = 0; i < Length; i++)
+				stringBuilder.Append($"{Value[i]},");
 
+			return stringBuilder.ToString();
+		}
 
-        if (Columns != 1)
-        {
-            for (int i = 0; i < Length; i++)
-            {
-                stringBuilder.Append($"{this.Value[i]},");
-            }
-            return stringBuilder.ToString();
-        }
+		if (Columns == 0)
+		{
+			for (int i = 0; i < Length; i++)
+				stringBuilder.Append($"{Value[i]},");
 
+			return stringBuilder.ToString();
+		}
 
-        stringBuilder.Append($"{this.Value[0]},");
+		stringBuilder.Append($"{Value[0]},");
 
-        for (int i = 1; i < Length; i++)
-        {
-            if (i % Columns == 0)
-            {
-                stringBuilder.AppendLine();
-            }
-            stringBuilder.Append($"{this.Value[i]},");
-        }
+		for (int i = 1; i < Length; i++)
+		{
+			if (i % Columns == 0)
+				stringBuilder.AppendLine();
 
-        return stringBuilder.ToString();
-    }
+			stringBuilder.Append($"{Value[i]},");
+		}
 
-
-
+		return stringBuilder.ToString();
+	}
 }

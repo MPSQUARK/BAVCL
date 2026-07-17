@@ -15,7 +15,7 @@ public partial class Vector
     /// <returns></returns>
     public static Vector GetSliceAsVector(Vector vector, int row_col_index, Axis axis)
     {
-        if (vector.Columns == 1)
+        if (vector.Is1D())
             throw new Exception("Input Vector cannot be 1D");
 
 
@@ -35,7 +35,7 @@ public partial class Vector
     /// <returns></returns>
     public Vector GetSliceAsVector(int row_col_index, Axis axis)
     {
-        if (Columns == 1)
+        if (Is1D())
             throw new Exception("Input Vector cannot be 1D");
 
         return axis switch
@@ -49,7 +49,7 @@ public partial class Vector
 
     public static float[] GetSliceAsArray(Vector vector, int row_col_index, Axis axis)
     {
-        if (vector.Columns == 1)
+        if (vector.Is1D())
             throw new Exception("Input Vector cannot be 1D");
 
 
@@ -63,7 +63,7 @@ public partial class Vector
 
     public float[] GetSliceAsArray(int row_col_index, Axis axis)
     {
-        if (Columns == 1)
+        if (Is1D())
             throw new Exception("Input Vector cannot be 1D");
 
         return axis switch

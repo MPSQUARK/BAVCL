@@ -27,10 +27,14 @@ public partial class GPU
 		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(a_opFKernel));
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>> s_opFKernel
 		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(s_opFKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> vectormatrixOpKernel
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(vectormatrixOpKernel));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> reduceRowOpKernel
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(reduceRowOpKernel));
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int> matmulKernel
 		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(matmulKernel));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>> broadcastOpKernel
+		= (_, _, _, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastOpKernel));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>> broadcastOpKernelIP
+		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastOpKernelIP));
 
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> a_FloatOPKernelIP
 		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(a_FloatOPKernelIP));
@@ -66,8 +70,10 @@ public partial class GPU
 
 		a_opFKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernel);
 		s_opFKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernel);
-		vectormatrixOpKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(VectorMatrixKernel);
+		reduceRowOpKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(ReduceRowOpKernel);
 		matmulKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(MatMulKernel);
+		broadcastOpKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>>(BroadcastOpKernel);
+		broadcastOpKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>>(BroadcastOpKernelIP);
 
 		simdVectorKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(SIMDVectorKernel);
 
@@ -257,54 +263,94 @@ public partial class GPU
 				break;
 		}
 	}
-	static void VectorMatrixKernel(Index1D index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, int Cols, SpecializedValue<int> operation)
+	static float AccumulateReduceRow(
+		ArrayView<float> coeffs,
+		ArrayView<float> inputB,
+		int startidx,
+		int cols,
+		SpecializedValue<int> operation)
 	{
-		int startidx = index * Cols;
-
 		switch ((Operations)operation.Value)
 		{
 			case Operations.multiply:
-				for (int i = 0; i < Cols; i++)
-					OutPut[index] += InputA[i] * InputB[startidx + i];
-				break;
+			{
+				float sum = 0f;
+				for (int i = 0; i < cols; i++)
+					sum += coeffs[i] * inputB[startidx + i];
+				return sum;
+			}
 			case Operations.add:
-				for (int i = 0; i < Cols; i++)
-					OutPut[index] += InputA[i] + InputB[startidx + i];
-				break;
+			{
+				float sum = 0f;
+				for (int i = 0; i < cols; i++)
+					sum += coeffs[i] + inputB[startidx + i];
+				return sum;
+			}
 			case Operations.subtract:
-				for (int i = 0; i < Cols; i++)
-					OutPut[index] += InputA[i] - InputB[startidx + i];
-				break;
+			{
+				float sum = 0f;
+				for (int i = 0; i < cols; i++)
+					sum += coeffs[i] - inputB[startidx + i];
+				return sum;
+			}
 			case Operations.flipSubtract:
-				for (int i = 0; i < Cols; i++)
-					OutPut[index] += InputB[startidx + i] - InputA[i];
-				break;
+			{
+				float sum = 0f;
+				for (int i = 0; i < cols; i++)
+					sum += inputB[startidx + i] - coeffs[i];
+				return sum;
+			}
 			case Operations.divide:
-				for (int i = 0; i < Cols; i++)
-					OutPut[index] += InputA[i] / InputB[startidx + i];
-				break;
+			{
+				float sum = 0f;
+				for (int i = 0; i < cols; i++)
+					sum += coeffs[i] / inputB[startidx + i];
+				return sum;
+			}
 			case Operations.flipDivide:
-				for (int i = 0; i < Cols; i++)
-					OutPut[index] += InputB[startidx + i] / InputA[i];
-				break;
+			{
+				float sum = 0f;
+				for (int i = 0; i < cols; i++)
+					sum += inputB[startidx + i] / coeffs[i];
+				return sum;
+			}
 			case Operations.pow:
-				for (int i = 0; i < Cols; i++)
-					OutPut[index] += XMath.Pow(InputA[i], InputB[startidx + i]);
-				break;
+			{
+				float sum = 0f;
+				for (int i = 0; i < cols; i++)
+					sum += XMath.Pow(coeffs[i], inputB[startidx + i]);
+				return sum;
+			}
 			case Operations.flipPow:
-				for (int i = 0; i < Cols; i++)
-					OutPut[index] += XMath.Pow(InputB[startidx + i], InputA[i]);
-				break;
+			{
+				float sum = 0f;
+				for (int i = 0; i < cols; i++)
+					sum += XMath.Pow(inputB[startidx + i], coeffs[i]);
+				return sum;
+			}
 			case Operations.differenceSquared:
-				for (int i = 0; i < Cols; i++)
-					OutPut[index] += XMath.Pow(InputA[i] - InputB[startidx + i], 2f);
-				break;
+			{
+				float sum = 0f;
+				for (int i = 0; i < cols; i++)
+					sum += XMath.Pow(coeffs[i] - inputB[startidx + i], 2f);
+				return sum;
+			}
 			case Operations.distance:
-				for (int i = 0; i < Cols; i++)
-					OutPut[index] += XMath.Pow(InputA[i] - InputB[startidx + i], 2f);
-				OutPut[index] = XMath.Sqrt(OutPut[index]);
-				break;
+			{
+				float sum = 0f;
+				for (int i = 0; i < cols; i++)
+					sum += XMath.Pow(coeffs[i] - inputB[startidx + i], 2f);
+				return XMath.Sqrt(sum);
+			}
+			default:
+				return 0f;
 		}
+	}
+
+	static void ReduceRowOpKernel(Index1D index, ArrayView<float> output, ArrayView<float> inputA, ArrayView<float> inputB, int cols, SpecializedValue<int> operation)
+	{
+		int startidx = index * cols;
+		output[index] = AccumulateReduceRow(inputA, inputB, startidx, cols, operation);
 	}
 
 	static void MatMulKernel(
@@ -326,6 +372,96 @@ public partial class GPU
 
 			output[outputRow + col] = sum;
 		}
+	}
+
+	static void ApplyBroadcastOp(ref float target, float a, float b, SpecializedValue<int> operation)
+	{
+		switch ((Operations)operation.Value)
+		{
+			case Operations.multiply:
+				target = a * b;
+				break;
+			case Operations.add:
+				target = a + b;
+				break;
+			case Operations.subtract:
+				target = a - b;
+				break;
+			case Operations.flipSubtract:
+				target = b - a;
+				break;
+			case Operations.divide:
+				target = a / b;
+				break;
+			case Operations.flipDivide:
+				target = b / a;
+				break;
+			case Operations.pow:
+				target = XMath.Pow(a, b);
+				break;
+			case Operations.flipPow:
+				target = XMath.Pow(b, a);
+				break;
+			case Operations.differenceSquared:
+				target = XMath.Pow(a - b, 2f);
+				break;
+		}
+	}
+
+	static int BroadcastOperandIndex(
+		Index1D flatOut,
+		SpecializedValue<int> outCols,
+		SpecializedValue<int> rows,
+		SpecializedValue<int> cols)
+	{
+		int outColsValue = outCols.Value;
+		int rowsValue = rows.Value;
+		int colsValue = cols.Value;
+
+		if (rowsValue == 1 && colsValue == 1)
+			return 0;
+
+		if (rowsValue == 1)
+			return flatOut % outColsValue;
+
+		if (colsValue == 1)
+			return flatOut / outColsValue;
+
+		return flatOut;
+	}
+
+	static void BroadcastOpKernel(
+		Index1D flatOut,
+		ArrayView<float> output,
+		ArrayView<float> inputA,
+		ArrayView<float> inputB,
+		SpecializedValue<int> outCols,
+		SpecializedValue<int> rowsA,
+		SpecializedValue<int> colsA,
+		SpecializedValue<int> rowsB,
+		SpecializedValue<int> colsB,
+		SpecializedValue<int> operation)
+	{
+		int aIndex = BroadcastOperandIndex(flatOut, outCols, rowsA, colsA);
+		int bIndex = BroadcastOperandIndex(flatOut, outCols, rowsB, colsB);
+		float result = 0f;
+		ApplyBroadcastOp(ref result, inputA[aIndex], inputB[bIndex], operation);
+		output[flatOut] = result;
+	}
+
+	static void BroadcastOpKernelIP(
+		Index1D flatOut,
+		ArrayView<float> io,
+		ArrayView<float> other,
+		SpecializedValue<int> outCols,
+		SpecializedValue<int> rowsOther,
+		SpecializedValue<int> colsOther,
+		SpecializedValue<int> operation)
+	{
+		int otherIndex = BroadcastOperandIndex(flatOut, outCols, rowsOther, colsOther);
+		float result = 0f;
+		ApplyBroadcastOp(ref result, io[flatOut], other[otherIndex], operation);
+		io[flatOut] = result;
 	}
 
 	/// <summary>

@@ -17,6 +17,8 @@ public partial class Vector
         if ((Value == null) || syncCPU)
             SyncCPU();
 
+        int layoutColumns = Is1D() ? Length : Columns;
+
         (float min, float max, bool hasinfinity) = Util.MinMaxInf(Value!);
 
         bool hasnegative = min < 0f;
@@ -52,7 +54,7 @@ public partial class Vector
 
             for (int i = 0; i < Length; i++)
             {
-                if (i % Columns == 0) { stringBuilder.AppendLine(); }
+                if (i % layoutColumns == 0) { stringBuilder.AppendLine(); }
 
                 Template[2] = Value![i] < 0f ? '-' : ' ';
 
@@ -92,7 +94,7 @@ public partial class Vector
         {
             for (int i = 0; i < Length; i++)
             {
-                if (i % Columns == 0) { stringBuilder.AppendLine(); }
+                if (i % layoutColumns == 0) { stringBuilder.AppendLine(); }
 
                 Template[2] = Value![i] < 0f ? '-' : ' ';
 
@@ -110,7 +112,7 @@ public partial class Vector
 
         for (int i = 0; i < Length; i++)
         {
-            if (i % Columns == 0) { stringBuilder.AppendLine(); }
+            if (i % layoutColumns == 0) { stringBuilder.AppendLine(); }
 
             clear.CopyTo(Template, 3);
             string val = Value![i].ToString(format);

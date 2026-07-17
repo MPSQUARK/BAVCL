@@ -14,7 +14,13 @@ public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unman
 	public virtual int Columns
 	{
 		get => _columns;
-		set { _columns = value > 0 ? value : throw new Exception($"Columns must be a positive integer greater than zero. Recieved {value}"); }
+		set
+		{
+			if (value < 0)
+				throw new Exception($"Columns must be zero or greater. Recieved {value}");
+
+			_columns = value;
+		}
 	}
 
 	public int Length
@@ -37,7 +43,7 @@ public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unman
 		set => _livecount = value;
 	}
 
-	protected internal int _columns = 1;
+	protected internal int _columns = 0;
 	protected internal long _memorySize = 0;
 	protected volatile internal uint _id = 0;
 	protected volatile internal uint _livecount = 0;
@@ -51,7 +57,7 @@ public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unman
 	/// <param name="columns"></param>
 	/// <param name="Cache">Preloads the vector onto the GPU at creation time.</param>
 	/// <summary>
-	protected VectorBase(GPU gpu, T[] value, int columns = 1, bool Cache = true)
+	protected VectorBase(GPU gpu, T[] value, int columns = 0, bool Cache = true)
 	{
 		Gpu = gpu;
 		Columns = columns;
@@ -69,7 +75,7 @@ public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unman
 	/// <param name="gpu"></param>
 	/// <param name="length"></param>
 	/// <param name="columns"></param>
-	protected VectorBase(GPU gpu, int length, int columns = 1)
+	protected VectorBase(GPU gpu, int length, int columns = 0)
 	{
 		Gpu = gpu;
 		Columns = columns;
@@ -95,18 +101,32 @@ public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unman
 	// MATHEMATICAL PROPERTIES 
 	public int RowCount()
 	{
-		if (Columns == 1) return 1;
+		if (Columns == 0)
+			return 1;
+
+		if (Columns == 1)
+			return Length;
+
 		return Length / Columns;
 	}
 
-	public virtual (int, int) Shape() => (RowCount(), Columns);
+	public virtual (int, int) Shape()
+	{
+		if (Columns == 0)
+			return (1, Length);
+
+		if (Columns == 1)
+			return (Length, 1);
+
+		return (RowCount(), Columns);
+	}
 
 	public virtual T Max() { SyncCPU(); return Value.Max(); }
 	public virtual T Min() { SyncCPU(); return Value.Min(); }
 	public abstract T Mean();
 	public abstract T Range();
 	public abstract T Sum();
-	public bool IsRectangular() => this.Length % this.Columns == 0;
-	public bool Is1D() => Columns == 1;
+	public bool IsRectangular() => Columns == 0 || Length % Columns == 0;
+	public bool Is1D() => Columns == 0;
 
 }
