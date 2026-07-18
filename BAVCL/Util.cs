@@ -78,55 +78,57 @@ public class Util
         return min;
     }
 
-    public static (int, int, bool) MinMaxInf(float[] arr)
-    {
-        if (arr.Length == 0) { throw new Exception("Cannot Be Length 0"); }
+    public static (float, float, bool) MinMaxInf(float[] arr) => MinMaxInf(arr.AsSpan());
 
-        float max = arr[0];
-        float min = arr[0];
+    public static (float, float, bool) MinMaxInf(ReadOnlySpan<float> span)
+    {
+        if (span.Length == 0) { throw new Exception("Cannot Be Length 0"); }
+
+        float max = span[0];
+        float min = span[0];
         int i = 1;
 
-        for (; i < arr.Length; i++)
+        for (; i < span.Length; i++)
         {
-            if (float.IsInfinity(arr[i]) || float.IsNaN(arr[i]))
+            if (float.IsInfinity(span[i]) || float.IsNaN(span[i]))
             {
                 if (max < 999) { max = 999; }
                 if (min > 999) { min = 999; }
                 break;
             }
-            if (max < arr[i])
+            if (max < span[i])
             {
-                max = arr[i];
+                max = span[i];
                 continue;
             }
-            if (min > arr[i])
+            if (min > span[i])
             {
-                min = arr[i];
+                min = span[i];
                 continue;
             }
         }
 
-        if (i == arr.Length) { return ((int)min, (int)max, false); }
+        if (i == span.Length) { return (min, max, false); }
 
-        for (; i < arr.Length; i++)
+        for (; i < span.Length; i++)
         {
-            if (float.IsInfinity(arr[i]) || float.IsNaN(arr[i]))
+            if (float.IsInfinity(span[i]) || float.IsNaN(span[i]))
             {
                 if (max < 999) { max = 999; }
                 if (min > 999) { min = 999; }
                 continue;
             }
-            if (max < arr[i])
+            if (max < span[i])
             {
-                max = arr[i];
+                max = span[i];
             }
-            if (min > arr[i])
+            if (min > span[i])
             {
-                min = arr[i];
+                min = span[i];
             }
         }
 
-        return ((int)min, (int)max, true);
+        return (min, max, true);
     }
 
 

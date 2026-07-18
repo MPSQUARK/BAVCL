@@ -192,7 +192,7 @@ public struct Vertex
     }
     public static implicit operator Vertex(Vector3 vector)
     {
-        return new Vertex(vector.Value);
+        return new Vertex(vector.ToArray());
     }
 
 
