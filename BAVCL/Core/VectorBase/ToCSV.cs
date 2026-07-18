@@ -7,8 +7,7 @@ public partial class VectorBase<T>
 {
 	public string ToCSV()
 	{
-		SyncCPU();
-		ReadOnlySpan<T> data = GetCpuReadOnlySpan();
+		ReadOnlySpan<T> data = RetrieveReadOnlySpan();
 		var stringBuilder = new StringBuilder();
 
 		if (Columns > 1)

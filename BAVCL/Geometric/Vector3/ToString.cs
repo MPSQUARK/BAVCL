@@ -15,8 +15,8 @@ public partial class Vector3
 
     public string ToString(byte decimalplaces = 2)
     {
-        this.SyncCPU();
-        (int min, int max, bool hasinfinity) = Util.MinMaxInf(this.Value);
+        ReadOnlySpan<float> data = RetrieveReadOnlySpan();
+        (float min, float max, bool hasinfinity) = Util.MinMaxInf(data);
 
         bool hasnegative = min < 0f;
 
@@ -37,48 +37,47 @@ public partial class Vector3
         Template[^2] = ' '; // Padding
         Template[^1] = '|'; // Padding
 
-
-
         StringBuilder stringBuilder = new();
         char[] clear = new string(' ', Template.Length - 6).ToCharArray();
         int _diff = digits + 4 + decimalplaces;
 
         if (hasinfinity)
         {
-            string inf = new(' ', digits - 3);
-            string afterinf = new(' ', decimalplaces + 1);
-            string nan = new(' ', decimalplaces);
+            string
+                inf = new(' ', digits - 3),
+                afterinf = new(' ', decimalplaces + 1),
+                nan = new(' ', decimalplaces);
 
 
             for (int i = 0; i < Length; i++)
             {
                 if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
-                Template[2] = Value[i] < 0f ? '-' : ' ';
+                Template[2] = data[i] < 0f ? '-' : ' ';
 
-                if (float.IsFinite(this.Value[i]))
+                if (float.IsFinite(data[i]))
                 {
                     clear.CopyTo(Template, 3);
-                    string val = Math.Abs(this.Value[i]).ToString(format);
+                    string val = Math.Abs(data[i]).ToString(format);
                     val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                     stringBuilder.Append(Template);
                     continue;
                 }
 
-                if (float.IsPositiveInfinity(this.Value[i]))
+                if (float.IsPositiveInfinity(data[i]))
                 {
                     stringBuilder.Append($"|  {inf}INF{afterinf} |");
                     continue;
                 }
 
-                if (float.IsNaN(this.Value[i]))
+                if (float.IsNaN(data[i]))
                 {
                     stringBuilder.Append($"|  {inf}NaN{afterinf} |");
                     continue;
                 }
 
-                if (float.IsNegativeInfinity(this.Value[i]))
+                if (float.IsNegativeInfinity(data[i]))
                 {
                     stringBuilder.Append($"| -{inf}INF{nan}  |");
                     continue;
@@ -94,10 +93,10 @@ public partial class Vector3
             {
                 if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
-                Template[2] = Value[i] < 0f ? '-' : ' ';
+                Template[2] = data[i] < 0f ? '-' : ' ';
 
                 clear.CopyTo(Template, 3);
-                string val = Math.Abs(this.Value[i]).ToString(format);
+                string val = Math.Abs(data[i]).ToString(format);
                 val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                 stringBuilder.Append(Template);
@@ -113,7 +112,7 @@ public partial class Vector3
             if (i % Columns == 0) { stringBuilder.AppendLine(); }
 
             clear.CopyTo(Template, 3);
-            string val = this.Value[i].ToString(format);
+            string val = data[i].ToString(format);
             val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
             stringBuilder.Append(Template);

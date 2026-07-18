@@ -1,92 +1,110 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-
+using BAVCL.Core;
 
 namespace BAVCL.Geometric;
 
 public partial class Vector3
 {
+    public static Vector3 Concat(Vector3 vectorA, Vertex vertA) =>
+        vectorA.Copy().Concat_IP(vertA);
 
-    // Appening Verticies
-    public static Vector3 Concat(Vector3 vectorA, Vertex vertA)
-    {
-        return vectorA.Copy().Concat_IP(vertA);
-    }
-    public static Vector3 Concat(Vector3 vectorA, Vertex[] vertices)
-    {
-        return vectorA.Copy().Concat_IP(vertices);
-    }
-    public static Vector3 Concat(Vector3 vectorA, List<Vertex> vertices)
-    {
-        return vectorA.Copy().Concat_IP(vertices);
-    }
+    public static Vector3 Concat(Vector3 vectorA, Vertex[] vertices) =>
+        vectorA.Copy().Concat_IP(vertices);
+
+    public static Vector3 Concat(Vector3 vectorA, List<Vertex> vertices) =>
+        vectorA.Copy().Concat_IP(vertices);
+
     public Vector3 Concat_IP(Vertex vertA)
     {
-        SyncCPU();
-        UpdateCache(this.Value.Append(vertA.X).Append(vertA.Y).Append(vertA.Z).ToArray());
+        using (CpuScope(syncOnDispose: true))
+        {
+            // TODO: Can be optimised.
+            ReadOnlySpan<float> left = GetCpuReadOnlySpan();
+            Value = left.ToArray().Append(vertA.X).Append(vertA.Y).Append(vertA.Z).ToArray();
+            Length = Value.Length;
+        }
+
         return this;
     }
+
     public Vector3 Concat_IP(Vertex[] vertices)
     {
-        SyncCPU();
-        for (int i = 0; i < vertices.Length; i++)
+        using (CpuScope(syncOnDispose: true))
         {
-            this.Value = this.Value.Append(vertices[i].X).Append(vertices[i].Y).Append(vertices[i].Z).ToArray();
+            // TODO: can be optimised
+            ReadOnlySpan<float> left = GetCpuReadOnlySpan();
+            Value = vertices.Aggregate(left.ToArray(), (current, vert) =>
+                current.Append(vert.X).Append(vert.Y).Append(vert.Z).ToArray());
+            Length = Value.Length;
         }
-        UpdateCache(this.Value);
+
         return this;
     }
+
     public Vector3 Concat_IP(List<Vertex> vertices)
     {
-        SyncCPU();
-        for (int i = 0; i < vertices.Count; i++)
+        using (CpuScope(syncOnDispose: true))
         {
-            this.Value = this.Value.Append(vertices[i].X).Append(vertices[i].Y).Append(vertices[i].Z).ToArray();
+            ReadOnlySpan<float> left = GetCpuReadOnlySpan();
+            Value = vertices.Aggregate(left.ToArray(), (current, vert) =>
+                current.Append(vert.X).Append(vert.Y).Append(vert.Z).ToArray());
+            Length = Value.Length;
         }
-        UpdateCache(this.Value);
+
         return this;
     }
 
+    public static Vector3 Concat(Vector3 vectorA, Vector3 vectorB) =>
+        vectorA.Copy().Concat_IP(vectorB);
 
-    // Appening Vector3's 
-    public static Vector3 Concat(Vector3 vectorA, Vector3 vectorB)
-    {
-        return vectorA.Copy().Concat_IP(vectorB);
-    }
-    public static Vector3 Concat(Vector3 vectorA, Vector3[] vectors)
-    {
-        return vectorA.Copy().Concat_IP(vectors);
-    }
-    public static Vector3 Concat(Vector3 vectorA, List<Vector3> vectors)
-    {
-        return vectorA.Copy().Concat_IP(vectors);
-    }
+    public static Vector3 Concat(Vector3 vectorA, Vector3[] vectors) =>
+        vectorA.Copy().Concat_IP(vectors);
+
+    public static Vector3 Concat(Vector3 vectorA, List<Vector3> vectors) =>
+        vectorA.Copy().Concat_IP(vectors);
+
     public Vector3 Concat_IP(Vector3 vector)
     {
-        SyncCPU();
-        UpdateCache(this.Value.Concat(vector.Value).ToArray());
+        using (CpuScope(syncOnDispose: true))
+        {
+            ReadOnlySpan<float> left = GetCpuReadOnlySpan();
+            ReadOnlySpan<float> right = vector.RetrieveReadOnlySpan();
+            Value = left.ToArray().Concat(right.ToArray()).ToArray();
+            Length = Value.Length;
+        }
+
         return this;
     }
+
     public Vector3 Concat_IP(Vector3[] vectors)
     {
-        SyncCPU();
-        for (int i = 0; i < vectors.Length; i++)
+        using (CpuScope(syncOnDispose: true))
         {
-            this.Value.Concat(vectors[i].Value);
+            float[] merged = GetCpuReadOnlySpan().ToArray();
+            for (int i = 0; i < vectors.Length; i++)
+                merged = merged.Concat(vectors[i].RetrieveReadOnlySpan().ToArray()).ToArray();
+
+            Value = merged;
+            Length = Value.Length;
         }
-        UpdateCache(this.Value);
+
         return this;
     }
+
     public Vector3 Concat_IP(List<Vector3> vectors)
     {
-        SyncCPU();
-        for (int i = 0; i < vectors.Count; i++)
+        using (CpuScope(syncOnDispose: true))
         {
-            this.Value.Concat(vectors[i].Value);
+            float[] merged = GetCpuReadOnlySpan().ToArray();
+            for (int i = 0; i < vectors.Count; i++)
+                merged = merged.Concat(vectors[i].RetrieveReadOnlySpan().ToArray()).ToArray();
+
+            Value = merged;
+            Length = Value.Length;
         }
-        UpdateCache(this.Value);
+
         return this;
     }
-
-
 }
