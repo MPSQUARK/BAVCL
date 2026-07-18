@@ -4,10 +4,6 @@ namespace BAVCL;
 
 public partial class Vector
 {
-	/// <summary>
-	/// Row-wise reduction: for each matrix row, combines with the 1D coefficient vector across columns.
-	/// Not NumPy broadcast; not matrix multiply. See <see cref="Cross"/> for matmul.
-	/// </summary>
 	public static Vector ReduceOP(Vector vector, Vector matrix, Operations operation)
 	{
 		ValidateReduceOperands(vector, matrix, nameof(ReduceOP));
@@ -44,9 +40,5 @@ public partial class Vector
 		}
 	}
 
-	static string FormatShape(Vector vector)
-	{
-		(int rows, int cols) = vector.Shape();
-		return $"({rows},{cols})";
-	}
+	static string FormatShape(Vector vector) => vector.Shape().ToString();
 }

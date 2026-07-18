@@ -1,4 +1,5 @@
 using System;
+using BAVCL.Core;
 using BAVCL.Core.Exceptions;
 using ILGPU;
 using ILGPU.Runtime;
@@ -48,32 +49,26 @@ public partial class Vector
 		}
 
 		GPU gpu = matrixA.Gpu;
-		matrixA.IncrementLiveCount();
-		matrixB.IncrementLiveCount();
-
 		Vector output = new(gpu, rowsA * colsB, colsB);
-		output.IncrementLiveCount();
 
-		MemoryBuffer1D<float, Stride1D.Dense>
-			buffer = output.GetBuffer(),
-			bufferA = matrixA.GetBuffer(),
-			bufferB = matrixB.GetBuffer();
+		using (GpuScope.Pin(output, matrixA, matrixB))
+		{
+			MemoryBuffer1D<float, Stride1D.Dense>
+				buffer = output.GetBuffer(),
+				bufferA = matrixA.GetBuffer(),
+				bufferB = matrixB.GetBuffer();
 
-		// One thread per output row — reuses the left row in registers across columns.
-		gpu.matmulKernel(
-			gpu.accelerator.DefaultStream,
-			rowsA,
-			buffer.View,
-			bufferA.View,
-			bufferB.View,
-			colsA,
-			colsB);
+			gpu.matmulKernel(
+				gpu.accelerator.DefaultStream,
+				rowsA,
+				buffer.View,
+				bufferA.View,
+				bufferB.View,
+				colsA,
+				colsB);
 
-		gpu.accelerator.Synchronize();
-
-		matrixA.DecrementLiveCount();
-		matrixB.DecrementLiveCount();
-		output.DecrementLiveCount();
+			gpu.accelerator.Synchronize();
+		}
 
 		return output;
 	}

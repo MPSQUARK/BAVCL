@@ -10,10 +10,9 @@ public partial class VectorBase<T>
         // If the vector is live - Fail
         if (LiveCount != 0) return;
 
-        // Else Decache
-        Value = Pull();
-        ID = Gpu.GCItem(ID);
+        // Else Decache the vector
+        SyncCPU();
+        ID = Gpu.FreeBuffer(ID);
+        Residence = Residence.Cpu;
     }
-
-
 }

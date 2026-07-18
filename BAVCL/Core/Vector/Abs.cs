@@ -1,4 +1,5 @@
-﻿using ILGPU;
+﻿using BAVCL.Core;
+using ILGPU;
 using ILGPU.Runtime;
 using System;
 
@@ -12,26 +13,23 @@ public partial class Vector
     /// </summary>
     /// <param name="vector"></param>
     /// <returns></returns>
-    public static Vector Abs(Vector vector)
-    {
-        return vector.Copy().Abs_IP();
-    }
+    public static Vector Abs(Vector vector) => vector.Copy().Abs_IP();
+    
     /// <summary>
     /// Takes the absolute value of all values in this Vector.
     /// IMPORTANT : Use this method for Vectors of Length less than 100,000
     /// </summary>
     public Vector Abs_IP()
     {
-        SyncCPU();
+        if (Min() > 0f)
+            return this;
 
-        if (Min() > 0f) { return this; }
-
-        for (int i = 0; i < Length; i++)
+        using (var scope = CpuScope(true))
         {
-            Value[i] = MathF.Abs(Value[i]);
+            EditableView<float> view = scope.View;
+            for (int i = 0; i < Length; i++)
+                view[i] = MathF.Abs(view[i]);
         }
-
-        UpdateCache();
 
         return this;
     }
@@ -42,10 +40,8 @@ public partial class Vector
     /// </summary>
     /// <param name="vector"></param>
     /// <returns></returns>
-    public static Vector AbsX(Vector vector)
-    {
-        return vector.Copy().AbsX_IP();
-    }
+    public static Vector AbsX(Vector vector) => vector.Copy().AbsX_IP();
+    
     /// <summary>
     /// Runs on Accelerator. (GPU : Default)
     /// Takes the absolute value of all the values in this Vector.
@@ -53,24 +49,13 @@ public partial class Vector
     /// </summary>
     public Vector AbsX_IP()
     {
-        // Secure data
-        IncrementLiveCount();
+        using (GpuScope.Pin(this))
+        {
+            MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
+            Gpu.absKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
+            Gpu.accelerator.Synchronize();
+        }
 
-        // Get the Memory buffer input/output
-        MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
-
-        // RUN
-        Gpu.absKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
-
-        // SYNC
-        Gpu.accelerator.Synchronize();
-
-        // Remove Security
-        DecrementLiveCount();
-
-        // Output
         return this;
     }
-
-
 }

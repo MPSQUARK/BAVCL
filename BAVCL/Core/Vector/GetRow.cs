@@ -1,39 +1,35 @@
-﻿namespace BAVCL;
+﻿using System;
+
+namespace BAVCL;
 
 public partial class Vector
 {
-
     public static float[] GetRowAsArray(Vector vector, int row)
     {
         vector.SyncCPU();
-        return vector.Value[(row * vector.Columns)..(++row * vector.Columns)];
+        ReadOnlySpan<float> data = vector.GetCpuReadOnlySpan();
+        return data.Slice(row * vector.Columns, vector.Columns).ToArray();
     }
-
 
     public float[] GetRowAsArray(int row)
     {
         SyncCPU();
-        return Value[(row * Columns)..(++row * Columns)];
+        ReadOnlySpan<float> data = GetCpuReadOnlySpan();
+        return data.Slice(row * Columns, Columns).ToArray();
     }
 
     public float[] GetRowAsArray(int row, bool noSync)
     {
-        return Value[(row * Columns)..(++row * Columns)];
+        ReadOnlySpan<float> data = GetCpuReadOnlySpan();
+        return data.Slice(row * Columns, Columns).ToArray();
     }
-
 
     public static Vector GetRowAsVector(Vector vector, int row)
     {
-        vector.SyncCPU();
-        return new Vector(vector.Gpu, vector.Value[(row * vector.Columns)..(++row * vector.Columns)]);
+        float[] rowData = GetRowAsArray(vector, row);
+        return new Vector(vector.Gpu, rowData, 0);
     }
 
-
-    public Vector GetRowAsVector(int row)
-    {
-        SyncCPU();
-        return new Vector(Gpu, Value[(row * Columns)..(++row * Columns)]);
-    }
-
-
+    public Vector GetRowAsVector(int row) =>
+        new(Gpu, GetRowAsArray(row), 0);
 }

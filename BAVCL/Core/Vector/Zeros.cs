@@ -2,13 +2,18 @@
 
 public partial class Vector
 {
-    public static Vector Zeros(GPU gpu, int Length, int Columns = 0)
-        => new(gpu, new float[Length], Columns);
+    public static Vector Zeros(GPU gpu, int length, int columns = 0) =>
+        new(gpu, new float[length], columns);
 
-    public Vector Zeros_IP(int Length, int Columns = 0)
+    public Vector Zeros_IP(int length, int columns = 0)
     {
-        UpdateCache(new float[Length]);
-        this.Columns = Columns;
+        using (CpuScope(syncOnDispose: true))
+        {
+            Value = new float[length];
+            Length = Value.Length;
+            Columns = columns;
+        }
+
         return this;
     }
 }

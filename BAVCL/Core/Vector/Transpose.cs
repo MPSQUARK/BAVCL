@@ -1,4 +1,5 @@
-﻿using ILGPU;
+﻿using BAVCL.Core;
+using ILGPU;
 using ILGPU.Runtime;
 using System;
 
@@ -10,31 +11,20 @@ public partial class Vector
     {
         if (vector.Is1D() || vector.Columns >= vector.Length) { throw new Exception("Cannot transpose 1D Vector"); }
 
-        // Prevent from decache
-        vector.IncrementLiveCount();
+        Vector output = new(vector.Gpu, vector.Length, vector.RowCount());
 
-        // Make the Output Vector
-        Vector Output = new(vector.Gpu, vector.Length, vector.RowCount());
+        using (GpuScope.Pin(output, vector))
+        {
+            MemoryBuffer1D<float, Stride1D.Dense>
+                buffer = output.GetBuffer(),
+                buffer2 = vector.GetBuffer();
 
-        // Prevent from decache
-        Output.IncrementLiveCount();
+            vector.Gpu.transposekernel(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, vector.Columns);
+            vector.Gpu.accelerator.Synchronize();
+        }
 
-        MemoryBuffer1D<float, Stride1D.Dense>
-            buffer = Output.GetBuffer(), // Output
-            buffer2 = vector.GetBuffer(); // Input
-
-        vector.Gpu.transposekernel(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, vector.Columns);
-
-        vector.Gpu.accelerator.Synchronize();
-
-        vector.DecrementLiveCount();
-        Output.DecrementLiveCount();
-
-        return Output;
-    }
-    public Vector Transpose_IP()
-    {
-        return TransferBuffer(Transpose(this), true);
+        return output;
     }
 
+    public Vector Transpose_IP() => TransferBuffer(Transpose(this), true);
 }

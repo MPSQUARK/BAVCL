@@ -1,4 +1,5 @@
-﻿using ILGPU;
+﻿using BAVCL.Core;
+using ILGPU;
 using ILGPU.Runtime;
 using System;
 
@@ -12,28 +13,20 @@ public partial class Vector
             throw new Exception("Diff is for use with 1D Vectors ONLY");
 
         GPU gpu = vector.Gpu;
+        Vector output = new(gpu, vector.Length - 1, vector.Columns);
 
-        vector.IncrementLiveCount();
+        using (GpuScope.Pin(output, vector))
+        {
+            MemoryBuffer1D<float, Stride1D.Dense>
+                buffer = output.GetBuffer(),
+                buffer2 = vector.GetBuffer();
 
-        // Make the Output Vector
-        Vector Output = new(gpu, vector.Length - 1, vector.Columns);
+            gpu.diffKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View);
+            gpu.accelerator.Synchronize();
+        }
 
-        Output.IncrementLiveCount();
-
-        MemoryBuffer1D<float, Stride1D.Dense>
-            buffer = Output.GetBuffer(),        // Output
-            buffer2 = vector.GetBuffer();       // Input
-
-        gpu.diffKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View);
-
-        gpu.accelerator.Synchronize();
-
-        vector.DecrementLiveCount();
-        Output.DecrementLiveCount();
-
-        return Output;
+        return output;
     }
 
     public Vector Diff_IP() => TransferBuffer(Diff(this));
-
 }

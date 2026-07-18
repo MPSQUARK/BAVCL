@@ -4,28 +4,18 @@ namespace BAVCL;
 
 public partial class Vector
 {
-    /// <summary>
-    /// Creates a UNIFORM Vector where all values are equal to Value
-    /// </summary>
-    /// <param name="Value"></param>
-    /// <param name="Length"></param>
-    /// <param name="Columns"></param>
-    /// <returns></returns>
-    public static Vector Fill(GPU gpu, float Value, int Length, int Columns = 0, bool Cache = true) =>
-        new(gpu, Enumerable.Repeat(Value, Length).ToArray(), Columns, Cache);
+    public static Vector Fill(GPU gpu, float value, int length, int columns = 0, bool cache = true) =>
+        new(gpu, Enumerable.Repeat(value, length).ToArray(), columns, cache);
 
-
-    /// <summary>
-    /// Sets all values in THIS Vector to value, of a set size and columns
-    /// </summary>
-    /// <param name="Value"></param>
-    /// <param name="Length"></param>
-    /// <param name="Columns"></param>
-    public Vector Fill_IP(float Value, int Length, int Columns = 0)
+    public Vector Fill_IP(float value, int length, int columns = 0)
     {
-        UpdateCache(Enumerable.Repeat(Value, Length).ToArray());
-        this.Columns = Columns;
+        using (CpuScope(syncOnDispose: true))
+        {
+            Value = Enumerable.Repeat(value, length).ToArray();
+            Length = Value.Length;
+            Columns = columns;
+        }
+
         return this;
     }
-
 }
