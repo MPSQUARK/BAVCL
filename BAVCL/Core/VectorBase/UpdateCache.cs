@@ -4,17 +4,27 @@ namespace BAVCL.Core;
 
 public partial class VectorBase<T>
 {
-    public MemoryBuffer UpdateCache()
-    {
-        Length = Value.Length;
-        (ID, MemoryBuffer buffer) = Gpu.UpdateBuffer(this);
-        return buffer;
-    }
+	// TODO: Split into 2 methods, one to Update ONLY, and one to update + return. to skip on the GetBuffer calls
+	public MemoryBuffer UpdateCache()
+	{
+		if (ResidenceHelper.IsInSync(Residence) || ResidenceHelper.IsGpuAuthority(Residence))
+			return GetBuffer();
 
-    public MemoryBuffer UpdateCache(T[] array)
-    {
-        Length = array.Length;
-        (ID, MemoryBuffer buffer) = Gpu.UpdateBuffer(this, array);
-        return buffer;
-    }
+		if (ResidenceHelper.IsActiveCpu(Residence))
+			return GetBuffer();
+
+		Length = Value.Length;
+		(ID, MemoryBuffer buffer) = Gpu.UpdateBuffer(this);
+		Residence = Residence.InSync;
+		return buffer;
+	}
+
+	public MemoryBuffer UpdateCache(T[] array)
+	{
+		Length = array.Length;
+		Value = array;
+		(ID, MemoryBuffer buffer) = Gpu.UpdateBuffer(this, array);
+		Residence = Residence.InSync;
+		return buffer;
+	}
 }

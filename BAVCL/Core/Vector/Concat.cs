@@ -1,6 +1,7 @@
 ﻿using ILGPU;
 using ILGPU.Runtime;
 using System;
+using BAVCL.Core;
 
 namespace BAVCL;
 
@@ -47,7 +48,7 @@ public partial class Vector
 
                 if (warp && (vector.Length % RowCount() == 0))
                 {
-                    vector.Columns = vector.Value.Length / RowCount();
+                    vector.Columns = vector.Length / RowCount();
                 }
 
             }
@@ -57,34 +58,28 @@ public partial class Vector
         if (vector.Is1D())
         {
 
-            if (vector.Value.Length % RowCount() != 0)
+            if (vector.Length % RowCount() != 0)
             {
                 throw new Exception($"Vectors CANNOT be appended. " +
                     $"This array has shape ({RowCount()},{Columns}), 1D vector being appended has {vector.Length} Length");
             }
 
-            vector.Columns = vector.Value.Length / this.RowCount();
+            vector.Columns = vector.Length / RowCount();
 
         }
 
         Vector Output = new(Gpu, vector.Length + Length);
 
-        IncrementLiveCount();
-        vector.IncrementLiveCount();
-        Output.IncrementLiveCount();
+        using (GpuScope.Pin(Output, this, vector))
+        {
+            MemoryBuffer1D<float, Stride1D.Dense>
+                buffer = Output.GetBuffer(),
+                buffer2 = GetBuffer(),
+                buffer3 = vector.GetBuffer();
 
-        MemoryBuffer1D<float, Stride1D.Dense>
-            buffer = Output.GetBuffer(),        // Output
-            buffer2 = GetBuffer(),              // Input
-            buffer3 = vector.GetBuffer();       // Input
-
-        Gpu.appendKernel(Gpu.accelerator.DefaultStream, this.RowCount(), buffer.View, buffer2.View, buffer3.View, this.Columns, vector.Columns);
-
-        Gpu.accelerator.Synchronize();
-
-        DecrementLiveCount();
-        vector.DecrementLiveCount();
-        Output.DecrementLiveCount();
+            Gpu.appendKernel(Gpu.accelerator.DefaultStream, RowCount(), buffer.View, buffer2.View, buffer3.View, Columns, vector.Columns);
+            Gpu.accelerator.Synchronize();
+        }
 
         this.Columns += vector.Columns;
 

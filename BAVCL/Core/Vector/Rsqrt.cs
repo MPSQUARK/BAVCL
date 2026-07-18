@@ -1,4 +1,4 @@
-﻿
+﻿using BAVCL.Core;
 using ILGPU;
 using ILGPU.Algorithms;
 using ILGPU.Runtime;
@@ -21,16 +21,12 @@ public partial class Vector
     /// </summary>
     public Vector Rsqrt_IP()
     {
-        SyncCPU();
-
-        if (Min() > 0f) { return this; }
-
-        for (int i = 0; i < this.Length; i++)
+        using (var cpu = CpuScope(syncOnDispose: true))
         {
-            Value[i] = XMath.Rsqrt(Value[i]);
+            EditableView<float> view = cpu.View;
+            for (int i = 0; i < Length; i++)
+                view[i] = XMath.Rsqrt(view[i]);
         }
-
-        UpdateCache();
 
         return this;
     }
@@ -42,7 +38,7 @@ public partial class Vector
     /// </summary>
     /// <param name="vector"></param>
     /// <returns></returns>
-    public static Vector RsqrtX(Vector vector) => vector.Copy().Rsqrt_IP();
+    public static Vector RsqrtX(Vector vector) => vector.Copy().RsqrtX_IP();
 
     /// <summary>
     /// Runs on Accelerator. (GPU : Default)
@@ -51,22 +47,13 @@ public partial class Vector
     /// </summary>
     public Vector RsqrtX_IP()
     {
-        // Secure data
-        IncrementLiveCount();
+        using (GpuScope.Pin(this))
+        {
+            MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
+            Gpu.rsqrtKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
+            Gpu.accelerator.Synchronize();
+        }
 
-        // Get the Memory buffer input/output
-        MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
-
-        // RUN
-        Gpu.rsqrtKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
-
-        // SYNC
-        Gpu.accelerator.Synchronize();
-
-        // Remove Security
-        DecrementLiveCount();
-
-        // Output
         return this;
     }
 

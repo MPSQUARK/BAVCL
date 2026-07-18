@@ -1,3 +1,4 @@
+using BAVCL.Core;
 using BAVCL.Core.Exceptions;
 
 namespace BAVCL;
@@ -30,15 +31,15 @@ public partial class Vector
 		EnsureMatrix2D(matrixA, operationName);
 		EnsureMatrix2D(matrixB, operationName);
 
-		(int rowsA, int colsA) = matrixA.Shape();
-		(int rowsB, int colsB) = matrixB.Shape();
+		Shape shapeA = matrixA.Shape();
+		Shape shapeB = matrixB.Shape();
 
-		if (rowsA != rowsB || colsA != colsB)
+		if (shapeA.Rows != shapeB.Rows || shapeA.Cols != shapeB.Cols)
 		{
 			throw new ShapeMismatchException(
 				operationName,
-				$"({rowsA},{colsA})",
-				$"({rowsB},{colsB})");
+				shapeA.ToString(),
+				shapeB.ToString());
 		}
 
 		return _VectorVectorOP(matrixA, matrixB, operation);
@@ -48,10 +49,10 @@ public partial class Vector
 	{
 		if (vector.Columns <= 1)
 		{
-			(int rows, int cols) = vector.Shape();
+			Shape shape = vector.Shape();
 			throw new ShapeMismatchException(
 				operationName,
-				$"({rows},{cols})",
+				shape.ToString(),
 				"(requires 2D matrix)");
 		}
 	}

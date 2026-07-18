@@ -1,100 +1,56 @@
-﻿using ILGPU;
+﻿using BAVCL.Core;
+using ILGPU;
 using ILGPU.Runtime;
 
 namespace BAVCL;
 
 public partial class Vector
 {
-
     public static Vector GetColumnAsVector(Vector vector, int column)
     {
-        // Get config data needed
-        int[] select = new int[2] { column, vector.Columns };
+        int[] select = [column, vector.Columns];
+        Vector output = new(vector.Gpu, vector.RowCount());
 
-        // Secure the Input
-        vector.IncrementLiveCount();
+        using (GpuScope.Pin(output, vector))
+        {
+            MemoryBuffer1D<float, Stride1D.Dense>
+                buffer = output.GetBuffer(),
+                buffer2 = vector.GetBuffer();
 
-        // Make Output Vector
-        Vector Output = new(vector.Gpu, vector.RowCount());
+            MemoryBuffer1D<int, Stride1D.Dense> buffer3 = vector.Gpu.accelerator.Allocate1D(select);
 
-        // Secure the Output
-        Output.IncrementLiveCount();
+            vector.Gpu.getSliceKernel(vector.Gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
+            vector.Gpu.accelerator.Synchronize();
+            buffer3.Dispose();
+        }
 
-        // Get Memory buffer Data
-        MemoryBuffer1D<float, Stride1D.Dense>
-            buffer = Output.GetBuffer(),        // Output
-            buffer2 = vector.GetBuffer();       // Input
-
-        // Allocate config Data onto GPU
-        MemoryBuffer1D<int, Stride1D.Dense>
-            buffer3 = vector.Gpu.accelerator.Allocate1D(select);      // Config
-
-        // RUN
-        vector.Gpu.getSliceKernel(vector.Gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
-
-        // SYNC
-        vector.Gpu.accelerator.Synchronize();
-
-        // Dispose of Config
-        buffer3.Dispose();
-
-        // Remove Security
-        Output.DecrementLiveCount();
-        vector.DecrementLiveCount();
-
-        return Output;
+        return output;
     }
 
     public Vector GetColumnAsVector(int column)
     {
-        // Get config data needed
-        int[] select = new int[2] { column, Columns };
+        int[] select = [column, Columns];
+        Vector output = new(Gpu, RowCount());
 
-        // Secure the Input & Output
-        IncrementLiveCount();
+        using (GpuScope.Pin(output, this))
+        {
+            MemoryBuffer1D<float, Stride1D.Dense>
+                buffer = output.GetBuffer(),
+                buffer2 = GetBuffer();
 
-        // Make Output Vector
-        Vector Output = new(Gpu, RowCount());
+            MemoryBuffer1D<int, Stride1D.Dense> buffer3 = Gpu.accelerator.Allocate1D(select);
 
-        Output.IncrementLiveCount();
+            Gpu.getSliceKernel(Gpu.accelerator.DefaultStream, RowCount(), buffer.View, buffer2.View, buffer3.View);
+            Gpu.accelerator.Synchronize();
+            buffer3.Dispose();
+        }
 
-        // Get Memory buffer Data
-        MemoryBuffer1D<float, Stride1D.Dense>
-            buffer = Output.GetBuffer(),        // Output
-            buffer2 = GetBuffer();              // Input
-
-        // Allocate config Data onto GPU
-        MemoryBuffer1D<int, Stride1D.Dense>
-            buffer3 = Gpu.accelerator.Allocate1D(select);     // Config
-
-        // RUN
-        Gpu.getSliceKernel(Gpu.accelerator.DefaultStream, RowCount(), buffer.View, buffer2.View, buffer3.View);
-
-        // SYNC
-        Gpu.accelerator.Synchronize();
-
-        // Dispose of Config
-        buffer3.Dispose();
-
-        // Remove Security
-        DecrementLiveCount();
-        Output.DecrementLiveCount();
-
-        return Output;
+        return output;
     }
 
-    public static float[] GetColumnAsArray(Vector vector, int column)
-    {
-        Vector output = vector.GetColumnAsVector(column);
-        output.DeCache();
-        return output.Value;
-    }
+    public static float[] GetColumnAsArray(Vector vector, int column) =>
+        vector.GetColumnAsVector(column).ToArray();
 
-    public float[] GetColumnAsArray(int column)
-    {
-        Vector output = GetColumnAsVector(column);
-        output.DeCache();
-        return output.Value;
-    }
-
+    public float[] GetColumnAsArray(int column) =>
+        GetColumnAsVector(column).ToArray();
 }
