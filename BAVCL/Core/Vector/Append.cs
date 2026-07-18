@@ -1,18 +1,22 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
+using BAVCL.Core;
 
 namespace BAVCL;
 
 public partial class Vector
 {
-    // TODO: Reduce the number of copies made here due to ToArray()
     public static Vector Append(Vector vectorA, Vector vectorB) =>
-        new(vectorA.Gpu, vectorA.ToArray().Concat(vectorB.ToArray()).ToArray(), vectorA.Columns);
+        new(vectorA.Gpu, vectorA.RetrieveReadOnlySpan().ToArray().Concat(vectorB.RetrieveReadOnlySpan().ToArray()).ToArray(), vectorA.Columns);
 
     public Vector Append_IP(Vector vector)
     {
         using (CpuScope(syncOnDispose: true))
         {
-            Value = ToArray().Concat(vector.ToArray()).ToArray();
+            // TODO: Performance can still be improved
+            ReadOnlySpan<float> left = GetCpuReadOnlySpan();
+            ReadOnlySpan<float> right = vector.RetrieveReadOnlySpan();
+            Value = left.ToArray().Concat(right.ToArray()).ToArray();
             Length = Value.Length;
         }
 

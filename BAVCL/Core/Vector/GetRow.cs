@@ -6,15 +6,13 @@ public partial class Vector
 {
     public static float[] GetRowAsArray(Vector vector, int row)
     {
-        vector.SyncCPU();
-        ReadOnlySpan<float> data = vector.GetCpuReadOnlySpan();
+        ReadOnlySpan<float> data = vector.RetrieveReadOnlySpan();
         return data.Slice(row * vector.Columns, vector.Columns).ToArray();
     }
 
     public float[] GetRowAsArray(int row)
     {
-        SyncCPU();
-        ReadOnlySpan<float> data = GetCpuReadOnlySpan();
+        ReadOnlySpan<float> data = RetrieveReadOnlySpan();
         return data.Slice(row * Columns, Columns).ToArray();
     }
 

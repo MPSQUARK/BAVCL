@@ -13,7 +13,10 @@ public partial class VectorBase<T>
 			Value = Pull();
 
 		Length = Value.Length;
-		Residence = Residence.InSync;
+
+		Residence current = Residence;
+		if (!TrySetResidence(current, Residence.InSync))
+			SetResidence(Residence.InSync);
 	}
 
 	public void SyncCPU(MemoryBuffer buffer)
@@ -26,6 +29,9 @@ public partial class VectorBase<T>
 
 		buffer.AsArrayView<T>(0, buffer.Length).CopyToCPU(Value);
 		Length = Value.Length;
-		Residence = Residence.InSync;
+
+		Residence current = Residence;
+		if (!TrySetResidence(current, Residence.InSync))
+			SetResidence(Residence.InSync);
 	}
 }

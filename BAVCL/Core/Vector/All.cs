@@ -4,17 +4,9 @@ namespace BAVCL;
 
 public partial class Vector
 {
-    public static bool All(Vector vector)
-    {
-        vector.SyncCPU();
-        return All(vector.GetCpuReadOnlySpan());
-    }
+    public static bool All(Vector vector) => All(vector.RetrieveReadOnlySpan());
 
-    public bool All()
-    {
-        SyncCPU();
-        return All(GetCpuReadOnlySpan());
-    }
+    public bool All() => All(RetrieveReadOnlySpan());
 
     static bool All(ReadOnlySpan<float> data)
     {

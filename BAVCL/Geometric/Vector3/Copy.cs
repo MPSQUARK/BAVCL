@@ -10,6 +10,6 @@ public sealed partial class Vector3 : VectorBase<float>
         {
             return new Vector3(Gpu, Pull());
         }
-        return new Vector3(Gpu, Value[..]);
+        return new Vector3(Gpu, ToArray());
     }
 }

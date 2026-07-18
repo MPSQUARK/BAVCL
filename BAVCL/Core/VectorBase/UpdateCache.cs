@@ -15,7 +15,10 @@ public partial class VectorBase<T>
 
 		Length = Value.Length;
 		(ID, MemoryBuffer buffer) = Gpu.UpdateBuffer(this);
-		Residence = Residence.InSync;
+
+		Residence current = Residence;
+		if (!TrySetResidence(current, Residence.InSync))
+			SetResidence(Residence.InSync);
 		return buffer;
 	}
 
@@ -24,7 +27,10 @@ public partial class VectorBase<T>
 		Length = array.Length;
 		Value = array;
 		(ID, MemoryBuffer buffer) = Gpu.UpdateBuffer(this, array);
-		Residence = Residence.InSync;
+
+		Residence current = Residence;
+		if (!TrySetResidence(current, Residence.InSync))
+			SetResidence(Residence.InSync);
 		return buffer;
 	}
 }

@@ -46,13 +46,18 @@ public sealed partial class Vector : VectorBase<float>
 	// METHODS
 	public bool Equals(Vector vector)
 	{
-		SyncCPU();
-		vector.SyncCPU();
+		if (Length != vector.Length)
+			return false;
 
-		if (Length != vector.Length) return false;
+		ReadOnlySpan<float> left = RetrieveReadOnlySpan();
+		ReadOnlySpan<float> right = vector.RetrieveReadOnlySpan();
 
-		for (int i = 0; i < Length; i++)
-			if (Value[i] != vector.Value[i]) return false;
+        // TODO: Use SIMD for comparison
+        for (int i = 0; i < Length; i++)
+		{
+			if (left[i] != right[i])
+				return false;
+		}
 
 		return true;
 	}
@@ -60,7 +65,7 @@ public sealed partial class Vector : VectorBase<float>
 	public Vector Copy(bool Cache = true)
 	{
 		if (ID == 0)
-			return new Vector(Gpu, Value[..], Columns, Cache);
+			return new Vector(Gpu, ToArray(), Columns, Cache);
 
 		return new Vector(Gpu, Pull(), Columns, Cache);
 	}
@@ -72,25 +77,22 @@ public sealed partial class Vector : VectorBase<float>
 
 	public float Var()
 	{
-		SyncCPU();
-
 		if (Length < 10000)
 		{
 			int
 				vectorSize = System.Numerics.Vector<float>.Count,
 				i = 0;
 
-			float[] array = Value;
-
+			ReadOnlySpan<float> data = RetrieveReadOnlySpan();
 			float mean = Mean();
 
 			System.Numerics.Vector<float> meanvec = new(mean);
 
 			System.Numerics.Vector<float> sumVector = System.Numerics.Vector<float>.Zero;
 
-			for (; i <= array.Length - vectorSize; i += vectorSize)
+			for (; i <= data.Length - vectorSize; i += vectorSize)
 			{
-				System.Numerics.Vector<float> input = new(array, i);
+				System.Numerics.Vector<float> input = new(data.Slice(i, vectorSize));
 				System.Numerics.Vector<float> difference = input - meanvec;
 
 				sumVector += (difference * difference);
@@ -101,31 +103,16 @@ public sealed partial class Vector : VectorBase<float>
 			for (int j = 0; j < vectorSize; j++)
 				sum += sumVector[j];
 
-			for (; i < array.Length; i++)
-				sum += XMath.Pow((array[i] - mean), 2f);
+			for (; i < data.Length; i++)
+				sum += XMath.Pow((data[i] - mean), 2f);
 
 			return sum / Length;
 		}
 
-		//Vector diff = Vector.AbsX(this - this.Mean());
-
-		//return (diff * diff).Sum() / this.Length();
 		return OP(this, Mean(), Operations.differenceSquared).Sum() / Length;
 	}
 	public override float Range() => Max() - Min();
 	public void Flatten() => Columns = 0;
-
-	public override float Min()
-	{
-		SyncCPU();
-		return Value.Min();
-	}
-
-	public override float Max()
-	{
-		SyncCPU();
-		return Value.Max();
-	}
 
 	#endregion
 
@@ -138,7 +125,7 @@ public sealed partial class Vector : VectorBase<float>
 		if (ID != 0)
 			return new Geometric.Vector3(Gpu, Pull());
 
-		return new Geometric.Vector3(Gpu, Value);
+		return new Geometric.Vector3(Gpu, ToArray());
 	}
 
 	#endregion
@@ -199,41 +186,29 @@ public sealed partial class Vector : VectorBase<float>
     public static Vector OP(Vector vector, float scalar, Operations operation)
 	{
 		GPU gpu = vector.Gpu;
+		Vector output = new(gpu, vector.Length, vector.Columns);
 
-		vector.IncrementLiveCount();
+		using (GpuScope.Pin(output, vector))
+		{
+			MemoryBuffer1D<float, Stride1D.Dense>
+				buffer = output.GetBuffer(),
+				buffer2 = vector.GetBuffer();
 
-		// Make the Output Vector
-		Vector Output = new(gpu, vector.Length, vector.Columns);
+			gpu.s_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
+			gpu.accelerator.Synchronize();
+		}
 
-		Output.IncrementLiveCount();
-
-		// Check if the input & output are in Cache
-		MemoryBuffer1D<float, Stride1D.Dense>
-			buffer = Output.GetBuffer(),        // Output
-			buffer2 = vector.GetBuffer();       // Input
-
-		gpu.s_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
-
-		gpu.accelerator.Synchronize();
-
-		vector.DecrementLiveCount();
-		Output.DecrementLiveCount();
-
-		return Output;
+		return output;
 	}
 
 	public Vector IPOP(float scalar, Operations operation)
 	{
-		IncrementLiveCount();
-
-		// Check if the input & output are in Cache
-		MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
-
-		Gpu.s_FloatOPKernelIP(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
-
-		Gpu.accelerator.Synchronize();
-
-		DecrementLiveCount();
+		using (GpuScope.Pin(this))
+		{
+			MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
+			Gpu.s_FloatOPKernelIP(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
+			Gpu.accelerator.Synchronize();
+		}
 
 		return this;
 	}
@@ -242,52 +217,33 @@ public sealed partial class Vector : VectorBase<float>
 	internal static Vector _VectorVectorOP(Vector vectorA, Vector vectorB, Operations operation)
 	{
 		GPU gpu = vectorA.Gpu;
+		Vector output = new(gpu, vectorA.Length, vectorA.Columns);
 
-		vectorA.IncrementLiveCount();
-		vectorB.IncrementLiveCount();
+		using (GpuScope.Pin(output, vectorA, vectorB))
+		{
+			MemoryBuffer1D<float, Stride1D.Dense>
+				buffer = output.GetBuffer(),
+				buffer2 = vectorA.GetBuffer(),
+				buffer3 = vectorB.GetBuffer();
 
-		// Make the Output Vector
-		Vector Output = new(gpu, vectorA.Length, vectorA.Columns);
-		Output.IncrementLiveCount();
+			gpu.a_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
+			gpu.accelerator.Synchronize();
+		}
 
-		// Check if the input & output are in Cache
-		MemoryBuffer1D<float, Stride1D.Dense>
-			buffer = Output.GetBuffer(),        // Output
-			buffer2 = vectorA.GetBuffer(),      // Input
-			buffer3 = vectorB.GetBuffer();      // Input
-
-		// Run the kernel
-		gpu.a_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
-
-		// Synchronise the kernel
-		gpu.accelerator.Synchronize();
-
-		vectorA.DecrementLiveCount();
-		vectorB.DecrementLiveCount();
-		Output.DecrementLiveCount();
-
-		// Return the result
-		return Output;
+		return output;
 	}
 
 	internal Vector _VectorVectorOP_IP(Vector vectorB, Operations operation)
 	{
-		vectorB.IncrementLiveCount();
-		IncrementLiveCount();
+		using (GpuScope.Pin(this, vectorB))
+		{
+			MemoryBuffer1D<float, Stride1D.Dense>
+				buffer = GetBuffer(),
+				buffer2 = vectorB.GetBuffer();
 
-		// Check if the input & output are in Cache
-		MemoryBuffer1D<float, Stride1D.Dense>
-			buffer = GetBuffer(),               // IO
-			buffer2 = vectorB.GetBuffer();      // Input
-
-		// Run the kernel
-		Gpu.a_FloatOPKernelIP(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
-
-		// Synchronise the kernel
-		Gpu.accelerator.Synchronize();
-
-		vectorB.DecrementLiveCount();
-		DecrementLiveCount();
+			Gpu.a_FloatOPKernelIP(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
+			Gpu.accelerator.Synchronize();
+		}
 
 		return this;
 	}
@@ -295,32 +251,26 @@ public sealed partial class Vector : VectorBase<float>
 	internal static Vector RunReduceRowOp(Vector vector, Vector matrix, Operations operation)
 	{
 		GPU gpu = vector.Gpu;
-
-		vector.IncrementLiveCount();
-		matrix.IncrementLiveCount();
-
 		Vector output = new(gpu, matrix.RowCount(), 1);
-		output.IncrementLiveCount();
 
-		MemoryBuffer1D<float, Stride1D.Dense>
-			buffer = output.GetBuffer(),
-			buffer2 = vector.GetBuffer(),
-			buffer3 = matrix.GetBuffer();
+		using (GpuScope.Pin(output, vector, matrix))
+		{
+			MemoryBuffer1D<float, Stride1D.Dense>
+				buffer = output.GetBuffer(),
+				buffer2 = vector.GetBuffer(),
+				buffer3 = matrix.GetBuffer();
 
-		gpu.reduceRowOpKernel(
-			gpu.accelerator.DefaultStream,
-			matrix.RowCount(),
-			buffer.View,
-			buffer2.View,
-			buffer3.View,
-			matrix.Columns,
-			new SpecializedValue<int>((int)operation));
+			gpu.reduceRowOpKernel(
+				gpu.accelerator.DefaultStream,
+				matrix.RowCount(),
+				buffer.View,
+				buffer2.View,
+				buffer3.View,
+				matrix.Columns,
+				new SpecializedValue<int>((int)operation));
 
-		gpu.accelerator.Synchronize();
-
-		vector.DecrementLiveCount();
-		matrix.DecrementLiveCount();
-		output.DecrementLiveCount();
+			gpu.accelerator.Synchronize();
+		}
 
 		return output;
 	}
@@ -329,15 +279,12 @@ public sealed partial class Vector : VectorBase<float>
 
 	public Vector Log_IP(float @base)
 	{
-		IncrementLiveCount();
-
-		MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
-
-		Gpu.LogKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, @base);
-
-		Gpu.accelerator.Synchronize();
-
-		DecrementLiveCount();
+		using (GpuScope.Pin(this))
+		{
+			MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
+			Gpu.LogKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, @base);
+			Gpu.accelerator.Synchronize();
+		}
 
 		return this;
 	}

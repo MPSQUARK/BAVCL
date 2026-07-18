@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using BAVCL.Core;
+using BAVCL.Extensions;
 
 namespace BAVCL.Geometric;
 
@@ -35,18 +36,17 @@ public sealed partial class Vector3 : VectorBase<float>
 	public Vector ToVector(bool cache = true)
 	{
 		if (_id != 0)
-		{
-			return new Vector(this.Gpu, Pull(), this.Columns, cache);
-		}
-		return new Vector(this.Gpu, this.Value, this.Columns, cache);
+			return new Vector(Gpu, Pull(), Columns, cache);
+
+		return new Vector(Gpu, ToArray(), Columns, cache);
 	}
-	public Vector ToVector(int Columns, bool cache = true)
+
+	public Vector ToVector(int columns, bool cache = true)
 	{
 		if (_id != 0)
-		{
-			return new Vector(this.Gpu, Pull(), this.Columns, cache);
-		}
-		return new Vector(this.Gpu, this.Value, Columns, cache);
+			return new Vector(Gpu, Pull(), Columns, cache);
+
+		return new Vector(Gpu, ToArray(), columns, cache);
 	}
 
 
@@ -55,18 +55,18 @@ public sealed partial class Vector3 : VectorBase<float>
 	#region
 	public override float Mean()
 	{
-		SyncCPU();
-		return this.Value.Average();
-	}
+		return ToArray().Sum()/Length;
+    }
+
 	public override float Range()
 	{
 		return Max() - Min();
 	}
+
 	public override float Sum()
 	{
-		SyncCPU();
-		return this.Value.Sum();
-	}
+        return ToArray().Sum();
+    }
 
 
 	#endregion

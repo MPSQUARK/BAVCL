@@ -1,6 +1,5 @@
-﻿using System;
-using BAVCL.Core.Enums;
-using BAVCL.Geometric.Enums;
+﻿using BAVCL.Geometric.Enums;
+using System;
 
 namespace BAVCL.Geometric;
 
@@ -9,15 +8,6 @@ public partial class Vector3
     public float GetAt(int row, Coord coord)
     {
         if (row < 0 || row > RowCount()) { throw new IndexOutOfRangeException(); }
-        return Value[row + row + row + (int)coord];
+        return GetAt(row, (int)coord);
     }
-
-    public float GetAt(int row, Coord coord, IndexingMode mode)
-    {
-        if (row < 0 || row > RowCount()) { throw new IndexOutOfRangeException(); }
-        if (mode.HasFlag(IndexingMode.SyncCPU))
-            SyncCPU();
-        return Value[row + row + row + (int)coord];
-    }
-
 }

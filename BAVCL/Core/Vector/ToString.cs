@@ -14,12 +14,11 @@ public partial class Vector
 
     public string ToStr(byte decimalplaces = 2, bool syncCPU = true)
     {
-        if ((Value == null) || syncCPU)
-            SyncCPU();
+        ReadOnlySpan<float> data = RetrieveReadOnlySpan();
 
         int layoutColumns = Is1D() ? Length : Columns;
 
-        (float min, float max, bool hasinfinity) = Util.MinMaxInf(Value!);
+        (float min, float max, bool hasinfinity) = Util.MinMaxInf(data);
 
         bool hasnegative = min < 0f;
 
@@ -56,31 +55,31 @@ public partial class Vector
             {
                 if (i % layoutColumns == 0) { stringBuilder.AppendLine(); }
 
-                Template[2] = Value![i] < 0f ? '-' : ' ';
+                Template[2] = data[i] < 0f ? '-' : ' ';
 
-                if (float.IsFinite(Value![i]))
+                if (float.IsFinite(data[i]))
                 {
                     clear.CopyTo(Template, 3);
-                    string val = Math.Abs(Value![i]).ToString(format);
+                    string val = Math.Abs(data[i]).ToString(format);
                     val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                     stringBuilder.Append(Template);
                     continue;
                 }
 
-                if (float.IsPositiveInfinity(Value[i]))
+                if (float.IsPositiveInfinity(data[i]))
                 {
                     stringBuilder.Append($"|  {inf}INF{afterinf} |");
                     continue;
                 }
 
-                if (float.IsNaN(Value[i]))
+                if (float.IsNaN(data[i]))
                 {
                     stringBuilder.Append($"|  {inf}NaN{afterinf} |");
                     continue;
                 }
 
-                if (float.IsNegativeInfinity(Value[i]))
+                if (float.IsNegativeInfinity(data[i]))
                 {
                     stringBuilder.Append($"| -{inf}INF{nan}  |");
                     continue;
@@ -96,10 +95,10 @@ public partial class Vector
             {
                 if (i % layoutColumns == 0) { stringBuilder.AppendLine(); }
 
-                Template[2] = Value![i] < 0f ? '-' : ' ';
+                Template[2] = data[i] < 0f ? '-' : ' ';
 
                 clear.CopyTo(Template, 3);
-                string val = Math.Abs(Value![i]).ToString(format);
+                string val = Math.Abs(data[i]).ToString(format);
                 val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
                 stringBuilder.Append(Template);
@@ -115,7 +114,7 @@ public partial class Vector
             if (i % layoutColumns == 0) { stringBuilder.AppendLine(); }
 
             clear.CopyTo(Template, 3);
-            string val = Value![i].ToString(format);
+            string val = data[i].ToString(format);
             val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
             stringBuilder.Append(Template);
