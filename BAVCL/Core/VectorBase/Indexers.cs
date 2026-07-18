@@ -1,22 +1,7 @@
-using System;
-using BAVCL.Core.Enums;
-
 namespace BAVCL.Core;
 
-public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unmanaged
+public abstract partial class VectorBase<T>
 {
-    private int GetIndexFromCoordinates(int row, int col)
-    {
-        var index = row * Columns + col;
-        ValidateIndex(index);
-        return index;
-    }
-    private void ValidateIndex(int index)
-    {
-        if (index < 0 || index >= Length)
-            throw new IndexOutOfRangeException($"Index {index} is out of range for vector of length {Length}.");
-    }
-
     public T this[int i]
     {
         get => GetAt(i);
@@ -29,70 +14,36 @@ public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unman
         set => SetAt(row, col, value);
     }
 
-    public T this[int index, IndexingMode mode]
-    {
-        get => GetAt(index, mode); set => SetAt(index, mode, value);
-    }
-
     public T GetAt(int index)
     {
-        ValidateIndex(index);
-        return Value[index];
-    }
-
-    public T GetAt(int index, IndexingMode mode)
-    {
-        ValidateIndex(index);
-        if (mode.HasFlag(IndexingMode.SyncCPU))
-            SyncCPU();
-        return Value[index];
+        ValidateIndexForView(index);
+        return RetrieveReadOnlySpan()[index];
     }
 
     public T GetAt(int row, int col)
     {
-        var computedIndex = GetIndexFromCoordinates(row, col);
-        ValidateIndex(computedIndex);
-        return Value[computedIndex];
-    }
-
-    public T GetAt(int index, int col, IndexingMode mode)
-    {
-        var computedIndex = GetIndexFromCoordinates(index, col);
-        ValidateIndex(computedIndex);
-        if (mode.HasFlag(IndexingMode.SyncCPU))
-            SyncCPU();
-        return Value[computedIndex];
+        int computedIndex = GetIndexFromCoordinatesForView(row, col);
+        return RetrieveReadOnlySpan()[computedIndex];
     }
 
     public void SetAt(int index, T val)
     {
-        ValidateIndex(index);
-        Value[index] = val;
-    }
-
-    public void SetAt(int index, IndexingMode mode, T val)
-    {
-        ValidateIndex(index);
-        if (mode.HasFlag(IndexingMode.SyncCPU))
-            SyncCPU();
-        Value[index] = val;
-        if (mode.HasFlag(IndexingMode.SyncGPU))
-            UpdateCache();
+        ValidateIndexForView(index);
+        using (var scope = CpuScope(syncOnDispose: false))
+        {
+            EditableView<T> view = scope.View;
+            view[index] = val;
+        }
     }
 
     public void SetAt(int row, int col, T val)
     {
-        var computedIndex = GetIndexFromCoordinates(row, col);
-        Value[computedIndex] = val;
-    }
-
-    public void SetAt(int index, int col, IndexingMode mode, T val)
-    {
-        var computedIndex = GetIndexFromCoordinates(index, col);
-        if (mode.HasFlag(IndexingMode.SyncCPU))
-            SyncCPU();
-        Value[computedIndex] = val;
-        if (mode.HasFlag(IndexingMode.SyncGPU))
-            UpdateCache();
+        int computedIndex = GetIndexFromCoordinatesForView(row, col);
+        ValidateIndexForView(computedIndex);
+        using (var scope = CpuScope(syncOnDispose: false))
+        {
+            EditableView<T> view = scope.View;
+            view[computedIndex] = val;
+        }
     }
 }
