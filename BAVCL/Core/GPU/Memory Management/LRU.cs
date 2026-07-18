@@ -80,7 +80,9 @@ internal class LRU : IMemoryManager
             GC(cacheable.MemorySize);
             UpdateMemoryUsage(cacheable.MemorySize);
 
-            buffer = accelerator.Allocate1D(cacheable.GetValues());
+            ReadOnlySpan<T> values = cacheable.GetCpuStorageSpan();
+            buffer = accelerator.Allocate1D<T>(values.Length);
+            buffer.AsArrayView<T>(0, values.Length).CopyFromCPU(values);
             Caches.TryAdd(id, new Cache(buffer, new WeakReference<ICacheable>(cacheable)));
             _lru.Enqueue(id);
         }
@@ -140,7 +142,7 @@ internal class LRU : IMemoryManager
                 // Try Get Reference to and the object of ICacheable
                 if (Caches.TryGetValue(Id, out Cache cache))
                 {
-                    if (IsICacheableLive(cache, Id)) continue;
+                    if (IsICacheableLive(cache, Id, syncOnEvict: true)) continue;
 
                     cache.MemoryBuffer.Dispose();
                     UpdateMemoryUsage(-cache.MemoryBuffer.LengthInBytes);
@@ -157,16 +159,35 @@ internal class LRU : IMemoryManager
 
         lock (this)
         {
-            if (IsICacheableLive(cache, Id)) return Id;
+            if (IsICacheableLive(cache, Id, syncOnEvict: true)) return Id;
 
-            cache.MemoryBuffer.Dispose();
-            UpdateMemoryUsage(-cache.MemoryBuffer.LengthInBytes);
-            SubtractLiveTask();
-            Caches.TryRemove(Id, out _);
-            RemoveFromLRU(Id);
+            DisposeCacheEntry(cache, Id);
         }
 
         return 0;
+    }
+
+    public uint FreeBuffer(uint Id)
+    {
+        if (!Caches.TryGetValue(Id, out Cache cache)) return 0;
+
+        lock (this)
+        {
+            if (IsICacheableLive(cache, Id, syncOnEvict: false)) return Id;
+
+            DisposeCacheEntry(cache, Id);
+        }
+
+        return 0;
+    }
+
+    void DisposeCacheEntry(Cache cache, uint Id)
+    {
+        cache.MemoryBuffer.Dispose();
+        UpdateMemoryUsage(-cache.MemoryBuffer.LengthInBytes);
+        SubtractLiveTask();
+        Caches.TryRemove(Id, out _);
+        RemoveFromLRU(Id);
     }
 
     /// <summary>
@@ -177,20 +198,25 @@ internal class LRU : IMemoryManager
     /// <param name="cache"></param>
     /// <param name="Id"></param>
     /// <returns></returns>
-    private bool IsICacheableLive(Cache cache, uint Id)
+    private bool IsICacheableLive(Cache cache, uint Id, bool syncOnEvict)
     {
         if (!cache.CachedObjRef.TryGetTarget(out ICacheable? cacheable))
             return false;
 
-        if (cacheable.LiveCount == 0)
+        if (cacheable.LiveCount > 0)
         {
-            // TODO: ONlY sync back to CPU if data was changed/is different
-            cacheable.SyncCPU(cache.MemoryBuffer);
-            return false;
+            _lru.Enqueue(Id);
+            return true;
         }
 
-        _lru.Enqueue(Id);
-        return true;
+        if (!syncOnEvict)
+            return false;
+
+        if (ResidenceHelper.CanFreeWithoutSync(cacheable.Residence))
+            return false;
+
+        cacheable.SyncCPU(cache.MemoryBuffer);
+        return false;
     }
 
     private void RemoveFromLRU(uint Id)
@@ -242,17 +268,17 @@ internal class LRU : IMemoryManager
         if (buffer == null) return Allocate(cacheable, accelerator);
 
         // If lengths match
-        T[] values = cacheable.GetValues();
+        ReadOnlySpan<T> values = cacheable.GetCpuStorageSpan();
         if (buffer.Length == values.Length)
         {
             buffer.AsArrayView<T>(0, values.Length).CopyFromCPU(values);
-            cache.MemoryBuffer = buffer;
-            Caches.AddOrUpdate(id, cache, (id, oldcache) => cache);
+            //cache.MemoryBuffer = buffer;
+            //Caches.AddOrUpdate(id, cache, (id, oldcache) => cache);
             return (id, buffer);
         }
 
         // If lengths don't match
-        GCItem(id);
+        FreeBuffer(id);
         return Allocate(cacheable, accelerator);
     }
     public (uint, MemoryBuffer) UpdateBuffer<T>(ICacheable cacheable, T[] values, Accelerator accelerator) where T : unmanaged
@@ -277,7 +303,7 @@ internal class LRU : IMemoryManager
         }
 
         // If lengths don't match
-        GCItem(id);
+        FreeBuffer(id);
         return Allocate(cacheable, values, accelerator);
 
     }

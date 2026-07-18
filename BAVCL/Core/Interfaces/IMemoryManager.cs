@@ -24,6 +24,7 @@ public interface IMemoryManager
     #region Garbage Collection
     public void GC(long memRequired);
     public uint GCItem(uint Id);
+    public uint FreeBuffer(uint Id);
     #endregion
 
     #region Debug
