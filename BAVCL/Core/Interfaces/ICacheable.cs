@@ -25,10 +25,10 @@ public interface ICacheable
 public interface ICacheable<T> : ICacheable where T : unmanaged
 {
 	/// <summary>
-	/// Read-only view of CPU storage for GPU upload. Syncs from GPU when needed.
+	/// Syncs from GPU when needed, then returns a read-only CPU span for upload.
 	/// Prefer <see cref="VectorBase{T}.GetCpuReadOnlySpan"/> for user reads without sync.
 	/// </summary>
-	ReadOnlySpan<T> GetCpuStorageSpan();
+	ReadOnlySpan<T> RetrieveReadOnlySpan();
 
 	MemoryBuffer UpdateCache(T[] array);
 }
