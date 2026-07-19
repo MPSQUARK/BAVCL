@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using BAVCL.Core;
 
@@ -11,7 +11,7 @@ public partial class Vector
 
     public Vector Merge_IP(Vector vector)
     {
-        using (CpuScope(syncOnDispose: true))
+        using (this.CpuScopeAndSync())
         {
             // TODO: Performance can still be improved
             ReadOnlySpan<float> left = GetCpuReadOnlySpan();

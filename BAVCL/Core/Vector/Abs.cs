@@ -1,4 +1,4 @@
-﻿using BAVCL.Core;
+using BAVCL.Core;
 using ILGPU;
 using ILGPU.Runtime;
 using System;
@@ -24,7 +24,7 @@ public partial class Vector
         if (Min() > 0f)
             return this;
 
-        using (var scope = CpuScope(true))
+        using (var scope = this.CpuScopeAndSync())
         {
             EditableView<float> view = scope.View;
             for (int i = 0; i < Length; i++)
@@ -49,7 +49,7 @@ public partial class Vector
     /// </summary>
     public Vector AbsX_IP()
     {
-        using (GpuScope.Pin(this))
+        using (GpuScope.Begin(this))
         {
             MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
             Gpu.absKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);

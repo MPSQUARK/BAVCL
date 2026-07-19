@@ -1,4 +1,4 @@
-﻿using BAVCL.Core;
+using BAVCL.Core;
 using ILGPU;
 using ILGPU.Runtime;
 
@@ -11,7 +11,7 @@ public partial class Vector
 
     public Vector Reciprocal_IP()
     {
-        using (GpuScope.Pin(this))
+        using (GpuScope.Begin(this))
         {
             MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
             Gpu.rcpKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);

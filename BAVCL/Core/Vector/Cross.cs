@@ -51,7 +51,7 @@ public partial class Vector
 		GPU gpu = matrixA.Gpu;
 		Vector output = new(gpu, rowsA * colsB, colsB);
 
-		using (GpuScope.Pin(output, matrixA, matrixB))
+		using (GpuScope.Begin(output, matrixA, matrixB))
 		{
 			MemoryBuffer1D<float, Stride1D.Dense>
 				buffer = output.GetBuffer(),

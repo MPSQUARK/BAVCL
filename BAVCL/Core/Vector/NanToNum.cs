@@ -1,4 +1,4 @@
-﻿using BAVCL.Core;
+using BAVCL.Core;
 using ILGPU;
 using ILGPU.Runtime;
 
@@ -11,7 +11,7 @@ public partial class Vector
 
     public Vector Nan_to_num_IP(float num)
     {
-        using (GpuScope.Pin(this))
+        using (GpuScope.Begin(this))
         {
             MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
             Gpu.nanToNumKernel(Gpu.accelerator.DefaultStream, Length, buffer.View, num);
