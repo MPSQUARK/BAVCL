@@ -1,4 +1,4 @@
-﻿using BAVCL.Core;
+using BAVCL.Core;
 using BAVCL.Geometric.Enums;
 using System;
 

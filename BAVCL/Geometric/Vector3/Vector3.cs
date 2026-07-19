@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using BAVCL.Core;
 using BAVCL.Extensions;

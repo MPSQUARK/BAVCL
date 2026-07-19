@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using BAVCL.Utility;
 using System.Text;
 

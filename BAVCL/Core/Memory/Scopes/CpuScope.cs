@@ -1,52 +1,53 @@
 using System;
-using System.Threading;
 
 namespace BAVCL.Core;
 
+public static class CpuScope
+{
+	public static CpuScope<T> Begin<T>(ICacheable<T> cacheable, bool syncToGpu = false) where T : unmanaged =>
+		new(cacheable, syncToGpu);
+}
+
+/// <summary>
+/// CPU coherence scope for <see cref="ICacheable{T}"/>.
+/// <see cref="View"/> is available when <see cref="ICacheable{T}.EditCpu"/> supplies non-empty storage.
+/// </summary>
 public readonly ref struct CpuScope<T> : IDisposable where T : unmanaged
 {
-	readonly VectorBase<T> _owner;
-	readonly bool _syncToGpuOnDispose;
+	readonly ICacheable<T> _cacheable;
+	readonly bool _syncToGpu;
+	readonly EditableView<T> _view;
+	readonly bool _hasView;
 
-	/// <summary>
-	/// Writable view over the vector's CPU backing store for the duration of this scope.
-	/// Assign to a local <see cref="EditableView{T}"/> before using the indexer:
-	/// <c>EditableView&lt;T&gt; view = scope.View; view[i] = x;</c>
-	/// (indexer writes through the <c>View</c> property directly do not compile.)
-	/// </summary>
-	public EditableView<T> View { get; }
+	public bool HasView => _hasView;
 
-	internal CpuScope(VectorBase<T> owner, bool syncToGpuOnDispose)
+	public EditableView<T> View =>
+		_hasView
+			? _view
+			: throw new InvalidOperationException(
+				$"CPU scope on {typeof(T).Name} has no editable span.");
+
+	internal CpuScope(ICacheable<T> cacheable, bool syncToGpu)
 	{
-		_owner = owner;
-		_syncToGpuOnDispose = syncToGpuOnDispose;
+		_cacheable = cacheable;
+		_syncToGpu = syncToGpu;
+		cacheable.EnterCpuScope();
 
-		ResidenceHelper.GuardCrossContext(owner.Residence, enteringCpu: true);
-		Interlocked.Increment(ref owner._cpuScopeDepth);
-
-		Residence current = owner.Residence;
-		if (!ResidenceHelper.IsActiveCpu(current))
+		bool hasView = false;
+		Memory<T> editable = default;
+		cacheable.EditCpu(memory =>
 		{
-			if (!owner.TrySetResidence(current, Residence.ActiveCpu))
-				owner.SetResidence(Residence.ActiveCpu);
-		}
+			if (memory.Length == 0)
+				return;
 
-		owner.SyncCPU();
+			hasView = true;
+			editable = memory;
+		});
 
-		View = new EditableView<T>(owner);
+		_hasView = hasView;
+		if (hasView)
+			_view = new EditableView<T>(editable);
 	}
 
-	public void Dispose()
-	{
-		if (Interlocked.Decrement(ref _owner._cpuScopeDepth) != 0)
-			return;
-
-		_owner.CommitCpuView();
-
-		if (!_owner.TrySetResidence(Residence.ActiveCpu, Residence.Cpu))
-			_owner.SetResidence(Residence.Cpu);
-
-		if (_syncToGpuOnDispose)
-			_owner.UpdateCache();
-	}
+	public void Dispose() => _cacheable.ExitCpuScope(_syncToGpu);
 }

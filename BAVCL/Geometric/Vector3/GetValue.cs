@@ -1,4 +1,4 @@
-﻿using BAVCL.Geometric.Enums;
+using BAVCL.Geometric.Enums;
 using System;
 
 namespace BAVCL.Geometric;

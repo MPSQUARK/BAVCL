@@ -1,4 +1,4 @@
-﻿using ILGPU.Runtime;
+using ILGPU.Runtime;
 
 namespace BAVCL.Core;
 
@@ -15,10 +15,7 @@ public partial class VectorBase<T>
 
 		Length = Value.Length;
 		(ID, MemoryBuffer buffer) = Gpu.UpdateBuffer(this);
-
-		Residence current = Residence;
-		if (!TrySetResidence(current, Residence.InSync))
-			SetResidence(Residence.InSync);
+		ResidenceScopeHelper.TransitionOrReconcile(this, Residence, Residence.InSync);
 		return buffer;
 	}
 
@@ -27,10 +24,7 @@ public partial class VectorBase<T>
 		Length = array.Length;
 		Value = array;
 		(ID, MemoryBuffer buffer) = Gpu.UpdateBuffer(this, array);
-
-		Residence current = Residence;
-		if (!TrySetResidence(current, Residence.InSync))
-			SetResidence(Residence.InSync);
+		ResidenceScopeHelper.TransitionOrReconcile(this, Residence, Residence.InSync);
 		return buffer;
 	}
 }

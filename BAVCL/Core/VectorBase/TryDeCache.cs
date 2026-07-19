@@ -1,4 +1,4 @@
-﻿namespace BAVCL.Core;
+namespace BAVCL.Core;
 
 public partial class VectorBase<T>
 {
