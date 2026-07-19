@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using BAVCL.Core;
 
 namespace BAVCL;
 
@@ -16,7 +15,7 @@ public partial class Vector
             // TODO: Performance can still be improved
             ReadOnlySpan<float> left = GetCpuReadOnlySpan();
             ReadOnlySpan<float> right = vector.RetrieveReadOnlySpan();
-            Value = left.ToArray().Concat(right.ToArray()).ToArray();
+            Value = [.. left, .. right];
             Length = Value.Length;
         }
 
