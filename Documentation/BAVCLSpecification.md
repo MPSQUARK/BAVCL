@@ -100,21 +100,19 @@ Inspired by NumPy semantics but shaped for C# conventions: explicit types, prope
 
 Examples: `Abs()` vs `AbsX()`, `Sum()` vs `SumX()` (planned), `Reverse()` vs `ReverseX()`.
 
-### 2.4 Scope-Only GPU Pinning (TARGET - WIP)
+### 2.4 Scope-Only GPU Pinning (IMPLEMENTED)
 
-`LiveCount` is managed **exclusively** by `GPUScope`. Individual operations do **not** self-pin. Callers must wrap GPU work:
+`LiveCount` is managed by `GpuScope.Begin()`. Individual operations use scopes internally; callers wrapping custom kernels should use:
 
 ```csharp
-// Multi-statement blocks
-using var scope = GPUScope.Pin(vecA, vecB, vecC);
-var temp = vecA.AbsX();
-var result = temp + vecB;
-
-// Single expressions
-var result = GPUScope.Run(vecA, vecB, () => vecA.AbsX() + vecB);
+using (GpuScope.Begin(modified: output, readOnly: inputA, inputB))
+{
+    kernel(...);
+    gpu.accelerator.Synchronize();
+}
 ```
 
-CPU operations (`Abs`, `Sum`, etc.) require no scope.
+CPU edits: `CpuScope.Begin<T>(ICacheable<T>, bool syncToGpu)` or `.CpuScope()` / `.CpuScopeAndSync()`. Scope on `ICacheable`; `GetReadOnlySpan` / explicit `EditCpu` on `ICacheable<T>`. See [MigrationGuide.md](MigrationGuide.md).
 
 ### 2.5 Pluggable Memory Management
 
@@ -347,7 +345,7 @@ This section documents **what exists in code today**. See [Section 19](#19-code-
 | `Vector(GPU, int length, columns=0)`          | Uninitialized length (may contain garbage) |
 | `Copy(cache=true)`                            | Deep copy                                  |
 | `Equals(Vector)`                              | Element-wise equality after CPU sync       |
-| `Shape()`                                     | `(rows, cols)` tuple                       |
+| `Shape()`                                     | `Shape` struct (`Rows`, `Cols`)            |
 | `Flatten()`                                   | Set `Columns = 0` (1D row storage)         |
 | `ToVector3()`                                 | Convert when length % 3 == 0               |
 
@@ -387,6 +385,8 @@ This section documents **what exists in code today**. See [Section 19](#19-code-
 | Log        | —                 | `LogKernel`               | `Log_IP`         |
 
 #### 4.2.5 Binary Operations and Operators
+
+**Migration:** See [`MigrationGuide.md`](MigrationGuide.md) for breaking changes to `Columns`, `OP`/`IPOP`, `ReduceOP`, and `Matrix*`.
 
 Binary `+`, `-`, `*`, `/`, `^` operator overloads use **NumPy-style element-wise broadcast** via `OP()` / `IPOP()`. Three separate API families exist for different semantics:
 
@@ -463,7 +463,7 @@ Binary `+`, `-`, `*`, `/`, `^` operator overloads use **NumPy-style element-wise
 | Operators    | `+`, `-`, `*`, `/`, `^` with Vector3 and float (all GPU via `OP`)                  |
 | Geometry     | `Cross(vecA, vecB)`, `Magnitude()`, `Magnitude(vecA, vecB)`, `Distance(vec)`       |
 | Per-row ops  | `VOP(vec, op)`, `VOP(vecA, vecB, op)` → returns `Vector` of per-row results        |
-| Indexing     | `this[int row, Coord]`, `GetAt`, `SetAt` with `IndexingMode`                       |
+| Indexing     | `this[int row, Coord]`, `GetAt`, `SetAt` (reads sync via `GetReadOnlySpan`; writes use `CpuScope`) |
 | Concat       | With`Vector3`, `Vertex`, arrays, lists                                             |
 | Access       | `AccessRow(vec, row)`                                                              |
 | Copy         | `Copy()`                                                                           |
@@ -519,14 +519,16 @@ Loaded in `LoadKernels()` — all at once:
 
 #### 4.5.3 LRU Memory Manager
 
-`BAVCL.Core.LRU` implements `IMemoryManager`:
+`BAVCL.Core.LRU` (in `Core/Memory/`) implements `IMemoryManager`:
 
-- `ConcurrentDictionary<uint, Cache>` tracks GPU buffers
+- `ConcurrentDictionary<uint, GpuCacheEntry>` tracks GPU buffers
 - LRU queue for eviction order
 - `AvailableMemory` = device memory × cap (default 80%)
 - `MemoryUsed` tracked via `sizeof(T) × length` estimates
 - On eviction when `LiveCount == 0`: sync to CPU via `SyncCPU(buffer)`, dispose buffer
 - `GC(memRequired)` evicts until space available
+- **`GetBuffer`**: lock-free dictionary read
+- **`UpdateBuffer`**: `GetReadOnlySpan()` / CPU sync **outside** `lock(this)`; dictionary lookup, `CopyFromCPU`, and allocation **inside** the lock
 
 **TODOs in code:** dirty-flag to skip unnecessary CPU sync; only sync if data changed.
 
@@ -679,14 +681,14 @@ Default: 80% of device memory (`memoryCap = 0.8f`). Configurable per `GetGPU()` 
 `IMemoryManager` contract (`BAVCL/Core/Interfaces/IMemoryManager.cs`):
 
 - `Allocate`, `AllocateEmpty`, `UpdateBuffer`
-- `GetBuffer`, `GC`, `GCItem`
+- `GetBuffer`, `GC`, `GCItem` (evict with conditional sync), `FreeBuffer` (discard without sync)
 - `AvailableMemory`, `MemoryUsed`, `PrintMemoryUsage`
 
 Alternative implementations can replace LRU without changing vector types.
 
-### 8.4 GPUScope (Target)
+### 8.4 GpuScope (IMPLEMENTED)
 
-See Section 2.4. Debug builds should validate `LiveCount > 0` before kernel dispatch.
+`BAVCL/Core/Memory/Scopes/GpuScope.cs` — `GpuScope.Begin(modified, readOnly)` on `ICacheable`. Modified vectors get `ActiveGpu`; read-only vectors bump `LiveCount` only. Nested pins supported for late output allocation. Residence transitions use `ResidenceScopeHelper` (CAS with re-read/reconcile; no force writes).
 
 ### 8.5 Actual GPU Memory Tracking (Exploration) - Planned future
 
@@ -702,9 +704,23 @@ Benefits:
 
 Feasibility depends on ILGPU and device APIs — document as investigation item.
 
-### 8.6 Dirty-Flag Optimization (Future)
+### 8.6 Residence Flags and Coherence (IMPLEMENTED)
 
-Track CPU/GPU data divergence to avoid unnecessary `SyncCPU()` and eviction syncs. TODOs exist in `SyncCPU.cs` and `LRU.cs`.
+`ICacheable.Residence` tracks CPU/GPU authority and active scopes (`Cpu`, `Gpu`, `InSync`, `ActiveCpu`, `ActiveGpu`). Updates use `ResidenceField.TryTransition` (`Interlocked.CompareExchange` on the underlying byte) for compare-and-swap transitions; `_cpuScopeDepth` uses `Interlocked`. `SyncCPU()` / `UpdateCache()` no-op when data is already in the target state. LRU eviction via `GCItem` syncs only when GPU-authoritative; resize uses `FreeBuffer` without sync.
+
+**Read API:**
+
+| Method | Behavior |
+|--------|----------|
+| `GetCpuReadOnlySpan()` | Zero-copy view of current CPU buffer; **no GPU sync** |
+| `GetReadOnlySpan()` | `SyncCPU()` then `GetCpuReadOnlySpan()` — use for reads and LRU upload |
+| `GetAt` / indexers (get) | `GetReadOnlySpan()[index]` |
+| `ToArray()` | **Always allocates** a heap copy; syncs when needed |
+| `ICacheable<T>.GetReadOnlySpan()` | Same as above; used by memory manager for upload |
+
+**Write API:** `CpuScope` + `EditableView<T>` or `SetAt` (opens `CpuScope` internally; not for tight loops). `IndexingMode` removed — use scoping instead.
+
+**Shape caching (future):** Cache a `Shape` field on `VectorBase`, invalidated when `Length` or `Columns` change. Marginal benefit today (`Shape()` is cheap); revisit if called in hot loops.
 
 ### 8.7 Multi-GPU (Target)
 
@@ -958,8 +974,8 @@ When code and this spec disagree, **this spec is the target**.
 | 1   | Type breadth         | fp32`Vector` only                               | fp64, int32/64, uint, Mask, Complex          | `Core/Vector/`, empty folders        |
 | 2   | Generic types        | `VectorBase<T>` exists; no `Vector<T>`          | Specialized + generic fallback               | `VectorBase/VectorBase.cs`           |
 | 3   | CPU/GPU API          | Operators and most ops use GPU kernels          | Default = CPU;`X` = GPU                      | `Vector/Vector.cs`, `Abs.cs`         |
-| 4   | LiveCount safety     | Manual Increment/Decrement per op               | Scope-only via`GPUScope.Pin` / `Run`         | All GPU operation files              |
-| 5   | LiveCount exceptions | No try/finally — leak on exception              | `GPUScope` guarantees balanced refcount      | `Abs.cs`, `Diff.cs`, etc.            |
+| 4   | LiveCount safety     | `GpuScope.Begin` in library ops                 | Scope-only for custom kernels                | `GpuScope.cs`, GPU operation files   |
+| 5   | LiveCount exceptions | `GpuScope` IDisposable                          | Balanced refcount on dispose                 | `GpuScope.cs`                        |
 | 6   | Kernel loading       | Monolithic`LoadKernels()`                       | Domain × datatype modules, builder           | `kernels.cs`                         |
 | 7   | Multi-GPU            | Single`GPUManager.Default`                      | Create/enumerate GPUs; cross-device transfer | `GPUManager.cs`                      |
 | 8   | Mask                 | Empty folder                                    | Packed-bit mask, configurable fill           | `Core/Mask/`                         |
@@ -971,7 +987,7 @@ When code and this spec disagree, **this spec is the target**.
 | 14  | Tests                | BAVCL.Tests needs rewrite; empty library Tests/ | xUnit-only; net10.0; CI                      | `BAVCL.Tests/`                       |
 | 15  | Vector3 stats        | Mean/Range/Sum on flat array                    | Rework or remove for 3D semantics            | `Vector3/Vector3.cs`                 |
 | 16  | Vector3 errors       | Wrong exception messages                        | Correct messages for magnitude/distance      | `Magnitude.cs`, `Distance.cs`        |
-| 17  | Memory sync          | Always syncs on eviction                        | Dirty-flag optimization                      | `SyncCPU.cs`, `LRU.cs`               |
+| 17  | Memory sync          | `Residence` flags + `FreeBuffer`/`GCItem` split | Implemented                                  | `SyncCPU.cs`, `LRU.cs`, `Residence.cs` |
 | 18  | Memory accounting    | `sizeof(T) × length` estimate                   | Explore actual GPU memory tracking           | `CalculateMemorySize.cs`, `LRU.cs`   |
 | 19  | Code organization    | 25+ partial class files per type                | Extension methods in`Operations/`            | `Core/Vector/*.cs`                   |
 | 20  | VectorBase role      | Sometimes described as CPU mirror               | Infrastructure base for all vector types     | `VectorBase/VectorBase.cs`           |
@@ -980,9 +996,11 @@ When code and this spec disagree, **this spec is the target**.
 | 23  | Vertex + Vector3     | Implicit conversion pulls GPU data              | Complementary; optimize GPU path             | `Vertex.cs`                          |
 | 24  | Print extensions     | double/int/long 2D throw NIE                    | Implement or remove overloads                | `Extensions/Print.cs`                |
 | 25  | .NET version         | Library net10.0, tests net8.0, launch net6.0    | Align all to net10.0                         | `.csproj`, `launch.json`             |
-| 26  | GPUScope             | Does not exist                                  | `Pin()` + `Run()` static IDisposable         | New file needed                      |
+| 26  | GPUScope             | `GpuScope.Begin` + `CpuScope.Begin`             | Implemented                                  | `Memory/Scopes/*.cs`                 |
 | 27  | Kernel modules       | Does not exist                                  | Builder registration per GPU                 | New infrastructure                   |
-| 28  | RsqrtX               | `RsqrtX` calls `Rsqrt_IP` not GPU path          | Consistent`X` = GPU naming                   | `Rsqrt.cs`                           |
+| 28  | RsqrtX               | Fixed — calls `RsqrtX_IP`                       | Consistent `X` = GPU naming                  | `Rsqrt.cs`                           |
+| 29  | Shape type           | `Shape` struct                                  | Implemented                                  | `Core/Shape.cs`                      |
+| 30  | Shape caching        | Derived each call                               | Optional cache on `VectorBase` (future)      | `VectorBase.cs`                      |
 
 ---
 
@@ -1016,8 +1034,8 @@ Companion test repository at `C:\Users\marce\Repos\BAVCL.Tests`. Source-only sib
 
 | Interface        | Purpose                                             |
 | ---------------- | --------------------------------------------------- |
-| `ICacheable`     | GPU cache contract: ID, LiveCount, DeCache, SyncCPU |
-| `ICacheable<T>`  | Typed values access                                 |
+| `ICacheable`     | GPU cache contract: ID, LiveCount, Residence (volatile), DeCache, SyncCPU |
+| `ICacheable<T>`  | Typed cache contract: `GetReadOnlySpan()`, `UpdateCache(T[])` |
 | `IMemoryManager` | Pluggable GPU memory strategy                       |
 | `IIO`            | CSV/string export contract                          |
 
