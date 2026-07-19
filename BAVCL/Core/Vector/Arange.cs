@@ -1,4 +1,4 @@
-﻿using ILGPU.Algorithms;
+using ILGPU.Algorithms;
 
 namespace BAVCL;
 
