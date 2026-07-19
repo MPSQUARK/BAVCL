@@ -29,7 +29,7 @@ public abstract partial class VectorBase<T>
     public void SetAt(int index, T val)
     {
         ValidateIndexForView(index);
-        using (var scope = CpuScope(syncOnDispose: false))
+        using (var scope = this.CpuScope())
         {
             EditableView<T> view = scope.View;
             view[index] = val;
@@ -40,7 +40,7 @@ public abstract partial class VectorBase<T>
     {
         int computedIndex = GetIndexFromCoordinatesForView(row, col);
         ValidateIndexForView(computedIndex);
-        using (var scope = CpuScope(syncOnDispose: false))
+        using (var scope = this.CpuScope())
         {
             EditableView<T> view = scope.View;
             view[computedIndex] = val;

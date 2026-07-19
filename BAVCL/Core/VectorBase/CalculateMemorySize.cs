@@ -1,4 +1,4 @@
-﻿using ILGPU;
+using ILGPU;
 
 namespace BAVCL.Core;
 

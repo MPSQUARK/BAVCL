@@ -1,4 +1,4 @@
-﻿using ILGPU.Runtime;
+using ILGPU.Runtime;
 using System;
 using System.Collections.Generic;
 

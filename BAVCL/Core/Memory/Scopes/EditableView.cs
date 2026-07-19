@@ -1,36 +1,31 @@
+using System;
+
 namespace BAVCL.Core;
 
 public readonly ref struct EditableView<T> where T : unmanaged
 {
-	readonly VectorBase<T> _owner;
+	readonly Span<T> _span;
 
-	internal EditableView(VectorBase<T> owner) => _owner = owner;
+	internal EditableView(Memory<T> memory) => _span = memory.Span;
 
 	public T this[int index]
 	{
 		get
 		{
-			_owner.ValidateIndexForView(index);
-			return _owner.Value[index];
+			ValidateIndex(index);
+			return _span[index];
 		}
 		set
 		{
-			_owner.ValidateIndexForView(index);
-			_owner.Value[index] = value;
+			ValidateIndex(index);
+			_span[index] = value;
 		}
 	}
 
-	public T this[int row, int col]
+	void ValidateIndex(int index)
 	{
-		get
-		{
-			int index = _owner.GetIndexFromCoordinatesForView(row, col);
-			return this[index];
-		}
-		set
-		{
-			int index = _owner.GetIndexFromCoordinatesForView(row, col);
-			this[index] = value;
-		}
+		if ((uint)index >= (uint)_span.Length)
+			throw new IndexOutOfRangeException(
+				$"Index {index} is out of range for span of length {_span.Length}.");
 	}
 }
