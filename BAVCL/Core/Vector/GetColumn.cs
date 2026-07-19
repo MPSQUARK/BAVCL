@@ -1,4 +1,4 @@
-﻿using BAVCL.Core;
+using BAVCL.Core;
 using ILGPU;
 using ILGPU.Runtime;
 
@@ -11,7 +11,7 @@ public partial class Vector
         int[] select = [column, vector.Columns];
         Vector output = new(vector.Gpu, vector.RowCount());
 
-        using (GpuScope.Pin(output, vector))
+        using (GpuScope.Begin(output, vector))
         {
             MemoryBuffer1D<float, Stride1D.Dense>
                 buffer = output.GetBuffer(),
@@ -32,7 +32,7 @@ public partial class Vector
         int[] select = [column, Columns];
         Vector output = new(Gpu, RowCount());
 
-        using (GpuScope.Pin(output, this))
+        using (GpuScope.Begin(output, this))
         {
             MemoryBuffer1D<float, Stride1D.Dense>
                 buffer = output.GetBuffer(),

@@ -1,4 +1,4 @@
-﻿using ILGPU.Runtime;
+using ILGPU.Runtime;
 using ILGPU.Algorithms;
 using System;
 using BAVCL.Core;
@@ -188,7 +188,7 @@ public sealed partial class Vector : VectorBase<float>
 		GPU gpu = vector.Gpu;
 		Vector output = new(gpu, vector.Length, vector.Columns);
 
-		using (GpuScope.Pin(output, vector))
+		using (GpuScope.Begin(output, vector))
 		{
 			MemoryBuffer1D<float, Stride1D.Dense>
 				buffer = output.GetBuffer(),
@@ -203,7 +203,7 @@ public sealed partial class Vector : VectorBase<float>
 
 	public Vector IPOP(float scalar, Operations operation)
 	{
-		using (GpuScope.Pin(this))
+		using (GpuScope.Begin(this))
 		{
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
 			Gpu.s_FloatOPKernelIP(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
@@ -219,7 +219,7 @@ public sealed partial class Vector : VectorBase<float>
 		GPU gpu = vectorA.Gpu;
 		Vector output = new(gpu, vectorA.Length, vectorA.Columns);
 
-		using (GpuScope.Pin(output, vectorA, vectorB))
+		using (GpuScope.Begin(output, vectorA, vectorB))
 		{
 			MemoryBuffer1D<float, Stride1D.Dense>
 				buffer = output.GetBuffer(),
@@ -235,7 +235,7 @@ public sealed partial class Vector : VectorBase<float>
 
 	internal Vector _VectorVectorOP_IP(Vector vectorB, Operations operation)
 	{
-		using (GpuScope.Pin(this, vectorB))
+		using (GpuScope.Begin(this, vectorB))
 		{
 			MemoryBuffer1D<float, Stride1D.Dense>
 				buffer = GetBuffer(),
@@ -253,7 +253,7 @@ public sealed partial class Vector : VectorBase<float>
 		GPU gpu = vector.Gpu;
 		Vector output = new(gpu, matrix.RowCount(), 1);
 
-		using (GpuScope.Pin(output, vector, matrix))
+		using (GpuScope.Begin(output, vector, matrix))
 		{
 			MemoryBuffer1D<float, Stride1D.Dense>
 				buffer = output.GetBuffer(),
@@ -279,7 +279,7 @@ public sealed partial class Vector : VectorBase<float>
 
 	public Vector Log_IP(float @base)
 	{
-		using (GpuScope.Pin(this))
+		using (GpuScope.Begin(this))
 		{
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
 			Gpu.LogKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, @base);

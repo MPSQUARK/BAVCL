@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 
 namespace BAVCL;
 
@@ -9,7 +9,7 @@ public partial class Vector
 
     public Vector Fill_IP(float value, int length, int columns = 0)
     {
-        using (CpuScope(syncOnDispose: true))
+        using (this.CpuScopeAndSync())
         {
             Value = Enumerable.Repeat(value, length).ToArray();
             Length = Value.Length;

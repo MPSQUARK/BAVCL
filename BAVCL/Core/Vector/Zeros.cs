@@ -1,4 +1,4 @@
-﻿namespace BAVCL;
+namespace BAVCL;
 
 public partial class Vector
 {
@@ -7,7 +7,7 @@ public partial class Vector
 
     public Vector Zeros_IP(int length, int columns = 0)
     {
-        using (CpuScope(syncOnDispose: true))
+        using (this.CpuScopeAndSync())
         {
             Value = new float[length];
             Length = Value.Length;

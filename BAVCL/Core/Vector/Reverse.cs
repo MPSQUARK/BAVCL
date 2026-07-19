@@ -1,4 +1,4 @@
-﻿using BAVCL.Core;
+using BAVCL.Core;
 using ILGPU;
 using ILGPU.Runtime;
 using System;
@@ -13,7 +13,7 @@ public partial class Vector
 
     public Vector Reverse_IP()
     {
-        using (CpuScope(syncOnDispose: true))
+        using (this.CpuScopeAndSync())
         {
             ReadOnlySpan<float> src = GetCpuReadOnlySpan();
             float[] reversed = new float[src.Length];
@@ -31,7 +31,7 @@ public partial class Vector
 
     public Vector ReverseX_IP()
     {
-        using (GpuScope.Pin(this))
+        using (GpuScope.Begin(this))
         {
             MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
             Gpu.reverseKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent >> 1, buffer.View);

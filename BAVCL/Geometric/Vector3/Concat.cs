@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BAVCL.Core;
@@ -18,7 +18,7 @@ public partial class Vector3
 
     public Vector3 Concat_IP(Vertex vertA)
     {
-        using (CpuScope(syncOnDispose: true))
+        using (this.CpuScopeAndSync())
         {
             // TODO: Can be optimised.
             ReadOnlySpan<float> left = GetCpuReadOnlySpan();
@@ -31,7 +31,7 @@ public partial class Vector3
 
     public Vector3 Concat_IP(Vertex[] vertices)
     {
-        using (CpuScope(syncOnDispose: true))
+        using (this.CpuScopeAndSync())
         {
             // TODO: can be optimised
             ReadOnlySpan<float> left = GetCpuReadOnlySpan();
@@ -45,7 +45,7 @@ public partial class Vector3
 
     public Vector3 Concat_IP(List<Vertex> vertices)
     {
-        using (CpuScope(syncOnDispose: true))
+        using (this.CpuScopeAndSync())
         {
             ReadOnlySpan<float> left = GetCpuReadOnlySpan();
             Value = vertices.Aggregate(left.ToArray(), (current, vert) =>
@@ -67,7 +67,7 @@ public partial class Vector3
 
     public Vector3 Concat_IP(Vector3 vector)
     {
-        using (CpuScope(syncOnDispose: true))
+        using (this.CpuScopeAndSync())
         {
             ReadOnlySpan<float> left = GetCpuReadOnlySpan();
             ReadOnlySpan<float> right = vector.RetrieveReadOnlySpan();
@@ -80,7 +80,7 @@ public partial class Vector3
 
     public Vector3 Concat_IP(Vector3[] vectors)
     {
-        using (CpuScope(syncOnDispose: true))
+        using (this.CpuScopeAndSync())
         {
             float[] merged = GetCpuReadOnlySpan().ToArray();
             for (int i = 0; i < vectors.Length; i++)
@@ -95,7 +95,7 @@ public partial class Vector3
 
     public Vector3 Concat_IP(List<Vector3> vectors)
     {
-        using (CpuScope(syncOnDispose: true))
+        using (this.CpuScopeAndSync())
         {
             float[] merged = GetCpuReadOnlySpan().ToArray();
             for (int i = 0; i < vectors.Count; i++)

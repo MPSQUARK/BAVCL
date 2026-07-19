@@ -1,4 +1,4 @@
-﻿using BAVCL.Core;
+using BAVCL.Core;
 using ILGPU;
 using ILGPU.Runtime;
 using System;
@@ -15,7 +15,7 @@ public partial class Vector
         GPU gpu = vector.Gpu;
         Vector output = new(gpu, vector.Length - 1, vector.Columns);
 
-        using (GpuScope.Pin(output, vector))
+        using (GpuScope.Begin(output, vector))
         {
             MemoryBuffer1D<float, Stride1D.Dense>
                 buffer = output.GetBuffer(),

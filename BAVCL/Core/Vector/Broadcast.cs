@@ -71,7 +71,7 @@ public partial class Vector
 		int outColumns = outShape.ToStorageColumns();
 		Vector output = new(gpu, outLength, outColumns);
 
-		using (GpuScope.Pin(output, vectorA, vectorB))
+		using (GpuScope.Begin(output, vectorA, vectorB))
 		{
 			LaunchBroadcastOp(
 				gpu,
@@ -101,7 +101,7 @@ public partial class Vector
 		int outLength = outShape.ElementCount;
 		var op = new SpecializedValue<int>((int)operation);
 
-		using (GpuScope.Pin(io, other))
+		using (GpuScope.Begin(io, other))
 		{
 			LaunchBroadcastOpIP(
 				gpu,

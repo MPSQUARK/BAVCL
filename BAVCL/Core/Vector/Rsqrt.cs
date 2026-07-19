@@ -1,4 +1,4 @@
-﻿using BAVCL.Core;
+using BAVCL.Core;
 using ILGPU;
 using ILGPU.Algorithms;
 using ILGPU.Runtime;
@@ -21,7 +21,7 @@ public partial class Vector
     /// </summary>
     public Vector Rsqrt_IP()
     {
-        using (var cpu = CpuScope(syncOnDispose: true))
+        using (var cpu = this.CpuScopeAndSync())
         {
             EditableView<float> view = cpu.View;
             for (int i = 0; i < Length; i++)
@@ -47,7 +47,7 @@ public partial class Vector
     /// </summary>
     public Vector RsqrtX_IP()
     {
-        using (GpuScope.Pin(this))
+        using (GpuScope.Begin(this))
         {
             MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
             Gpu.rsqrtKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);

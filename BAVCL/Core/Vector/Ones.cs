@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 
 namespace BAVCL;
 
@@ -9,7 +9,7 @@ public partial class Vector
 
     public Vector Ones_IP(int length, int columns = 0)
     {
-        using (CpuScope(syncOnDispose: true))
+        using (this.CpuScopeAndSync())
         {
             Value = Enumerable.Repeat(1f, length).ToArray();
             Length = Value.Length;
