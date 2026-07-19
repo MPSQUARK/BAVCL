@@ -12,7 +12,6 @@ public partial class Vector
     {
         using (this.CpuScopeAndSync())
         {
-            // TODO: Performance can still be improved
             ReadOnlySpan<float> left = GetCpuReadOnlySpan();
             ReadOnlySpan<float> right = vector.RetrieveReadOnlySpan();
             Value = [.. left, .. right];
