@@ -1,5 +1,6 @@
-﻿
 
+
+using BAVCL.Core;
 using ILGPU;
 using ILGPU.Runtime;
 
@@ -8,26 +9,20 @@ namespace BAVCL.Geometric;
 
 public partial class Vector3
 {
-
 	public static Vector VOP(Vector3 vector, Operations operation)
 	{
 		GPU gpu = vector.Gpu;
-
-		vector.IncrementLiveCount();
-
-		// Make the Output Vector
 		Vector output = Vector.Zeros(gpu, vector.RowCount());
-		output.IncrementLiveCount();
 
-		MemoryBuffer1D<float, Stride1D.Dense>
-			buffer = output.GetBuffer(),        // Output
-			buffer2 = vector.GetBuffer();      // Input
+		using (GpuScope.Begin(output, vector))
+		{
+			MemoryBuffer1D<float, Stride1D.Dense>
+				buffer = output.GetBuffer(),
+				buffer2 = vector.GetBuffer();
 
-		gpu.simdVectorKernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer2.View, 3, new SpecializedValue<int>((int)operation));
-		gpu.Synchronize();
-
-		vector.DecrementLiveCount();
-		output.DecrementLiveCount();
+			gpu.simdVectorKernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer2.View, 3, new SpecializedValue<int>((int)operation));
+			gpu.Synchronize();
+		}
 
 		return output;
 	}
@@ -35,25 +30,18 @@ public partial class Vector3
 	public static Vector VOP(Vector3 vectorA, Vector3 vectorB, Operations operation)
 	{
 		GPU gpu = vectorA.Gpu;
-
-		vectorA.IncrementLiveCount();
-		vectorB.IncrementLiveCount();
-
-		// Make the Output Vector
 		Vector output = Vector.Zeros(gpu, vectorA.RowCount());
-		output.IncrementLiveCount();
 
-		MemoryBuffer1D<float, Stride1D.Dense>
-			buffer = output.GetBuffer(),        // Output
-			buffer2 = vectorA.GetBuffer(),      // Input
-			buffer3 = vectorB.GetBuffer();      // Input
+		using (GpuScope.Begin(output, vectorA, vectorB))
+		{
+			MemoryBuffer1D<float, Stride1D.Dense>
+				buffer = output.GetBuffer(),
+				buffer2 = vectorA.GetBuffer(),
+				buffer3 = vectorB.GetBuffer();
 
-		gpu.simdVectorKernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, 3, new SpecializedValue<int>((int)operation));
-		gpu.Synchronize();
-
-		vectorA.DecrementLiveCount();
-		vectorB.DecrementLiveCount();
-		output.DecrementLiveCount();
+			gpu.simdVectorKernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, 3, new SpecializedValue<int>((int)operation));
+			gpu.Synchronize();
+		}
 
 		return output;
 	}
@@ -61,157 +49,101 @@ public partial class Vector3
 	public static Vector3 OP(Vector3 vectorA, Vector3 vectorB, Operations operation)
 	{
 		GPU gpu = vectorA.Gpu;
+		Vector3 output = new(gpu, vectorA.Length);
 
-		vectorA.IncrementLiveCount();
-		vectorB.IncrementLiveCount();
+		using (GpuScope.Begin(output, vectorA, vectorB))
+		{
+			MemoryBuffer1D<float, Stride1D.Dense>
+				buffer = output.GetBuffer(),
+				buffer2 = vectorA.GetBuffer(),
+				buffer3 = vectorB.GetBuffer();
 
-		// Make the Output Vector
-		Vector3 Output = new(gpu, vectorA.Length);
-		Output.IncrementLiveCount();
+			gpu.a_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
+			gpu.accelerator.Synchronize();
+		}
 
-		// Check if the input & output are in Cache
-		MemoryBuffer1D<float, Stride1D.Dense>
-			buffer = Output.GetBuffer(),        // Output
-			buffer2 = vectorA.GetBuffer(),      // Input
-			buffer3 = vectorB.GetBuffer();      // Input
-
-		// Run the kernel
-		gpu.a_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
-
-		// Synchronise the kernel
-		gpu.accelerator.Synchronize();
-
-		vectorA.DecrementLiveCount();
-		vectorB.DecrementLiveCount();
-		Output.DecrementLiveCount();
-
-		// Return the result
-		return Output;
+		return output;
 	}
+
 	public Vector3 OP(Vector3 vector, Operations operation)
 	{
-		GPU gpu = this.Gpu;
+		GPU gpu = Gpu;
+		Vector3 output = new(gpu, vector.Length);
 
-		IncrementLiveCount();
-		vector.IncrementLiveCount();
+		using (GpuScope.Begin(output, this, vector))
+		{
+			MemoryBuffer1D<float, Stride1D.Dense>
+				buffer = output.GetBuffer(),
+				buffer2 = GetBuffer(),
+				buffer3 = vector.GetBuffer();
 
-		// Make the Output Vector
-		Vector3 Output = new(gpu, vector.Length);
-		Output.IncrementLiveCount();
+			gpu.a_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
+			gpu.accelerator.Synchronize();
+		}
 
-		// Check if the input & output are in Cache
-		MemoryBuffer1D<float, Stride1D.Dense>
-			buffer = Output.GetBuffer(),        // Output
-			buffer2 = GetBuffer(),              // Input
-			buffer3 = vector.GetBuffer();       // Input
-
-		// Run the kernel
-		gpu.a_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
-
-		// Synchronise the kernel
-		gpu.accelerator.Synchronize();
-
-		DecrementLiveCount();
-		vector.DecrementLiveCount();
-		Output.DecrementLiveCount();
-
-		// Return the result
-		return Output;
+		return output;
 	}
-
 
 	public static Vector3 OP(Vector3 vector, float scalar, Operations operation)
 	{
 		GPU gpu = vector.Gpu;
+		Vector3 output = new(gpu, vector.Length);
 
-		vector.IncrementLiveCount();
+		using (GpuScope.Begin(output, vector))
+		{
+			MemoryBuffer1D<float, Stride1D.Dense>
+				buffer = output.GetBuffer(),
+				buffer2 = vector.GetBuffer();
 
-		// Make the Output Vector
-		Vector3 Output = new(gpu, vector.Length);
+			gpu.s_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
+			gpu.accelerator.Synchronize();
+		}
 
-		Output.IncrementLiveCount();
-
-		// Check if the input & output are in Cache
-		MemoryBuffer1D<float, Stride1D.Dense>
-			buffer = Output.GetBuffer(),        // Output
-			buffer2 = vector.GetBuffer();       // Input
-
-		gpu.s_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
-
-		gpu.accelerator.Synchronize();
-
-		vector.DecrementLiveCount();
-		Output.DecrementLiveCount();
-
-		return Output;
+		return output;
 	}
+
 	public Vector3 OP(float scalar, Operations operation)
 	{
-		GPU gpu = this.Gpu;
+		GPU gpu = Gpu;
+		Vector3 output = new(gpu, Length);
 
-		IncrementLiveCount();
+		using (GpuScope.Begin(output, this))
+		{
+			MemoryBuffer1D<float, Stride1D.Dense>
+				buffer = output.GetBuffer(),
+				buffer2 = GetBuffer();
 
-		// Make the Output Vector
-		Vector3 Output = new(gpu, Length);
+			gpu.s_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
+			gpu.accelerator.Synchronize();
+		}
 
-		Output.IncrementLiveCount();
-
-		// Check if the input & output are in Cache
-		MemoryBuffer1D<float, Stride1D.Dense>
-			buffer = Output.GetBuffer(),        // Output
-			buffer2 = this.GetBuffer();         // Input
-
-		gpu.s_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
-
-		gpu.accelerator.Synchronize();
-
-		DecrementLiveCount();
-		Output.DecrementLiveCount();
-
-		return Output;
+		return output;
 	}
-
 
 	public Vector3 OP_IP(Vector3 vector, Operations operation)
 	{
+		using (GpuScope.Begin(this, vector))
+		{
+			MemoryBuffer1D<float, Stride1D.Dense>
+				buffer = GetBuffer(),
+				buffer2 = vector.GetBuffer();
 
-		IncrementLiveCount();
-		vector.IncrementLiveCount();
-
-		// Check if the input & output are in Cache
-		MemoryBuffer1D<float, Stride1D.Dense>
-			buffer = GetBuffer(),               // IO
-			buffer2 = vector.GetBuffer();       // Input
-
-		// Run the kernel
-		Gpu.a_FloatOPKernelIP(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
-
-		// Synchronise the kernel
-		Gpu.accelerator.Synchronize();
-
-		vector.DecrementLiveCount();
-		DecrementLiveCount();
+			Gpu.a_FloatOPKernelIP(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
+			Gpu.accelerator.Synchronize();
+		}
 
 		return this;
 	}
+
 	public Vector3 OP_IP(float scalar, Operations operation)
 	{
-		IncrementLiveCount();
-
-		// Check if the input & output are in Cache
-		MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
-
-		Gpu.s_FloatOPKernelIP(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
-
-		Gpu.accelerator.Synchronize();
-
-		DecrementLiveCount();
+		using (GpuScope.Begin(this))
+		{
+			MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
+			Gpu.s_FloatOPKernelIP(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
+			Gpu.accelerator.Synchronize();
+		}
 
 		return this;
 	}
-
-
-
-
-
 }
