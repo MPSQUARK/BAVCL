@@ -1,4 +1,4 @@
-﻿using BAVCL;
+using BAVCL;
 using BenchmarkDotNet.Attributes;
 using System;
 using System.Linq;
