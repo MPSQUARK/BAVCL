@@ -1,4 +1,4 @@
-﻿using BAVCL.Core;
+using BAVCL.Core;
 
 
 namespace BAVCL;
