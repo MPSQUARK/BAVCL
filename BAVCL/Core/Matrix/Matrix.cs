@@ -16,22 +16,6 @@ public partial class Matrix : VectorBase<float>
         throw new System.NotImplementedException();
     }
 
-    public override float Mean()
-    {
-        throw new System.NotImplementedException();
-    }
-
-    public override float Range()
-    {
-        throw new System.NotImplementedException();
-    }
-
-    public override float Sum()
-    {
-        throw new System.NotImplementedException();
-    }
-
-
     public int MatrixLength()
     {
         return MatrixShape.Item1 * MatrixShape.Item2;

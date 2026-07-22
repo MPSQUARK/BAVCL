@@ -1,89 +1,51 @@
-using ILGPU.Runtime;
-using System;
-using System.Collections.Generic;
+using BAVCL.Modules.GpuOps;
 
 namespace BAVCL.Geometric;
 
 public partial class Vector3
 {
+	public static Vector3 operator +(Vector3 vectorA, Vector3 vectorB) =>
+		vectorA.OP(vectorB, Operations.add);
 
+	public static Vector3 operator -(Vector3 vectorA, Vector3 vectorB) =>
+		vectorA.OP(vectorB, Operations.subtract);
 
-    // Vector3 - Vector3 Interaction
-    public static Vector3 operator +(Vector3 vectorA, Vector3 vectorB)
-    {
-        return OP(vectorA, vectorB, Operations.add);
-    }
-    public static Vector3 operator -(Vector3 vectorA, Vector3 vectorB)
-    {
-        return OP(vectorA, vectorB, Operations.subtract);
-    }
-    public static Vector3 operator *(Vector3 vectorA, Vector3 vectorB)
-    {
-        return OP(vectorA, vectorB, Operations.multiply);
-    }
-    public static Vector3 operator /(Vector3 vectorA, Vector3 vectorB)
-    {
-        return OP(vectorA, vectorB, Operations.divide);
-    }
-    public static Vector3 operator ^(Vector3 vectorA, Vector3 vectorB)
-    {
-        return OP(vectorA, vectorB, Operations.pow);
-    }
+	public static Vector3 operator *(Vector3 vectorA, Vector3 vectorB) =>
+		vectorA.OP(vectorB, Operations.multiply);
 
+	public static Vector3 operator /(Vector3 vectorA, Vector3 vectorB) =>
+		vectorA.OP(vectorB, Operations.divide);
 
-    // Vector3 - Vector Interaction
+	public static Vector3 operator ^(Vector3 vectorA, Vector3 vectorB) =>
+		vectorA.OP(vectorB, Operations.pow);
 
-    // Vector - Vector3 Interaction
+	public static Vector3 operator +(Vector3 vector, float scalar) =>
+		vector.OP(scalar, Operations.add);
 
+	public static Vector3 operator -(Vector3 vector, float scalar) =>
+		vector.OP(scalar, Operations.subtract);
 
-    // Vector3 - Float Interaction
-    public static Vector3 operator +(Vector3 vector, float scalar)
-    {
-        return OP(vector, scalar, Operations.add);
-    }
-    public static Vector3 operator -(Vector3 vector, float scalar)
-    {
-        return OP(vector, scalar, Operations.subtract);
-    }
-    public static Vector3 operator *(Vector3 vector, float scalar)
-    {
-        return OP(vector, scalar, Operations.multiply);
-    }
-    public static Vector3 operator /(Vector3 vector, float scalar)
-    {
-        return OP(vector, scalar, Operations.divide);
-    }
-    public static Vector3 operator ^(Vector3 vector, float scalar)
-    {
-        return OP(vector, scalar, Operations.pow);
-    }
+	public static Vector3 operator *(Vector3 vector, float scalar) =>
+		vector.OP(scalar, Operations.multiply);
 
+	public static Vector3 operator /(Vector3 vector, float scalar) =>
+		vector.OP(scalar, Operations.divide);
 
-    // Float - Vector3 Interaction
-    public static Vector3 operator +(float scalar, Vector3 vector)
-    {
-        return OP(vector, scalar, Operations.add);
-    }
-    public static Vector3 operator -(float scalar, Vector3 vector)
-    {
-        return OP(vector, scalar, Operations.flipSubtract);
-    }
-    public static Vector3 operator *(float scalar, Vector3 vector)
-    {
-        return OP(vector, scalar, Operations.multiply);
-    }
-    public static Vector3 operator /(float scalar, Vector3 vector)
-    {
-        return OP(vector, scalar, Operations.flipDivide);
-    }
-    public static Vector3 operator ^(float scalar, Vector3 vector)
-    {
-        return OP(vector, scalar, Operations.flipPow);
-    }
+	public static Vector3 operator ^(Vector3 vector, float scalar) =>
+		vector.OP(scalar, Operations.pow);
 
-    // Vector3 - Double Interaction
+	public static Vector3 operator +(float scalar, Vector3 vector) =>
+		vector.OP(scalar, Operations.add);
 
-    // Double - Vector3 Interaction
+	public static Vector3 operator -(float scalar, Vector3 vector) =>
+		vector.OP(scalar, Operations.flipSubtract);
 
+	public static Vector3 operator *(float scalar, Vector3 vector) =>
+		vector.OP(scalar, Operations.multiply);
 
+	public static Vector3 operator /(float scalar, Vector3 vector) =>
+		vector.OP(scalar, Operations.flipDivide);
+
+	public static Vector3 operator ^(float scalar, Vector3 vector) =>
+		vector.OP(scalar, Operations.flipPow);
 }
