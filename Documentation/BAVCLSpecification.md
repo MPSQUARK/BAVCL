@@ -118,9 +118,31 @@ CPU edits: `CpuScope.Begin<T>(ICacheable<T>, bool syncToGpu)` or `.CpuScope()` /
 
 `IMemoryManager` interface allows alternative strategies. Default: LRU auto-cache with configurable memory cap (80% of device memory).
 
-### 2.6 Extension-Method Organization (Target - WIP)
+### 2.6 Extension-Method Organization (IMPLEMENTED)
 
-Data types stay thin. Operations live in `Operations/` as extension methods — one file per operation family across all supported types (e.g. `Normalise.cs` handles fp32, fp64, int32).
+Data types stay thin (`Vector.cs`, `Vector3.cs` — constructors, operators, copy/equals, conversions, indexers). Operations live in `Modules/` as **namespace feature gates**: import only the modules you need and the corresponding extensions appear on `Vector`, `Vector3`, and primitive arrays.
+
+| Namespace | Public API file | Internal helpers |
+|-----------|-----------------|------------------|
+| `BAVCL.Modules.Arithmetic` | `VectorArithmeticExtensions.cs` | `Internal/SumCore.cs`, `Cross.cs`, `ElementWise.cs`, … |
+| `BAVCL.Modules.Statistics` | `VectorStatisticsExtensions.cs` | `Internal/DescriptiveStatistics.cs`, `ArrayStatistics.cs`, … |
+| `BAVCL.Modules.Structural` | `VectorStructuralExtensions.cs` | `Internal/Factories.cs`, `ShapeOps.cs`, `Formatting.cs` |
+| `BAVCL.Modules.Geometric` | `Vector3GeometricExtensions.cs` | `Internal/Vector3Geometry.cs` |
+| `BAVCL.Modules.GpuOps` | `GpuOpsModule.cs` | `Internal/Broadcast.cs`, `VectorGpuOps.cs`, `Vector3GpuOps.cs`, `VectorVectorOp.cs`, … |
+
+Each module exposes **one API-catalog file** with C# 14 extension blocks. Static and instance members are split across paired public classes when required (CS0111), e.g. `VectorArithmetic` (static) + `VectorArithmeticExtensions` (instance + `*_IP`). Implementation lives in `Internal/` as `internal static` types — consumers never import or reference them.
+
+```csharp
+using BAVCL;                          // core Vector only
+
+using BAVCL.Modules.Arithmetic;       // + Vector.Sum(v), v.Cross(b), …
+using BAVCL.Modules.Statistics;       // + v.Mean(), arr.Min(), …
+
+Vector.Sum(vec);   // NumPy-style static extension
+vec.Sum();         // ndarray-style instance extension
+```
+
+`VectorBase<T>.Gpu` is `internal` to enable module access without public exposure.
 
 ### 2.7 Source-Only Distribution
 
@@ -733,41 +755,50 @@ Feasibility depends on ILGPU and device APIs — document as investigation item.
 
 ## 9. Code Organization Roadmap
 
-### 9.1 Current State
+### 9.1 Previous State (pre-refactor)
 
-Operations are spread across **25+ partial class files** per type (`Core/Vector/*.cs`, `Geometric/Vector3/*.cs`). This creates maintenance burden and duplication as types are added.
+Operations were spread across **25+ partial class files** per type (`Core/Vector/*.cs`, `Geometric/Vector3/*.cs`).
 
-### 9.2 Target Layout
+### 9.2 Current Layout (IMPLEMENTED)
 
 ```
 BAVCL/
   Core/
     Vector/
-      Vector.cs              # Slim: constructors, shape, ICacheable only
-    Vector3/
-      Vector3.cs             # Slim: constructors, Columns=3 fixed
-    VectorDouble/
-      VectorDouble.cs        # Future
-    Operations/
-      Abs.cs                 # Abs(), AbsX(), Abs_IP(), AbsX_IP() for all types
-      Normalise.cs
-      Sum.cs
-      Transpose.cs
-      ...
-    GPUScope.cs
+      Vector.cs              # Slim: ctors, operators, Copy, Equals, ToVector3
+    VectorBase/              # Infrastructure partials (unchanged)
   Geometric/
-    Vertex.cs
-  Services/
-    GPUManager.cs
+    Vector3/
+      Vector3.cs             # Slim: ctors, conversions, indexers
+      OperatorOverloads.cs
+      Copy.cs, Indexers.cs, GetValue.cs, SetValue.cs
+  Modules/
+    Arithmetic/
+      VectorArithmeticExtensions.cs   # VectorArithmetic + VectorArithmeticExtensions
+      Internal/                       # SumCore, Cross, ElementWise, DotProduct, MatrixOps
+    Statistics/
+      VectorStatisticsExtensions.cs
+      Internal/                       # DescriptiveStatistics, ArrayStatistics, Reduce
+    Structural/
+      VectorStructuralExtensions.cs
+      Internal/                       # Factories, ShapeOps, Formatting
+    Geometric/
+      Vector3GeometricExtensions.cs
+      Internal/                       # Vector3Geometry
+    GpuOps/
+      GpuOpsModule.cs
+      Internal/                       # Broadcast, VectorGpuOps, Vector3GpuOps, VectorVectorOp, Vector3Kernels
 ```
 
-### 9.3 Migration Strategy
+The former `BAVCL/Extensions/` folder has been merged into `Modules/`. Global usings in `GlobalUsings.cs` import Arithmetic, Structural, and Statistics for in-library convenience. External consumers opt in per module via `using BAVCL.Modules.*`.
 
-1. Introduce `GPUScope` and remove manual `LiveCount` from operations
-2. Extract first operation family (e.g. `Abs`) to extension methods as proof-of-concept
-3. Migrate remaining operations file-by-file
-4. Collapse partial classes into slim type definitions
-5. Apply same pattern to `Vector3`
+### 9.3 Completed Migration Steps
+
+1. Changed `VectorBase<T>.Gpu` from `protected` to `internal`
+2. Extracted all operations to `Modules/` extension methods
+3. Collapsed `Vector` and `Vector3` partial classes into slim type definitions
+4. Removed abstract `Sum()`/`Mean()`/`Range()` from `VectorBase<T>`
+5. Consolidated per-operation public classes into one API-catalog file per module with `Internal/` implementation helpers
 
 ### 9.4 .NET 11 Discriminated Unions
 
@@ -989,7 +1020,7 @@ When code and this spec disagree, **this spec is the target**.
 | 16  | Vector3 errors       | Wrong exception messages                        | Correct messages for magnitude/distance      | `Magnitude.cs`, `Distance.cs`        |
 | 17  | Memory sync          | `Residence` flags + `FreeBuffer`/`GCItem` split | Implemented                                  | `SyncCPU.cs`, `LRU.cs`, `Residence.cs` |
 | 18  | Memory accounting    | `sizeof(T) × length` estimate                   | Explore actual GPU memory tracking           | `CalculateMemorySize.cs`, `LRU.cs`   |
-| 19  | Code organization    | 25+ partial class files per type                | Extension methods in`Operations/`            | `Core/Vector/*.cs`                   |
+| 19  | Code organization    | 25+ partial class files per type                | Extension methods in `Modules/`              | `Modules/*.cs`                       |
 | 20  | VectorBase role      | Sometimes described as CPU mirror               | Infrastructure base for all vector types     | `VectorBase/VectorBase.cs`           |
 | 21  | Unary`+` operator    | Calls`AbsX`                                     | Should be identity or documented             | `Vector.cs` L148                     |
 | 22  | Vector3 buffer reuse | `Pull()` on conversion                          | Pass buffer ID between types                 | `Vector3/Vector3.cs`                 |
