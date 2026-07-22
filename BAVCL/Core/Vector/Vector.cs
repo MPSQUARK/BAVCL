@@ -21,7 +21,7 @@ public sealed partial class Vector : VectorBase<float>
 
 	public override void Print() => Console.WriteLine(this.ToStr());
 
-	public void Print(byte decimalplaces = 2, bool syncCPU = true) => Console.WriteLine(this.ToStr(decimalplaces, syncCPU));
+	public void Print(byte decimalplaces = 2) => Console.WriteLine(VectorStructuralExtensions.ToStr(this, decimalplaces));
 
 	public bool Equals(Vector vector)
 	{
@@ -59,10 +59,10 @@ public sealed partial class Vector : VectorBase<float>
 		return new Geometric.Vector3(Gpu, ToArray());
 	}
 
-	public override string ToString() => this.ToStr(2, false);
+	public override string ToString() => VectorStructuralExtensions.ToStr(this);
 
-	#region "OPERATORS"
-	public static Vector operator +(Vector vector) =>
+    #region "OPERATORS"
+    public static Vector operator +(Vector vector) =>
 		vector.AbsX();
 	public static Vector operator +(Vector vectorA, Vector vectorB) =>
 		vectorA.OP(vectorB, Operations.add);
