@@ -8,6 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Core\VectorInt\**" />
+    <EmbeddedResource Remove="Core\VectorInt\**" />
+    <None Remove="Core\VectorInt\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="BAVCL.Tests" />
   </ItemGroup>
 
@@ -20,7 +26,6 @@
   <ItemGroup>
     <Folder Include="Astrophysics\" />
     <Folder Include="Core\Mask\" />
-    <Folder Include="Core\VectorInt\" />
     <Folder Include="Plotting\Saved Plots\" />
     <Folder Include="Tests\" />
   </ItemGroup>

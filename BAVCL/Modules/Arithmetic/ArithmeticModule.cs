@@ -1,3 +1,5 @@
+using BAVCL.Modules.Structural;
+
 namespace BAVCL.Modules.Arithmetic;
 
 public static class ArithmeticModule

@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 using ILGPU.Algorithms;
 using BAVCL.Modules.GpuOps;
+using BAVCL.Modules.Arithmetic;
 
 namespace BAVCL.Modules.Statistics;
 

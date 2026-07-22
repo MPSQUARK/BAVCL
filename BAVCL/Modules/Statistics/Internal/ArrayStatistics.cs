@@ -1,4 +1,5 @@
 using System;
+using BAVCL.Modules.Arithmetic;
 
 namespace BAVCL.Modules.Statistics;
 
