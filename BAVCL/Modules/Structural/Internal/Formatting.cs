@@ -100,7 +100,7 @@ internal static class FormattingCore
 		return stringBuilder.ToString();
 	}
 
-	internal static string ToStr(Vector vector, byte decimalplaces = 2, bool syncCPU = true)
+	internal static string ToStr(Vector vector, byte decimalplaces = 2)
 	{
 		ReadOnlySpan<float> data = vector.RetrieveReadOnlySpan();
 

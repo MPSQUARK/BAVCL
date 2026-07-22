@@ -166,8 +166,8 @@ public static class VectorStructural
 		public static float[] GetSliceAsArray(Vector vector, int row_col_index, Axis axis) =>
 			ShapeOpsCore.GetSliceAsArray(vector, row_col_index, axis);
 
-		public static string ToStr(Vector vector, byte decimalplaces = 2, bool syncCPU = true) =>
-			FormattingCore.ToStr(vector, decimalplaces, syncCPU);
+		public static string ToStr(Vector vector, byte decimalplaces = 2) =>
+			FormattingCore.ToStr(vector, decimalplaces);
 	}
 
 	extension(BAVCL.Geometric.Vector3)
@@ -367,7 +367,7 @@ public static class VectorStructuralExtensions
 		public float[] GetSliceAsArray(int row_col_index, Axis axis) =>
 			Vector.GetSliceAsArray(vector, row_col_index, axis);
 
-		public string ToStr(byte decimalplaces = 2, bool syncCPU = true) =>
-			Vector.ToStr(vector, decimalplaces, syncCPU);
+		public string ToStr(byte decimalplaces = 2) =>
+			Vector.ToStr(vector, decimalplaces);
 	}
 }
