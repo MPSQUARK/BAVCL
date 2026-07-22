@@ -1,14 +1,6 @@
 using BAVCL;
 using BenchmarkDotNet.Attributes;
 using System;
-using System.Linq;
-using ILGPU.Algorithms;
-using System.Threading.Tasks;
-using BAVCL.Geometric;
-using System.Collections.Generic;
-using ILGPU;
-using BAVCL.Experimental;
-using ILGPU.Runtime;
 using BAVCL.Services;
 
 namespace Testing_Console;

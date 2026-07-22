@@ -1,4 +1,3 @@
-using BAVCL.Core;
 using BAVCL.Geometric;
 using BAVCL.Modules.Structural;
 using ILGPU;

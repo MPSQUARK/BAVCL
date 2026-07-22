@@ -1,8 +1,5 @@
 using BAVCL;
-using BAVCL.Core;
-using BAVCL.Geometric;
 using BAVCL.Modules.Arithmetic;
-using BAVCL.Modules.Structural;
 using BAVCL.Services;
 
 GPU gpu = GPUManager.Default;

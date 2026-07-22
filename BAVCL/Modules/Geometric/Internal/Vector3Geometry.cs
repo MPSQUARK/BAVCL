@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using BAVCL.Core;
 using BAVCL.Core.Exceptions;
 using BAVCL.Geometric;
 using BAVCL.Modules.GpuOps;

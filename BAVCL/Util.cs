@@ -1,7 +1,5 @@
 using ILGPU.Algorithms;
 using System;
-using System.Linq;
-using System.Text;
 
 namespace BAVCL.Utility;
 

@@ -1,5 +1,3 @@
-using System.ComponentModel;
-using BAVCL.Core;
 using BAVCL.Geometric;
 
 namespace BAVCL.Modules.GpuOps;

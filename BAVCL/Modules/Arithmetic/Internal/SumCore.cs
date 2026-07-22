@@ -1,5 +1,4 @@
 using System;
-using System.Numerics;
 using NumericVectorF = System.Numerics.Vector<float>;
 using NumericVectorD = System.Numerics.Vector<double>;
 

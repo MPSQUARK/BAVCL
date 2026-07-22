@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using BAVCL.Core;
 using ILGPU;
 using ILGPU.Runtime;
 

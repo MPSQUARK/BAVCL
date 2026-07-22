@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using BAVCL.Core.Exceptions;
-using BAVCL.Experimental;
 using ILGPU;
 using ILGPU.Algorithms;
 using ILGPU.Runtime;

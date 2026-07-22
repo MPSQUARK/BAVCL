@@ -1,6 +1,4 @@
-using System.ComponentModel;
 using System.Collections.Generic;
-using BAVCL.Core;
 using BAVCL.Geometric;
 
 namespace BAVCL.Modules.Geometric;

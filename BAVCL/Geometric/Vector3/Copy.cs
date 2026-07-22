@@ -1,5 +1,3 @@
-using BAVCL.Core;
-
 namespace BAVCL.Geometric;
 
 public sealed partial class Vector3 : VectorBase<float>

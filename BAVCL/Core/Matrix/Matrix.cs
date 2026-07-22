@@ -1,6 +1,3 @@
-using BAVCL.Core;
-
-
 namespace BAVCL;
 
 public partial class Matrix : VectorBase<float>

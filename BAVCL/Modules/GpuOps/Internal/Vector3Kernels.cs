@@ -1,5 +1,3 @@
-using BAVCL.Core;
-using BAVCL.Geometric;
 using ILGPU;
 using ILGPU.Runtime;
 

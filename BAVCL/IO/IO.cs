@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.IO;
 using System.Text.RegularExpressions;
-using BAVCL.Core;
 
 namespace BAVCL.IO;
 
