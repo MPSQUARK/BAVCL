@@ -1,4 +1,6 @@
 using BAVCL.Services;
+using BAVCL.Modules.GpuOps;
+using BAVCL.Modules.Structural;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
