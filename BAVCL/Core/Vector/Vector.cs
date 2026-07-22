@@ -1,5 +1,4 @@
 using System;
-using BAVCL.Core;
 using BAVCL.Modules.Arithmetic;
 using BAVCL.Modules.GpuOps;
 using BAVCL.Modules.Structural;

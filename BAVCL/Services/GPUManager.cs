@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using BAVCL.Core;
 using BAVCL.Core.Interfaces;
 using ILGPU;
 using ILGPU.Runtime;

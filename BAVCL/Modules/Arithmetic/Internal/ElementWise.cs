@@ -1,5 +1,4 @@
 using System;
-using BAVCL.Core;
 using BAVCL.Modules.GpuOps;
 using ILGPU;
 using ILGPU.Algorithms;

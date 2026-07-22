@@ -1,5 +1,3 @@
-using System.ComponentModel;
-
 namespace BAVCL.Modules.Statistics;
 
 public static class VectorStatistics
