@@ -7,7 +7,7 @@ namespace BAVCL.Core;
 
 public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unmanaged
 {
-	protected GPU Gpu;
+	internal GPU Gpu;
 
 	internal T[] Value = [];
 
@@ -168,10 +168,6 @@ public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unman
 
 		return min;
 	}
-	public abstract T Mean();
-	public abstract T Range();
-	public abstract T Sum();
-
 	internal void CommitCpuView() => Length = Value.Length;
 
 	internal void ValidateIndexForView(int index)
