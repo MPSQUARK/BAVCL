@@ -31,6 +31,7 @@ public sealed partial class Vector : VectorBase<float>
 		ReadOnlySpan<float> left = RetrieveReadOnlySpan();
 		ReadOnlySpan<float> right = vector.RetrieveReadOnlySpan();
 
+		// TODO: Can use SIMD
 		for (int i = 0; i < Length; i++)
 		{
 			if (left[i] != right[i])
@@ -45,6 +46,7 @@ public sealed partial class Vector : VectorBase<float>
 		if (ID == 0)
 			return new Vector(Gpu, ToArray(), Columns, Cache);
 
+		// TODO: I don't think PULL is the right API to use here. Need to investigate.
 		return new Vector(Gpu, Pull(), Columns, Cache);
 	}
 
