@@ -71,9 +71,9 @@ internal static class ElementWiseCore
 
 	internal static void RsqrtInPlace(Vector vector)
 	{
-		using (var cpu = vector.CpuScopeAndSync())
+		using (var scope = vector.CpuScopeAndSync())
 		{
-			EditableView<float> view = cpu.View;
+			EditableView<float> view = scope.View;
 			for (int i = 0; i < vector.Length; i++)
 				view[i] = XMath.Rsqrt(view[i]);
 		}
