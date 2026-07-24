@@ -1,7 +1,7 @@
 using ILGPU.Algorithms;
 using System;
 
-namespace BAVCL.Utility;
+namespace BAVCL.Core;
 
 public class Util
 {
