@@ -3,6 +3,7 @@ using BAVCL.Modules.GpuOps;
 using ILGPU;
 using ILGPU.Algorithms;
 using ILGPU.Runtime;
+using BAVCL.Modules.Statistics;
 
 namespace BAVCL.Modules.Arithmetic;
 
@@ -17,7 +18,7 @@ internal static class ElementWiseCore
 
 	internal static void AbsInPlace(Vector vector)
 	{
-		if (vector.Min() > 0f)
+		if (DescriptiveStatistics.Min(vector) > 0f)
 			return;
 
 		using (var scope = vector.CpuScopeAndSync())

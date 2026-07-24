@@ -169,6 +169,7 @@ flowchart TD
         MM[IMemoryManager / LRU]
         GS[GPUScope]
         subgraph types [Vector Types]
+            CB[CacheableBase T]
             VB[VectorBase T]
             V[Vector fp32]
             V3[Vector3]
@@ -186,6 +187,7 @@ flowchart TD
     consumers --> GS
     GS --> types
     types --> VB
+    VB --> CB
     V --> VB
     V3 --> VB
     ops --> types
@@ -203,15 +205,19 @@ classDiagram
         +DeCache()
         +SyncCPU()
     }
-    class VectorBase~T~ {
+    class CacheableBase~T~ {
         +T[] Value
         +int Length
-        +int Columns
-        +Cache()
+        +virtual MemorySize
         +GetBuffer()
+        +SyncCPU()
         +Pull()
-        +Mean()*
-        +Sum()*
+    }
+    class VectorBase~T~ {
+        +int Columns
+        +Shape()
+        +indexers
+        +ToCSV()
     }
     class Vector {
         fp32 specialized
@@ -227,21 +233,31 @@ classDiagram
         packed bits planned
     }
 
-    ICacheable <|.. VectorBase
+    ICacheable <|.. CacheableBase
+    CacheableBase <|-- VectorBase
+    CacheableBase <|.. Mask
     VectorBase <|-- Vector
     VectorBase <|-- Vector3
     VectorBase <|-- VectorT
-    VectorBase <|-- Mask
 ```
 
-**`VectorBase<T>`** is the abstract base for **any** vector type. It defines:
+**`CacheableBase<T>`** is the abstract base for **any GPU-cacheable data** (`BAVCL/Core/CacheableBase/CacheableBase.cs` — single file). It defines:
 
 - GPU caching lifecycle (`Cache`, `DeCache`, `SyncCPU`, `GetBuffer`, `UpdateCache`)
-- Shape parameters (`Length`, `Columns`, `ID`, `LiveCount`)
-- Host-side data array (`Value[]`)
-- Common utilities (`Pull`, `Shape`, `RowCount`, abstract reductions)
+- Coherence state (`ID`, `LiveCount`, `Residence`, `Length`)
+- Host-side backing store (`Value[]`)
+- `virtual MemorySize` — default `sizeof(T) × Length`; overridable for packed types (e.g. future `Mask`)
+- Span/read APIs (`Pull`, `RetrieveReadOnlySpan`, `ToArray`, `CpuScope` host)
 
-It is **not** a "CPU mirror" — it is type-agnostic vector infrastructure shared by all vector kinds.
+**`VectorBase<T>`** extends `CacheableBase<T>` with vector shape and indexing:
+
+- Shape parameters (`Columns`, `RowCount`, `Shape()`)
+- Indexers and coordinate access (`GetAt`, `SetAt`)
+- `IIO` surface (`Print`, `ToCSV` forwarder to Structural module)
+
+Operations (`Sum`, `Mean`, `Min`, `Max`, etc.) live in **`Modules/`** — not on the type hierarchy.
+
+It is **not** a "CPU mirror" — `CacheableBase` owns memory; `VectorBase` owns vector semantics shared by all vector kinds.
 
 ### 3.3 GPU Lifecycle
 
@@ -764,9 +780,13 @@ Operations were spread across **25+ partial class files** per type (`Core/Vector
 ```
 BAVCL/
   Core/
+    CacheableBase/
+      CacheableBase.cs       # ALL memory: ICacheable<T>, coherence, LRU, virtual MemorySize
     Vector/
       Vector.cs              # Slim: ctors, operators, Copy, Equals, ToVector3
-    VectorBase/              # Infrastructure partials (unchanged)
+    VectorBase/
+      VectorBase.cs          # Slim: Columns, shape, IIO forwarders, validation
+      Indexers.cs            # GetAt/SetAt + indexers
   Geometric/
     Vector3/
       Vector3.cs             # Slim: ctors, conversions, indexers
@@ -781,7 +801,7 @@ BAVCL/
       Internal/                       # DescriptiveStatistics, ArrayStatistics, Reduce
     Structural/
       VectorStructuralExtensions.cs
-      Internal/                       # Factories, ShapeOps, Formatting
+      Internal/                       # Factories, ShapeOps, Formatting (incl. ToCsv)
     Geometric/
       Vector3GeometricExtensions.cs
       Internal/                       # Vector3Geometry
@@ -799,6 +819,7 @@ The former `BAVCL/Extensions/` folder has been merged into `Modules/`. Global us
 3. Collapsed `Vector` and `Vector3` partial classes into slim type definitions
 4. Removed abstract `Sum()`/`Mean()`/`Range()` from `VectorBase<T>`
 5. Consolidated per-operation public classes into one API-catalog file per module with `Internal/` implementation helpers
+6. Extracted `CacheableBase<T>` from `VectorBase<T>` — memory in single `CacheableBase/CacheableBase.cs`; `VectorBase` retains shape/indexing only; `Min`/`Max`/`ToCSV` implementation in Modules
 
 ### 9.4 .NET 11 Discriminated Unions
 
