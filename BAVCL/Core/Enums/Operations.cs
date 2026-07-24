@@ -1,4 +1,4 @@
-namespace BAVCL;
+﻿namespace BAVCL.Core;
 
 public enum Operations
 {

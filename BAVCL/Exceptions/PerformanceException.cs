@@ -1,6 +1,6 @@
 using System;
 
-namespace BAVCL.Core.Exceptions;
+namespace BAVCL.Exceptions;
 
 /// <summary>
 /// Thrown when a call would hurt performance by misusing the library API

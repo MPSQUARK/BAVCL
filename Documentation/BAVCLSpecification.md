@@ -780,30 +780,30 @@ Operations were spread across **25+ partial class files** per type (`Core/Vector
 ```
 BAVCL/
   Core/
-    CacheableBase/
+    Bases/
       CacheableBase.cs       # ALL memory: ICacheable<T>, coherence, LRU, virtual MemorySize
-    Vector/
+      VectorBase.cs          # Columns, shape, IIO forwarders, indexers, validation
+    Types/
       Vector.cs              # Slim: ctors, operators, Copy, Equals, ToVector3
-    VectorBase/
-      VectorBase.cs          # Slim: Columns, shape, IIO forwarders, validation
-      Indexers.cs            # GetAt/SetAt + indexers
-  Geometric/
-    Vector3/
-      Vector3.cs             # Slim: ctors, conversions, indexers
-      OperatorOverloads.cs
-      Copy.cs, Indexers.cs, GetValue.cs, SetValue.cs
+      Matrix.cs              # Stub
+      Table.cs               # Stub
+    GPU/ Memory/ Interfaces/ …
   Modules/
     Arithmetic/
-      VectorArithmeticExtensions.cs   # VectorArithmetic + VectorArithmeticExtensions
+      ArithmeticModule.cs
       Internal/                       # SumCore, Cross, ElementWise, DotProduct, MatrixOps
     Statistics/
-      VectorStatisticsExtensions.cs
+      StatisticsModule.cs
       Internal/                       # DescriptiveStatistics, ArrayStatistics, Reduce
     Structural/
-      VectorStructuralExtensions.cs
+      StructuralModule.cs
       Internal/                       # Factories, ShapeOps, Formatting (incl. ToCsv)
     Geometric/
-      Vector3GeometricExtensions.cs
+      GeometricModule.cs
+      Types/
+        Vector3.cs                    # Single file: ctors, Copy, Coord indexers, operators
+        Vertex.cs                     # CPU 3-vector struct
+        Coord.cs                      # BAVCL.Geometric.Enums
       Internal/                       # Vector3Geometry
     GpuOps/
       GpuOpsModule.cs
@@ -819,7 +819,8 @@ The former `BAVCL/Extensions/` folder has been merged into `Modules/`. Global us
 3. Collapsed `Vector` and `Vector3` partial classes into slim type definitions
 4. Removed abstract `Sum()`/`Mean()`/`Range()` from `VectorBase<T>`
 5. Consolidated per-operation public classes into one API-catalog file per module with `Internal/` implementation helpers
-6. Extracted `CacheableBase<T>` from `VectorBase<T>` — memory in single `CacheableBase/CacheableBase.cs`; `VectorBase` retains shape/indexing only; `Min`/`Max`/`ToCSV` implementation in Modules
+6. Extracted `CacheableBase<T>` from `VectorBase<T>` — memory in `Core/Bases/CacheableBase.cs`; `VectorBase` retains shape/indexing only; `Min`/`Max`/`ToCSV` implementation in Modules
+7. Consolidated type folders: `Core/Bases/` (CacheableBase + VectorBase), `Core/Types/` (Vector, Matrix, Table), `Modules/Geometric/Types/` (Vector3, Vertex, Coord); merged Vector3 partials into one file
 
 ### 9.4 .NET 11 Discriminated Unions
 

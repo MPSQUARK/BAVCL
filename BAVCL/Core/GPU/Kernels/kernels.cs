@@ -1,6 +1,6 @@
 using System;
 using System.Diagnostics;
-using BAVCL.Core.Exceptions;
+using BAVCL.Exceptions;
 using ILGPU;
 using ILGPU.Algorithms;
 using ILGPU.Runtime;
@@ -272,75 +272,75 @@ public partial class GPU
 		switch ((Operations)operation.Value)
 		{
 			case Operations.multiply:
-			{
-				float sum = 0f;
-				for (int i = 0; i < cols; i++)
-					sum += coeffs[i] * inputB[startidx + i];
-				return sum;
-			}
+				{
+					float sum = 0f;
+					for (int i = 0; i < cols; i++)
+						sum += coeffs[i] * inputB[startidx + i];
+					return sum;
+				}
 			case Operations.add:
-			{
-				float sum = 0f;
-				for (int i = 0; i < cols; i++)
-					sum += coeffs[i] + inputB[startidx + i];
-				return sum;
-			}
+				{
+					float sum = 0f;
+					for (int i = 0; i < cols; i++)
+						sum += coeffs[i] + inputB[startidx + i];
+					return sum;
+				}
 			case Operations.subtract:
-			{
-				float sum = 0f;
-				for (int i = 0; i < cols; i++)
-					sum += coeffs[i] - inputB[startidx + i];
-				return sum;
-			}
+				{
+					float sum = 0f;
+					for (int i = 0; i < cols; i++)
+						sum += coeffs[i] - inputB[startidx + i];
+					return sum;
+				}
 			case Operations.flipSubtract:
-			{
-				float sum = 0f;
-				for (int i = 0; i < cols; i++)
-					sum += inputB[startidx + i] - coeffs[i];
-				return sum;
-			}
+				{
+					float sum = 0f;
+					for (int i = 0; i < cols; i++)
+						sum += inputB[startidx + i] - coeffs[i];
+					return sum;
+				}
 			case Operations.divide:
-			{
-				float sum = 0f;
-				for (int i = 0; i < cols; i++)
-					sum += coeffs[i] / inputB[startidx + i];
-				return sum;
-			}
+				{
+					float sum = 0f;
+					for (int i = 0; i < cols; i++)
+						sum += coeffs[i] / inputB[startidx + i];
+					return sum;
+				}
 			case Operations.flipDivide:
-			{
-				float sum = 0f;
-				for (int i = 0; i < cols; i++)
-					sum += inputB[startidx + i] / coeffs[i];
-				return sum;
-			}
+				{
+					float sum = 0f;
+					for (int i = 0; i < cols; i++)
+						sum += inputB[startidx + i] / coeffs[i];
+					return sum;
+				}
 			case Operations.pow:
-			{
-				float sum = 0f;
-				for (int i = 0; i < cols; i++)
-					sum += XMath.Pow(coeffs[i], inputB[startidx + i]);
-				return sum;
-			}
+				{
+					float sum = 0f;
+					for (int i = 0; i < cols; i++)
+						sum += XMath.Pow(coeffs[i], inputB[startidx + i]);
+					return sum;
+				}
 			case Operations.flipPow:
-			{
-				float sum = 0f;
-				for (int i = 0; i < cols; i++)
-					sum += XMath.Pow(inputB[startidx + i], coeffs[i]);
-				return sum;
-			}
+				{
+					float sum = 0f;
+					for (int i = 0; i < cols; i++)
+						sum += XMath.Pow(inputB[startidx + i], coeffs[i]);
+					return sum;
+				}
 			case Operations.differenceSquared:
-			{
-				float sum = 0f;
-				for (int i = 0; i < cols; i++)
-					sum += XMath.Pow(coeffs[i] - inputB[startidx + i], 2f);
-				return sum;
-			}
+				{
+					float sum = 0f;
+					for (int i = 0; i < cols; i++)
+						sum += XMath.Pow(coeffs[i] - inputB[startidx + i], 2f);
+					return sum;
+				}
 			case Operations.distance:
-			{
-				float sum = 0f;
-				for (int i = 0; i < cols; i++)
-					sum += XMath.Pow(coeffs[i] - inputB[startidx + i], 2f);
-				return XMath.Sqrt(sum);
-			}
+				{
+					float sum = 0f;
+					for (int i = 0; i < cols; i++)
+						sum += XMath.Pow(coeffs[i] - inputB[startidx + i], 2f);
+					return XMath.Sqrt(sum);
+				}
 			default:
 				return 0f;
 		}

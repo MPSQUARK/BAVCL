@@ -1,3 +1,4 @@
+using BAVCL.Core.Enums;
 using ILGPU;
 using ILGPU.Runtime;
 using System;
