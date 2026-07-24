@@ -62,7 +62,7 @@ BAVCL accelerates large array operations on CUDA, OpenCL, or CPU backends while 
 
 ### 1.4 Solution Structure
 
-```
+```text
 BAVCL.sln
 ├── BAVCL/                  # Core library (net10.0)
 └── Testing Console/        # Demo app + BenchmarkDotNet harness
@@ -122,13 +122,13 @@ CPU edits: `CpuScope.Begin<T>(ICacheable<T>, bool syncToGpu)` or `.CpuScope()` /
 
 Data types stay thin (`Vector.cs`, `Vector3.cs` — constructors, operators, copy/equals, conversions, indexers). Operations live in `Modules/` as **namespace feature gates**: import only the modules you need and the corresponding extensions appear on `Vector`, `Vector3`, and primitive arrays.
 
-| Namespace | Public API file | Internal helpers |
-|-----------|-----------------|------------------|
-| `BAVCL.Modules.Arithmetic` | `VectorArithmeticExtensions.cs` | `Internal/SumCore.cs`, `Cross.cs`, `ElementWise.cs`, … |
-| `BAVCL.Modules.Statistics` | `VectorStatisticsExtensions.cs` | `Internal/DescriptiveStatistics.cs`, `ArrayStatistics.cs`, … |
-| `BAVCL.Modules.Structural` | `VectorStructuralExtensions.cs` | `Internal/Factories.cs`, `ShapeOps.cs`, `Formatting.cs` |
-| `BAVCL.Modules.Geometric` | `Vector3GeometricExtensions.cs` | `Internal/Vector3Geometry.cs` |
-| `BAVCL.Modules.GpuOps` | `GpuOpsModule.cs` | `Internal/Broadcast.cs`, `VectorGpuOps.cs`, `Vector3GpuOps.cs`, `VectorVectorOp.cs`, … |
+| Namespace                  | Public API file                 | Internal helpers                                                                       |
+| -------------------------- | ------------------------------- | -------------------------------------------------------------------------------------- |
+| `BAVCL.Modules.Arithmetic` | `VectorArithmeticExtensions.cs` | `Internal/SumCore.cs`, `Cross.cs`, `ElementWise.cs`, …                                 |
+| `BAVCL.Modules.Statistics` | `VectorStatisticsExtensions.cs` | `Internal/DescriptiveStatistics.cs`, `ArrayStatistics.cs`, …                           |
+| `BAVCL.Modules.Structural` | `VectorStructuralExtensions.cs` | `Internal/Factories.cs`, `ShapeOps.cs`, `Formatting.cs`                                |
+| `BAVCL.Modules.Geometric`  | `Vector3GeometricExtensions.cs` | `Internal/Vector3Geometry.cs`                                                          |
+| `BAVCL.Modules.GpuOps`     | `GpuOpsModule.cs`               | `Internal/Broadcast.cs`, `VectorGpuOps.cs`, `Vector3GpuOps.cs`, `VectorVectorOp.cs`, … |
 
 Each module exposes **one API-catalog file** with C# 14 extension blocks. Static and instance members are split across paired public classes when required (CS0111), e.g. `VectorArithmetic` (static) + `VectorArithmeticExtensions` (instance + `*_IP`). Implementation lives in `Internal/` as `internal static` types — consumers never import or reference them.
 
@@ -151,6 +151,8 @@ Consumers reference the BAVCL project directly. No NuGet packaging planned YET.
 ---
 
 ## 3. Architecture Overview
+
+> A major planned evolution — a captured-and-compiled execution-graph layer beneath this eager architecture — is specified separately in [GraphModelDesign.md](GraphModelDesign.md). The components below describe the current (eager) design that the graph layer builds on top of.
 
 ### 3.1 High-Level Component Diagram
 
@@ -361,15 +363,15 @@ This section documents **what exists in code today**. See [Section 19](#19-code-
 
 #### 4.2.1 Construction and Properties
 
-| Method / Property                             | Description                                |
-| --------------------------------------------- | ------------------------------------------ |
+| Method / Property                             | Description                                                                  |
+| --------------------------------------------- | ---------------------------------------------------------------------------- |
 | `Vector(GPU, float[], columns=0, cache=true)` | Construct from array; `columns=0` row 1D (default), `1` column, `N>1` matrix |
-| `Vector(GPU, int length, columns=0)`          | Uninitialized length (may contain garbage) |
-| `Copy(cache=true)`                            | Deep copy                                  |
-| `Equals(Vector)`                              | Element-wise equality after CPU sync       |
-| `Shape()`                                     | `Shape` struct (`Rows`, `Cols`)            |
-| `Flatten()`                                   | Set `Columns = 0` (1D row storage)         |
-| `ToVector3()`                                 | Convert when length % 3 == 0               |
+| `Vector(GPU, int length, columns=0)`          | Uninitialized length (may contain garbage)                                   |
+| `Copy(cache=true)`                            | Deep copy                                                                    |
+| `Equals(Vector)`                              | Element-wise equality after CPU sync                                         |
+| `Shape()`                                     | `Shape` struct (`Rows`, `Cols`)                                              |
+| `Flatten()`                                   | Set `Columns = 0` (1D row storage)                                           |
+| `ToVector3()`                                 | Convert when length % 3 == 0                                                 |
 
 #### 4.2.2 Statistical Properties (CPU)
 
@@ -412,38 +414,38 @@ This section documents **what exists in code today**. See [Section 19](#19-code-
 
 Binary `+`, `-`, `*`, `/`, `^` operator overloads use **NumPy-style element-wise broadcast** via `OP()` / `IPOP()`. Three separate API families exist for different semantics:
 
-| Family | Methods | Semantics |
-| ------ | ------- | --------- |
-| **Broadcast (default)** | `OP`, `IPOP`, operators | NumPy element-wise broadcast via `broadcastOpKernel` / `broadcastOpKernelIP` |
-| **Matrix calculator** | `MatrixAdd`, `MatrixSubtract`, `MatrixDivide`, `MatrixPow`, `MatrixMultiply`, `Cross` | Strict 2D rules: same shape for add/sub/div/pow; inner-dimension match for multiply |
-| **Row reduction** | `ReduceOP` | `reduceRowOpKernel` — one output per matrix row (not broadcast, not matmul) |
+| Family                  | Methods                                                                               | Semantics                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Broadcast (default)** | `OP`, `IPOP`, operators                                                               | NumPy element-wise broadcast via `broadcastOpKernel` / `broadcastOpKernelIP`        |
+| **Matrix calculator**   | `MatrixAdd`, `MatrixSubtract`, `MatrixDivide`, `MatrixPow`, `MatrixMultiply`, `Cross` | Strict 2D rules: same shape for add/sub/div/pow; inner-dimension match for multiply |
+| **Row reduction**       | `ReduceOP`                                                                            | `reduceRowOpKernel` — one output per matrix row (not broadcast, not matmul)         |
 
-| Method                        | Description                              |
-| ----------------------------- | ---------------------------------------- |
-| `OP(vecA, vecB, Operations)`  | NumPy broadcast element-wise             |
-| `OP(vec, scalar, Operations)` | Vector-scalar                            |
-| `IPOP(vecB, Operations)`      | In-place broadcast when left shape equals output shape |
-| `IPOP(scalar, Operations)`    | In-place vector-scalar                   |
-| `MatrixAdd` / `MatrixSubtract` / `MatrixDivide` / `MatrixPow` | Identical `(M,N)` matrices, element-wise |
-| `MatrixMultiply` / `Cross`    | Matrix multiply `(M,K) × (K,N)` — `Cross` is the primary name; `MatrixMultiply` is an alias |
-| `ReduceOP(vector, matrix, op)` | 1D row coefficient (`Columns=0`), length == matrix columns; allocates output length == matrix rows |
-| `Dot(vecA, vecB)`             | Scalar inner product (equal length only) |
+| Method                                                        | Description                                                                                        |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `OP(vecA, vecB, Operations)`                                  | NumPy broadcast element-wise                                                                       |
+| `OP(vec, scalar, Operations)`                                 | Vector-scalar                                                                                      |
+| `IPOP(vecB, Operations)`                                      | In-place broadcast when left shape equals output shape                                             |
+| `IPOP(scalar, Operations)`                                    | In-place vector-scalar                                                                             |
+| `MatrixAdd` / `MatrixSubtract` / `MatrixDivide` / `MatrixPow` | Identical `(M,N)` matrices, element-wise                                                           |
+| `MatrixMultiply` / `Cross`                                    | Matrix multiply `(M,K) × (K,N)` — `Cross` is the primary name; `MatrixMultiply` is an alias        |
+| `ReduceOP(vector, matrix, op)`                                | 1D row coefficient (`Columns=0`), length == matrix columns; allocates output length == matrix rows |
+| `Dot(vecA, vecB)`                                             | Scalar inner product (equal length only)                                                           |
 
 **`Operations` enum** (`BAVCL/Core/Enums/Operations.cs`): `multiply`, `add`, `subtract`, `divide`, `pow`, `flipDivide`, `flipSubtract`, `flipPow`, `differenceSquared`, `distance`, `magnitude`.
 
 **Storage (`Columns`):**
 
-| `Columns` | Logical shape | Example |
-| --------- | ------------- | ------- |
-| `0` (default) | `(1, N)` row | `[1,2,3,4]` |
-| `1` | `(N, 1)` column | `[[1],[2],[3],[4]]` |
-| `N > 1` | `(Length/N, N)` matrix | `[[1,2,3],[4,5,6]]` |
+| `Columns`     | Logical shape          | Example             |
+| ------------- | ---------------------- | ------------------- |
+| `0` (default) | `(1, N)` row           | `[1,2,3,4]`         |
+| `1`           | `(N, 1)` column        | `[[1],[2],[3],[4]]` |
+| `N > 1`       | `(Length/N, N)` matrix | `[[1,2,3],[4,5,6]]` |
 
 `RowCount()` and `Shape()` derive from `Columns` and `Length` as above. `Is1D()` is true only when `Columns == 0`.
 
 **No in-place row reduce:** `ReduceIPOP` is intentionally omitted. Row reduction reads a full coefficient vector (`Length == matrix.Columns`) and writes one scalar per row (`Length == matrix.RowCount()`). A single buffer cannot satisfy both layouts except on square matrices, and even then the row-wise kernel reads every coefficient element on each thread while writing row outputs into the same buffer — unsafe GPU aliasing without a coefficient snapshot. A column-wise per-thread scheme would avoid aliasing but would not implement shared-coefficient row reduction and would harm row-major coalescing. Use allocating `ReduceOP` instead.
 
-**Broadcasting:** `broadcastOpKernel` / `broadcastOpKernelIP` derive per-operand indices from logical shape (`rows==1` → column index, `cols==1` → row index, scalar → 0, else `flatOut`). Operand shapes and `outCols` are passed as `SpecializedValue<int>` for compile-time branch folding. Incompatible shapes throw `ShapeMismatchException`. `IPOP` throws `PerformanceException` (prefix: *This operation will lead to degraded performance:*) when the left operand would need resizing.
+**Broadcasting:** `broadcastOpKernel` / `broadcastOpKernelIP` derive per-operand indices from logical shape (`rows==1` → column index, `cols==1` → row index, scalar → 0, else `flatOut`). Operand shapes and `outCols` are passed as `SpecializedValue<int>` for compile-time branch folding. Incompatible shapes throw `ShapeMismatchException`. `IPOP` throws `PerformanceException` (prefix: _This operation will lead to degraded performance:_) when the left operand would need resizing.
 
 **Note:** `Vector3.Cross` is a separate optimised 3D geometric kernel — not related to `Vector.Cross` (matrix multiply).
 
@@ -477,19 +479,19 @@ Binary `+`, `-`, `*`, `/`, `^` operator overloads use **NumPy-style element-wise
 **Type:** `BAVCL.Geometric.Vector3` — `sealed partial class : VectorBase<float>`, `Columns` fixed at 3
 **Files:** 15 partial-class files under `BAVCL/Geometric/Vector3/`
 
-| Category     | Methods                                                                            |
-| ------------ | ---------------------------------------------------------------------------------- |
-| Construction | `Vector3(gpu, float[])`, `Vector3(gpu, int length)` — length must be multiple of 3 |
-| Conversion   | `ToVector()`, `ToVector(columns)` — TODO: optimize buffer ID reuse                 |
-| Factory      | `Zeros(gpu, length)`, `Fill(gpu, value, length)`                                   |
-| Operators    | `+`, `-`, `*`, `/`, `^` with Vector3 and float (all GPU via `OP`)                  |
-| Geometry     | `Cross(vecA, vecB)`, `Magnitude()`, `Magnitude(vecA, vecB)`, `Distance(vec)`       |
-| Per-row ops  | `VOP(vec, op)`, `VOP(vecA, vecB, op)` → returns `Vector` of per-row results        |
+| Category     | Methods                                                                                            |
+| ------------ | -------------------------------------------------------------------------------------------------- |
+| Construction | `Vector3(gpu, float[])`, `Vector3(gpu, int length)` — length must be multiple of 3                 |
+| Conversion   | `ToVector()`, `ToVector(columns)` — TODO: optimize buffer ID reuse                                 |
+| Factory      | `Zeros(gpu, length)`, `Fill(gpu, value, length)`                                                   |
+| Operators    | `+`, `-`, `*`, `/`, `^` with Vector3 and float (all GPU via `OP`)                                  |
+| Geometry     | `Cross(vecA, vecB)`, `Magnitude()`, `Magnitude(vecA, vecB)`, `Distance(vec)`                       |
+| Per-row ops  | `VOP(vec, op)`, `VOP(vecA, vecB, op)` → returns `Vector` of per-row results                        |
 | Indexing     | `this[int row, Coord]`, `GetAt`, `SetAt` (reads sync via `GetReadOnlySpan`; writes use `CpuScope`) |
-| Concat       | With`Vector3`, `Vertex`, arrays, lists                                             |
-| Access       | `AccessRow(vec, row)`                                                              |
-| Copy         | `Copy()`                                                                           |
-| Stats        | `Mean()`, `Range()`, `Sum()` — **marked TODO: not suitable for vec3**              |
+| Concat       | With`Vector3`, `Vertex`, arrays, lists                                                             |
+| Access       | `AccessRow(vec, row)`                                                                              |
+| Copy         | `Copy()`                                                                                           |
+| Stats        | `Mean()`, `Range()`, `Sum()` — **marked TODO: not suitable for vec3**                              |
 
 **Known bugs:** `Magnitude.cs` and `Distance.cs` throw wrong error message ("Cross Product" instead of length mismatch).
 
@@ -517,25 +519,25 @@ Binary `+`, `-`, `*`, `/`, `^` operator overloads use **NumPy-style element-wise
 
 Loaded in `LoadKernels()` — all at once:
 
-| Kernel                                    | Purpose                                         |
-| ----------------------------------------- | ----------------------------------------------- |
-| `appendKernel`                            | Append rows                                     |
-| `nanToNumKernel`                          | Replace NaN/Inf                                 |
-| `getSliceKernel`                          | Slice extraction                                |
-| `a_opFKernel` / `s_opFKernel`             | Binary ops (array/scalar)                       |
-| `a_FloatOPKernelIP` / `s_FloatOPKernelIP` | In-place binary ops                             |
+| Kernel                                      | Purpose                                                                                |
+| ------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `appendKernel`                              | Append rows                                                                            |
+| `nanToNumKernel`                            | Replace NaN/Inf                                                                        |
+| `getSliceKernel`                            | Slice extraction                                                                       |
+| `a_opFKernel` / `s_opFKernel`               | Binary ops (array/scalar)                                                              |
+| `a_FloatOPKernelIP` / `s_FloatOPKernelIP`   | In-place binary ops                                                                    |
 | `broadcastOpKernel` / `broadcastOpKernelIP` | NumPy-style element-wise broadcast (per-operand index from shape, coalesced `flatOut`) |
-| `reduceRowOpKernel` | Row-wise vector-matrix reduction (`ReduceOP`) |
-| `matmulKernel`                            | Matrix multiply (`Cross` / `MatrixMultiply`)    |
-| `simdVectorKernel`                        | Per-row 3-wide ops (Vector3 magnitude/distance) |
-| `diffKernel`                              | Adjacent difference                             |
-| `reverseKernel`                           | Reverse in-place                                |
-| `absKernel`                               | Absolute value                                  |
-| `rcpKernel`                               | Reciprocal                                      |
-| `rsqrtKernel`                             | Reciprocal sqrt                                 |
-| `crossKernel`                             | 3D cross product                                |
-| `transposekernel`                         | Matrix transpose                                |
-| `LogKernel`                               | Log with configurable base                      |
+| `reduceRowOpKernel`                         | Row-wise vector-matrix reduction (`ReduceOP`)                                          |
+| `matmulKernel`                              | Matrix multiply (`Cross` / `MatrixMultiply`)                                           |
+| `simdVectorKernel`                          | Per-row 3-wide ops (Vector3 magnitude/distance)                                        |
+| `diffKernel`                                | Adjacent difference                                                                    |
+| `reverseKernel`                             | Reverse in-place                                                                       |
+| `absKernel`                                 | Absolute value                                                                         |
+| `rcpKernel`                                 | Reciprocal                                                                             |
+| `rsqrtKernel`                               | Reciprocal sqrt                                                                        |
+| `crossKernel`                               | 3D cross product                                                                       |
+| `transposekernel`                           | Matrix transpose                                                                       |
+| `LogKernel`                                 | Log with configurable base                                                             |
 
 **Not loaded:** `TestSQRTKernel`, `TestMYSQRTKernel` (throw `KernelNotCompiledException` if called).
 
@@ -620,7 +622,7 @@ Broadening beyond fp32 is the **top priority**:
 
 ### 5.2 Specialized vs Generic Rules
 
-```
+```text
 IF specialized type exists for T
     USE specialized type (Vector, Vector3, VectorInt, Mask, ...)
 ELSE
@@ -643,7 +645,7 @@ Exact layout (bits per word, alignment) to be **benchmark-driven** on target GPU
 
 ### 6.2 Apply Semantics
 
-```
+```text
 Vector * Mask => Vector
 ```
 
@@ -732,13 +734,13 @@ Feasibility depends on ILGPU and device APIs — document as investigation item.
 
 **Read API:**
 
-| Method | Behavior |
-|--------|----------|
-| `GetCpuReadOnlySpan()` | Zero-copy view of current CPU buffer; **no GPU sync** |
-| `GetReadOnlySpan()` | `SyncCPU()` then `GetCpuReadOnlySpan()` — use for reads and LRU upload |
-| `GetAt` / indexers (get) | `GetReadOnlySpan()[index]` |
-| `ToArray()` | **Always allocates** a heap copy; syncs when needed |
-| `ICacheable<T>.GetReadOnlySpan()` | Same as above; used by memory manager for upload |
+| Method                            | Behavior                                                               |
+| --------------------------------- | ---------------------------------------------------------------------- |
+| `GetCpuReadOnlySpan()`            | Zero-copy view of current CPU buffer; **no GPU sync**                  |
+| `GetReadOnlySpan()`               | `SyncCPU()` then `GetCpuReadOnlySpan()` — use for reads and LRU upload |
+| `GetAt` / indexers (get)          | `GetReadOnlySpan()[index]`                                             |
+| `ToArray()`                       | **Always allocates** a heap copy; syncs when needed                    |
+| `ICacheable<T>.GetReadOnlySpan()` | Same as above; used by memory manager for upload                       |
 
 **Write API:** `CpuScope` + `EditableView<T>` or `SetAt` (opens `CpuScope` internally; not for tight loops). `IndexingMode` removed — use scoping instead.
 
@@ -761,7 +763,7 @@ Operations were spread across **25+ partial class files** per type (`Core/Vector
 
 ### 9.2 Current Layout (IMPLEMENTED)
 
-```
+```text
 BAVCL/
   Core/
     Vector/
@@ -1000,38 +1002,38 @@ VS Code `launch.json` references `net6.0` but projects target `net10.0` — stal
 
 When code and this spec disagree, **this spec is the target**.
 
-| #   | Area                 | Current Code                                    | Spec Target                                  | Key Files                            |
-| --- | -------------------- | ----------------------------------------------- | -------------------------------------------- | ------------------------------------ |
-| 1   | Type breadth         | fp32`Vector` only                               | fp64, int32/64, uint, Mask, Complex          | `Core/Vector/`, empty folders        |
-| 2   | Generic types        | `VectorBase<T>` exists; no `Vector<T>`          | Specialized + generic fallback               | `VectorBase/VectorBase.cs`           |
-| 3   | CPU/GPU API          | Operators and most ops use GPU kernels          | Default = CPU;`X` = GPU                      | `Vector/Vector.cs`, `Abs.cs`         |
-| 4   | LiveCount safety     | `GpuScope.Begin` in library ops                 | Scope-only for custom kernels                | `GpuScope.cs`, GPU operation files   |
-| 5   | LiveCount exceptions | `GpuScope` IDisposable                          | Balanced refcount on dispose                 | `GpuScope.cs`                        |
-| 6   | Kernel loading       | Monolithic`LoadKernels()`                       | Domain × datatype modules, builder           | `kernels.cs`                         |
-| 7   | Multi-GPU            | Single`GPUManager.Default`                      | Create/enumerate GPUs; cross-device transfer | `GPUManager.cs`                      |
-| 8   | Mask                 | Empty folder                                    | Packed-bit mask, configurable fill           | `Core/Mask/`                         |
-| 9   | Matrix/Table         | Stubs throw or empty                            | Deferred                                     | `Matrix/Matrix.cs`, `Table/Table.cs` |
-| 10  | Astrophysics         | Empty folder                                    | FALCON integrals (age-from-redshift)         | `Astrophysics/`                      |
-| 11  | IO formats           | CSV/TXT only                                    | Polish + JSON/XML/YAML; FITS/NPY/HDF5 later  | `IO/IO.cs`, `Enums/Enums.cs`         |
-| 12  | Plotting             | Windows prototype, hardcoded paths              | Cross-platform, low priority                 | `Plotting/Plotter.cs`                |
-| 13  | Experimental         | Bloated, untested                               | 1 impl each, xUnit tested                    | `Experimental/TestCls.cs`            |
-| 14  | Tests                | BAVCL.Tests needs rewrite; empty library Tests/ | xUnit-only; net10.0; CI                      | `BAVCL.Tests/`                       |
-| 15  | Vector3 stats        | Mean/Range/Sum on flat array                    | Rework or remove for 3D semantics            | `Vector3/Vector3.cs`                 |
-| 16  | Vector3 errors       | Wrong exception messages                        | Correct messages for magnitude/distance      | `Magnitude.cs`, `Distance.cs`        |
+| #   | Area                 | Current Code                                    | Spec Target                                  | Key Files                              |
+| --- | -------------------- | ----------------------------------------------- | -------------------------------------------- | -------------------------------------- |
+| 1   | Type breadth         | fp32`Vector` only                               | fp64, int32/64, uint, Mask, Complex          | `Core/Vector/`, empty folders          |
+| 2   | Generic types        | `VectorBase<T>` exists; no `Vector<T>`          | Specialized + generic fallback               | `VectorBase/VectorBase.cs`             |
+| 3   | CPU/GPU API          | Operators and most ops use GPU kernels          | Default = CPU;`X` = GPU                      | `Vector/Vector.cs`, `Abs.cs`           |
+| 4   | LiveCount safety     | `GpuScope.Begin` in library ops                 | Scope-only for custom kernels                | `GpuScope.cs`, GPU operation files     |
+| 5   | LiveCount exceptions | `GpuScope` IDisposable                          | Balanced refcount on dispose                 | `GpuScope.cs`                          |
+| 6   | Kernel loading       | Monolithic`LoadKernels()`                       | Domain × datatype modules, builder           | `kernels.cs`                           |
+| 7   | Multi-GPU            | Single`GPUManager.Default`                      | Create/enumerate GPUs; cross-device transfer | `GPUManager.cs`                        |
+| 8   | Mask                 | Empty folder                                    | Packed-bit mask, configurable fill           | `Core/Mask/`                           |
+| 9   | Matrix/Table         | Stubs throw or empty                            | Deferred                                     | `Matrix/Matrix.cs`, `Table/Table.cs`   |
+| 10  | Astrophysics         | Empty folder                                    | FALCON integrals (age-from-redshift)         | `Astrophysics/`                        |
+| 11  | IO formats           | CSV/TXT only                                    | Polish + JSON/XML/YAML; FITS/NPY/HDF5 later  | `IO/IO.cs`, `Enums/Enums.cs`           |
+| 12  | Plotting             | Windows prototype, hardcoded paths              | Cross-platform, low priority                 | `Plotting/Plotter.cs`                  |
+| 13  | Experimental         | Bloated, untested                               | 1 impl each, xUnit tested                    | `Experimental/TestCls.cs`              |
+| 14  | Tests                | BAVCL.Tests needs rewrite; empty library Tests/ | xUnit-only; net10.0; CI                      | `BAVCL.Tests/`                         |
+| 15  | Vector3 stats        | Mean/Range/Sum on flat array                    | Rework or remove for 3D semantics            | `Vector3/Vector3.cs`                   |
+| 16  | Vector3 errors       | Wrong exception messages                        | Correct messages for magnitude/distance      | `Magnitude.cs`, `Distance.cs`          |
 | 17  | Memory sync          | `Residence` flags + `FreeBuffer`/`GCItem` split | Implemented                                  | `SyncCPU.cs`, `LRU.cs`, `Residence.cs` |
-| 18  | Memory accounting    | `sizeof(T) × length` estimate                   | Explore actual GPU memory tracking           | `CalculateMemorySize.cs`, `LRU.cs`   |
-| 19  | Code organization    | 25+ partial class files per type                | Extension methods in `Modules/`              | `Modules/*.cs`                       |
-| 20  | VectorBase role      | Sometimes described as CPU mirror               | Infrastructure base for all vector types     | `VectorBase/VectorBase.cs`           |
-| 21  | Unary`+` operator    | Calls`AbsX`                                     | Should be identity or documented             | `Vector.cs` L148                     |
-| 22  | Vector3 buffer reuse | `Pull()` on conversion                          | Pass buffer ID between types                 | `Vector3/Vector3.cs`                 |
-| 23  | Vertex + Vector3     | Implicit conversion pulls GPU data              | Complementary; optimize GPU path             | `Vertex.cs`                          |
-| 24  | Print extensions     | double/int/long 2D throw NIE                    | Implement or remove overloads                | `Extensions/Print.cs`                |
-| 25  | .NET version         | Library net10.0, tests net8.0, launch net6.0    | Align all to net10.0                         | `.csproj`, `launch.json`             |
-| 26  | GPUScope             | `GpuScope.Begin` + `CpuScope.Begin`             | Implemented                                  | `Memory/Scopes/*.cs`                 |
-| 27  | Kernel modules       | Does not exist                                  | Builder registration per GPU                 | New infrastructure                   |
-| 28  | RsqrtX               | Fixed — calls `RsqrtX_IP`                       | Consistent `X` = GPU naming                  | `Rsqrt.cs`                           |
-| 29  | Shape type           | `Shape` struct                                  | Implemented                                  | `Core/Shape.cs`                      |
-| 30  | Shape caching        | Derived each call                               | Optional cache on `VectorBase` (future)      | `VectorBase.cs`                      |
+| 18  | Memory accounting    | `sizeof(T) × length` estimate                   | Explore actual GPU memory tracking           | `CalculateMemorySize.cs`, `LRU.cs`     |
+| 19  | Code organization    | 25+ partial class files per type                | Extension methods in `Modules/`              | `Modules/*.cs`                         |
+| 20  | VectorBase role      | Sometimes described as CPU mirror               | Infrastructure base for all vector types     | `VectorBase/VectorBase.cs`             |
+| 21  | Unary`+` operator    | Calls`AbsX`                                     | Should be identity or documented             | `Vector.cs` L148                       |
+| 22  | Vector3 buffer reuse | `Pull()` on conversion                          | Pass buffer ID between types                 | `Vector3/Vector3.cs`                   |
+| 23  | Vertex + Vector3     | Implicit conversion pulls GPU data              | Complementary; optimize GPU path             | `Vertex.cs`                            |
+| 24  | Print extensions     | double/int/long 2D throw NIE                    | Implement or remove overloads                | `Extensions/Print.cs`                  |
+| 25  | .NET version         | Library net10.0, tests net8.0, launch net6.0    | Align all to net10.0                         | `.csproj`, `launch.json`               |
+| 26  | GPUScope             | `GpuScope.Begin` + `CpuScope.Begin`             | Implemented                                  | `Memory/Scopes/*.cs`                   |
+| 27  | Kernel modules       | Does not exist                                  | Builder registration per GPU                 | New infrastructure                     |
+| 28  | RsqrtX               | Fixed — calls `RsqrtX_IP`                       | Consistent `X` = GPU naming                  | `Rsqrt.cs`                             |
+| 29  | Shape type           | `Shape` struct                                  | Implemented                                  | `Core/Shape.cs`                        |
+| 30  | Shape caching        | Derived each call                               | Optional cache on `VectorBase` (future)      | `VectorBase.cs`                        |
 
 ---
 
@@ -1049,6 +1051,10 @@ Companion test repository at `C:\Users\marce\Repos\BAVCL.Tests`. Source-only sib
 
 `Testing Console/` in the BAVCL solution — manual smoke tests and benchmark entry point. Not a replacement for BAVCL.Tests.
 
+### 20.4 Graph Model Design (Feature)
+
+[GraphModelDesign.md](GraphModelDesign.md) is the in-depth design document for adding a captured-and-compiled **execution-graph layer** beneath BAVCL's existing eager API (capture ops → compile memory + kernels → run/replay many). It targets ILGPU 2.0, is datatype-generic, preserves 100% of the public API, and is the authoritative reference for that feature. See it for the layered architecture (L0–L5), the tiered memory-ownership model, executor backends, and the phased roadmap.
+
 ---
 
 ## Appendix A: Configuration Defaults
@@ -1063,12 +1069,12 @@ Companion test repository at `C:\Users\marce\Repos\BAVCL.Tests`. Source-only sib
 
 ## Appendix B: Key Interfaces
 
-| Interface        | Purpose                                             |
-| ---------------- | --------------------------------------------------- |
+| Interface        | Purpose                                                                   |
+| ---------------- | ------------------------------------------------------------------------- |
 | `ICacheable`     | GPU cache contract: ID, LiveCount, Residence (volatile), DeCache, SyncCPU |
-| `ICacheable<T>`  | Typed cache contract: `GetReadOnlySpan()`, `UpdateCache(T[])` |
-| `IMemoryManager` | Pluggable GPU memory strategy                       |
-| `IIO`            | CSV/string export contract                          |
+| `ICacheable<T>`  | Typed cache contract: `GetReadOnlySpan()`, `UpdateCache(T[])`             |
+| `IMemoryManager` | Pluggable GPU memory strategy                                             |
+| `IIO`            | CSV/string export contract                                                |
 
 ## Appendix C: Open Design Items
 
