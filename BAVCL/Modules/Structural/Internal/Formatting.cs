@@ -1,11 +1,48 @@
 using System;
 using System.Text;
+using BAVCL.Core;
 using BAVCL.Utility;
 
 namespace BAVCL.Modules.Structural;
 
 internal static class FormattingCore
 {
+	internal static string ToCsv<T>(VectorBase<T> vector) where T : unmanaged
+	{
+		ReadOnlySpan<T> data = vector.RetrieveReadOnlySpan();
+		var stringBuilder = new StringBuilder();
+		int columns = vector.Columns;
+		int length = vector.Length;
+
+		if (columns > 1)
+		{
+			for (int i = 0; i < length; i++)
+				stringBuilder.Append($"{data[i]},");
+
+			return stringBuilder.ToString();
+		}
+
+		if (columns == 0)
+		{
+			for (int i = 0; i < length; i++)
+				stringBuilder.Append($"{data[i]},");
+
+			return stringBuilder.ToString();
+		}
+
+		stringBuilder.Append($"{data[0]},");
+
+		for (int i = 1; i < length; i++)
+		{
+			if (i % columns == 0)
+				stringBuilder.AppendLine();
+
+			stringBuilder.Append($"{data[i]},");
+		}
+
+		return stringBuilder.ToString();
+	}
+
 	internal static string ToStr(float[] arr, byte decimalplaces = 2)
 	{
 		(float min, float max, bool hasinfinity) = Util.MinMaxInf(arr);
