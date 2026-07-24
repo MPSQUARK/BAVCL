@@ -1,6 +1,6 @@
 using System;
 
-namespace BAVCL.Core.Exceptions;
+namespace BAVCL.Exceptions;
 
 /// <summary>
 /// Thrown when operands require equal lengths but the lengths differ.

@@ -1,6 +1,5 @@
 using BAVCL;
 using BAVCL.Modules.Arithmetic;
-using BAVCL.Services;
 
 GPU gpu = GPUManager.Default;
 Vector vec = new(gpu, [1, 2, 3, 4, 5, 6], 2);

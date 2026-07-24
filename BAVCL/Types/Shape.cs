@@ -1,6 +1,6 @@
-using BAVCL.Core.Exceptions;
+using BAVCL.Exceptions;
 
-namespace BAVCL.Core;
+namespace BAVCL;
 
 public readonly record struct Shape(int Rows, int Cols)
 {

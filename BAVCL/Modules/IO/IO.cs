@@ -3,7 +3,7 @@ using System.Linq;
 using System.IO;
 using System.Text.RegularExpressions;
 
-namespace BAVCL.IO;
+namespace BAVCL.Modules.IO;
 
 public class IO
 {

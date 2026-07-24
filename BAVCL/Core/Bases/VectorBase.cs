@@ -3,7 +3,7 @@ using BAVCL.Modules.Structural;
 
 namespace BAVCL.Core;
 
-public abstract partial class VectorBase<T> : CacheableBase<T>, IIO where T : unmanaged
+public abstract class VectorBase<T> : CacheableBase<T>, IIO where T : unmanaged
 {
 	protected internal int _columns = 0;
 

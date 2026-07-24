@@ -4,7 +4,8 @@ using BAVCL.Core.Interfaces;
 using ILGPU;
 using ILGPU.Runtime;
 
-namespace BAVCL.Services;
+
+namespace BAVCL;
 
 public static class GPUManager
 {
