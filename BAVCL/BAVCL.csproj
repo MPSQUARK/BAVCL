@@ -8,21 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Astrophysics\**" />
-    <Compile Remove="Core\VectorInt\**" />
-    <Compile Remove="Plotting\**" />
-    <Compile Remove="Tests\**" />
-    <EmbeddedResource Remove="Astrophysics\**" />
-    <EmbeddedResource Remove="Core\VectorInt\**" />
-    <EmbeddedResource Remove="Plotting\**" />
-    <EmbeddedResource Remove="Tests\**" />
-    <None Remove="Astrophysics\**" />
-    <None Remove="Core\VectorInt\**" />
-    <None Remove="Plotting\**" />
-    <None Remove="Tests\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <InternalsVisibleTo Include="BAVCL.Tests" />
   </ItemGroup>
 
