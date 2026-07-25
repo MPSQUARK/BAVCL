@@ -37,7 +37,39 @@ Shape s = vector.Shape();
 if (shapeA.MatchesDimensions(shapeB)) { ... }
 ```
 
-## Correct usage patterns
+### Element-wise `*` with mismatched 2D shapes
+
+Previously, `operator *` (and other binary `OP` overloads routed through GpuOps) could combine two vectors **element-wise** whenever they had the **same `Length`**, even when their 2D layouts differed — e.g. a 3×2 vector and a 2×3 vector (both length 6) were multiplied as flat buffers, with the result keeping the left operand's `Columns`.
+
+GpuOps now applies **shape-aware** rules first: operands must either match dimensions exactly or be valid NumPy-style broadcasts. Same length with incompatible 2D shapes (such as `(3,2)` and `(2,3)`) throws `ShapeMismatchException`.
+
+**Matrix multiply is unchanged** — use `Vector.Cross()` / `.Cross()`, not `*`.
+
+**To recover the old flat element-wise behaviour**, treat both operands as 1D by setting `Columns = 0` before the operation, then restore layout on the result if needed:
+
+```csharp
+int colsA = vec.Columns;
+int colsB = vec2.Columns;
+
+vec.Columns = 0;
+vec2.Columns = 0;
+
+Vector result = vec * vec2; // element-wise on the flat buffer
+
+vec.Columns = colsA;
+vec2.Columns = colsB;
+result.Columns = colsA; // output followed the left operand's layout
+```
+
+`Vector.Flatten()` is equivalent to `Columns = 0` when you do not need to preserve the original column count on the inputs.
+
+```csharp
+vec.Flatten();
+vec2.Flatten();
+Vector result = vec * vec2;
+result.Columns = 2; // reshape result as needed
+```
+
 
 ### Read-only (no scope)
 
@@ -244,6 +276,7 @@ The `BAVCL.Modules.GpuOps` namespace requires **Arithmetic** (fp32) kernels (bro
 | ----- | ----- | --- |
 | `KernelNotCompiledException` | Kernel not loaded on this GPU | Load the domain that provides it (see spec §4.5.2) |
 | `KernelModuleNotAvailableException` | Requested domain × element type not implemented | Use an implemented combination (see spec §7.5) |
+| `ShapeMismatchException` on `vec * vec2` | Same length, different 2D layout | Use `.Cross()` for matmul, or flatten both (`Columns = 0`) for flat element-wise (see above) |
 
 To restore old load-all behaviour: `KernelModuleLoader.LoadAll<float>(gpu)`.
 
