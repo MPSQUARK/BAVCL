@@ -64,6 +64,9 @@ public sealed partial class Vector : VectorBase<float>
 	public override string ToString() => VectorStructuralExtensions.ToStr(this);
 
     #region "OPERATORS"
+    /// <summary>
+    /// Returns the absolute value of the vector.
+    /// </summary>
     public static Vector operator +(Vector vector) =>
 		vector.AbsX();
 	public static Vector operator +(Vector vectorA, Vector vectorB) =>
@@ -72,8 +75,16 @@ public sealed partial class Vector : VectorBase<float>
 		vector.OP(Scalar, Operations.add);
 	public static Vector operator +(float Scalar, Vector vector) =>
 		vector.OP(Scalar, Operations.add);
+    // In-place operators optimation
+    public void operator +=(Vector vectorB) =>
+		this.IPOP(vectorB, Operations.add);
+	public void operator +=(float Scalar) =>
+        this.IPOP(Scalar, Operations.add);
 
-	public static Vector operator -(Vector vector) =>
+    /// <summary>
+    /// Negates the vector by multiplying it by -1.
+    /// </summary>
+    public static Vector operator -(Vector vector) =>
 		vector.OP(-1, Operations.multiply);
 	public static Vector operator -(Vector vectorA, Vector vectorB) =>
 		vectorA.OP(vectorB, Operations.subtract);
@@ -81,28 +92,47 @@ public sealed partial class Vector : VectorBase<float>
 		vector.OP(scalar, Operations.subtract);
 	public static Vector operator -(float scalar, Vector vector) =>
 		vector.OP(scalar, Operations.flipSubtract);
+    // In-place operators optimation
+    public void operator -=(Vector vectorB) =>
+        this.IPOP(vectorB, Operations.subtract);
+    public void operator -=(float Scalar) =>
+        this.IPOP(Scalar, Operations.subtract);
 
-	public static Vector operator *(Vector vectorA, Vector vectorB) =>
+    public static Vector operator *(Vector vectorA, Vector vectorB) =>
 		vectorA.OP(vectorB, Operations.multiply);
-
 	public static Vector operator *(Vector vector, float scalar) =>
 		vector.OP(scalar, Operations.multiply);
-
 	public static Vector operator *(float scalar, Vector vector) =>
 		vector.OP(scalar, Operations.multiply);
+    // In-place operators optimation
+    public void operator *=(Vector vectorB) =>
+        this.IPOP(vectorB, Operations.multiply);
+    public void operator *=(float Scalar) =>
+        this.IPOP(Scalar, Operations.multiply);
 
-	public static Vector operator /(Vector vectorA, Vector vectorB) =>
+    public static Vector operator /(Vector vectorA, Vector vectorB) =>
 		vectorA.OP(vectorB, Operations.divide);
 	public static Vector operator /(Vector vector, float scalar) =>
 		vector.OP(scalar, Operations.divide);
 	public static Vector operator /(float scalar, Vector vector) =>
 		vector.OP(scalar, Operations.flipDivide);
+    // In-place operators optimation
+    public void operator /=(Vector vectorB) =>
+        this.IPOP(vectorB, Operations.divide);
+    public void operator /=(float Scalar) =>
+        this.IPOP(Scalar, Operations.divide);
 
-	public static Vector operator ^(Vector vectorA, Vector vectorB) =>
+    public static Vector operator ^(Vector vectorA, Vector vectorB) =>
 		vectorA.OP(vectorB, Operations.pow);
 	public static Vector operator ^(Vector vector, float scalar) =>
 		vector.OP(scalar, Operations.pow);
 	public static Vector operator ^(float Scalar, Vector vector) =>
 		vector.OP(Scalar, Operations.flipPow);
-	#endregion
+    // In-place operators optimation
+    public void operator ^=(Vector vectorB) =>
+        this.IPOP(vectorB, Operations.pow);
+	public void operator ^=(float Scalar) =>
+        this.IPOP(Scalar, Operations.pow);
+
+    #endregion
 }
