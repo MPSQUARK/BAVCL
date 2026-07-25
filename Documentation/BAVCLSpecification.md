@@ -637,7 +637,7 @@ Broadening beyond fp32 is the **top priority**:
 2. **int32** — `VectorInt`
 3. **int64**
 4. **uint**
-5. **Mask** — packed-bit boolean mask (see Section 6)
+5. **Mask** — packed-bit boolean mask (see Section 6); **resize** deferred (see Section 6.4)
 6. **Complex** — ideally `System.Numerics.Complex` as unmanaged struct; may require custom `ComplexFloat` if constraints block it
 
 ### 5.2 Specialized vs Generic Rules
@@ -679,6 +679,37 @@ vector.ApplyMask(mask, fill: float.NaN)
 ### 6.3 Filtering
 
 Mask can also filter/compacted data (exclude masked elements) — detailed API TBD during implementation.
+
+### 6.4 Resize (planned future)
+
+**Current implementation:** logical size is fixed after construction. `ElementCount` is stored in a `readonly` field set only in constructors; inherited `CacheableBase.Length` is the packed **storage word count** (not boolean element count).
+
+**Planned:** resize support analogous to array resize — logical length is not fixed forever, but changes only through explicit resize/replace operations (not silent mutation of `Length` on the base type).
+
+**API (TBD during implementation):**
+
+- `Resize(int newElementCount)` — grow/shrink with default fill (`false`) for new slots
+- and/or `ReplaceFrom(ReadOnlySpan<bool>)` / `ReplaceFrom(bool[])` — full replace with new logical content
+
+**Coupled state:** a resize must update all of the following in one coordinated operation (same structural-edit rules as `Vector` length changes):
+
+| Field | Meaning |
+| ----- | ------- |
+| `Value` | new `int[]` packed word buffer |
+| `CacheableBase._length` | storage word count (GPU buffer / span length) |
+| `_elementCount` | logical boolean element count |
+
+Logical element count **cannot** be derived from word count alone (e.g. 97 and 100 booleans both use 4 words), so `_elementCount` must remain an explicit stored field.
+
+**Threading (when resize is implemented):**
+
+- Remove `readonly` from `_elementCount`.
+- Mark `_elementCount` as `volatile int`, mirroring `CacheableBase._length` — cross-thread **visibility** for post-construction updates, not full atomicity with `Value` or bit reads.
+- Centralize writes in the resize/replace API; do not scatter `_elementCount` updates across call sites.
+- Prefer `CpuScope` (or equivalent) for resize, consistent with other structural mutations; document that unsynchronized concurrent resize + `GetBit` / indexer reads are not supported.
+- `Residence` cross-thread safety is already handled by `ResidenceField` (`Volatile.Read`/`Write` + `Interlocked.CompareExchange`); no change required there for resize.
+
+**Reference:** `Vector` structural ops already resize by replacing `Value` and setting `Length = Value.Length` (e.g. `Modules/Structural/Internal/Factories.cs`, `ShapeOps.cs`).
 
 ---
 
@@ -1105,7 +1136,7 @@ When code and this spec disagree, **this spec is the target**.
 | 5   | LiveCount exceptions | `GpuScope` IDisposable                          | Balanced refcount on dispose                 | `GpuScope.cs`                        |
 | 6   | Kernel loading       | Selective modules via `KernelModuleLoader.Load<T>` | Domain × element-type modules per GPU     | `Core/GPU/KernelModules/`            |
 | 7   | Multi-GPU            | Single`GPUManager.Default`                      | Create/enumerate GPUs; cross-device transfer | `GPUManager.cs`                      |
-| 8   | Mask                 | Empty folder                                    | Packed-bit mask, configurable fill           | `Core/Mask/`                         |
+| 8   | Mask                 | `Mask` type implemented; resize not yet                      | Packed-bit mask, configurable fill; resize (6.4) | `Core/Mask/`                         |
 | 9   | Matrix/Table         | Stubs throw or empty                            | Deferred                                     | `Matrix/Matrix.cs`, `Table/Table.cs` |
 | 10  | Astrophysics         | Empty folder                                    | FALCON integrals (age-from-redshift)         | `Astrophysics/`                      |
 | 11  | IO formats           | CSV/TXT only                                    | Polish + JSON/XML/YAML; FITS/NPY/HDF5 later  | `IO/IO.cs`, `Enums/Enums.cs`         |
@@ -1128,6 +1159,7 @@ When code and this spec disagree, **this spec is the target**.
 | 28  | RsqrtX               | Fixed — calls `RsqrtX_IP`                       | Consistent `X` = GPU naming                  | `Rsqrt.cs`                           |
 | 29  | Shape type           | `Shape` struct                                  | Implemented                                  | `Core/Shape.cs`                      |
 | 30  | Shape caching        | Derived each call                               | Optional cache on `VectorBase` (future)      | `VectorBase.cs`                      |
+| 31  | Mask resize          | `ElementCount` fixed (`readonly`)               | Resize/replace API; `volatile` `_elementCount` | `Core/Mask/Mask.cs` (see §6.4)       |
 
 ---
 
