@@ -1,7 +1,6 @@
 using System;
 using System.Text;
-using BAVCL.Core;
-using BAVCL.Core;
+using BAVCL.Types;
 
 namespace BAVCL.Modules.Structural;
 
@@ -241,7 +240,52 @@ internal static class FormattingCore
 		return stringBuilder.ToString();
 	}
 
-	internal static void Print(float value, byte decimalplaces = 2) =>
+	internal static string ToStr(Mask mask){
+		if (mask.Columns > 1)
+			return ToStr2D(mask);
+
+		char[] strBuffer = new char[mask.ElementCount * 6];
+		var data = mask.GetCpuReadOnlySpan();
+
+		char[] template = ['|', ' ', ' ', ' ', '|', '\n'];           
+
+        // Use tamplate to fill the 2nd index with the value of the mask element
+        // then copy the template to the strBuffer at the correct index
+        for (int i = 0; i < mask.ElementCount; i++)
+        {
+            // isolate the index of the densely packed int32 word
+            int bit = (data[i >> 5] >> (i & 31)) & 1;
+            template[2] = (char)('0' + bit);
+            template.CopyTo(strBuffer, i * 6);
+        }
+
+        return new string(strBuffer);
+    }
+
+	private static string ToStr2D(Mask mask){
+        StringBuilder sb = new();
+
+		char[] template = ['|', ' ', ' ', ' ', '|'];
+        var data = mask.GetCpuReadOnlySpan();
+        for (int i = 0, col = 0; i < mask.ElementCount; i++, col++)
+        {
+			if (col == mask.Columns)
+			{
+                sb.AppendLine();
+                col = 0;
+            }
+
+            int bit = (data[i >> 5] >> (i & 31)) & 1;
+            template[2] = (char)('0' + bit);
+            sb.Append(template);
+        }
+
+        return sb.ToString();
+    }
+
+	internal static void Print(Mask mask) => Console.WriteLine(ToStr(mask));
+
+    internal static void Print(float value, byte decimalplaces = 2) =>
 		Console.WriteLine(value.ToString($"F{decimalplaces}"));
 
 	internal static void Print(float[] arr, byte decimalplaces = 2)
