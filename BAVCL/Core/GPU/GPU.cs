@@ -1,5 +1,7 @@
 using ILGPU.Runtime;
 using System;
+using System.Collections.Generic;
+using System.Threading;
 using BAVCL.Core.Interfaces;
 
 namespace BAVCL;
@@ -7,9 +9,30 @@ namespace BAVCL;
 public sealed partial class GPU(Accelerator accelerator, IMemoryManager memoryManager) : IDisposable
 {
 	private readonly IMemoryManager _memoryManager = memoryManager;
+	private readonly Lock _kernelLoadLock = new();
+	private readonly HashSet<(KernelDomain Domain, Type ElementType)> _loadedModules = [];
 	public Accelerator accelerator = accelerator;
 	internal AcceleratorStream DefaultStream => accelerator.DefaultStream;
 	internal void Synchronize() => accelerator.Synchronize();
+
+	/// <summary>
+	/// Compiles a kernel module onto this device unless it is already loaded.
+	/// Returns whether compilation actually happened.
+	/// </summary>
+	internal bool LoadModuleOnce(KernelDomain domain, Type elementType, Action<GPU> load)
+	{
+		var module = (domain, elementType);
+
+		lock (_kernelLoadLock)
+		{
+			if (_loadedModules.Contains(module))
+				return false;
+
+			load(this);
+			_loadedModules.Add(module);
+			return true;
+		}
+	}
 
 	// Wrappers for Memory Manager
 	public (uint, MemoryBuffer) Allocate<T>(ICacheable<T> cacheable) where T : unmanaged => _memoryManager.Allocate(cacheable, accelerator);

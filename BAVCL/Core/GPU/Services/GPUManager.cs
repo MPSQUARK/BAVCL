@@ -29,7 +29,7 @@ public static class GPUManager
         {
             lock (_lock)
             {
-                _defaultGPU ??= GetGPU();
+                _defaultGPU ??= CreateDefaultGpu();
             }
             return _defaultGPU;
         }
@@ -90,8 +90,13 @@ public static class GPUManager
 
         var gpu = new GPU(accelerator, memoryManager);
 
-        gpu.LoadKernels();
+        return gpu;
+    }
 
+    private static GPU CreateDefaultGpu(float memoryCap = 0.8f, bool forceCPU = false)
+    {
+        var gpu = GetGPU<LRU>(memoryCap, forceCPU);
+        KernelModuleLoader.Load<float>(gpu, KernelWorkloads.Default);
         return gpu;
     }
 }
