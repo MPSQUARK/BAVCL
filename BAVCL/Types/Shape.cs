@@ -1,4 +1,4 @@
-using BAVCL.Exceptions;
+using BAVCL.Core.Exceptions;
 
 namespace BAVCL;
 
