@@ -314,27 +314,29 @@ flowchart LR
 
 Nested scopes are supported via `Interlocked` refcount on `LiveCount`.
 
-### 3.5 Kernel Module Registration (Target - WIP)
+### 3.5 Kernel Module Registration (IMPLEMENTED)
 
 ```mermaid
 flowchart TD
-    User[Consumer Startup]
-    Builder[KernelModuleBuilder]
-    GPU1[GPU Device 0]
-    GPU2[GPU Device 1]
-    Domains[Domain Modules Stats Geometry Astrophysics]
-    Types[Datatype Modules fp32 fp64 int32]
+    Consumer[Consumer]
+    GPUManager[GPUManager]
+    Workloads[KernelWorkloads]
+    Loader[KernelModuleLoader]
+    GPU0[GPU instance 0]
+    GPU1[GPU instance 1]
 
-    User --> Builder
-    Builder --> Domains
-    Builder --> Types
-    Builder --> GPU1
-    Builder --> GPU2
-    Domains --> GPU1
-    Types --> GPU1
+    Consumer --> GPUManager
+    GPUManager -->|"GetGPU(): device + memory only"| GPU0
+    GPUManager --> GPU1
+    Consumer --> Config
+    Consumer --> Loader
+    Loader -->|"Load(gpu, config)"| GPU0
+    Loader -->|"Load(gpu, config)"| GPU1
 ```
 
-Modules are registered per `GPU` instance at startup. Only requested domain × datatype kernels are compiled and loaded.
+GPU creation and kernel loading are **separate steps**. Each `GPU` instance is configured independently via `KernelModuleLoader.Load<T>(gpu, domains)`. There is no implicit Core domain — if no modules are loaded, no kernels compile.
+
+`GPUManager.Default` convenience: creates a GPU and loads `KernelWorkloads.Default` (fp32 Arithmetic + Structural).
 
 ### 3.6 Multi-GPU Data Flow (Target - WIP)
 
@@ -365,10 +367,12 @@ This section documents **what exists in code today**. See [Section 19](#19-code-
 
 | Entry                       | Location                            | Role                                        |
 | --------------------------- | ----------------------------------- | ------------------------------------------- |
-| `GPUManager.Default`        | `BAVCL/Services/GPUManager.cs`      | Singleton lazy GPU; CUDA > OpenCL > CPU     |
-| `GPUManager.GetGPU()`       | same                                | Create GPU with memory cap (default 0.8)    |
-| `GPUManager.GetGPU<TMem>()` | same                                | GPU with custom`IMemoryManager`             |
-| `GPU.LoadKernels()`         | `BAVCL/Core/GPU/Kernels/kernels.cs` | Compile all kernels at startup (monolithic) |
+| `GPUManager.Default`        | `BAVCL/Core/GPU/Services/GPUManager.cs` | Singleton lazy GPU + Default workload     |
+| `GPUManager.GetGPU()`       | same                                | Create bare GPU (no kernels) with memory cap |
+| `GPUManager.GetGPU<TMem>()` | same                                | GPU with custom `IMemoryManager`          |
+| `KernelModuleLoader.Load<T>()` | `BAVCL/Core/GPU/KernelModules/`  | Compile selected domains for element type `T` onto a GPU |
+| `KernelModuleLoader.LoadAll<T>()` | same                          | Compile every registered domain for `T`   |
+| `KernelWorkloads.Default` / `.Geometry` | same                    | Named domain bundles                      |
 
 ### 4.2 Vector (float32)
 
@@ -529,31 +533,33 @@ Binary `+`, `-`, `*`, `/`, `^` operator overloads use **NumPy-style element-wise
 
 `BAVCL.GPU` — wraps `Accelerator` + `IMemoryManager`. Provides allocation, buffer lookup, GC, kernel delegates, `Dispose()`.
 
-#### 4.5.2 Compiled Kernels (v0)
+#### 4.5.2 Compiled Kernels
 
-Loaded in `LoadKernels()` — all at once:
+Kernels are loaded selectively via `KernelModuleLoader` (see §7). Each domain file under `BAVCL/Core/GPU/Kernels/` holds its own `partial GPU` delegate fields, load method, and kernel bodies.
 
-| Kernel                                    | Purpose                                         |
-| ----------------------------------------- | ----------------------------------------------- |
-| `appendKernel`                            | Append rows                                     |
-| `nanToNumKernel`                          | Replace NaN/Inf                                 |
-| `getSliceKernel`                          | Slice extraction                                |
-| `a_opFKernel` / `s_opFKernel`             | Binary ops (array/scalar)                       |
-| `a_FloatOPKernelIP` / `s_FloatOPKernelIP` | In-place binary ops                             |
-| `broadcastOpKernel` / `broadcastOpKernelIP` | NumPy-style element-wise broadcast (per-operand index from shape, coalesced `flatOut`) |
-| `reduceRowOpKernel` | Row-wise vector-matrix reduction (`ReduceOP`) |
-| `matmulKernel`                            | Matrix multiply (`Cross` / `MatrixMultiply`)    |
-| `simdVectorKernel`                        | Per-row 3-wide ops (Vector3 magnitude/distance) |
-| `diffKernel`                              | Adjacent difference                             |
-| `reverseKernel`                           | Reverse in-place                                |
-| `absKernel`                               | Absolute value                                  |
-| `rcpKernel`                               | Reciprocal                                      |
-| `rsqrtKernel`                             | Reciprocal sqrt                                 |
-| `crossKernel`                             | 3D cross product                                |
-| `transposekernel`                         | Matrix transpose                                |
-| `LogKernel`                               | Log with configurable base                      |
+| Kernel                                    | Domain      | Purpose                                         |
+| ----------------------------------------- | ----------- | ----------------------------------------------- |
+| `appendKernel`                            | Structural  | Append rows                                     |
+| `getSliceKernel`                          | Structural  | Slice extraction                                |
+| `reverseKernel`                           | Structural  | Reverse in-place                                |
+| `transposekernel`                         | Structural  | Matrix transpose                                |
+| `nanToNumKernel`                          | Arithmetic  | Replace NaN/Inf                                 |
+| `a_opFKernel` / `s_opFKernel`             | Arithmetic  | Binary ops (array/scalar)                       |
+| `a_FloatOPKernelIP` / `s_FloatOPKernelIP` | Arithmetic  | In-place binary ops                             |
+| `broadcastOpKernel` / `broadcastOpKernelIP` | Arithmetic  | NumPy-style element-wise broadcast              |
+| `reduceRowOpKernel`                       | Arithmetic  | Row-wise vector-matrix reduction (`ReduceOP`)   |
+| `matmulKernel`                            | Arithmetic  | Matrix multiply (`Cross` / `MatrixMultiply`)    |
+| `diffKernel`                              | Arithmetic  | Adjacent difference                             |
+| `absKernel`                               | Arithmetic  | Absolute value                                  |
+| `rcpKernel`                               | Arithmetic  | Reciprocal                                      |
+| `rsqrtKernel`                             | Arithmetic  | Reciprocal sqrt                                 |
+| `LogKernel`                               | Arithmetic  | Log with configurable base                      |
+| `crossKernel`                             | Geometry    | 3D cross product                                |
+| `simdVectorKernel`                        | Geometry    | Per-row 3-wide ops (Vector3 magnitude/distance) |
 
-**Not loaded:** `TestSQRTKernel`, `TestMYSQRTKernel` (throw `KernelNotCompiledException` if called).
+**GpuOps module dependency:** `Modules/GpuOps` requires **Arithmetic** (fp32) kernels loaded (broadcast, element-wise, row reduce).
+
+**Never loaded:** `TestSQRTKernel`, `TestMYSQRTKernel` in `Kernels/Experimental/` — no module provides them, so they throw `KernelNotCompiledException` if called.
 
 #### 4.5.3 LRU Memory Manager
 
@@ -682,25 +688,93 @@ Mask can also filter/compacted data (exclude masked elements) — detailed API T
 
 Two axes of modularity:
 
-| Axis         | Examples                                          |
-| ------------ | ------------------------------------------------- |
-| **Domain**   | Statistics, Geometry, LinearAlgebra, Astrophysics |
-| **Datatype** | fp32, fp64, int32, int64, uint                    |
+| Axis         | Examples                                                    |
+| ------------ | ----------------------------------------------------------- |
+| **Domain**   | `KernelDomain` enum: Arithmetic, Structural, Geometry, Statistics, LinearAlgebra, Astrophysics |
+| **Element type** | The CLR type itself (`typeof(T)` from `Load<T>`): `float`, `double`, `int`, … |
+
+There is no parallel datatype enum — the generic parameter is the key. No implicit Core domain: load nothing and nothing compiles.
 
 ### 7.2 Registration
 
-- Registered per `GPU` instance at startup
-- **Builder pattern** for selective module loading
-- Only requested kernels are compiled — reduces startup latency vs current monolithic `LoadKernels()`
+- Loaded per `GPU` instance via `KernelModuleLoader.Load<T>(gpu, domains)`
+- `Load` is **additive**: already-loaded `(domain, type)` pairs are skipped
+- Only requested kernels are compiled — reduces startup latency and JIT memory vs monolithic load-all
+- Unimplemented `(domain, type)` throws `KernelModuleNotAvailableException` at load time
 
-### 7.3 Target API (Conceptual)
+### 7.3 API
 
 ```csharp
-var gpu = GPUManager.Configure()
-    .WithModules(KernelDomain.Statistics, KernelDomain.Geometry)
-    .WithTypes(DataType.Float32, DataType.Float64)
-    .Build();
+// 1. Create GPU(s) — device + memory only, no kernel compilation
+var gpuA = GPUManager.GetGPU();
+var gpuB = GPUManager.GetGPU(memoryCap: 0.5f);
+
+// 2. Configure each GPU independently
+KernelModuleLoader.Load<float>(gpuA, KernelWorkloads.Default);
+KernelModuleLoader.Load<float>(gpuB, KernelWorkloads.Geometry);
+
+// Explicit domains
+KernelModuleLoader.Load<float>(gpuA, KernelDomain.Arithmetic, KernelDomain.Structural);
+
+// Everything registered for a type
+KernelModuleLoader.LoadAll<float>(gpuA);
+
+// Convenience singleton (GetGPU + Default workload)
+GPU gpu = GPUManager.Default;
 ```
+
+### 7.4 Workloads
+
+`KernelWorkloads` exposes named `KernelDomain[]` bundles that feed straight into `Load<T>`.
+
+| Bundle                     | Domains                | Purpose                                             |
+| -------------------------- | ---------------------- | --------------------------------------------------- |
+| `KernelWorkloads.Default`  | Arithmetic, Structural | Standard numerics (matmul, element-wise, shape ops) |
+| `KernelWorkloads.Geometry` | Default + Geometry     | Vector3 GPU ops (cross, magnitude/distance)         |
+
+For full parity with the old load-all behaviour, use `LoadAll<T>`.
+
+### 7.5 Implemented fp32 Modules
+
+| Domain        | Kernels                                                                 | Status   |
+| ------------- | ----------------------------------------------------------------------- | -------- |
+| Structural    | append, getSlice, reverse, transpose                                    | Implemented |
+| Arithmetic    | abs, rcp, rsqrt, diff, nanToNum, Log, matmul, a/s op, broadcast, reduceRow | Implemented |
+| Geometry      | cross, simdVector                                                       | Implemented |
+| Statistics    | —                                                                       | Not yet  |
+| LinearAlgebra | — (`matmul` in Arithmetic for now)                                      | Not yet  |
+| Astrophysics  | —                                                                       | Not yet  |
+
+### 7.6 Extensibility
+
+Adding a module (e.g. fp64 arithmetic, or a new `KernelDomain.Mask`) is two steps:
+
+1. Add a kernel file under `Core/GPU/Kernels/{Domain}/` holding that module's delegate fields, its `Load{Domain}{Type}Kernels()` method, and the kernel bodies.
+2. Add one entry to the `Modules` dictionary in `KernelModuleLoader`:
+
+```csharp
+[(KernelDomain.Arithmetic, typeof(double))] = static gpu => gpu.LoadArithmeticFloat64Kernels(),
+```
+
+Callers then use `Load<double>(gpu, KernelDomain.Arithmetic)` with no API change.
+
+File layout:
+
+```
+BAVCL/Core/GPU/
+  KernelModules/
+    KernelDomain.cs         # domain enum
+    KernelWorkloads.cs      # named domain bundles
+    KernelModuleLoader.cs   # registry dictionary + Load<T> / LoadAll<T>
+  Kernels/
+    Arithmetic/ArithmeticKernels.Float32.cs   # delegates + load + bodies
+    Structural/StructuralKernels.Float32.cs
+    Geometry/GeometryKernels.Float32.cs
+    Experimental/ExperimentalKernels.cs       # never-loaded test stubs
+    Shared/KernelHelpers.cs
+```
+
+Per-device load state (which `(domain, type)` pairs are compiled) lives on `GPU` itself.
 
 ---
 
@@ -1029,7 +1103,7 @@ When code and this spec disagree, **this spec is the target**.
 | 3   | CPU/GPU API          | Operators and most ops use GPU kernels          | Default = CPU;`X` = GPU                      | `Vector/Vector.cs`, `Abs.cs`         |
 | 4   | LiveCount safety     | `GpuScope.Begin` in library ops                 | Scope-only for custom kernels                | `GpuScope.cs`, GPU operation files   |
 | 5   | LiveCount exceptions | `GpuScope` IDisposable                          | Balanced refcount on dispose                 | `GpuScope.cs`                        |
-| 6   | Kernel loading       | Monolithic`LoadKernels()`                       | Domain × datatype modules, builder           | `kernels.cs`                         |
+| 6   | Kernel loading       | Selective modules via `KernelModuleLoader.Load<T>` | Domain × element-type modules per GPU     | `Core/GPU/KernelModules/`            |
 | 7   | Multi-GPU            | Single`GPUManager.Default`                      | Create/enumerate GPUs; cross-device transfer | `GPUManager.cs`                      |
 | 8   | Mask                 | Empty folder                                    | Packed-bit mask, configurable fill           | `Core/Mask/`                         |
 | 9   | Matrix/Table         | Stubs throw or empty                            | Deferred                                     | `Matrix/Matrix.cs`, `Table/Table.cs` |
@@ -1050,7 +1124,7 @@ When code and this spec disagree, **this spec is the target**.
 | 24  | Print extensions     | double/int/long 2D throw NIE                    | Implement or remove overloads                | `Extensions/Print.cs`                |
 | 25  | .NET version         | Library net10.0, tests net8.0, launch net6.0    | Align all to net10.0                         | `.csproj`, `launch.json`             |
 | 26  | GPUScope             | `GpuScope.Begin` + `CpuScope.Begin`             | Implemented                                  | `Memory/Scopes/*.cs`                 |
-| 27  | Kernel modules       | Does not exist                                  | Builder registration per GPU                 | New infrastructure                   |
+| 27  | Kernel modules       | Implemented — loader + workloads per GPU        | Implemented                                  | `Core/GPU/KernelModules/`            |
 | 28  | RsqrtX               | Fixed — calls `RsqrtX_IP`                       | Consistent `X` = GPU naming                  | `Rsqrt.cs`                           |
 | 29  | Shape type           | `Shape` struct                                  | Implemented                                  | `Core/Shape.cs`                      |
 | 30  | Shape caching        | Derived each call                               | Optional cache on `VectorBase` (future)      | `VectorBase.cs`                      |
@@ -1081,7 +1155,7 @@ Companion test repository at `C:\Users\marce\Repos\BAVCL.Tests`. Source-only sib
 | Accelerator preference  | CUDA > OpenCL > CPU           | `GPUManager._acceleratorPrefOrder`     |
 | Auto-cache on construct | `true`                        | `VectorBase` constructor `Cache` param |
 | IO output path          | `{BaseDirectory}/saved_data/` | `IO.WriteToFile()`                     |
-| Kernels loaded          | All at startup                | `GPU.LoadKernels()`                    |
+| Kernels loaded          | `KernelWorkloads.Default` on `GPUManager.Default`; otherwise explicit | `KernelModuleLoader`, `GPUManager` |
 
 ## Appendix B: Key Interfaces
 
