@@ -1,8 +1,9 @@
 using System;
 using ILGPU.Runtime;
 using BAVCL.Core.Exceptions;
+using BAVCL.Core.Helpers;
 
-namespace BAVCL;
+namespace BAVCL.Types;
 
 /// <summary>
 /// Packed boolean mask stored as densely packed int32 words (32 booleans per word, LSB-first).
@@ -77,7 +78,7 @@ public sealed class Mask : CacheableBase<int>
 		return _elementCount / Columns;
 	}
 
-	public BAVCL.Shape Shape() => BAVCL.Shape.FromStorage(_elementCount, Columns);
+	public Shape Shape() => BAVCL.Shape.FromStorage(_elementCount, Columns);
 
 	public bool IsRectangular() => Columns == 0 || _elementCount % Columns == 0;
 
@@ -126,7 +127,7 @@ public sealed class Mask : CacheableBase<int>
 		ValidateShapeMatches(vector.Shape(), vector.Length);
 	}
 
-	public void ValidateShapeMatches(BAVCL.Shape shape, int elementCount)
+	public void ValidateShapeMatches(Shape shape, int elementCount)
 	{
 		if (_elementCount != elementCount)
 			throw new ShapeMismatchException(

@@ -3,7 +3,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace BAVCL.Core;
+namespace BAVCL.Core.Helpers;
 
 // bool[] <-> packed int32[] for Mask storage (32 bools per word, LSB-first).
 // Pack/Unpack batch storage words via Vector<int>.Count; tails handle partial words.
@@ -145,7 +145,7 @@ internal static class MaskBitOps
 
 	static void ExpandWord(int word, Span<bool> destination, int count = BitsPerWord)
 	{
-		Span<byte> bytes = MemoryMarshal.AsBytes(destination.Slice(0, count));
+		Span<byte> bytes = MemoryMarshal.AsBytes(destination[..count]);
 		int groupCount = (count + 3) >> 2;
 
 		for (int group = 0; group < groupCount; group++)
