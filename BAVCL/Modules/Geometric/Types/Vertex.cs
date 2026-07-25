@@ -1,6 +1,6 @@
 using ILGPU.Algorithms;
 using System;
-using BAVCL.Utility;
+using BAVCL.Core;
 
 namespace BAVCL.Geometric;
 

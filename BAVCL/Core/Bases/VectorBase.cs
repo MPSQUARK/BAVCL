@@ -38,7 +38,7 @@ public abstract class VectorBase<T> : CacheableBase<T>, IIO where T : unmanaged
 		return Length / Columns;
 	}
 
-	public virtual Core.Shape Shape() => Core.Shape.FromStorage(Length, Columns);
+	public virtual BAVCL.Shape Shape() => BAVCL.Shape.FromStorage(Length, Columns);
 
 	internal void ValidateIndexForView(int index)
 	{
