@@ -1,6 +1,6 @@
 using System;
 
-namespace BAVCL.Exceptions;
+namespace BAVCL.Core.Exceptions;
 
 public class ShapeMismatchException : Exception
 {

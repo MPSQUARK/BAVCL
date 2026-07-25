@@ -5,7 +5,6 @@ using System.Text;
 using BAVCL.Core.Exceptions;
 using BAVCL.Geometric;
 using BAVCL.Modules.GpuOps;
-using BAVCL.Utility;
 using ILGPU;
 using ILGPU.Runtime;
 
