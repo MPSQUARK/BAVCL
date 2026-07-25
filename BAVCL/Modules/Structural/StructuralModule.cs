@@ -1,3 +1,5 @@
+using BAVCL.Types;
+
 namespace BAVCL.Modules.Structural;
 
 public static class VectorStructural
@@ -177,6 +179,13 @@ public static class VectorStructural
 
 		public static BAVCL.Geometric.Vector3 Fill(GPU gpu, float value, int length) =>
 			FactoriesCore.Fill(gpu, value, length);
+	}
+
+	extension(Mask)
+	{
+		public static string ToStr(Mask mask) => FormattingCore.ToStr(mask);
+		public static void Print(Mask mask) => FormattingCore.Print(mask);
+
 	}
 }
 
@@ -370,4 +379,9 @@ public static class VectorStructuralExtensions
 		public string ToStr(byte decimalplaces = 2) =>
 			Vector.ToStr(vector, decimalplaces);
 	}
+
+	extension(Mask mask){
+        public string ToStr() => FormattingCore.ToStr(mask);
+        public void Print() => FormattingCore.Print(mask);
+    }
 }
