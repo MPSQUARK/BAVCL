@@ -616,7 +616,7 @@ Output directory: `{path}/saved_data/`. Default path: `AppDomain.CurrentDomain.B
 | ----------------- | ------------------------------------------------------------------------ |
 | `Matrix`          | Constructor throws`NotImplementedException`; only `MatrixLength()` works |
 | `Table`           | Empty class                                                              |
-| `Core/Mask/`      | Empty folder                                                             |
+| `Core/Mask/`      | Legacy `MaskBitOps` helper; public `Mask` type in `Types/Mask.cs`, GPU module in `Modules/Mask/` |
 | `Core/VectorInt/` | Empty folder                                                             |
 | `Astrophysics/`   | Empty folder                                                             |
 | `BAVCL/Tests/`    | Empty folder (non-authoritative)                                         |
@@ -637,7 +637,7 @@ Broadening beyond fp32 is the **top priority**:
 2. **int32** — `VectorInt`
 3. **int64**
 4. **uint**
-5. **Mask** — packed-bit boolean mask (see Section 6); **resize** deferred (see Section 6.4)
+5. **Mask** — packed-bit boolean mask (see Section 6); **resize** deferred (see Section 6.7)
 6. **Complex** — ideally `System.Numerics.Complex` as unmanaged struct; may require custom `ComplexFloat` if constraints block it
 
 ### 5.2 Specialized vs Generic Rules
@@ -663,24 +663,86 @@ Nice-to-have, **not** near-term. Vector 2D layout (`Columns > 1`) covers current
 
 Exact layout (bits per word, alignment) to be **benchmark-driven** on target GPUs.
 
-### 6.2 Apply Semantics
+### 6.2 Filter (apply mask)
 
-```
-Vector * Mask => Vector
-```
-
-Masked-out elements receive a **configurable fill value** (default 0):
+Masked-out elements receive a **configurable fill value** (default `0`):
 
 ```csharp
-vector.ApplyMask(mask, fill: 0f)   // default
-vector.ApplyMask(mask, fill: float.NaN)
+var filtered = vector & mask;              // fill = default(float) = 0f
+var filtered = vector.Filter(mask, fill);  // explicit fill (e.g. NaN)
 ```
 
-### 6.3 Filtering
+Requires `using BAVCL.Modules.Masking` for `Filter` extension.
 
-Mask can also filter/compacted data (exclude masked elements) — detailed API TBD during implementation.
+### 6.3 Select (compact)
 
-### 6.4 Resize (planned future)
+Returns a **1D** `Vector` (`Columns = 0`) containing only elements where the mask is `true` (NumPy-style):
+
+```csharp
+var data = vector << mask;     // primary operator
+var data = vector[mask];       // indexer
+var data = vector.Select(mask); // LINQ-like name
+```
+
+### 6.4 Mask×Mask bitwise (GPU)
+
+Namespace `BAVCL.Modules.Masking` for `OP` / `IPOP` extensions.
+
+| Operation | Syntax |
+| --------- | ------ |
+| And | `maskA & maskB` |
+| Or | `maskA \| maskB` |
+| Xor | `maskA ^ maskB` |
+| Not | `~mask` / `!mask` |
+| Set all | `+mask` / `SetAll()` |
+| Clear all | `-mask` / `ClearAll()` |
+| In-place | `&=`, `\|=`, `^=` |
+| Nand / Nor / Xnor | methods + composed `~(a&b)` etc. |
+
+Broadcast rules match `Vector` shape broadcast.
+
+`MaskOperation` carries **binary lane operations only** (`And`, `Or`, `Xor`, `Nand`, `Nor`, `Xnor`). Complement, set-all and clear-all are dispatched as an operation against a constant word (`x ^ -1`, `x | -1`, `x & 0`), so they need no enum member and no dedicated kernel.
+
+### 6.5 Vector comparisons → Mask (GPU)
+
+| Operation | Syntax |
+| --------- | ------ |
+| Greater / Less / GEq / LEq | `vectorA > vectorB`, `<`, `>=`, `<=` |
+| Scalar compare | `vector > 0.5f`, etc. |
+| Element-wise == | `vector.CompareEquals(other)` / `CompareEquals(scalar)` |
+| Element-wise != | `vector.CompareNotEquals(other)` / `CompareNotEquals(scalar)` |
+| Unified | `vector.Compare(other, VectorComparison.GreaterOrEqual)` |
+
+`bool Equals(Vector)` remains **aggregate** structural equality (unchanged).
+
+NaN: `CompareEquals` treats NaN == NaN as `true`; ordered comparisons yield `false` when NaN is involved.
+
+`KernelWorkloads.Default` includes `KernelDomain.Mask`. GPU execution via `KernelDomain.Mask` kernels (`SpecializedValue<int>` dispatch).
+
+### 6.6 Kernel strategy
+
+Authoring rules and design principles: **[GPGPUKernelGuide.md](./GPGPUKernelGuide.md)** (P1–P6). This section is the kernel inventory for `KernelDomain.Mask`.
+
+`KernelDomain.Mask` compiles eight kernels. Launch mapping maximizes parallelism (P1); shape setup is host-resolved where possible (P3); the only device `switch` is over the `SpecializedValue<int>` operation, which folds to a constant at specialization time so every thread follows one path (P4). Reduction-style loops inside a thread remain valid where the algorithm requires them — see the guide.
+
+| Kernel | Parallelism | Notes |
+| ------ | ----------- | ----- |
+| `maskWordOpKernel` | one thread per packed word | 32 lanes resolved by one bitwise instruction; aliasing output with left gives the in-place form |
+| `maskWordConstOpKernel` | one thread per packed word | complement / set-all / clear-all against a constant word |
+| `maskLaneOpKernel` | one thread per lane | broadcast breaks word alignment, so lanes are addressed individually and merged with `Atomic.Or` |
+| `maskLaneOpKernelIP` | one thread per lane | in-place broadcast; each thread owns one lane, so atomic clear-then-set cannot race a neighbour |
+| `vectorCompareMaskKernel` | one thread per element | compare, then `Atomic.Or` the lane into zeroed mask storage |
+| `vectorScalarCompareMaskKernel` | one thread per element | no shape parameters |
+| `vectorMaskFilterKernel` | one thread per element | branchless `Utilities.Select` between the source value and the fill |
+| `vectorGatherKernel` | one thread per output element | `output[i] = input[indices[i]]` |
+
+**Broadcast addressing.** Operand shapes are resolved host-side into a `BroadcastStrides` pair (row stride, column stride) where a length-one axis gets stride `0`. Operand indexing is then a multiply-add with no shape tests, replacing the five specialized shape constants the `Vector` broadcast kernels take. Only the operation stays specialized.
+
+**Padding lanes.** Word kernels take a precomputed `(lastWord, tailMask)` pair and clear padding with a `Utilities.Select`. Lane kernels need no padding handling: mask storage is allocated zeroed and only logical lanes are launched.
+
+**Compaction.** `Select` must size its output `Vector` before launching, and that length depends on mask contents, so surviving source indices are collected host-side from the packed words; the gather itself stays on the device. A device-side scan would remove the host pass and is the natural upgrade once mask aggregates land (§6.8).
+
+### 6.7 Resize (planned future)
 
 **Current implementation:** logical size is fixed after construction. `ElementCount` is stored in a `readonly` field set only in constructors; inherited `CacheableBase.Length` is the packed **storage word count** (not boolean element count).
 
@@ -711,9 +773,21 @@ Logical element count **cannot** be derived from word count alone (e.g. 97 and 1
 
 **Reference:** `Vector` structural ops already resize by replacing `Value` and setting `Length = Value.Length` (e.g. `Modules/Structural/Internal/Factories.cs`, `ShapeOps.cs`).
 
+### 6.8 Mask aggregates (roadmap — CPU SIMD)
+
+Planned CPU-side helpers (not GPU kernels in v1):
+
+- `mask.CountTrue()` — popcount over logical bits (padding excluded)
+- `mask.Any()` — any set bit
+- `mask.All()` — all logical bits set
+
+Implementation target: `System.Numerics.Vector<int>` / packed word scan via `RetrieveReadOnlySpan`.
+
 ---
 
 ## 7. Kernel Module System
+
+**Agent / implementer reference:** see [GPGPUKernelGuide.md](./GPGPUKernelGuide.md) for GPU design principles, host/device boundaries, and patterns. Project skill: `.agents/skills/bavcl-gpgpu/`.
 
 ### 7.1 Module Dimensions
 
@@ -721,7 +795,7 @@ Two axes of modularity:
 
 | Axis         | Examples                                                    |
 | ------------ | ----------------------------------------------------------- |
-| **Domain**   | `KernelDomain` enum: Arithmetic, Structural, Geometry, Statistics, LinearAlgebra, Astrophysics |
+| **Domain**   | `KernelDomain` enum: Arithmetic, Structural, Geometry, Statistics, LinearAlgebra, Astrophysics, Mask |
 | **Element type** | The CLR type itself (`typeof(T)` from `Load<T>`): `float`, `double`, `int`, … |
 
 There is no parallel datatype enum — the generic parameter is the key. No implicit Core domain: load nothing and nothing compiles.
@@ -1136,7 +1210,7 @@ When code and this spec disagree, **this spec is the target**.
 | 5   | LiveCount exceptions | `GpuScope` IDisposable                          | Balanced refcount on dispose                 | `GpuScope.cs`                        |
 | 6   | Kernel loading       | Selective modules via `KernelModuleLoader.Load<T>` | Domain × element-type modules per GPU     | `Core/GPU/KernelModules/`            |
 | 7   | Multi-GPU            | Single`GPUManager.Default`                      | Create/enumerate GPUs; cross-device transfer | `GPUManager.cs`                      |
-| 8   | Mask                 | `Mask` type implemented; resize not yet                      | Packed-bit mask, configurable fill; resize (6.4) | `Core/Mask/`                         |
+| 8   | Mask                 | `Mask` type + GPU bitwise/filter/select/compare ops implemented; resize not yet | Packed-bit mask, configurable fill; resize (6.7) | `Types/Mask.cs`, `Modules/Mask/`     |
 | 9   | Matrix/Table         | Stubs throw or empty                            | Deferred                                     | `Matrix/Matrix.cs`, `Table/Table.cs` |
 | 10  | Astrophysics         | Empty folder                                    | FALCON integrals (age-from-redshift)         | `Astrophysics/`                      |
 | 11  | IO formats           | CSV/TXT only                                    | Polish + JSON/XML/YAML; FITS/NPY/HDF5 later  | `IO/IO.cs`, `Enums/Enums.cs`         |
@@ -1159,7 +1233,7 @@ When code and this spec disagree, **this spec is the target**.
 | 28  | RsqrtX               | Fixed — calls `RsqrtX_IP`                       | Consistent `X` = GPU naming                  | `Rsqrt.cs`                           |
 | 29  | Shape type           | `Shape` struct                                  | Implemented                                  | `Core/Shape.cs`                      |
 | 30  | Shape caching        | Derived each call                               | Optional cache on `VectorBase` (future)      | `VectorBase.cs`                      |
-| 31  | Mask resize          | `ElementCount` fixed (`readonly`)               | Resize/replace API; `volatile` `_elementCount` | `Core/Mask/Mask.cs` (see §6.4)       |
+| 31  | Mask resize          | `ElementCount` fixed (`readonly`)               | Resize/replace API; `volatile` `_elementCount` | `Types/Mask.cs` (see §6.4)           |
 
 ---
 
