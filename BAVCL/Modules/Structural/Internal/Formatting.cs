@@ -245,7 +245,7 @@ internal static class FormattingCore
 			return ToStr2D(mask);
 
 		char[] strBuffer = new char[mask.ElementCount * 6];
-		var data = mask.GetCpuReadOnlySpan();
+		ReadOnlySpan<int> data = mask.RetrieveReadOnlySpan();
 
 		char[] template = ['|', ' ', ' ', ' ', '|', '\n'];           
 
@@ -266,7 +266,7 @@ internal static class FormattingCore
         StringBuilder sb = new();
 
 		char[] template = ['|', ' ', ' ', ' ', '|'];
-        var data = mask.GetCpuReadOnlySpan();
+        ReadOnlySpan<int> data = mask.RetrieveReadOnlySpan();
         for (int i = 0, col = 0; i < mask.ElementCount; i++, col++)
         {
 			if (col == mask.Columns)
