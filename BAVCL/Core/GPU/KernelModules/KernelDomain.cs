@@ -8,4 +8,5 @@ public enum KernelDomain
 	Statistics,
 	LinearAlgebra,
 	Astrophysics,
+	Mask,
 }
