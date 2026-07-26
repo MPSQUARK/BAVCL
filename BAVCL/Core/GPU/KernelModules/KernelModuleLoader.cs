@@ -16,6 +16,11 @@ public static class KernelModuleLoader
 		[(KernelDomain.Arithmetic, typeof(float))] = static gpu => gpu.LoadArithmeticFloat32Kernels(),
 		[(KernelDomain.Structural, typeof(float))] = static gpu => gpu.LoadStructuralFloat32Kernels(),
 		[(KernelDomain.Geometry, typeof(float))] = static gpu => gpu.LoadGeometryFloat32Kernels(),
+		[(KernelDomain.Mask, typeof(float))] = static gpu =>
+		{
+			gpu.LoadMaskWordKernels();
+			gpu.LoadMaskVectorKernels();
+		},
 	};
 
 	/// <summary>

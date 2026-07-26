@@ -103,11 +103,14 @@ internal static class MaskBitOps
 		if (elementCount == 0 || words.Length == 0)
 			return;
 
-		int trailingBits = elementCount & WordMask;
-		if (trailingBits == 0)
-			return;
+		words[^1] &= TailMask(elementCount);
+	}
 
-		words[^1] &= (1 << trailingBits) - 1;
+	/// <summary>Lane mask keeping only the logical bits of the final storage word.</summary>
+	internal static int TailMask(int elementCount)
+	{
+		int trailingBits = elementCount & WordMask;
+		return trailingBits == 0 ? -1 : (1 << trailingBits) - 1;
 	}
 
 	static int CompressWord(ReadOnlySpan<bool> values, int startIndex, int count = BitsPerWord)

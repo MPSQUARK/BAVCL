@@ -2,6 +2,7 @@ using System;
 using ILGPU.Runtime;
 using BAVCL.Core.Exceptions;
 using BAVCL.Core.Helpers;
+using BAVCL.Modules.Masking;
 
 namespace BAVCL.Types;
 
@@ -185,4 +186,29 @@ public sealed class Mask : CacheableBase<int>
 				$"elementCount={_elementCount}, columns={Columns}",
 				"(invalid storage layout)");
 	}
+
+	public static Mask operator &(Mask left, Mask right) =>
+		MaskBitwiseOps.BinaryOp(left, right, MaskOperation.And);
+
+	public static Mask operator |(Mask left, Mask right) =>
+		MaskBitwiseOps.BinaryOp(left, right, MaskOperation.Or);
+
+	public static Mask operator ^(Mask left, Mask right) =>
+		MaskBitwiseOps.BinaryOp(left, right, MaskOperation.Xor);
+
+	public static Mask operator ~(Mask mask) => MaskBitwiseOps.Complement(mask);
+
+	public static Mask operator !(Mask mask) => MaskBitwiseOps.Complement(mask);
+
+	/// <summary>Mask of the same layout with every lane set.</summary>
+	public static Mask operator +(Mask mask) => MaskBitwiseOps.AllSet(mask);
+
+	/// <summary>Mask of the same layout with every lane clear.</summary>
+	public static Mask operator -(Mask mask) => MaskBitwiseOps.AllClear(mask);
+
+	public void operator &=(Mask other) => MaskBitwiseOps.BinaryOpInPlace(this, other, MaskOperation.And);
+
+	public void operator |=(Mask other) => MaskBitwiseOps.BinaryOpInPlace(this, other, MaskOperation.Or);
+
+	public void operator ^=(Mask other) => MaskBitwiseOps.BinaryOpInPlace(this, other, MaskOperation.Xor);
 }
