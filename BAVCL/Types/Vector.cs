@@ -1,7 +1,9 @@
 using System;
 using BAVCL.Modules.Arithmetic;
 using BAVCL.Modules.GpuOps;
+using BAVCL.Modules.Masking;
 using BAVCL.Modules.Structural;
+using BAVCL.Types;
 
 namespace BAVCL;
 
@@ -62,6 +64,26 @@ public sealed partial class Vector : VectorBase<float>
 	}
 
 	public override string ToString() => VectorStructuralExtensions.ToStr(this);
+
+	public Vector this[Mask mask] => MaskVectorOps.Select(this, mask);
+
+	public Mask CompareEquals(Vector other) =>
+		MaskVectorOps.Compare(this, other, VectorComparison.Equal);
+
+	public Mask CompareNotEquals(Vector other) =>
+		MaskVectorOps.Compare(this, other, VectorComparison.NotEqual);
+
+	public Mask Compare(Vector other, VectorComparison comparison) =>
+		MaskVectorOps.Compare(this, other, comparison);
+
+	public Mask CompareEquals(float scalar) =>
+		MaskVectorOps.Compare(this, scalar, VectorComparison.Equal);
+
+	public Mask CompareNotEquals(float scalar) =>
+		MaskVectorOps.Compare(this, scalar, VectorComparison.NotEqual);
+
+	public Mask Compare(float scalar, VectorComparison comparison) =>
+		MaskVectorOps.Compare(this, scalar, comparison);
 
     #region "OPERATORS"
     /// <summary>
@@ -133,6 +155,36 @@ public sealed partial class Vector : VectorBase<float>
         this.IPOP(vectorB, Operations.pow);
 	public void operator ^=(float Scalar) =>
         this.IPOP(Scalar, Operations.pow);
+
+	public static Vector operator &(Vector vector, Mask mask) =>
+		MaskVectorOps.Filter(vector, mask, 0f);
+
+	public static Vector operator <<(Vector vector, Mask mask) =>
+		MaskVectorOps.Select(vector, mask);
+
+	public static Mask operator >(Vector left, Vector right) =>
+		MaskVectorOps.Compare(left, right, VectorComparison.Greater);
+
+	public static Mask operator <(Vector left, Vector right) =>
+		MaskVectorOps.Compare(left, right, VectorComparison.Less);
+
+	public static Mask operator >=(Vector left, Vector right) =>
+		MaskVectorOps.Compare(left, right, VectorComparison.GreaterOrEqual);
+
+	public static Mask operator <=(Vector left, Vector right) =>
+		MaskVectorOps.Compare(left, right, VectorComparison.LessOrEqual);
+
+	public static Mask operator >(Vector vector, float scalar) =>
+		MaskVectorOps.Compare(vector, scalar, VectorComparison.Greater);
+
+	public static Mask operator <(Vector vector, float scalar) =>
+		MaskVectorOps.Compare(vector, scalar, VectorComparison.Less);
+
+	public static Mask operator >=(Vector vector, float scalar) =>
+		MaskVectorOps.Compare(vector, scalar, VectorComparison.GreaterOrEqual);
+
+	public static Mask operator <=(Vector vector, float scalar) =>
+		MaskVectorOps.Compare(vector, scalar, VectorComparison.LessOrEqual);
 
     #endregion
 }
