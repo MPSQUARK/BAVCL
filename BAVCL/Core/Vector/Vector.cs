@@ -23,24 +23,21 @@ namespace BAVCL
 		/// <param name="values">The array of data contained in this Vector.</param>
 		/// <param name="columns">The number of Columns IF this is a 2D Vector, for 1D Vectors use the default Columns = 1</param>
 		public Vector(GPU gpu, float[] values, int columns = 1, bool cache = true) :
-			base(gpu, values, columns, cache) { }
+			base(gpu, values, columns, cache)
+		{ }
 
 		/// <summary>
-		/// Constructs a Vector object of length 'length' with all values set to default or 0.
-		/// Should be more efficient for creating output vectors, and zero/default initiased vectors.
+		/// Constructs a Vector object of length 'length' with uninitialized values.
+		/// Ideal for creating output vectors. JUST REMEMBER TO SET/UPDATE ALL VALUES.
+		/// WARNING: Values are NOT initialized to zero, and you may get random leftover data.
 		/// </summary>
 		/// <param name="gpu"></param>
 		/// <param name="length"></param>
 		/// <param name="columns"></param>
 		/// <returns></returns>
 		public Vector(GPU gpu, int length, int columns = 1) :
-			base(gpu, length, columns) { }
-
-		public float this[int i]
-		{
-			get => Value[i];
-			set => Value[i] = value;
-		}
+			base(gpu, length, columns)
+		{ }
 
 		public override void Print() => Console.WriteLine(ToStr());
 
@@ -55,7 +52,7 @@ namespace BAVCL
 			if (Length != vector.Length) return false;
 
 			for (int i = 0; i < Length; i++)
-				if (this.Value[i] != vector.Value[i]) return false;
+				if (Value[i] != vector.Value[i]) return false;
 
 			return true;
 		}
@@ -63,9 +60,9 @@ namespace BAVCL
 		public Vector Copy(bool Cache = true)
 		{
 			if (ID == 0)
-				return new Vector(gpu, Value[..], Columns, Cache);
+				return new Vector(Gpu, Value[..], Columns, Cache);
 
-			return new Vector(gpu, Pull(), Columns, Cache);
+			return new Vector(Gpu, Pull(), Columns, Cache);
 		}
 
 		#region "MATHEMATICAL PROPERTIES"
@@ -83,7 +80,7 @@ namespace BAVCL
 					vectorSize = System.Numerics.Vector<float>.Count,
 					i = 0;
 
-				float[] array = this.Value;
+				float[] array = Value;
 
 				float mean = Mean();
 
@@ -116,7 +113,7 @@ namespace BAVCL
 			return OP(this, Mean(), Operations.differenceSquared).Sum() / Length;
 		}
 		public override float Range() => Max() - Min();
-		public void Flatten() => this.Columns = 1;
+		public void Flatten() => Columns = 1;
 
 		public override float Min()
 		{
@@ -139,54 +136,54 @@ namespace BAVCL
 		{
 			if (Length % 3 != 0) { throw new Exception("Vector length must be a multiple of 3"); }
 			if (ID != 0)
-				return new Geometric.Vector3(gpu, Pull());
+				return new Geometric.Vector3(Gpu, Pull());
 
-			return new Geometric.Vector3(gpu, Value);
+			return new Geometric.Vector3(Gpu, Value);
 		}
 
 		#endregion
 
 
 		#region "OPERATORS"
-		public static Vector operator +(Vector vector) => 
+		public static Vector operator +(Vector vector) =>
 			AbsX(vector);
-		public static Vector operator +(Vector vectorA, Vector vectorB) => 
+		public static Vector operator +(Vector vectorA, Vector vectorB) =>
 			OP(vectorA, vectorB, Operations.add);
-		public static Vector operator +(Vector vector, float Scalar) => 
+		public static Vector operator +(Vector vector, float Scalar) =>
 			OP(vector, Scalar, Operations.add);
-		public static Vector operator +(float Scalar, Vector vector) => 
+		public static Vector operator +(float Scalar, Vector vector) =>
 			OP(vector, Scalar, Operations.add);
 
-		public static Vector operator -(Vector vector) => 
+		public static Vector operator -(Vector vector) =>
 			OP(vector, -1, Operations.multiply);
-		public static Vector operator -(Vector vectorA, Vector vectorB) => 
+		public static Vector operator -(Vector vectorA, Vector vectorB) =>
 			OP(vectorA, vectorB, Operations.subtract);
-		public static Vector operator -(Vector vector, float scalar) => 
+		public static Vector operator -(Vector vector, float scalar) =>
 			OP(vector, scalar, Operations.subtract);
-		public static Vector operator -(float scalar, Vector vector) => 
+		public static Vector operator -(float scalar, Vector vector) =>
 			OP(vector, scalar, Operations.flipSubtract);
 
-		public static Vector operator *(Vector vectorA, Vector vectorB) => 
+		public static Vector operator *(Vector vectorA, Vector vectorB) =>
 			OP(vectorA, vectorB, Operations.multiply);
 
-		public static Vector operator *(Vector vector, float scalar) => 
+		public static Vector operator *(Vector vector, float scalar) =>
 			OP(vector, scalar, Operations.multiply);
 
 		public static Vector operator *(float scalar, Vector vector) =>
 			OP(vector, scalar, Operations.multiply);
 
-		public static Vector operator /(Vector vectorA, Vector vectorB) => 
+		public static Vector operator /(Vector vectorA, Vector vectorB) =>
 			OP(vectorA, vectorB, Operations.divide);
-		public static Vector operator /(Vector vector, float scalar) => 
+		public static Vector operator /(Vector vector, float scalar) =>
 			OP(vector, scalar, Operations.divide);
 		public static Vector operator /(float scalar, Vector vector) =>
 			OP(vector, scalar, Operations.flipDivide);
 
-		public static Vector operator ^(Vector vectorA, Vector vectorB) => 
+		public static Vector operator ^(Vector vectorA, Vector vectorB) =>
 			OP(vectorA, vectorB, Operations.pow);
-		public static Vector operator ^(Vector vector, float scalar) => 
+		public static Vector operator ^(Vector vector, float scalar) =>
 			OP(vector, scalar, Operations.pow);
-		public static Vector operator ^(float Scalar, Vector vector) => 
+		public static Vector operator ^(float Scalar, Vector vector) =>
 			OP(vector, Scalar, Operations.flipPow);
 
 
@@ -218,17 +215,17 @@ namespace BAVCL
 		public Vector IPOP(Vector vectorB, Operations operation)
 		{
 			// If the lengths are the same and both 1D vectors
-			if (Length == vectorB.Length && vectorB.Columns == 1 && this.Columns == 1)
+			if (Length == vectorB.Length && vectorB.Columns == 1 && Columns == 1)
 				return _VectorVectorOP_IP(vectorB, operation);
 
 
-			bool ThisLonger = this.Value.Length > vectorB.Value.Length;
+			bool ThisLonger = Value.Length > vectorB.Value.Length;
 
 			// If one input is a Vector and other is Matrix
-			if ((this.Columns == 1 && vectorB.Columns > 1) || (this.Columns > 1 && vectorB.Columns == 1))
+			if ((Columns == 1 && vectorB.Columns > 1) || (Columns > 1 && vectorB.Columns == 1))
 			{
-				
-				
+
+
 			}
 
 			throw new IndexOutOfRangeException("Vector A and Vector B provided MUST be of EQUAL length");
@@ -236,7 +233,7 @@ namespace BAVCL
 
 		public static Vector OP(Vector vector, float scalar, Operations operation)
 		{
-			GPU gpu = vector.gpu;
+			GPU gpu = vector.Gpu;
 
 			vector.IncrementLiveCount();
 
@@ -267,9 +264,9 @@ namespace BAVCL
 			// Check if the input & output are in Cache
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
 
-			gpu.s_FloatOPKernelIP(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
+			Gpu.s_FloatOPKernelIP(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
 
-			gpu.accelerator.Synchronize();
+			Gpu.accelerator.Synchronize();
 
 			DecrementLiveCount();
 
@@ -279,7 +276,7 @@ namespace BAVCL
 
 		internal static Vector _VectorVectorOP(Vector vectorA, Vector vectorB, Operations operation)
 		{
-			GPU gpu = vectorA.gpu;
+			GPU gpu = vectorA.Gpu;
 
 			vectorA.IncrementLiveCount();
 			vectorB.IncrementLiveCount();
@@ -319,10 +316,10 @@ namespace BAVCL
 				buffer2 = vectorB.GetBuffer();      // Input
 
 			// Run the kernel
-			gpu.a_FloatOPKernelIP(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
+			Gpu.a_FloatOPKernelIP(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
 
 			// Synchronise the kernel
-			gpu.accelerator.Synchronize();
+			Gpu.accelerator.Synchronize();
 
 			vectorB.DecrementLiveCount();
 			DecrementLiveCount();
@@ -332,7 +329,7 @@ namespace BAVCL
 
 		internal static Vector _VectorMatrixOP(Vector vector, Vector matrix, Operations operation)
 		{
-			GPU gpu = vector.gpu;
+			GPU gpu = vector.Gpu;
 
 			vector.IncrementLiveCount();
 			matrix.IncrementLiveCount();
@@ -369,7 +366,7 @@ namespace BAVCL
 			matrix.IncrementLiveCount();
 
 			// Make the Output Vector
-			Vector Output = new(gpu, matrix.Length, Columns);
+			Vector Output = new(Gpu, matrix.Length, Columns);
 
 			Output.IncrementLiveCount();
 
@@ -380,10 +377,10 @@ namespace BAVCL
 				buffer3 = matrix.GetBuffer();       // Input
 
 			// Run the kernel
-			gpu.vectormatrixOpKernel(gpu.accelerator.DefaultStream, matrix.RowCount(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
+			Gpu.vectormatrixOpKernel(Gpu.accelerator.DefaultStream, matrix.RowCount(), buffer.View, buffer2.View, buffer3.View, matrix.Columns, new SpecializedValue<int>((int)operation));
 
 			// Synchronise the kernel
-			gpu.accelerator.Synchronize();
+			Gpu.accelerator.Synchronize();
 
 			DecrementLiveCount();
 			matrix.DecrementLiveCount();
@@ -400,9 +397,9 @@ namespace BAVCL
 
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer();
 
-			gpu.LogKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, @base);
+			Gpu.LogKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, @base);
 
-			gpu.accelerator.Synchronize();
+			Gpu.accelerator.Synchronize();
 
 			DecrementLiveCount();
 

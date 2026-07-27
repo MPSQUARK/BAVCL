@@ -5,9 +5,10 @@ namespace BAVCL.Core.Interfaces
 {
     public interface IMemoryManager
     {
+
         #region Allocate
-        public (uint, MemoryBuffer) Allocate<T>(ICacheable<T> Cacheable, Accelerator accelerator) where T : unmanaged;
-        public (uint, MemoryBuffer) Allocate<T>(ICacheable Cacheable, T[] values, Accelerator accelerator) where T : unmanaged;
+        public (uint, MemoryBuffer) Allocate<T>(ICacheable<T> cacheable, Accelerator accelerator) where T : unmanaged;
+        public (uint, MemoryBuffer) Allocate<T>(ICacheable cacheable, T[] values, Accelerator accelerator) where T : unmanaged;
         public (uint, MemoryBuffer) AllocateEmpty<T>(ICacheable cacheable, int length, Accelerator accelerator) where T : unmanaged;
         #endregion
 
@@ -17,7 +18,7 @@ namespace BAVCL.Core.Interfaces
         #endregion
 
         #region Get
-        public MemoryBuffer GetBuffer(uint Id);
+        public MemoryBuffer? GetBuffer(uint Id);
         #endregion
 
         #region Garbage Collection
@@ -47,7 +48,7 @@ namespace BAVCL.Core.Interfaces
         /// The amount of memory available to be used accounting for headroom. 
         /// AvailableMemory <= MaxMemory.
         /// </summary>
-        public long AvailableMemory { get; init; }
+        public long AvailableMemory { get; set; }
         public long MemoryUsed { get; }
         protected internal long MemoryFree => AvailableMemory - MemoryUsed;
         #endregion

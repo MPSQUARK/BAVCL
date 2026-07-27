@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using ILGPU;
 using BAVCL.Experimental;
 using ILGPU.Runtime;
+using BAVCL.Services;
 
 namespace Testing_Console
 {
@@ -16,17 +17,17 @@ namespace Testing_Console
 	public class Benchmark
 	{
 
-		[Params(10, 100, 1000,10000)]
+		[Params(10, 100, 1000, 10000)]
 		public int datalength;
 
-		GPU gpu;
-		float[] data;
-		Random rnd;
+		GPU gpu = null!;
+		float[] data = null!;
+		Random rnd = null!;
 
 		[GlobalSetup]
 		public void GlobalSetup()
 		{
-			gpu = new();
+			gpu = GPUManager.Default;
 			rnd = new(4522156);
 			data = new float[datalength];
 			for (int i = 0; i < data.Length; i++)
@@ -36,7 +37,7 @@ namespace Testing_Console
 		[Benchmark]
 		public void Create()
 		{
-			Vector newVec = new Vector(gpu, data);
+			Vector newVec = new(gpu, data);
 		}
 
 		//[Params(2, 8, 16, 49, 100, 64, 256, 529, 165518, 5131, 123, 71645, 12.1518f)]

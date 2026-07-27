@@ -16,7 +16,7 @@ namespace BAVCL
         {
             vectorA.SyncCPU();
             vectorB.SyncCPU();
-            return new Vector(vectorA.gpu, vectorA.Value.Union(vectorB.Value).ToArray(), vectorA.Columns);
+            return new Vector(vectorA.Gpu, vectorA.Value.Union(vectorB.Value).ToArray(), vectorA.Columns);
         }
         /// <summary>
         /// Concatinates Vector onto the end of this Vector removing any duplicates.

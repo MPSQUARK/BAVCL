@@ -14,7 +14,7 @@ namespace BAVCL
             vector.IncrementLiveCount();
 
             // Make the Output Vector
-            Vector Output = new(vector.gpu, vector.Length, vector.RowCount());
+            Vector Output = new(vector.Gpu, vector.Length, vector.RowCount());
 
             // Prevent from decache
             Output.IncrementLiveCount();
@@ -23,9 +23,9 @@ namespace BAVCL
                 buffer = Output.GetBuffer(), // Output
                 buffer2 = vector.GetBuffer(); // Input
 
-            vector.gpu.transposekernel(vector.gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, vector.Columns);
+            vector.Gpu.transposekernel(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, vector.Columns);
 
-            vector.gpu.accelerator.Synchronize();
+            vector.Gpu.accelerator.Synchronize();
 
             vector.DecrementLiveCount();
             Output.DecrementLiveCount();

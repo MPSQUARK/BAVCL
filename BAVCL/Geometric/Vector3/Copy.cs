@@ -8,8 +8,8 @@ public sealed partial class Vector3 : VectorBase<float>
     {
         if (_id != 0)
         {
-            return new Vector3(gpu, Pull());
+            return new Vector3(Gpu, Pull());
         }
-        return new Vector3(gpu, Value[..]);
+        return new Vector3(Gpu, Value[..]);
     }
 }

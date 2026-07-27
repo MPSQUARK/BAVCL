@@ -25,14 +25,14 @@
         public static Vector GetRowAsVector(Vector vector, int row)
         {
             vector.SyncCPU();
-            return new Vector(vector.gpu, vector.Value[(row * vector.Columns)..(++row * vector.Columns)]);
+            return new Vector(vector.Gpu, vector.Value[(row * vector.Columns)..(++row * vector.Columns)]);
         }
 
 
         public Vector GetRowAsVector(int row)
         {
             SyncCPU();
-            return new Vector(gpu, Value[(row * Columns)..(++row * Columns)]);
+            return new Vector(Gpu, Value[(row * Columns)..(++row * Columns)]);
         }
 
 

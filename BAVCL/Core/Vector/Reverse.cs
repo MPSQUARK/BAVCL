@@ -6,8 +6,8 @@ namespace BAVCL
 {
     public partial class Vector
     {
-        public static Vector Reverse(Vector vector) => 
-            new(vector.gpu, vector.Value.Reverse().ToArray(), vector.Columns);
+        public static Vector Reverse(Vector vector) =>
+            new(vector.Gpu, vector.Value.Reverse().ToArray(), vector.Columns);
 
         public Vector Reverse_IP()
         {
@@ -15,7 +15,7 @@ namespace BAVCL
             UpdateCache(Value.Reverse().ToArray());
             return this;
         }
-        public static Vector ReverseX(Vector vector) => 
+        public static Vector ReverseX(Vector vector) =>
             vector.Copy().ReverseX_IP();
 
         public Vector ReverseX_IP()
@@ -25,9 +25,9 @@ namespace BAVCL
             // Check if the input & output are in Cache
             MemoryBuffer1D<float, Stride1D.Dense> buffer = GetBuffer(); // IO
 
-            gpu.reverseKernel(gpu.accelerator.DefaultStream, buffer.IntExtent >> 1, buffer.View);
+            Gpu.reverseKernel(Gpu.accelerator.DefaultStream, buffer.IntExtent >> 1, buffer.View);
 
-            gpu.accelerator.Synchronize();
+            Gpu.accelerator.Synchronize();
 
             DecrementLiveCount();
 

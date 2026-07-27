@@ -8,7 +8,7 @@ namespace BAVCL
         {
             vectorA.SyncCPU();
             vectorB.SyncCPU();
-            return new Vector(vectorA.gpu, vectorA.Value.Concat(vectorB.Value).ToArray(), vectorA.Columns);
+            return new Vector(vectorA.Gpu, vectorA.Value.Concat(vectorB.Value).ToArray(), vectorA.Columns);
         }
         public Vector Append_IP(Vector vector)
         {
