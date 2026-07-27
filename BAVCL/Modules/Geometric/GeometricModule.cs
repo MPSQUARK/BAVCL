@@ -19,6 +19,9 @@ public static class Vector3Geometric
 		public static Vector3 Cross(Vector3 left, Vector3 right) =>
 			Vector3Geometry.Cross(left, right);
 
+		public static Vector3 Normalise(Vector3 vector) =>
+			Vector3Geometry.Normalise(vector);
+
 		public static Vector3 AccessRow(Vector3 vector, int vertRow) =>
 			Vector3Geometry.AccessRow(vector, vertRow);
 
@@ -60,6 +63,9 @@ public static class GeometricModule
 
 		public Vector3 Cross(Vector3 vectorB) =>
 			Vector3.Cross(vector, vectorB);
+
+		public Vector3 Normalise() =>
+			Vector3.Normalise(vector);
 
 		public Vector3 AccessRow(int vertRow) =>
 			Vector3.AccessRow(vector, vertRow);

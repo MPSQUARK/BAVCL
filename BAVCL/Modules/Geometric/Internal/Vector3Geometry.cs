@@ -53,6 +53,24 @@ internal static class Vector3Geometry
 		return output;
 	}
 
+	internal static Vector3 Normalise(Vector3 vector)
+	{
+		GPU gpu = vector.Gpu;
+		Vector3 output = new(gpu, vector.Length);
+
+		using (GpuScope.Begin(output, vector))
+		{
+			MemoryBuffer1D<float, Stride1D.Dense>
+				buffer = output.GetBuffer(),
+				buffer2 = vector.GetBuffer();
+
+			gpu.normaliseKernel(gpu.accelerator.DefaultStream, vector.Length / 3, buffer.View, buffer2.View);
+			gpu.accelerator.Synchronize();
+		}
+
+		return output;
+	}
+
 	internal static Vector3 AccessRow(Vector3 vector, int vertRow)
 	{
 		ReadOnlySpan<float> data = vector.RetrieveReadOnlySpan();
