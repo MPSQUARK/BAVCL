@@ -2,8 +2,9 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Testing_Console</RootNamespace>
+    <Nullable>enable</Nullable>
     <StartupObject></StartupObject>
   </PropertyGroup>
 
@@ -22,5 +23,4 @@
   <ItemGroup>
     <ProjectReference Include="..\BAVCL\BAVCL.csproj" />
   </ItemGroup>
-
 </Project>

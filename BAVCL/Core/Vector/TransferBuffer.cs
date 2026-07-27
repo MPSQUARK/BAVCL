@@ -4,7 +4,7 @@
     {
         public static Vector TransferBuffer(Vector Inheritee, Vector Temp, bool IncColumns = false)
         {
-            Inheritee.gpu.GCItem(Inheritee.ID);
+            Inheritee.Gpu.GCItem(Inheritee.ID);
             Inheritee.ID = Temp.ID;
             Inheritee.Value = Temp.Value;
             if (IncColumns) { Inheritee.Columns = Temp.Columns; }
@@ -13,9 +13,9 @@
             return Inheritee;
         }
 
-        public Vector TransferBuffer(Vector Temp, bool IncColumns=false)
+        public Vector TransferBuffer(Vector Temp, bool IncColumns = false)
         {
-            gpu.GCItem(ID);
+            Gpu.GCItem(ID);
             ID = Temp.ID;
             Value = Temp.Value;
             if (IncColumns) { Columns = Temp.Columns; }

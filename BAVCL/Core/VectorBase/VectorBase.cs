@@ -7,9 +7,9 @@ namespace BAVCL.Core
 {
 	public abstract partial class VectorBase<T> : ICacheable<T>, IIO where T : unmanaged
 	{
-		protected GPU gpu;
+		protected GPU Gpu;
 
-		public T[] Value = Array.Empty<T>();
+		public T[] Value = [];
 
 		public virtual int Columns
 		{
@@ -18,9 +18,9 @@ namespace BAVCL.Core
 		}
 
 		public int Length
-		{ 
-			get => _length; 
-			set => _length = value; 
+		{
+			get => _length;
+			set => _length = value;
 		}
 
 		public uint ID
@@ -43,9 +43,17 @@ namespace BAVCL.Core
 		protected volatile internal uint _livecount = 0;
 		protected volatile internal int _length = 0;
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="VectorBase{T}"/> class.
+		/// </summary>
+		/// <param name="gpu"></param>
+		/// <param name="value"></param>
+		/// <param name="columns"></param>
+		/// <param name="Cache">Preloads the vector onto the GPU at creation time.</param>
+		/// <summary>
 		protected VectorBase(GPU gpu, T[] value, int columns = 1, bool Cache = true)
 		{
-			this.gpu = gpu;
+			Gpu = gpu;
 			Columns = columns;
 			Value = value;
 			Length = value.Length;
@@ -53,32 +61,33 @@ namespace BAVCL.Core
 			if (Cache) this.Cache(value);
 		}
 
+		/// <summary>
+		/// Creates an 'empty' vector of specified length.
+		/// Warning: May contain random leftover data. 
+		///	Initialize values before use OR use `Zeros` method.  
+		/// </summary>
+		/// <param name="gpu"></param>
+		/// <param name="length"></param>
+		/// <param name="columns"></param>
 		protected VectorBase(GPU gpu, int length, int columns = 1)
 		{
-			this.gpu = gpu;
+			Gpu = gpu;
 			Columns = columns;
-			Value = null;
+			Value = [];
 			Length = length;
 			CacheEmpty(length);
 		}
 
 
-		public T[] Pull() 
+		public T[] Pull()
 		{
 			MemoryBuffer1D<T, Stride1D.Dense> buffer = GetBuffer();
 			T[] values = new T[buffer.Length];
 			buffer.AsArrayView<T>(0, buffer.Length).CopyToCPU(values);
 			return values;
-		} 
-
-		public T GetValue(int row, int col)
-		{
-			SyncCPU();
-			return Value[row * Columns + col];
 		}
 
 		public T[] GetValues() => Value;
-
 
 		// PRINT + CSV
 		public virtual void Print() => Console.WriteLine(this.ToString());
@@ -93,12 +102,12 @@ namespace BAVCL.Core
 		public virtual (int, int) Shape() => (RowCount(), Columns);
 
 		public virtual T Max() { SyncCPU(); return Value.Max(); }
-		public virtual T Min() { SyncCPU(); return Value.Min();}
+		public virtual T Min() { SyncCPU(); return Value.Min(); }
 		public abstract T Mean();
 		public abstract T Range();
 		public abstract T Sum();
 		public bool IsRectangular() => this.Length % this.Columns == 0;
-		public bool Is1D() => this.Columns == 1;
+		public bool Is1D() => Columns == 1;
 
 	}
 

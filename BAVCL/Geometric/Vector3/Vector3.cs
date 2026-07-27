@@ -12,9 +12,9 @@ namespace BAVCL.Geometric
 		#endregion
 
 		// CONSTRUCTOR
-		public Vector3(GPU gpu, float[] value, bool cache = true) : base(gpu, ValidateVectorLength(value), 3, cache) {}
+		public Vector3(GPU gpu, float[] value, bool cache = true) : base(gpu, ValidateVectorLength(value), 3, cache) { }
 
-		public Vector3(GPU gpu, int length) : base(gpu, ValidateVectorLength(length), 3) {}
+		public Vector3(GPU gpu, int length) : base(gpu, ValidateVectorLength(length), 3) { }
 
 		private static float[] ValidateVectorLength(float[] values)
 		{
@@ -31,22 +31,22 @@ namespace BAVCL.Geometric
 		/*
 		* TODO: Conversion between the vector types can be optimised by simply passing the 
 		* Memory buffer reference to the new vector, i.e. the ID if not 0
-		*/ 
+		*/
 		public Vector ToVector(bool cache = true)
 		{
 			if (_id != 0)
 			{
-				return new Vector(this.gpu, Pull(), this.Columns, cache);
+				return new Vector(this.Gpu, Pull(), this.Columns, cache);
 			}
-			return new Vector(this.gpu, this.Value, this.Columns, cache);
+			return new Vector(this.Gpu, this.Value, this.Columns, cache);
 		}
 		public Vector ToVector(int Columns, bool cache = true)
 		{
 			if (_id != 0)
 			{
-				return new Vector(this.gpu, Pull(), this.Columns, cache);
+				return new Vector(this.Gpu, Pull(), this.Columns, cache);
 			}
-			return new Vector(this.gpu, this.Value, Columns, cache);
+			return new Vector(this.Gpu, this.Value, Columns, cache);
 		}
 
 

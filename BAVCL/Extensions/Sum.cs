@@ -47,10 +47,10 @@ namespace BAVCL.Extensions
                 result += sumVector[j];
 
             return result;
-        }    
+        }
         public static float Sum(this float[] arr)
         {
-            if (arr.Length >= 1e4f)
+            if (arr.Length >= 1e4)
                 return CorrectingSum(arr);
             else
                 return SimpleSum(arr);
@@ -73,11 +73,7 @@ namespace BAVCL.Extensions
 
             return result;
         }
-        public static double Sum(this double[] arr)
-        {
-            return SimpleSum(arr);
-        }
-
+        public static double Sum(this double[] arr) => SimpleSum(arr);
 
     }
 }
