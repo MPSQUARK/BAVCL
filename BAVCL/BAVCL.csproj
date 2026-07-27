@@ -4,20 +4,17 @@
     <TargetFramework>net10.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
+    <LangVersion>Latest</LangVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="BAVCL.Tests" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="ILGPU" Version="1.5.3" />
     <PackageReference Include="ILGPU.Algorithms" Version="1.5.3" />
     <PackageReference Include="System.Drawing.Common" Version="10.0.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Astrophysics\" />
-    <Folder Include="Core\Mask\" />
-    <Folder Include="Core\VectorInt\" />
-    <Folder Include="Plotting\Saved Plots\" />
-    <Folder Include="Tests\" />
   </ItemGroup>
 
   <ItemGroup>
