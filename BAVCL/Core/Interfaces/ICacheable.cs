@@ -1,27 +1,44 @@
-﻿using ILGPU.Runtime;
+using ILGPU.Runtime;
+using System;
 
 namespace BAVCL.Core;
 
 public interface ICacheable
 {
-    public uint LiveCount { get; }
-    public uint ID { get; set; }
-    public long MemorySize { get; }
+	Residence Residence { get; set; }
+	uint LiveCount { get; }
+	uint ID { get; set; }
+	long MemorySize { get; }
 
-    public void DeCache();
+	void DeCache();
+	void IncrementLiveCount();
+	void DecrementLiveCount();
+	void SyncCPU();
+	void SyncCPU(MemoryBuffer buffer);
+	MemoryBuffer UpdateCache();
 
-    public void IncrementLiveCount();
+	bool TrySetResidence(Residence expected, Residence next);
+	void SetResidence(Residence residence);
 
-    public void DecrementLiveCount();
-
-    public void SyncCPU();
-
-    public void SyncCPU(MemoryBuffer buffer);
-    public MemoryBuffer UpdateCache();
+	void EnterCpuScope();
+	void ExitCpuScope(bool syncToGpu);
+	void RollbackCpuScopeEnter();
 }
 
 public interface ICacheable<T> : ICacheable where T : unmanaged
 {
-    public T[] GetValues();
-    public MemoryBuffer UpdateCache(T[] array);
+	/// <summary>
+	/// Syncs from GPU when needed, then returns a read-only CPU span.
+	/// Prefer <see cref="VectorBase{T}.GetCpuReadOnlySpan"/> for user reads without sync.
+	/// </summary>
+	ReadOnlySpan<T> RetrieveReadOnlySpan();
+
+	/// <summary>
+	/// Invokes <paramref name="edit"/> with writable CPU storage during an open <see cref="CpuScope{T}"/>.
+	/// Implement explicitly; only <see cref="CpuScope{T}"/> should call this via <see cref="ICacheable{T}"/>.
+	/// Pass <see cref="Memory{T}.Empty"/> to <paramref name="edit"/> when no editable surface exists.
+	/// </summary>
+	void EditCpu(Action<Memory<T>> edit);
+
+	MemoryBuffer UpdateCache(T[] array);
 }
