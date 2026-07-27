@@ -24,7 +24,7 @@ public partial class GPU
 
 	static void CrossKernel(Index1D index, ArrayView<float> Output, ArrayView<float> InputA, ArrayView<float> InputB)
 	{
-		Index1D startIdx = index * 3;
+		Index1D startIdx = index + index + index;
 		Output[startIdx] = InputA[startIdx + 1] * InputB[startIdx + 2] - InputA[startIdx + 2] * InputB[startIdx + 1];
 		Output[startIdx + 1] = InputA[startIdx + 2] * InputB[startIdx] - InputA[startIdx] * InputB[startIdx + 2];
 		Output[startIdx + 2] = InputA[startIdx] * InputB[startIdx + 1] - InputA[startIdx + 1] * InputB[startIdx];
@@ -32,14 +32,14 @@ public partial class GPU
 
 	static void NormaliseKernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
 	{
-		Index1D startIdx = index * 3;
+		Index1D startIdx = index + index + index;
 		float x = Input[startIdx];
 		float y = Input[startIdx + 1];
 		float z = Input[startIdx + 2];
-		float magnitude = XMath.Sqrt(x * x + y * y + z * z);
-		Output[startIdx] = x / magnitude;
-		Output[startIdx + 1] = y / magnitude;
-		Output[startIdx + 2] = z / magnitude;
+		float invMag = XMath.Rsqrt(x * x + y * y + z * z);
+		Output[startIdx] = x * invMag;
+		Output[startIdx + 1] = y * invMag;
+		Output[startIdx + 2] = z * invMag;
 	}
 
 	static void SIMDVectorKernel(Index1D index, ArrayView<float> Output, ArrayView<float> InputA, ArrayView<float> InputB, int Cols, SpecializedValue<int> operation)
