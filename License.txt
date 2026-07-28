@@ -1,4 +1,4 @@
-DataScience Library for ILGPU
+BAVCL (Badass Vector Compute Library) powered by ILGPU
 Developed by Marcel Pawelczyk
 
 PROGRAM STILL IN DEVELOPMENT
