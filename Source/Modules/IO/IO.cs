@@ -1,71 +1,63 @@
 using System;
-using System.Linq;
 using System.IO;
-using System.Text.RegularExpressions;
+using BAVCL.Core.Interfaces;
 
 namespace BAVCL.Modules.IO;
 
-public class IO
+/// <summary>
+/// Disk persistence for BAVCL data types.
+/// Callers supply directory + file name; the library appends the formatter extension.
+/// Default directory is the current working directory. Overwrite defaults to false.
+/// </summary>
+public static class IO
 {
-    // WRITE TO FILE
+	public static void Serialize<T, TFormatter>(
+		T value,
+		string fileName,
+		string? directory = null,
+		bool overwrite = false,
+		int flags = 0)
+		where TFormatter : class, IFormatter<T>, ISingleton<TFormatter>
+	{
+		ArgumentNullException.ThrowIfNull(value);
+		CreateWriter<T, TFormatter>(fileName, directory, overwrite).Serialize(value, flags);
+	}
 
-    // GENERIC
-    public static void WriteToFile(string input, string filename = "new file", string format = "txt", string path = "")
-    {
-        if (path == "") { path = AppDomain.CurrentDomain.BaseDirectory; }
-        Directory.CreateDirectory(path + @"\saved_data\");
-        string fullpath = $"{path}/saved_data/{filename}.{format}";
+	public static T Deserialize<T, TFormatter>(GPU gpu, string fileName, string? directory = null)
+		where TFormatter : class, IFormatter<T>, ISingleton<TFormatter>
+	{
+		var session = CreateReader<T, TFormatter>(fileName, directory);
+		return session.Deserialize(gpu);
+	}
 
-        using (StreamWriter writer = new(fullpath))
-        {
-            writer.Write(input);
-        }
+	public static FileSession<T, TFormatter> CreateWriter<T, TFormatter>(
+		string fileName,
+		string? directory = null,
+		bool overwrite = false)
+		where TFormatter : class, IFormatter<T>, ISingleton<TFormatter>
+	{
+		string path = ResolvePath<TFormatter>(directory, fileName);
+		return new FileSession<T, TFormatter>(path, overwrite);
+	}
 
-        return;
-    }
-    public static void WriteToFile(IIO IOable, string filename = "new file", string format = "txt", string path = "")
-    {
-        if (path == "") { path = AppDomain.CurrentDomain.BaseDirectory; }
-        Directory.CreateDirectory(path + @"\saved_data\");
-        string fullpath = $"{path}/saved_data/{filename}.{format}";
+	public static FileSession<T, TFormatter> CreateReader<T, TFormatter>(
+		string fileName,
+		string? directory = null)
+		where TFormatter : class, IFormatter<T>, ISingleton<TFormatter>
+	{
+		string path = ResolvePath<TFormatter>(directory, fileName);
+		return new FileSession<T, TFormatter>(path, overwrite: true);
+	}
 
-        using (StreamWriter writer = new(fullpath))
-        {
-            writer.Write(ToFileFormat(IOable, format));
-        }
+	static string ResolvePath<TFormatter>(string? directory, string fileName)
+		where TFormatter : class, ISingleton<TFormatter>
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
 
-        return;
-    }
+		string dir = string.IsNullOrWhiteSpace(directory)
+			? Environment.CurrentDirectory
+			: directory;
 
-
-    public static string ToFileFormat(IIO writable, string format = "txt")
-    {
-        return format switch
-        {
-            "txt" => writable.ToString()!,
-            "csv" => writable.ToCSV(),
-            _ => throw new Exception($"No format : {format} available\n Func - ConvertToFormat - IO"),
-        };
-    }
-
-
-    // READ FROM FILE
-
-    public static Vector CSV2Vector(GPU gpu, string filename, string format = "csv", string path = "")
-    {
-        if (path == "") { path = AppDomain.CurrentDomain.BaseDirectory; }
-
-        string contents = File.ReadAllText($"{path}/saved_data/{filename}.{format}");
-
-        // CSV
-
-        int columns = Regex.Match(contents, @"^.*?(?=\n)").ToString().Split(",").Length - 1;
-
-        float[] Output = Array.ConvertAll(contents.Replace("\r\n", "").Split(",").ToArray()[..^1], float.Parse);
-
-        return new Vector(gpu, Output, columns);
-    }
-
-
-
+		return Path.Combine(dir, fileName + TFormatter.Default.Extension);
+	}
 }
