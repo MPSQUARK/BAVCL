@@ -22,8 +22,4 @@
     <Compile Include="Source/**/*.cs" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\.editorconfig" Link=".editorconfig" />
-  </ItemGroup>
-
 </Project>
