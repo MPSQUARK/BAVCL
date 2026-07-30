@@ -578,16 +578,16 @@ Kernels are loaded selectively via `KernelModuleLoader` (see §7). Each domain f
 
 ### 4.6 IO
 
-`BAVCL.IO.IO` — basic file read/write:
+`BAVCL.Modules.IO.IO` — typed persistence with formatter strategies:
 
-| Method                                        | Format   | Notes                         |
-| --------------------------------------------- | -------- | ----------------------------- |
-| `WriteToFile(string, filename, format, path)` | txt      | Raw string                    |
-| `WriteToFile(IIO, filename, format, path)`    | txt, csv | Via`ToFileFormat`             |
-| `CSV2Vector(gpu, filename, format, path)`     | csv      | Parses comma-separated floats |
-| `ToFileFormat(writable, format)`              | txt, csv |                               |
+| API | Notes |
+| --- | ----- |
+| `IO.Serialize<T, TFormatter>(value, fileName, directory?, overwrite?, flags?)` | Write one document; `flags` default 0 (see `MaskSerializeFlags` for Mask JSON) |
+| `IO.Deserialize<T, TFormatter>(gpu, fileName, directory?)` | Read and return `T` |
+| `CreateWriter<T, TFormatter>` / `CreateReader<T, TFormatter>` | `FileSession` for multi-step or raw text |
+| Formatters | `IFormatter<T>` per supported type; each formatter class implements `ISingleton<TFormatter>` with `Default` + `Extension` |
 
-Output directory: `{path}/saved_data/`. Default path: `AppDomain.CurrentDomain.BaseDirectory`.
+JSON payloads are minimal (data + columns; Mask packed adds `count`). Optional `type`, `dtype`, `schemaVersion`. No forced `saved_data/` subdirectory.
 
 ### 4.7 Extensions
 
@@ -1070,15 +1070,15 @@ Deferred until core IO formats are polished. FITS is a later priority for astrop
 
 ### 13.1 v1 Priority — Polish Existing + Structured Formats
 
-| Format | Status           | Target                                           |
-| ------ | ---------------- | ------------------------------------------------ |
-| CSV    | Basic read/write | Robust parsing, error handling, column detection |
-| TXT    | Basic write      | Consistent formatting                            |
-| JSON   | Not implemented  | Serialize/deserialize vector data                |
-| XML    | Not implemented  | Structured export                                |
-| YAML   | Not implemented  | Human-readable config + data                     |
+| Format | Status | Target |
+| ------ | ------ | ------ |
+| CSV | Write + Vector read | Robust parsing, error handling, column detection |
+| TXT | Write | Consistent formatting |
+| JSON | Vector / Vector3 / Mask read+write | Minimal reconstructable payloads; optional type/dtype metadata |
+| XML | Not implemented | Structured export |
+| YAML | Not implemented | Human-readable config + data |
 
-Commented placeholders in `FileTypes` enum: `FITS`, `JSON`, `XML`.
+Formatters: `JsonFormatter`, `CsvFormatter`, `TxtFormatter`. Later placeholders: FITS, XML (as new formatter types).
 
 ### 13.2 Later Formats
 
@@ -1088,7 +1088,7 @@ Commented placeholders in `FileTypes` enum: `FITS`, `JSON`, `XML`.
 
 ### 13.3 Design Goals
 
-IO is about **reading and writing computed results** — needs more attention than plotting. Should handle BAVCL types (`IIO` implementors) and raw arrays.
+IO persists computed results via generic `FileSession<T, TFormatter>` writers/readers. JSON is the structured interchange format for `Vector`, `Vector3`, and `Mask` (packed default + bool interop). `IIO` remains a display/CSV helper contract, not the persistence surface.
 
 ---
 
@@ -1213,7 +1213,7 @@ When code and this spec disagree, **this spec is the target**.
 | 8   | Mask                 | `Mask` type + GPU bitwise/filter/select/compare ops implemented; resize not yet | Packed-bit mask, configurable fill; resize (6.7) | `Types/Mask.cs`, `Modules/Mask/`     |
 | 9   | Matrix/Table         | Stubs throw or empty                            | Deferred                                     | `Matrix/Matrix.cs`, `Table/Table.cs` |
 | 10  | Astrophysics         | Empty folder                                    | FALCON integrals (age-from-redshift)         | `Astrophysics/`                      |
-| 11  | IO formats           | CSV/TXT only                                    | Polish + JSON/XML/YAML; FITS/NPY/HDF5 later  | `IO/IO.cs`, `Enums/Enums.cs`         |
+| 11  | IO formats           | CSV/TXT/JSON (Vector/Vector3/Mask)              | XML/YAML; FITS/NPY/HDF5 later                | `Modules/IO/`                        |
 | 12  | Plotting             | Windows prototype, hardcoded paths              | Cross-platform, low priority                 | `Plotting/Plotter.cs`                |
 | 13  | Experimental         | Bloated, untested                               | 1 impl each, xUnit tested                    | `Experimental/TestCls.cs`            |
 | 14  | Tests                | BAVCL.Tests needs rewrite; empty library Tests/ | xUnit-only; net10.0; CI                      | `BAVCL.Tests/`                       |
@@ -1260,7 +1260,7 @@ Companion test repository at `C:\Users\marce\Repos\BAVCL.Tests`. Source-only sib
 | Memory cap              | 0.8 (80% of device)           | `GPUManager.GetGPU()`                  |
 | Accelerator preference  | CUDA > OpenCL > CPU           | `GPUManager._acceleratorPrefOrder`     |
 | Auto-cache on construct | `true`                        | `VectorBase` constructor `Cache` param |
-| IO output path          | `{BaseDirectory}/saved_data/` | `IO.WriteToFile()`                     |
+| IO output path          | `{directory}/{name}.{ext}` (cwd default) | `IO.CreateWriter<T, TFormatter>()`     |
 | Kernels loaded          | `KernelWorkloads.Default` on `GPUManager.Default`; otherwise explicit | `KernelModuleLoader`, `GPUManager` |
 
 ## Appendix B: Key Interfaces

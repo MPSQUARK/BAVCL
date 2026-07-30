@@ -17,3 +17,5 @@ Use global `/code` and `/clarify-requirements` skills for domain-agnostic qualit
 
 - Automated tests: `BAVCL.Tests` (sibling repo)
 - `Testing Console/`: manual scratch only — do not add validation harnesses there
+- **IO tests** are tagged `[Trait("Category", "IO")]` and excluded from default `dotnet test` (SSD wear). Run them with:
+  `dotnet test -p:IncludeIOTests=true --filter Category=IO`
