@@ -10,7 +10,7 @@ internal static class GeneratorsCore
 	internal static IEnumerable<T> ArangeEnumerable<T>(T startValue, T endValue, T interval) where T : INumber<T>
 	{
 		if (interval == T.Zero)
-            throw new ArgumentOutOfRangeException(nameof(interval), "Interval must be non-zero.");)
+			throw new ArgumentOutOfRangeException(nameof(interval), "Interval must be non-zero.");
 
 		if (endValue < startValue && interval > T.Zero)
 			interval = -interval;
