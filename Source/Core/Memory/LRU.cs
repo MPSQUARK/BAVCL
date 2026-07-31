@@ -33,6 +33,8 @@ internal class LRU : IMemoryManager
         _lru.CopyTo(ids, 0);
         return ids;
     }
+
+    public bool IsStored(uint id) => Caches.ContainsKey(id);
     #endregion
 
     public long AvailableMemory { get; set; } = -1;
