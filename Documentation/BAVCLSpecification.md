@@ -46,7 +46,7 @@ Document Disclaimer: This document is intended for AI coding tools for reasoning
 | Language         | C# (.NET 10)                                           |
 | GPU runtime      | ILGPU 1.5.3 + ILGPU.Algorithms                         |
 | Distribution     | Source-only project reference                          |
-| License          | Personal, educational, academic use — see`License.txt` |
+| License          | Source-available custom licence — see [License.txt](../License.txt) and [THIRD_PARTY_LICENSES.md](../THIRD_PARTY_LICENSES.md) |
 | Primary consumer | **FALCON** (astrophysics application)                  |
 
 ### 1.2 Purpose
@@ -58,7 +58,7 @@ BAVCL accelerates large array operations on CUDA, OpenCL, or CPU backends while 
 ### 1.3 Audience
 
 - FALCON project (My Master's project)
-- Academic and educational use per license restrictions
+- Personal, educational, academic, commercial, and research use per [License.txt](../License.txt) (attribution required for published research and commercial/professional use)
 
 ### 1.4 Solution Structure
 
