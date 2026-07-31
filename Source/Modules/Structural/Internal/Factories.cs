@@ -1,6 +1,5 @@
-using System;
 using System.Linq;
-using ILGPU.Algorithms;
+using BAVCL.Modules.Generators;
 
 namespace BAVCL.Modules.Structural;
 
@@ -53,40 +52,13 @@ internal static class FactoriesCore
 
 	internal static Vector Arange(GPU gpu, float startval, float endval, float interval, int columns = 0, bool cache = true)
 	{
-		float[] values = Arange(startval, endval, interval);
-		return new Vector(gpu, values, columns, cache);
-	}
-
-	internal static float[] Arange(float startval, float endval, float interval)
-	{
-		int steps = (int)((endval - startval) / interval);
-		if (endval < startval && interval > 0) { steps = XMath.Abs(steps); interval = -interval; }
-		if (endval % interval != 0) { steps++; }
-
-		float[] values = new float[steps];
-
-		for (int i = 0; i < steps; i++)
-			values[i] = startval + (i * interval);
-
-		return values;
+		float[] values = GeneratorsCore.Arange(startval, endval, interval);
+		return new Vector(gpu, values, columns, cache);	
 	}
 
 	internal static Vector Linspace(GPU gpu, float startval, float endval, int steps, int columns = 0, bool cache = true)
 	{
-		float[] arr = Linspace(startval, endval, steps);
+		float[] arr = GeneratorsCore.Linspace(startval, endval, steps);
 		return new Vector(gpu, arr, columns, cache);
-	}
-
-	internal static float[] Linspace(float startval, float endval, int steps)
-	{
-		if (steps <= 1) throw new Exception("Cannot make linspace with less than 1 steps");
-		float interval = (endval - startval) / (steps - 1);
-
-		float[] arr = new float[steps];
-
-		for (int i = 0; i < steps; i++)
-			arr[i] = startval + (i * interval);
-
-		return arr;
 	}
 }

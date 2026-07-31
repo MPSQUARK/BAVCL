@@ -1,3 +1,4 @@
+using BAVCL.Modules.Generators;
 using BAVCL.Types;
 
 namespace BAVCL.Modules.Structural;
@@ -6,12 +7,6 @@ public static class VectorStructural
 {
 	extension(float[])
 	{
-		public static float[] Arange(float startval, float endval, float interval) =>
-			FactoriesCore.Arange(startval, endval, interval);
-
-		public static float[] Linspace(float startval, float endval, int steps) =>
-			FactoriesCore.Linspace(startval, endval, steps);
-
 		public static string ToStr(float[] arr, byte decimalplaces = 2) =>
 			FormattingCore.ToStr(arr, decimalplaces);
 
