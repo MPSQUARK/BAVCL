@@ -31,6 +31,14 @@ internal static class Vector3Geometry
 		return left.VOP(right, Operations.distance);
 	}
 
+	internal static Vector Dot(Vector3 left, Vector3 right)
+	{
+		if (left.Length != right.Length)
+			throw new LengthMismatchException(nameof(Dot), left.Length, right.Length);
+
+		return left.VOP(right, Operations.multiply);
+	}
+
 	internal static Vector3 Cross(Vector3 left, Vector3 right)
 	{
 		if (left.Length != right.Length)
