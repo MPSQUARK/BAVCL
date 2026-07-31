@@ -127,6 +127,7 @@ Data types stay thin (`Vector.cs`, `Vector3.cs` — constructors, operators, cop
 | `BAVCL.Modules.Arithmetic` | `VectorArithmeticExtensions.cs` | `Internal/SumCore.cs`, `Cross.cs`, `ElementWise.cs`, … |
 | `BAVCL.Modules.Statistics` | `VectorStatisticsExtensions.cs` | `Internal/DescriptiveStatistics.cs`, `ArrayStatistics.cs`, … |
 | `BAVCL.Modules.Structural` | `VectorStructuralExtensions.cs` | `Internal/Factories.cs`, `ShapeOps.cs`, `Formatting.cs` |
+| `BAVCL.Modules.Generators` | `GeneratorsModule.cs` | `Internal/GeneratorsCore.cs` |
 | `BAVCL.Modules.Geometric` | `Vector3GeometricExtensions.cs` | `Internal/Vector3Geometry.cs` |
 | `BAVCL.Modules.GpuOps` | `GpuOpsModule.cs` | `Internal/Broadcast.cs`, `VectorGpuOps.cs`, `Vector3GpuOps.cs`, `VectorVectorOp.cs`, … |
 
