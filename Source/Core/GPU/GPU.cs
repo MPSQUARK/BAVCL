@@ -51,6 +51,7 @@ public sealed partial class GPU(Accelerator accelerator, IMemoryManager memoryMa
 	/// Warning: This will NOT sync GPU data back onto the CPU.
 	/// </summary>
 	public uint FreeBuffer(uint Id) => _memoryManager.FreeBuffer(Id);
+	public bool IsStored(uint id) => _memoryManager.IsStored(id);
 	public string PrintMemoryUsage(bool percentage, string format = "F2") => _memoryManager.PrintMemoryUsage(percentage, format);
 	public string GetMemUsage() => _memoryManager.MemoryUsed.ToString();
 

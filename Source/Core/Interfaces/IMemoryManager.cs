@@ -1,5 +1,6 @@
 using ILGPU.Runtime;
 using System;
+using System.Linq;
 
 namespace BAVCL.Core.Interfaces;
 
@@ -29,6 +30,10 @@ public interface IMemoryManager
 
     #region Debug
     public uint[] StoredIDs();
+    /// <summary>
+    /// Checks whether the item with the given ID is stored in the memory manager.
+    /// </summary>
+    public virtual bool IsStored(uint id) => StoredIDs().Contains(id);
     public virtual string PrintMemoryUsage(bool percentage, string format = "F2")
     {
         string usage;
