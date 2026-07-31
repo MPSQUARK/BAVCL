@@ -16,6 +16,9 @@ public static class Vector3Geometric
 		public static Vector Distance(Vector3 left, Vector3 right) =>
 			Vector3Geometry.Distance(left, right);
 
+		public static Vector Dot(Vector3 left, Vector3 right) =>
+			Vector3Geometry.Dot(left, right);
+
 		public static Vector3 Cross(Vector3 left, Vector3 right) =>
 			Vector3Geometry.Cross(left, right);
 
@@ -60,6 +63,9 @@ public static class GeometricModule
 
 		public Vector Distance(Vector3 vectorB) =>
 			Vector3.Distance(vector, vectorB);
+
+		public Vector Dot(Vector3 vectorB) =>
+			Vector3.Dot(vector, vectorB);
 
 		public Vector3 Cross(Vector3 vectorB) =>
 			Vector3.Cross(vector, vectorB);
