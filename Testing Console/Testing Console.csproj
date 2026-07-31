@@ -21,6 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BAVCL\BAVCL.csproj" />
+    <ProjectReference Include="..\BAVCL.csproj" />
   </ItemGroup>
 </Project>

@@ -37,7 +37,39 @@ Shape s = vector.Shape();
 if (shapeA.MatchesDimensions(shapeB)) { ... }
 ```
 
-## Correct usage patterns
+### Element-wise `*` with mismatched 2D shapes
+
+Previously, `operator *` (and other binary `OP` overloads routed through GpuOps) could combine two vectors **element-wise** whenever they had the **same `Length`**, even when their 2D layouts differed — e.g. a 3×2 vector and a 2×3 vector (both length 6) were multiplied as flat buffers, with the result keeping the left operand's `Columns`.
+
+GpuOps now applies **shape-aware** rules first: operands must either match dimensions exactly or be valid NumPy-style broadcasts. Same length with incompatible 2D shapes (such as `(3,2)` and `(2,3)`) throws `ShapeMismatchException`.
+
+**Matrix multiply is unchanged** — use `Vector.Cross()` / `.Cross()`, not `*`.
+
+**To recover the old flat element-wise behaviour**, treat both operands as 1D by setting `Columns = 0` before the operation, then restore layout on the result if needed:
+
+```csharp
+int colsA = vec.Columns;
+int colsB = vec2.Columns;
+
+vec.Columns = 0;
+vec2.Columns = 0;
+
+Vector result = vec * vec2; // element-wise on the flat buffer
+
+vec.Columns = colsA;
+vec2.Columns = colsB;
+result.Columns = colsA; // output followed the left operand's layout
+```
+
+`Vector.Flatten()` is equivalent to `Columns = 0` when you do not need to preserve the original column count on the inputs.
+
+```csharp
+vec.Flatten();
+vec2.Flatten();
+Vector result = vec * vec2;
+result.Columns = 2; // reshape result as needed
+```
+
 
 ### Read-only (no scope)
 
@@ -186,6 +218,68 @@ using (var scope = vector.CpuScopeAndSync())
 }
 ```
 
+## Kernel module loading
+
+### Breaking change
+
+`GPUManager.GetGPU()` no longer compiles kernels. You must call `KernelModuleLoader.Load<T>(...)` explicitly after creating a GPU.
+
+`GPUManager.Default` still works — it creates a GPU and loads `KernelWorkloads.Default` (fp32 Arithmetic + Structural).
+
+### Before (monolithic)
+
+```csharp
+GPU gpu = GPUManager.GetGPU(); // compiled all kernels at startup
+```
+
+### After (modular)
+
+```csharp
+// Bare GPU — no kernels
+GPU gpu = GPUManager.GetGPU();
+KernelModuleLoader.Load<float>(gpu, KernelWorkloads.Default);
+
+// Or use the convenience singleton (same as Default workload)
+GPU gpu = GPUManager.Default;
+
+// Per-GPU configuration
+var gpuA = GPUManager.GetGPU();
+var gpuB = GPUManager.GetGPU();
+KernelModuleLoader.Load<float>(gpuA, KernelWorkloads.Default);
+KernelModuleLoader.Load<float>(gpuB, KernelWorkloads.Geometry);
+```
+
+The generic parameter is the element type of the kernels — `float` today, `double` and others as they are added.
+
+### Workloads
+
+| Bundle | Domains loaded | When to use |
+| ------ | -------------- | ----------- |
+| `KernelWorkloads.Default` | Arithmetic + Structural | Matrix multiply, element-wise ops, shape ops |
+| `KernelWorkloads.Geometry` | Default + Geometry | Vector3 cross, magnitude, distance |
+
+### Custom domain selection
+
+```csharp
+KernelModuleLoader.Load<float>(gpu, KernelDomain.Arithmetic, KernelDomain.Structural);
+```
+
+`Load` is additive — call it again later to add domains; modules already compiled on that GPU are skipped.
+
+### GpuOps dependency
+
+The `BAVCL.Modules.GpuOps` namespace requires **Arithmetic** (fp32) kernels (broadcast, element-wise, row reduce). Use `KernelWorkloads.Default` or explicitly include `KernelDomain.Arithmetic`.
+
+### Troubleshooting
+
+| Error | Cause | Fix |
+| ----- | ----- | --- |
+| `KernelNotCompiledException` | Kernel not loaded on this GPU | Load the domain that provides it (see spec §4.5.2) |
+| `KernelModuleNotAvailableException` | Requested domain × element type not implemented | Use an implemented combination (see spec §7.5) |
+| `ShapeMismatchException` on `vec * vec2` | Same length, different 2D layout | Use `.Cross()` for matmul, or flatten both (`Columns = 0`) for flat element-wise (see above) |
+
+To restore old load-all behaviour: `KernelModuleLoader.LoadAll<float>(gpu)`.
+
 ## Benchmarks
 
 Span/read and memory-manager benchmarks: `BAVCL.Benchmarks` — see `BAVCL.Benchmarks/README.md`.
@@ -196,5 +290,5 @@ dotnet run -c Release --project BAVCL.Benchmarks
 
 ## See also
 
-- [BAVCLSpecification.md](BAVCLSpecification.md) §2.4, §8.3–8.6
+- [BAVCLSpecification.md](BAVCLSpecification.md) §3.5, §7 (kernel modules), §2.4, §8.3–8.6
 - `BAVCL.Tests` — `VectorSyncCoherenceTests` for regression coverage

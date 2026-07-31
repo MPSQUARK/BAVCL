@@ -1,0 +1,5 @@
+namespace BAVCL;
+
+class Table
+{
+}

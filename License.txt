@@ -1,117 +1,190 @@
-DataScience Library for ILGPU
-Developed by Marcel Pawelczyk
+BAVCL (Badass Vector Compute Library)
+Copyright (c) Marcel Pawelczyk
 
 PROGRAM STILL IN DEVELOPMENT
 
-BY USING THIS 'SOFTWARE' 'YOU' AGREE TO THE 'TERMS AND CONDITIONS'
+By using, copying, modifying, or distributing this software, you agree to the
+terms of this licence.
 
-'SOFTWARE' intended for personal, educational and/or academic use FREE to use
+================================================================================
+1. Summary
+================================================================================
 
-########################## TERMS AND CONDITIONS #############################
- 
-THE 'SOFTWARE' IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE CONTRIBUTORS
-OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.  
+BAVCL is source-available and intentionally permissive. This licence permits
+the vast majority of personal, academic, commercial, research, and software-
+development uses. A small number of specific restrictions exist to protect the
+project from direct commercial competition in its niche, ingestion of BAVCL
+implementation materials as AI/ML training data, and clearly defined malicious
+uses.
 
-  - AI/LLM TRAINING PROHIBITION
-    The copyright owner expressly and irrevocably withholds and refuses any
-      permission, license, or authorization for the use of the source code,
-      object code, documentation, or any portion thereof for the purpose of
-      training, fine-tuning, validating, evaluating, or otherwise improving
-      artificial intelligence systems, machine learning models, or large
-      language models (collectively "AI/LLM Training"). No person or entity may
-      include, incorporate, ingest, or otherwise use this code or portions
-      thereof in any dataset, corpus, model weights, prompts, embeddings, or
-      other data used to train or evaluate AI/LLM systems. Any such use is
-      strictly prohibited without the express prior written consent of the
-      copyright owner.
+The source-code training restriction is intended to prevent third parties from
+using the work as training material to create systems that can reproduce or
+otherwise exploit the copyrighted implementation. It does not restrict ordinary
+use of BAVCL in developing AI/ML software or ordinary interactive use of AI-assisted
+development tools.
 
-  - 'YOU' do NOT have the permission to sell, lisence, sublisence this 'software' 
-      on it's own or any 'alike software' using this 'software'. 'Alike software' refers to 
-      the use case of projects/software developed by 'YOU', i.e. this 'software' 
-      may not be used as a part of another class library or evivalent software whose 
-      purpose is similar to that of this 'software'. 
-    
-  -  This 'software' must be used as an addition to a project AND constitute 
-      only a small portion of that project, i.e. used as a dependancy in a larger
-      project/software.
-      
-  - 'YOU' do NOT have the permission to redistribute, this 'SOFTWARE', this
-      includes but is not limited to the 'SOFTWARE' as a whole, any part of 
-      the 'SOFTWARE', the files or code contained in the 'SOFTWARE' or 
-      any version of the 'SOFTWARE' modified by 'YOU'. This is UNLESS this 'software'
-      is being modified within a project/software developed by 'YOU' where it
-      is used as a dependancy, OR redistributed as a part of/dependacy of
-      any projects/software developed by 'YOU' in which this 'software' is used
-      as a dependancy.
+================================================================================
+2. Definitions
+================================================================================
 
-  - 'YOU' are granted the permission/s to download, copy, modify and 
-      alter the 'software' in any way FOR 'personal/educational/academic use', 
-      ONLY IF you do NOT distribute the downloaded, copied or in any other 
-      way shape or form modified version of this 'software' as a 'standalone software' 
-      AND IF any modifications made DO NOT violate the terms of use OR the 
-      copyright lisence of any 'third party software' contained within this 'software'.
+"Software" means BAVCL: all folders, files, source code, documentation, and
+other materials in this repository, and any modified versions you create under
+this licence.
 
-  - When this software is used in another product, research, or program, clear and readable 
-      attribution must be provided in documentation or credits (for example: the project README, 
-      an article bibliography, or program credits).
+"You" means any individual, company, organisation, or other entity using the
+Software.
 
-##########################     TERMINOLOGY      #############################   
-   
-  - 'SOFTWARE' - refers to all the folders, files, source code, and
-                everything else contained within this repository
+"Implementation Materials" means the source code, object code, binaries,
+documentation, and any other copyright-protected expressive form of BAVCL that
+embodies its implementation — whether distributed in human-readable or compiled
+form. This does not include the output of running BAVCL (for example, computed
+numerical results) or your own application code that merely calls BAVCL APIs.
 
-  - 'YOU'      - refers to the person/s, who are using or have 
-                used this 'software', this includes individuals,
-                company and/or organisation.
+"Attribution" means credit given to BAVCL and its author in a manner that is
+clear, legible, easily findable by a reasonable recipient, and appropriate to
+the context in which the Software is used.
 
-  - 'STANDALONE SOFTWARE'  - refers to this 'software', when it is not 
-                            implemented into/used in a project/software 
-                            developed by 'YOU'.
+"Competing Product" means a software library or framework for the .NET ecosystem
+whose primary or substantial purpose is GPU-accelerated vector or numerics
+computation similar to BAVCL — including forks, renames, or derivatives of
+BAVCL intended to serve that role. This does not include application software
+(for example, simulations, games, or machine-learning pipelines) that merely
+depends on BAVCL.
 
-  - 'TERMS AND CONDITIONS' - refers to the terms 'you' agree to when
-                            using this 'software'
+================================================================================
+3. Grant of Licence
+================================================================================
 
-  - 'THIRD PARTY SOFTWARE' - refers to any software incorporated into this
-                            'SOFTWARE' which has not been developed by the
-                            contributors of this 'software'
+Subject to the terms below, Marcel Pawelczyk grants you a non-exclusive,
+royalty-free licence to use, copy, modify, and redistribute the Software (in
+source or binary form) for lawful purposes.
 
-##############     Third Party Terms Of Use & License's     ################# 
+================================================================================
+4. Attribution
+================================================================================
 
-********************************************************************************
-                                  ILGPU License
-********************************************************************************
-University of Illinois/NCSA Open Source License
-Copyright (c) 2016-2020 Marcel Koester
-All rights reserved.
+Attribution is not required for personal, hobby, or educational use.
 
-Developed by:           Marcel Koester (m4rs@m4rs.net)
-                        www.ilgpu.net
+Attribution is required when you use the Software in:
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal with
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software is furnished to do so,
-subject to the following conditions:
+  (a) published research or academic work intended for publication; or
+  (b) commercial or professional products or services.
 
-    * Redistributions of source code must retain the above copyright notice,
-      this list of conditions and the following disclaimers.
+When attribution is required, it must be clear, legible, easily findable, and
+appropriate to the medium. It must identify BAVCL, Marcel Pawelczyk, and the
+Software's source repository (as published in this repository).
 
-    * Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimers in the documentation
-      and/or other materials provided with the distribution.
+Examples of appropriate placement (illustrative, not exhaustive):
 
-    * Neither the names of ILGPU, Marcel Koester, nor the names of its
-      contributors may be used to endorse or promote products derived from this
-      Software without specific prior written permission.
+  - A Licences, Acknowledgements, or Third-party notices section in software
+    (for example, an About dialog, Info tab, or settings screen)
+  - A References or Bibliography section in published research, following
+    accepted citation standards for the field
+  - A project README, documentation, or credits screen where third-party
+    dependencies are listed
+  - In-product attribution visible to end users where other libraries are
+    credited
+
+Attribution must not be hidden, obscured, or buried in unrelated material.
+
+================================================================================
+5. Permitted AI and Machine-Learning Use
+================================================================================
+
+Use of BAVCL, including its binaries and source code, to develop, train,
+operate, or support an artificial intelligence or machine-learning system is
+permitted. This includes using BAVCL to accelerate neural-network training or
+inference and using AI-assisted development tools when developing software that
+uses BAVCL.
+
+================================================================================
+6. Source-Code Training Restriction
+================================================================================
+
+You may not use the source code or other copyright-protected implementation
+materials of BAVCL, in whole or in part, as training, pre-training, fine-tuning,
+or similar training data for an artificial intelligence or machine-learning
+model.
+
+This restriction applies to ingestion of BAVCL's implementation materials as
+training material and does not prohibit ordinary use of BAVCL in AI/ML software,
+nor ordinary interactive use of AI tools to assist with software development.
+
+================================================================================
+7. No Competing Products
+================================================================================
+
+You may not create, distribute, sublicense, or sell a Competing Product based
+on the Software or that incorporates the Software for that purpose.
+
+This restriction applies regardless of whether your use is personal, academic,
+commercial, or otherwise permitted under this licence. Application software that
+uses BAVCL as a dependency (for example, scientific simulations or neural-
+network applications) is not a Competing Product.
+
+================================================================================
+8. Prohibited Uses
+================================================================================
+
+You may not use the Software for any unlawful purpose.
+
+You may not use the Software for unethical purposes, including but not limited
+to:
+
+  - Password cracking or credential-stuffing attacks
+  - Hacking or unauthorised access to systems (whitehat security research with
+    appropriate authorisation is excluded from this prohibition)
+  - Software intended to break encryption where the outcome is used maliciously
+    to obtain monetary gain through fraud, theft, or similar criminal activity
+  - Similar activities that are illegal or clearly unethical
+
+This list is illustrative, not exhaustive.
+
+================================================================================
+9. Redistribution
+================================================================================
+
+You may redistribute the Software (in source or binary form), provided that
+you include this licence (or a clear reference to it), preserve applicable
+copyright notices, provide attribution where required under Section 4, and comply
+with third-party licence obligations.
+
+================================================================================
+10. Third-Party Software
+================================================================================
+
+The Software incorporates third-party components governed by their own licence
+terms. See THIRD_PARTY_LICENSES.md. Any modifications you make must not violate
+those third-party licences.
+
+================================================================================
+11. Licence Modifications
+================================================================================
+
+This licence may be amended at any time without prior notice. The version
+published in this repository at the time of your use constitutes the applicable
+terms. Your continued use of the Software after any modification constitutes
+acceptance of the revised licence.
+
+================================================================================
+12. Clarifications
+================================================================================
+
+If you are unsure whether a particular use case is permitted, you may open an
+issue in this repository describing what you would like to do. The copyright
+holder will endeavour to clarify the intended application of this licence as
+soon as reasonably possible.
+
+Any clarification provided in an issue is an explanation of the licence's intent
+and does not replace or modify this licence.
+
+================================================================================
+13. Disclaimer
+================================================================================
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE CONTRIBUTORS
-OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
