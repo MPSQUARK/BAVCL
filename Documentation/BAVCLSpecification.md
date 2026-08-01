@@ -87,7 +87,7 @@ Inspired by NumPy semantics but shaped for C# conventions: explicit types, prope
 
 ### 2.2 Specialized Types
 
-- **Specialized types** where they add value: `Vector` (fp32), `Vector3`, `Mask`, future `VectorInt`, etc.
+- **Specialized types** where they add value: `Vector` (fp32), `VectorInt` (int32), `Vector3`, `Mask`, etc.
 - **`VectorBase<T>`** provides shared GPU/cache infrastructure; there is **no** public generic `Vector<T>` fallback — add a new specialized type when a new element type is needed.
 
 ### 2.3 GPU-First / CPU-Explicit Pattern
@@ -185,6 +185,7 @@ flowchart TD
             CB[CacheableBase T]
             VB[VectorBase T]
             V[Vector fp32]
+            VI[VectorInt int32]
             V3[Vector3]
             M[Mask packed int32]
         end
@@ -199,11 +200,11 @@ flowchart TD
             IO[IO formatters]
         end
 
-        subgraph domains [Loaded kernel domains fp32]
-            KD_AR[Arithmetic]
-            KD_ST[Structural]
-            KD_GE[Geometry]
-            KD_MK[Mask]
+        subgraph domains [Loaded kernel domains per element type]
+            KD_AR[Arithmetic fp32/int32]
+            KD_ST[Structural fp32/int32]
+            KD_GE[Geometry fp32]
+            KD_MK[Mask fp32/int32]
         end
 
         VT[Vertex CPU struct]
@@ -221,13 +222,14 @@ flowchart TD
     modules --> types
     modules --> GPU
     V --> VB --> CB
+    VI --> VB
     V3 --> VB
     M --> CB
     GE --> V3
     GE --> VT
 ```
 
-**Layout (repo):** types in `Source/Types/`; operations in `Source/Modules/*`; GPU core in `Source/Core/GPU/` and `Source/Core/Memory/`; kernels under `Source/Core/GPU/Kernels/{Arithmetic,Structural,Geometry,Mask}/`.
+**Layout (repo):** types in `Source/Types/`; operations in `Source/Modules/*`; GPU core in `Source/Core/GPU/` and `Source/Core/Memory/`; kernels under `Source/Core/GPU/Kernels/{Arithmetic,Structural,Geometry,Mask}/` (each domain has a `.Float32.cs` file and, where implemented, an `.Int32.cs` counterpart).
 
 ### 3.2 Type Hierarchy
 
@@ -262,6 +264,11 @@ classDiagram
         fp32 row/matrix
         mask compare ops
     }
+    class VectorInt {
+        int32 row/matrix
+        modulo, bit shifts
+        explicit cast to/from Vector
+    }
     class Vector3 {
         Columns = 3 fixed
         GPU 3D batches
@@ -283,9 +290,12 @@ classDiagram
     CacheableBase <|-- VectorBase
     CacheableBase <|-- Mask
     VectorBase <|-- Vector
+    VectorBase <|-- VectorInt
     VectorBase <|-- Vector3
     VectorBase ..> Shape : Shape()
     Vector ..> Mask : compare filter select
+    VectorInt ..> Mask : compare mask filter partition
+    Vector ..> VectorInt : explicit cast
 ```
 
 **`CacheableBase<T>`** is the abstract base for **any GPU-cacheable data** (`Source/Core/Bases/CacheableBase.cs`). It defines:
@@ -536,7 +546,7 @@ Defined on `Source/Types/Vector.cs`; GPU kernels in `BAVCL.Modules.Masking`. See
 | Surface | Examples |
 | ------- | -------- |
 | Compare → `Mask` | `CompareEquals`, `CompareNotEquals`, `Compare`, `>`, `<`, `>=`, `<=` |
-| Filter / select | `vector & mask`, `vector.Filter(mask, fill)`, `vector << mask`, `vector[mask]` |
+| Filter / select | `vector & mask`, `vector & (mask, fill)`, `vector \| mask`, `vector / mask`, `vector[mask]` |
 
 #### 4.2.6 Structural Operations
 
@@ -628,7 +638,7 @@ Kernels are loaded selectively via `KernelModuleLoader` (see §7). Each domain f
 | `simdVectorKernel`                        | Geometry    | Per-row 3-wide ops (Vector3 magnitude/distance) |
 | Mask kernels (8)                          | Mask        | See [§6.6](#66-kernel-strategy)                 |
 
-**GpuOps module dependency:** `Modules/GpuOps` requires **Arithmetic** (fp32) kernels loaded (broadcast, element-wise, row reduce).
+**GpuOps module dependency:** `Modules/GpuOps` requires **Arithmetic** kernels loaded for the element type in use — `Load<float>(...)` for `Vector`, `Load<int>(...)` for `VectorInt` (broadcast, element-wise, row reduce).
 
 **Mask module dependency:** `Modules/Masking` requires **Mask** domain kernels (`KernelWorkloads.Default` includes Mask).
 
@@ -721,6 +731,7 @@ potential future roadmap items (see §13.4).
 | Type | JSON | CSV | XML | TXT |
 | ---- | ---- | --- | --- | --- |
 | `Vector` | R+W | R+W | R+W | R+W |
+| `VectorInt` | R+W | R+W | R+W | R+W |
 | `Vector3` | R+W | R+W | R+W | R+W |
 | `Mask` (bool) | R+W | R+W | R+W | R+W |
 | `Mask` (packed) | R+W | R+W | R+W | W packed; **R bool grid only** (packed TXT read not yet implemented — §19 #32) |
@@ -738,6 +749,7 @@ Formatters: `JsonFormatter`, `CsvFormatter`, `XmlFormatter`, `TxtFormatter` (sin
 | `Matrix`          | `Source/Types/Matrix.cs` — constructor throws `NotImplementedException`; only `MatrixLength()` works |
 | `Table`           | `Source/Types/Table.cs` — empty class                                    |
 | `Mask`            | **Implemented** — `Source/Types/Mask.cs`; helpers in `Source/Core/Helpers/MaskBitOps.cs`; GPU module in `Source/Modules/Mask/` (namespace `BAVCL.Modules.Masking`) |
+| `VectorInt`       | **Implemented** — `Source/Types/VectorInt.cs` (see §4.10); full module parity with `Vector` |
 
 Plotting prototype removed from repo; see [§14 Plotting](#14-plotting) (roadmap only).
 
@@ -745,16 +757,63 @@ Plotting prototype removed from repo; see [§14 Plotting](#14-plotting) (roadmap
 
 `Source/Core/Helpers/Util.cs` (`BAVCL.Core.Util`) — `IsClose()` for float comparison with NaN/Inf handling.
 
+### 4.10 VectorInt (int32)
+
+**Type:** `BAVCL.VectorInt` — `sealed partial class : VectorBase<int>`
+**Type file:** `Source/Types/VectorInt.cs`
+**Kernels:** `Source/Core/GPU/Kernels/{Arithmetic,Structural,Mask}/*.Int32.cs` (or `MaskKernels.VectorInt.cs`), registered under `KernelDomain.Arithmetic` / `.Structural` / `.Mask` for `typeof(int)`
+
+`VectorInt` mirrors `Vector` across GpuOps, Structural, Masking, Statistics, Generators, and IO — same construction, copy/equals, shape, and module organization (§2.6), with `int` in place of `float` throughout. Callers must call `KernelModuleLoader.Load<int>(gpu, KernelWorkloads.Default)` (or equivalent domains) before using `VectorInt` GPU operators, exactly as `Load<float>` is required for `Vector`.
+
+#### Unchecked GPU arithmetic
+
+`VectorInt` GPU kernels use **unchecked** integer arithmetic for performance. Overflow wraps silently (C# `unchecked` semantics). Divide and modulo by zero are not validated on device — results are undefined on GPU hardware; callers must ensure valid inputs. BAVCL does not track or report computation anomalies for int GPU ops.
+
+Host-side checks remain for **API misuse** only: `InvalidOperationOnTypeException` (float-only ops on `VectorInt`), `UnsupportedOperationException` (unsupported reduce ops), and NaN/Inf rejection before `float`→`int` cast.
+
+#### Difference from `Vector`
+
+| Area | Detail |
+| ---- | ------ |
+| **Explicit casts** | `(VectorInt)vector` truncates toward zero; host pre-check rejects NaN/Inf in source before `floatToIntKernel`. `(Vector)vectorInt` widens exactly. Both propagate source cache/residence. No implicit conversion. |
+| **Divide / modulo** | Unchecked GPU `/` and `%` — caller must avoid zero divisors. |
+| **`%` modulo** | `VectorInt` vector/scalar and `int % VectorInt` (`flipModulo`) — C# `%` sign rules. |
+| **Unary `+`** | Bitwise absolute value: `value & int.MaxValue` (sign bit cleared). Not mathematical `Math.Abs` — e.g. `-1` → `int.MaxValue`, `int.MinValue` → `0`. |
+| **Unary `-`** | Two's complement: `unchecked(~value + 1)` — `int.MinValue` maps to itself, no overflow exception. |
+| **`^` operator** | Bitwise XOR (`VectorInt` only). No power overload on `VectorInt`. |
+| **`&` operator** | `VectorInt & VectorInt` / `& int` — bitwise AND. `VectorInt & mask` / `& (mask, fill)` — mask (keep shape, fill false lanes). |
+| **`\|` operator** | `VectorInt \| mask` — filter (compact true lanes). `Mask \| Mask` remains bitwise OR (different LHS type). |
+| **`/` operator** | `VectorInt / VectorInt` — divide. `VectorInt / mask` — partition → `(trueLanes, falseLanes)`. |
+| **Bit shifts** | `<<` / `>>` / `<<=` / `>>=` with `int` or `VectorInt` RHS only (no `<< mask` overload). `>>` is arithmetic. Counts follow C# mod-32 masking. |
+| **Omitted** | Float-only ops (`Log`, `Rsqrt`, `Reciprocal`, `Nan_to_num`, `Normalise`, `distance`, `magnitude`, `pow`) throw `InvalidOperationOnTypeException` if passed to GpuOps. |
+| **Reduce** | Unsupported `ReduceOP` values throw `UnsupportedOperationException`. |
+| **Statistics** | `Sum()` via `long` internally; `Min()`/`Max()`/`Range()` return `int`. `All()` — true when no zero values. |
+| **Structural** | `Concat`/`Merge`/`Append_IP`/`Reverse_IP`/`GetRowAsArray(noSync)` — parity with `Vector`. Axis via `ConcatAxis` enum (`Row`, `Column`). |
+
+#### Mask operators (same semantics as `Vector`)
+
+| Operator | Name | Semantics |
+| -------- | ---- | --------- |
+| `v & mask` | Mask | Keep shape; false lanes → `0` |
+| `v & (mask, fill)` | Mask | Keep shape; false lanes → `fill` |
+| `v \| mask` | Filter | Compact true lanes only (shorter output) |
+| `v / mask` | Partition | `(trueLanes, falseLanes)` tuple |
+| `v[mask]` | Filter | Indexer aliases `\| mask` |
+
+Extension methods: `Mask()`, `Filter()`, `Partition()` in `BAVCL.Modules.Masking`. Legacy `Select()` / `<< mask` removed.
+
+**`Operations` enum additions for int:** `bitwiseXor`, `bitwiseAnd`, `flipModulo` (see `Source/Core/Enums/Operations.cs`).
+
 ---
 
 ## 5. Type System Roadmap
 
 ### 5.1 Priority Order
 
-Broadening beyond fp32 is a priority. **`Mask` is implemented** (see Section 6); resize and CPU aggregates remain roadmap.
+Broadening beyond fp32 is a priority. **`Mask` is implemented** (see Section 6). **`VectorInt` (int32) is implemented** (see Section 4.10) with full module parity to `Vector`; resize and CPU aggregates remain roadmap.
 
 1. **float64 / double** — `VectorDouble` or dedicated double type
-2. **int32** — `VectorInt`
+2. ~~int32 — `VectorInt`~~ **Implemented** (§4.10)
 3. **int64**
 4. **uint**
 5. **Complex** — ideally `System.Numerics.Complex` as unmanaged struct; may require custom `ComplexFloat` if constraints block it
@@ -762,7 +821,7 @@ Broadening beyond fp32 is a priority. **`Mask` is implemented** (see Section 6);
 ### 5.2 Specialized Types
 
 ```
-USE specialized type per element kind (Vector, Vector3, Mask, future VectorInt, …)
+USE specialized type per element kind (Vector, VectorInt, Vector3, Mask, …)
 VectorBase<T> provides shared infrastructure — no public Vector<T> generic fallback
 ```
 
@@ -780,26 +839,39 @@ Nice-to-have, **not** near-term. Vector 2D layout (`Columns > 1`) covers current
 
 Exact layout (bits per word, alignment) to be **benchmark-driven** on target GPUs.
 
-### 6.2 Filter (apply mask)
+### 6.2 Mask (keep shape, fill false lanes)
 
 Masked-out elements receive a **configurable fill value** (default `0`):
 
 ```csharp
-var filtered = vector & mask;              // fill = default(float) = 0f
-var filtered = vector.Filter(mask, fill);  // explicit fill (e.g. NaN)
+var masked = vector & mask;                    // fill = default(float) = 0f
+var masked = vector & (mask, -1.0f);           // custom fill (tuple syntax)
+var masked = vector.Mask(mask);                // extension, fill 0
+var masked = vector.Mask(mask, fill: float.NaN);
 ```
 
-Requires `using BAVCL.Modules.Masking` for `Filter` extension.
+Requires `using BAVCL.Modules.Masking` for extension methods.
 
-### 6.3 Select (compact)
+### 6.3 Filter (compact true lanes)
 
 Returns a **1D** `Vector` (`Columns = 0`) containing only elements where the mask is `true` (NumPy-style):
 
 ```csharp
-var data = vector << mask;     // primary operator
-var data = vector[mask];       // indexer
-var data = vector.Select(mask); // LINQ-like name
+var data = vector | mask;      // primary operator
+var data = vector[mask];       // indexer (aliases filter)
+var data = vector.Filter(mask); // extension method
 ```
+
+### 6.3a Partition
+
+Splits into two compact vectors — true lanes and false lanes:
+
+```csharp
+(var trueLanes, var falseLanes) = vector / mask;
+var (t, f) = vector.Partition(mask);  // extension method
+```
+
+`VectorInt` supports the same mask/filter/partition operators with `int` fill in tuple syntax.
 
 ### 6.4 Mask×Mask bitwise (GPU)
 
@@ -857,7 +929,7 @@ Authoring rules and design principles: **[GPGPUKernelGuide.md](./GPGPUKernelGuid
 
 **Padding lanes.** Word kernels take a precomputed `(lastWord, tailMask)` pair and clear padding with a `Utilities.Select`. Lane kernels need no padding handling: mask storage is allocated zeroed and only logical lanes are launched.
 
-**Compaction.** `Select` must size its output `Vector` before launching, and that length depends on mask contents, so surviving source indices are collected host-side from the packed words; the gather itself stays on the device. A device-side scan would remove the host pass and is the natural upgrade once mask aggregates land (§6.8).
+**Compaction.** `Filter` must size its output `Vector` before launching, and that length depends on mask contents, so surviving source indices are collected host-side from the packed words; the gather itself stays on the device. `Partition` uses the same index-collection pattern with two gather launches. A device-side scan would remove the host pass and is the natural upgrade once mask aggregates land (§6.8).
 
 ### 6.7 Resize (planned future)
 
@@ -960,10 +1032,13 @@ For full parity with the old load-all behaviour, use `LoadAll<T>`.
 
 | Domain        | Kernels                                                                 | Status   |
 | ------------- | ----------------------------------------------------------------------- | -------- |
-| Structural    | append, getSlice, reverse, transpose                                    | Implemented |
-| Arithmetic    | abs, rcp, rsqrt, diff, nanToNum, Log, matmul, a/s op, broadcast, reduceRow | Implemented |
+| Structural (fp32) | append, getSlice, reverse, transpose                                | Implemented |
+| Arithmetic (fp32) | abs, rcp, rsqrt, diff, nanToNum, Log, matmul, a/s op, broadcast, reduceRow | Implemented |
 | Geometry      | cross, normalise, simdVector                                            | Implemented |
 | Mask          | maskWordOp*, maskLaneOp*, vectorCompare*, vectorMaskFilter, vectorGather | Implemented |
+| Structural (int32) | appendInt, getSliceInt, reverseInt, transposeInt                  | Implemented |
+| Arithmetic (int32) | absInt, negateInt, diffInt, matmulInt, a/s opInt, broadcastInt, reduceRowInt, floatToInt, intToFloat | Implemented |
+| Mask (int32 vectors) | vectorIntCompareMask, vectorIntScalarCompareMask, vectorIntMaskFilter, vectorIntGather | Implemented |
 | Statistics    | —                                                                       | Not yet  |
 | LinearAlgebra | — (`matmul` in Arithmetic for now)                                    | Not yet  |
 | Astrophysics  | —                                                                       | Not yet  |
@@ -1191,10 +1266,10 @@ Deferred until core IO formats are polished. FITS is a later priority for astrop
 
 | Format | Status | Notes |
 | ------ | ------ | ----- |
-| CSV | **R+W** — `Vector`, `Vector3`, `Mask` (multi-document collections) | `CsvFormatter` |
-| TXT | **R+W** — `Vector`, `Vector3`, `Mask` (bool); packed mask **write** only | `TxtFormatter`; packed TXT read gap — §19 #32 |
-| JSON | **R+W** — `Vector`, `Vector3`, `Mask` | `JsonFormatter` |
-| XML | **R+W** — `Vector`, `Vector3`, `Mask` | `XmlFormatter` |
+| CSV | **R+W** — `Vector`, `VectorInt`, `Vector3`, `Mask` (multi-document collections) | `CsvFormatter`; line endings use `Environment.NewLine` |
+| TXT | **R+W** — `Vector`, `VectorInt`, `Vector3`, `Mask` (bool); packed mask **write** only | `TxtFormatter`; packed TXT read gap — §19 #32 |
+| JSON | **R+W** — `Vector`, `VectorInt`, `Vector3`, `Mask` | `JsonFormatter` |
+| XML | **R+W** — `Vector`, `VectorInt`, `Vector3`, `Mask` | `XmlFormatter` |
 | YAML | Not implemented | Human-readable config + data |
 
 Formatters: `JsonFormatter`, `CsvFormatter`, `XmlFormatter`, `TxtFormatter`. Later placeholders: FITS, NPY, HDF5.
@@ -1207,7 +1282,7 @@ Formatters: `JsonFormatter`, `CsvFormatter`, `XmlFormatter`, `TxtFormatter`. Lat
 
 ### 13.3 Design Goals
 
-IO persists computed results via generic `FileSession<T, TFormatter>` writers/readers. **JSON and XML** are structured interchange formats for `Vector`, `Vector3`, and `Mask` (packed default + bool interop). `IIO` remains a display/CSV helper contract, not the persistence surface.
+IO persists computed results via generic `FileSession<T, TFormatter>` writers/readers. **JSON and XML** are structured interchange formats for `Vector`, `VectorInt`, `Vector3`, and `Mask` (packed default + bool interop). `IIO` remains a display/CSV helper contract, not the persistence surface.
 
 ### 13.4 Roadmap
 
@@ -1324,14 +1399,14 @@ Living reconciliation log. Rows are **open** until manually closed. When code an
 
 | #   | Area                 | Status | Current code / gap | Target / notes | Key files |
 | --- | -------------------- | ------ | ------------------ | -------------- | --------- |
-| 1   | Type breadth         | **Open** | fp32 `Vector`, `Vector3`, **`Mask`** implemented | fp64, int32/64, uint, Complex | `Source/Types/` |
+| 1   | Type breadth         | **Open** | fp32 `Vector`, `Vector3`, **`Mask`**, **`VectorInt`** implemented | fp64, int64, uint, Complex | `Source/Types/` |
 | 3   | GPU-first API        | **Aligned** | Operators / `OP` use GPU kernels; explicit CPU methods where documented | Documented in §2.3 | `Source/Types/Vector.cs`, modules |
 | 6   | Kernel loading       | **Aligned** | Selective `KernelModuleLoader.Load<T>` | Per-domain modules | `Source/Core/GPU/KernelModules/` |
 | 7   | Multi-GPU            | **Open** | `GPUManager.Default` only | Create/enumerate GPUs; cross-device transfer | `GPUManager.cs` |
 | 8   | Mask                 | **Open** | GPU ops + type implemented; resize not yet | §6.7 resize; §6.8 CPU aggregates | `Source/Types/Mask.cs`, `Source/Modules/Mask/` |
 | 9   | Matrix/Table         | **Open** | Stubs throw or empty | Deferred | `Source/Types/Matrix.cs`, `Table.cs` |
 | 10  | Astrophysics         | **Open** | Not in library repo | FALCON integrals (§12) | — |
-| 11  | IO formats           | **Open** | CSV/TXT/JSON/XML for Vector/Vector3/Mask | YAML; FITS/NPY/HDF5 later | `Source/Modules/IO/` |
+| 11  | IO formats           | **Open** | CSV/TXT/JSON/XML for Vector/VectorInt/Vector3/Mask | YAML; FITS/NPY/HDF5 later | `Source/Modules/IO/` |
 | 12  | Plotting             | **Aligned** | Removed from repo | Cross-platform plotting roadmap (§14) | — |
 | 13  | Experimental         | **Open** | Bloated, untested | One impl each, xUnit tested | `Source/Experimental/TestCls.cs` |
 | 14  | Tests                | **Open** | BAVCL.Tests extensive xUnit suites | net10.0 alignment; CI gate | `BAVCL.Tests/` |
@@ -1344,7 +1419,9 @@ Living reconciliation log. Rows are **open** until manually closed. When code an
 | 31  | Mask resize          | **Open** | `ElementCount` fixed (`readonly`) | Resize/replace API (§6.7) | `Source/Types/Mask.cs` |
 | 32  | TXT packed mask read | **Open** | `TxtFormatter` writes packed; reads bool grid only | Packed TXT deserialize (parity with JSON/CSV/XML) | `Source/Modules/IO/TxtFormatter.cs` |
 
-**Closed / aligned (removed from active tracking):** LiveCount + GpuScope (#4, #5, #26); memory sync Residence (#17); code organization / Modules migration (#19); print extensions merged into modules (#24); Vector3 error messages (#16); kernel modules + Mask in Default (#27); RsqrtX (#28); Shape type at `Source/Types/Shape.cs` (#29); shape caching on VectorBase not needed post-`BroadcastStrides` (#30). Generic `Vector<T>` fallback not planned (former #2).
+| 33  | ToStr empty vector   | **Open** | No guard on zero-length vectors | Empty-vector guard for all vector types | `VectorBase`, formatters |
+
+**Closed / aligned (removed from active tracking):** LiveCount + GpuScope (#4, #5, #26); memory sync Residence (#17); code organization / Modules migration (#19); print extensions merged into modules (#24); Vector3 error messages (#16); kernel modules + Mask in Default (#27); RsqrtX (#28); Shape type at `Source/Types/Shape.cs` (#29); shape caching on VectorBase not needed post-`BroadcastStrides` (#30); VectorInt int32 parity (#1 partial — `VectorInt` shipped); mask operator rework (`<< mask` removed, `&`/`\|`/` partition semantics). Generic `Vector<T>` fallback not planned (former #2).
 
 ---
 
