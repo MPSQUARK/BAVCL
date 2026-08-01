@@ -140,4 +140,59 @@ internal static class ElementWiseCore
 
 	internal static void NormaliseInPlace(Vector vector) =>
 		vector.IPOP(1f / vector.Sum(), Operations.multiply);
+
+	internal static VectorInt Abs(VectorInt vector)
+	{
+		VectorInt copy = vector.Copy();
+		AbsInPlace(copy);
+		return copy;
+	}
+
+	internal static void AbsInPlace(VectorInt vector)
+	{
+		using (var scope = vector.CpuScopeAndSync())
+		{
+			EditableView<int> view = scope.View;
+			for (int i = 0; i < vector.Length; i++)
+				view[i] = view[i] & int.MaxValue;
+		}
+	}
+
+	internal static VectorInt AbsX(VectorInt vector)
+	{
+		VectorInt copy = vector.Copy();
+		AbsXInPlace(copy);
+		return copy;
+	}
+
+	internal static void AbsXInPlace(VectorInt vector)
+	{
+		using (GpuScope.Begin(vector))
+		{
+			MemoryBuffer1D<int, Stride1D.Dense> buffer = vector.GetBuffer();
+			vector.Gpu.absIntKernel(vector.Gpu.DefaultStream, buffer.IntExtent, buffer.View);
+			vector.Gpu.Synchronize();
+		}
+	}
+
+	internal static VectorInt Diff(VectorInt vector)
+	{
+		if (vector.Columns > 1)
+			throw new Exception("Diff is for use with 1D Vectors ONLY");
+
+		GPU gpu = vector.Gpu;
+		VectorInt output = new(gpu, vector.Length - 1, vector.Columns);
+
+		using (GpuScope.Begin(output, vector))
+		{
+			MemoryBuffer1D<int, Stride1D.Dense>
+				buffer = output.GetBuffer(),
+				buffer2 = vector.GetBuffer();
+
+			gpu.diffIntKernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View);
+			gpu.Synchronize();
+		}
+
+		return output;
+	}
 }

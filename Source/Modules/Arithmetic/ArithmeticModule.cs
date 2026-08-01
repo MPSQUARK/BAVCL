@@ -65,6 +65,31 @@ public static class ArithmeticModule
 	{
 		public static float Sum(BAVCL.Geometric.Vector3 vector3) => SumCore.Sum(vector3);
 	}
+
+	extension(VectorInt)
+	{
+		public static float Sum(VectorInt vector) => SumCore.Sum(vector);
+
+		public static VectorInt Abs(VectorInt vector) => ElementWiseCore.Abs(vector);
+
+		public static VectorInt AbsX(VectorInt vector) => ElementWiseCore.AbsX(vector);
+
+		public static VectorInt Cross(VectorInt left, VectorInt right) => CrossCore.Cross(left, right);
+
+		public static float Dot(VectorInt left, VectorInt right) => DotProductCore.Dot(left, right);
+
+		public static float Dot(VectorInt vector, int scalar) => DotProductCore.Dot(vector, scalar);
+
+		public static VectorInt Diff(VectorInt vector) => ElementWiseCore.Diff(vector);
+
+		public static VectorInt MatrixAdd(VectorInt left, VectorInt right) => MatrixOpsCore.MatrixAdd(left, right);
+
+		public static VectorInt MatrixSubtract(VectorInt left, VectorInt right) => MatrixOpsCore.MatrixSubtract(left, right);
+
+		public static VectorInt MatrixDivide(VectorInt left, VectorInt right) => MatrixOpsCore.MatrixDivide(left, right);
+
+		public static VectorInt MatrixMultiply(VectorInt left, VectorInt right) => MatrixOpsCore.MatrixMultiply(left, right);
+	}
 }
 
 public static class VectorArithmeticExtensions
@@ -173,5 +198,44 @@ public static class VectorArithmeticExtensions
 		public Vector MatrixPow(Vector matrixB) => Vector.MatrixPow(vector, matrixB);
 
 		public Vector MatrixMultiply(Vector matrixB) => Vector.MatrixMultiply(vector, matrixB);
+	}
+
+	extension(VectorInt vector)
+	{
+		public float Sum() => VectorInt.Sum(vector);
+
+		public VectorInt Abs() => VectorInt.Abs(vector);
+
+		public VectorInt Abs_IP()
+		{
+			ElementWiseCore.AbsInPlace(vector);
+			return vector;
+		}
+
+		public VectorInt AbsX() => VectorInt.AbsX(vector);
+
+		public VectorInt AbsX_IP()
+		{
+			ElementWiseCore.AbsXInPlace(vector);
+			return vector;
+		}
+
+		public VectorInt Cross(VectorInt vectorB) => VectorInt.Cross(vector, vectorB);
+
+		public float Dot(VectorInt vectorB) => VectorInt.Dot(vector, vectorB);
+
+		public float Dot(int scalar) => VectorInt.Dot(vector, scalar);
+
+		public VectorInt Diff() => VectorInt.Diff(vector);
+
+		public VectorInt Diff_IP() => vector.TransferBuffer(VectorInt.Diff(vector));
+
+		public VectorInt MatrixAdd(VectorInt matrixB) => VectorInt.MatrixAdd(vector, matrixB);
+
+		public VectorInt MatrixSubtract(VectorInt matrixB) => VectorInt.MatrixSubtract(vector, matrixB);
+
+		public VectorInt MatrixDivide(VectorInt matrixB) => VectorInt.MatrixDivide(vector, matrixB);
+
+		public VectorInt MatrixMultiply(VectorInt matrixB) => VectorInt.MatrixMultiply(vector, matrixB);
 	}
 }
