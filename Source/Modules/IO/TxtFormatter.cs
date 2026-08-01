@@ -12,9 +12,11 @@ namespace BAVCL.Modules.IO;
 /// <summary>Plain-text persistence via pipe-formatted ToStr output.</summary>
 public sealed class TxtFormatter :
 	IFormatter<Vector>,
+	IFormatter<VectorInt>,
 	IFormatter<Vector3>,
 	IFormatter<Mask>,
 	ICollectionFormatter<Vector>,
+	ICollectionFormatter<VectorInt>,
 	ICollectionFormatter<Vector3>,
 	ICollectionFormatter<Mask>,
 	ISingleton<TxtFormatter>
@@ -30,6 +32,10 @@ public sealed class TxtFormatter :
 	string IFormatter<Vector>.Serialize(Vector vector, int flags) => SerializeVector(vector);
 
 	Vector IFormatter<Vector>.Deserialize(GPU gpu, string text) => DeserializeVector(gpu, text);
+
+	string IFormatter<VectorInt>.Serialize(VectorInt vector, int flags) => SerializeVectorInt(vector);
+
+	VectorInt IFormatter<VectorInt>.Deserialize(GPU gpu, string text) => DeserializeVectorInt(gpu, text);
 
 	string IFormatter<Vector3>.Serialize(Vector3 vector, int flags) => SerializeVector3(vector);
 
@@ -53,6 +59,24 @@ public sealed class TxtFormatter :
 			{
 				(float[] values, int columns) = TxtParsing.ParseFloatGrid(segment);
 				return new Vector(gpu, values, columns, cache: values.Length > 0);
+			})
+			.ToList();
+	}
+
+	string ICollectionFormatter<VectorInt>.OpenCollection(VectorInt first, int flags) => SerializeVectorInt(first);
+
+	string ICollectionFormatter<VectorInt>.AppendItem(VectorInt value, int flags) => AppendSegment(SerializeVectorInt(value));
+
+	string ICollectionFormatter<VectorInt>.CloseCollection(int itemCount) => string.Empty;
+
+	IReadOnlyList<VectorInt> ICollectionFormatter<VectorInt>.DeserializeAll(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		return TxtBatchIo.SplitDocuments(text)
+			.Select(segment =>
+			{
+				(int[] values, int columns) = TxtParsing.ParseIntGrid(segment);
+				return new VectorInt(gpu, values, columns, cache: values.Length > 0);
 			})
 			.ToList();
 	}
@@ -95,6 +119,12 @@ public sealed class TxtFormatter :
 		return vector.ToString()!;
 	}
 
+	static string SerializeVectorInt(VectorInt vector)
+	{
+		ArgumentNullException.ThrowIfNull(vector);
+		return vector.ToString()!;
+	}
+
 	static string SerializeVector3(Vector3 vector)
 	{
 		ArgumentNullException.ThrowIfNull(vector);
@@ -107,13 +137,21 @@ public sealed class TxtFormatter :
 		return mask.ToStr();
 	}
 
-	static string AppendSegment(string fragment) => $"\n{IoSchema.Collection.TxtBoundary}\n{fragment}";
+	static string AppendSegment(string fragment) =>
+		$"{Environment.NewLine}{IoSchema.Collection.TxtBoundary}{Environment.NewLine}{fragment}";
 
 	static Vector DeserializeVector(GPU gpu, string text)
 	{
 		ArgumentNullException.ThrowIfNull(gpu);
 		(float[] values, int columns) = TxtParsing.ParseFloatGrid(text);
 		return new Vector(gpu, values, columns, cache: values.Length > 0);
+	}
+
+	static VectorInt DeserializeVectorInt(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		(int[] values, int columns) = TxtParsing.ParseIntGrid(text);
+		return new VectorInt(gpu, values, columns, cache: values.Length > 0);
 	}
 
 	static Vector3 DeserializeVector3(GPU gpu, string text)

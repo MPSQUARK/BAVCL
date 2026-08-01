@@ -27,6 +27,21 @@ internal static partial class TxtParsing
 		return (values.ToArray(), columns);
 	}
 
+	internal static (int[] Values, int Columns) ParseIntGrid(string text)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(text);
+
+		List<string[]> rows = ExtractRows(text);
+		if (rows.Count == 0)
+			return ([], 0);
+
+		int columns = InferFloatColumns(rows, requiredColumns: null);
+		var values = new List<int>(rows.Count * Math.Max(columns, rows[0].Length));
+		AppendGridRows(rows, columns, values, ParseIntCell);
+
+		return (values.ToArray(), columns);
+	}
+
 	internal static (bool[] Values, int Columns) ParseBoolGrid(string text)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(text);
@@ -136,6 +151,15 @@ internal static partial class TxtParsing
 		trimmed = trimmed.Replace(" ", string.Empty);
 		if (!float.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
 			throw new FormatException($"TXT cell '{cell}' is not a valid float.");
+
+		return value;
+	}
+
+	static int ParseIntCell(string cell)
+	{
+		string trimmed = cell.Trim().Replace(" ", string.Empty);
+		if (!int.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
+			throw new FormatException($"TXT cell '{cell}' is not a valid int32.");
 
 		return value;
 	}

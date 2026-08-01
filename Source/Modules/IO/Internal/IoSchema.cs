@@ -26,7 +26,7 @@ internal static class IoSchema
 
 	internal static class Document
 	{
-		static readonly HashSet<System.Type> Allowed = [typeof(Vector), typeof(Vector3), typeof(Mask)];
+		static readonly HashSet<System.Type> Allowed = [typeof(Vector), typeof(VectorInt), typeof(Vector3), typeof(Mask)];
 
 		internal static string Of<T>() => Of(typeof(T));
 

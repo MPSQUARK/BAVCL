@@ -14,9 +14,11 @@ namespace BAVCL.Modules.IO;
 /// <summary>JSON persistence for Vector, Vector3, and Mask.</summary>
 public sealed class JsonFormatter :
 	IFormatter<Vector>,
+	IFormatter<VectorInt>,
 	IFormatter<Vector3>,
 	IFormatter<Mask>,
 	ICollectionFormatter<Vector>,
+	ICollectionFormatter<VectorInt>,
 	ICollectionFormatter<Vector3>,
 	ICollectionFormatter<Mask>,
 	ISingleton<JsonFormatter>
@@ -40,6 +42,10 @@ public sealed class JsonFormatter :
 
 	Vector IFormatter<Vector>.Deserialize(GPU gpu, string text) => DeserializeVector(gpu, text);
 
+	string IFormatter<VectorInt>.Serialize(VectorInt value, int flags) => SerializeVectorInt(value);
+
+	VectorInt IFormatter<VectorInt>.Deserialize(GPU gpu, string text) => DeserializeVectorInt(gpu, text);
+
 	string IFormatter<Vector3>.Serialize(Vector3 value, int flags) => SerializeVector3(value);
 
 	Vector3 IFormatter<Vector3>.Deserialize(GPU gpu, string text) => DeserializeVector3(gpu, text);
@@ -61,6 +67,23 @@ public sealed class JsonFormatter :
 		var results = new List<Vector>();
 		foreach (FloatArrayDocument document in DeserializeAllFloatArray(text, typeof(Vector), typeof(float)))
 			results.Add(new Vector(gpu, document.Data, document.Columns, cache: document.Data.Length > 0));
+
+		return results;
+	}
+
+	string ICollectionFormatter<VectorInt>.OpenCollection(VectorInt first, int flags) =>
+		IoSchema.Collection.JsonOpen(StructuredIoValidation.CurrentSchemaVersion) + SerializeVectorIntItem(first);
+
+	string ICollectionFormatter<VectorInt>.AppendItem(VectorInt value, int flags) => ',' + SerializeVectorIntItem(value);
+
+	string ICollectionFormatter<VectorInt>.CloseCollection(int itemCount) => IoSchema.Collection.JsonClose;
+
+	IReadOnlyList<VectorInt> ICollectionFormatter<VectorInt>.DeserializeAll(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		var results = new List<VectorInt>();
+		foreach (IntArrayDocument document in DeserializeAllIntArray(text, typeof(VectorInt), typeof(int)))
+			results.Add(new VectorInt(gpu, document.Data, document.Columns, cache: document.Data.Length > 0));
 
 		return results;
 	}
@@ -101,6 +124,12 @@ public sealed class JsonFormatter :
 		return SerializeFloatArrayFragment(typeof(Vector), vector.Columns, vector.ToArray());
 	}
 
+	string SerializeVectorInt(VectorInt vector)
+	{
+		ArgumentNullException.ThrowIfNull(vector);
+		return SerializeIntArrayFragment(typeof(VectorInt), vector.Columns, vector.ToArray());
+	}
+
 	string SerializeVector3(Vector3 vector)
 	{
 		ArgumentNullException.ThrowIfNull(vector);
@@ -111,6 +140,12 @@ public sealed class JsonFormatter :
 	{
 		ArgumentNullException.ThrowIfNull(vector);
 		return SerializeFloatArrayItem(typeof(Vector), vector.Columns, vector.ToArray());
+	}
+
+	string SerializeVectorIntItem(VectorInt vector)
+	{
+		ArgumentNullException.ThrowIfNull(vector);
+		return SerializeIntArrayItem(typeof(VectorInt), vector.Columns, vector.ToArray());
 	}
 
 	string SerializeVector3Item(Vector3 vector)
@@ -184,6 +219,13 @@ public sealed class JsonFormatter :
 		ArgumentNullException.ThrowIfNull(gpu);
 		FloatArrayDocument document = DeserializeFloatArray(text, typeof(Vector), typeof(float));
 		return new Vector(gpu, document.Data, document.Columns, cache: document.Data.Length > 0);
+	}
+
+	VectorInt DeserializeVectorInt(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		IntArrayDocument document = DeserializeIntArray(text, typeof(VectorInt), typeof(int));
+		return new VectorInt(gpu, document.Data, document.Columns, cache: document.Data.Length > 0);
 	}
 
 	Vector3 DeserializeVector3(GPU gpu, string text)
@@ -350,6 +392,98 @@ public sealed class JsonFormatter :
 	static FloatArrayDocument DeserializeFloatArrayElement(JsonElement element, Type expectedType, Type expectedElementType)
 	{
 		FloatArrayDocument? document = element.Deserialize<FloatArrayDocument>(Serializer)
+			?? throw new JsonException("JSON payload deserialized to null.");
+
+		ValidateJson(() => StructuredIoValidation.ValidateSchemaVersion(document.SchemaVersion));
+		ValidateJson(() => StructuredIoValidation.ValidateOptionalType(document.Type, expectedType));
+		ValidateJson(() => StructuredIoValidation.ValidateOptionalDtype(document.Dtype, expectedElementType));
+
+		document.Data ??= [];
+		ValidateJson(() => StructuredIoValidation.ValidateColumns(document.Columns));
+
+		return document;
+	}
+
+	string SerializeIntArrayFragment(Type type, int columns, int[] data) =>
+		JsonSerializer.Serialize(
+			new IntArrayDocument
+			{
+				SchemaVersion = StructuredIoValidation.CurrentSchemaVersion,
+				Type = IoSchema.Document.Of(type),
+				Dtype = IoSchema.Dtype.Of<int>(),
+				Columns = columns,
+				Data = data,
+			},
+			Serializer);
+
+	string SerializeIntArrayItem(Type type, int columns, int[] data) =>
+		JsonSerializer.Serialize(
+			new IntArrayItemDocument
+			{
+				Type = IoSchema.Document.Of(type),
+				Dtype = IoSchema.Dtype.Of<int>(),
+				Columns = columns,
+				Data = data,
+			},
+			Serializer);
+
+	static IntArrayDocument DeserializeIntArray(string json, Type expectedType, Type expectedElementType)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(json);
+
+		using JsonDocument document = JsonDocument.Parse(json);
+		return DeserializeIntArrayElement(document.RootElement, expectedType, expectedElementType);
+	}
+
+	static IReadOnlyList<IntArrayDocument> DeserializeAllIntArray(string json, Type expectedType, Type expectedElementType)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(json);
+
+		using JsonDocument document = JsonDocument.Parse(json);
+		JsonElement root = document.RootElement;
+		if (root.ValueKind != JsonValueKind.Object)
+			throw new JsonException("JSON collection must be a top-level object.");
+
+		int schemaVersion = ReadCollectionSchemaVersion(root);
+		if (!root.TryGetProperty(IoSchema.Collection.Items, out JsonElement items)
+			|| items.ValueKind != JsonValueKind.Array)
+			throw new JsonException($"JSON collection must contain an '{IoSchema.Collection.Items}' array.");
+
+		var results = new List<IntArrayDocument>(items.GetArrayLength());
+		foreach (JsonElement element in items.EnumerateArray())
+			results.Add(DeserializeIntArrayItemElement(element, expectedType, expectedElementType, schemaVersion));
+
+		return results;
+	}
+
+	static IntArrayDocument DeserializeIntArrayItemElement(
+		JsonElement element,
+		Type expectedType,
+		Type expectedElementType,
+		int schemaVersion)
+	{
+		IntArrayItemDocument? document = element.Deserialize<IntArrayItemDocument>(Serializer)
+			?? throw new JsonException("JSON payload deserialized to null.");
+
+		ValidateJson(() => StructuredIoValidation.ValidateOptionalType(document.Type, expectedType));
+		ValidateJson(() => StructuredIoValidation.ValidateOptionalDtype(document.Dtype, expectedElementType));
+
+		document.Data ??= [];
+		ValidateJson(() => StructuredIoValidation.ValidateColumns(document.Columns));
+
+		return new IntArrayDocument
+		{
+			SchemaVersion = schemaVersion,
+			Type = document.Type,
+			Dtype = document.Dtype,
+			Columns = document.Columns,
+			Data = document.Data,
+		};
+	}
+
+	static IntArrayDocument DeserializeIntArrayElement(JsonElement element, Type expectedType, Type expectedElementType)
+	{
+		IntArrayDocument? document = element.Deserialize<IntArrayDocument>(Serializer)
 			?? throw new JsonException("JSON payload deserialized to null.");
 
 		ValidateJson(() => StructuredIoValidation.ValidateSchemaVersion(document.SchemaVersion));

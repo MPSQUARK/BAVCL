@@ -14,7 +14,7 @@ internal static class StructuredCsv
 	const char DataSeparator = ';';
 
 	internal static string SerializeFloatArray(Type type, int columns, ReadOnlySpan<float> data) =>
-		string.Join(',', IoSchema.Field.DefaultHeader) + '\n' + SerializeFloatArrayFragmentRow(type, columns, data);
+		$"{string.Join(',', IoSchema.Field.DefaultHeader)}{Environment.NewLine}{SerializeFloatArrayFragmentRow(type, columns, data)}";
 
 	internal static string SerializeFloatArrayFragmentRow(Type type, int columns, ReadOnlySpan<float> data)
 	{
@@ -23,9 +23,7 @@ internal static class StructuredCsv
 	}
 
 	internal static string OpenFloatArrayCollection(Type type, int columns, ReadOnlySpan<float> firstItem) =>
-		IoSchema.Collection.CsvSchemaVersionLine(StructuredIoValidation.CurrentSchemaVersion) + '\n' +
-		string.Join(',', IoSchema.Field.ItemDefaultHeader) + '\n' +
-		SerializeFloatArrayItemRow(type, columns, firstItem);
+		$"{IoSchema.Collection.CsvSchemaVersionLine(StructuredIoValidation.CurrentSchemaVersion)}{Environment.NewLine}{string.Join(',', IoSchema.Field.ItemDefaultHeader)}{Environment.NewLine}{SerializeFloatArrayItemRow(type, columns, firstItem)}";
 
 	internal static string SerializeFloatArrayItemRow(Type type, int columns, ReadOnlySpan<float> data)
 	{
@@ -33,8 +31,86 @@ internal static class StructuredCsv
 		return string.Join(',', BuildItemMetadataValues(type, typeof(float), columns, dataField));
 	}
 
+	internal static string SerializeIntArray(Type type, int columns, ReadOnlySpan<int> data) =>
+		$"{string.Join(',', IoSchema.Field.DefaultHeader)}{Environment.NewLine}{SerializeIntArrayFragmentRow(type, columns, data)}";
+
+	internal static string SerializeIntArrayFragmentRow(Type type, int columns, ReadOnlySpan<int> data)
+	{
+		string dataField = JoinDataField(data, IntIoParsing.FormatInt);
+		return string.Join(',', BuildFragmentMetadataValues(type, typeof(int), columns, dataField));
+	}
+
+	internal static string OpenIntArrayCollection(Type type, int columns, ReadOnlySpan<int> firstItem) =>
+		$"{IoSchema.Collection.CsvSchemaVersionLine(StructuredIoValidation.CurrentSchemaVersion)}{Environment.NewLine}{string.Join(',', IoSchema.Field.ItemDefaultHeader)}{Environment.NewLine}{SerializeIntArrayItemRow(type, columns, firstItem)}";
+
+	internal static string SerializeIntArrayItemRow(Type type, int columns, ReadOnlySpan<int> data)
+	{
+		string dataField = JoinDataField(data, IntIoParsing.FormatInt);
+		return string.Join(',', BuildItemMetadataValues(type, typeof(int), columns, dataField));
+	}
+
+	internal static IntArrayDocument DeserializeIntArray(string csv, Type expectedType)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(csv);
+
+		(string[] header, List<string[]> rows) = ParseRows(csv);
+		if (rows.Count != 1)
+			throw new FormatException($"CSV document must contain exactly one data row. Received {rows.Count}. Use DeserializeAllIntArray for multi-row files.");
+
+		return BuildIntArrayDocument(ZipFields(header, rows[0]), expectedType);
+	}
+
+	internal static IReadOnlyList<IntArrayDocument> DeserializeAllIntArray(string csv, Type expectedType)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(csv);
+
+		(int schemaVersion, string[] header, List<string[]> rows) = ParseCollectionFile(csv);
+		StructuredIoValidation.ValidateSchemaVersion(schemaVersion);
+		return rows.Select(row => BuildIntArrayDocumentFromItem(ZipFields(header, row), expectedType, schemaVersion)).ToList();
+	}
+
+	static IntArrayDocument BuildIntArrayDocumentFromItem(
+		IReadOnlyDictionary<string, string> fields,
+		Type expectedType,
+		int schemaVersion)
+	{
+		var document = new IntArrayDocument
+		{
+			SchemaVersion = schemaVersion,
+			Type = ReadStringField(fields, IoSchema.Field.Type),
+			Dtype = ReadStringField(fields, IoSchema.Field.Dtype),
+			Columns = ReadIntField(fields, IoSchema.Field.Columns),
+			Data = ParseIntArrayData(ReadStringField(fields, IoSchema.Field.Data)),
+		};
+
+		StructuredIoValidation.ValidateOptionalType(document.Type, expectedType);
+		StructuredIoValidation.ValidateOptionalDtype(document.Dtype, typeof(int));
+		StructuredIoValidation.ValidateColumns(document.Columns);
+
+		return document;
+	}
+
+	static IntArrayDocument BuildIntArrayDocument(IReadOnlyDictionary<string, string> fields, Type expectedType)
+	{
+		var document = new IntArrayDocument
+		{
+			SchemaVersion = ReadIntField(fields, IoSchema.Field.SchemaVersion),
+			Type = ReadStringField(fields, IoSchema.Field.Type),
+			Dtype = ReadStringField(fields, IoSchema.Field.Dtype),
+			Columns = ReadIntField(fields, IoSchema.Field.Columns),
+			Data = ParseIntArrayData(ReadStringField(fields, IoSchema.Field.Data)),
+		};
+
+		StructuredIoValidation.ValidateSchemaVersion(document.SchemaVersion);
+		StructuredIoValidation.ValidateOptionalType(document.Type, expectedType);
+		StructuredIoValidation.ValidateOptionalDtype(document.Dtype, typeof(int));
+		StructuredIoValidation.ValidateColumns(document.Columns);
+
+		return document;
+	}
+
 	internal static string SerializeMaskBool(int columns, ReadOnlySpan<bool> data) =>
-		string.Join(',', IoSchema.Field.DefaultHeader) + '\n' + SerializeMaskBoolFragmentRow(columns, data);
+		$"{string.Join(',', IoSchema.Field.DefaultHeader)}{Environment.NewLine}{SerializeMaskBoolFragmentRow(columns, data)}";
 
 	internal static string SerializeMaskBoolFragmentRow(int columns, ReadOnlySpan<bool> data)
 	{
@@ -43,9 +119,7 @@ internal static class StructuredCsv
 	}
 
 	internal static string OpenMaskBoolCollection(int columns, ReadOnlySpan<bool> firstItem) =>
-		IoSchema.Collection.CsvSchemaVersionLine(StructuredIoValidation.CurrentSchemaVersion) + '\n' +
-		string.Join(',', IoSchema.Field.ItemDefaultHeader) + '\n' +
-		SerializeMaskBoolItemRow(columns, firstItem);
+		$"{IoSchema.Collection.CsvSchemaVersionLine(StructuredIoValidation.CurrentSchemaVersion)}{Environment.NewLine}{string.Join(',', IoSchema.Field.ItemDefaultHeader)}{Environment.NewLine}{SerializeMaskBoolItemRow(columns, firstItem)}";
 
 	internal static string SerializeMaskBoolItemRow(int columns, ReadOnlySpan<bool> data)
 	{
@@ -54,7 +128,7 @@ internal static class StructuredCsv
 	}
 
 	internal static string SerializeMaskPacked(int columns, int count, ReadOnlySpan<int> words) =>
-		string.Join(',', IoSchema.Field.MaskPackedHeader) + '\n' + SerializeMaskPackedFragmentRow(columns, count, words);
+		$"{string.Join(',', IoSchema.Field.MaskPackedHeader)}{Environment.NewLine}{SerializeMaskPackedFragmentRow(columns, count, words)}";
 
 	internal static string SerializeMaskPackedFragmentRow(int columns, int count, ReadOnlySpan<int> words)
 	{
@@ -63,9 +137,7 @@ internal static class StructuredCsv
 	}
 
 	internal static string OpenMaskPackedCollection(int columns, int count, ReadOnlySpan<int> firstWords) =>
-		IoSchema.Collection.CsvSchemaVersionLine(StructuredIoValidation.CurrentSchemaVersion) + '\n' +
-		string.Join(',', IoSchema.Field.ItemMaskPackedHeader) + '\n' +
-		SerializeMaskPackedItemRow(columns, count, firstWords);
+		$"{IoSchema.Collection.CsvSchemaVersionLine(StructuredIoValidation.CurrentSchemaVersion)}{Environment.NewLine}{string.Join(',', IoSchema.Field.ItemMaskPackedHeader)}{Environment.NewLine}{SerializeMaskPackedItemRow(columns, count, firstWords)}";
 
 	internal static string SerializeMaskPackedItemRow(int columns, int count, ReadOnlySpan<int> words)
 	{
@@ -379,6 +451,26 @@ internal static class StructuredCsv
 				catch (Exception ex) when (ex is FormatException or OverflowException)
 				{
 					throw new FormatException($"CSV data contains invalid float '{token}'.", ex);
+				}
+			})
+			.ToArray();
+	}
+
+	static int[] ParseIntArrayData(string dataField)
+	{
+		if (dataField.Length == 0)
+			return [];
+
+		return SplitDataField(dataField)
+			.Select(token =>
+			{
+				try
+				{
+					return IntIoParsing.ParseInt(token);
+				}
+				catch (FormatException ex)
+				{
+					throw new FormatException($"CSV data contains invalid int32 '{token}'.", ex);
 				}
 			})
 			.ToArray();
