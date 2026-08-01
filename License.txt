@@ -1,7 +1,10 @@
+BAVCL Source-Available Licence v1.0
+Effective: 1 August 2026
+
 BAVCL (Badass Vector Compute Library)
 Copyright (c) Marcel Pawelczyk
 
-PROGRAM STILL IN DEVELOPMENT
+BAVCL is currently under active development.
 
 By using, copying, modifying, or distributing this software, you agree to the
 terms of this licence.
@@ -12,16 +15,16 @@ terms of this licence.
 
 BAVCL is source-available and intentionally permissive. This licence permits
 the vast majority of personal, academic, commercial, research, and software-
-development uses. A small number of specific restrictions exist to protect the
-project from direct commercial competition in its niche, ingestion of BAVCL
-implementation materials as AI/ML training data, and clearly defined malicious
-uses.
+development uses. A small number of specific restrictions exist, including but
+not limited to protection from direct commercial competition in its niche,
+ingestion of BAVCL Implementation Materials as AI/ML training data, and clearly
+defined prohibited harmful uses.
 
-The source-code training restriction is intended to prevent third parties from
-using the work as training material to create systems that can reproduce or
-otherwise exploit the copyrighted implementation. It does not restrict ordinary
-use of BAVCL in developing AI/ML software or ordinary interactive use of AI-assisted
-development tools.
+The training-data restriction is intended to prevent third parties from using
+Implementation Materials as training input to create systems that can reproduce
+or otherwise exploit the copyrighted implementation. It does not restrict
+ordinary use of BAVCL as software in AI/ML systems or ordinary interactive use
+of AI-assisted development tools.
 
 ================================================================================
 2. Definitions
@@ -34,22 +37,23 @@ this licence.
 "You" means any individual, company, organisation, or other entity using the
 Software.
 
-"Implementation Materials" means the source code, object code, binaries,
-documentation, and any other copyright-protected expressive form of BAVCL that
-embodies its implementation — whether distributed in human-readable or compiled
-form. This does not include the output of running BAVCL (for example, computed
-numerical results) or your own application code that merely calls BAVCL APIs.
+"Implementation Materials" means the copyright-protected expressive forms of
+BAVCL that embody its implementation, including but not limited to source code,
+object code, binaries, and documentation — whether distributed in human-readable
+or compiled form. This does not include the output of running BAVCL (for example,
+computed numerical results) or your own application code that merely calls BAVCL
+APIs.
 
 "Attribution" means credit given to BAVCL and its author in a manner that is
 clear, legible, easily findable by a reasonable recipient, and appropriate to
 the context in which the Software is used.
 
 "Competing Product" means a software library or framework for the .NET ecosystem
-whose primary or substantial purpose is GPU-accelerated vector or numerics
-computation similar to BAVCL — including forks, renames, or derivatives of
-BAVCL intended to serve that role. This does not include application software
-(for example, simulations, games, or machine-learning pipelines) that merely
-depends on BAVCL.
+whose primary purpose is to provide a general-purpose GPU-accelerated vector or
+numerical-computing library — including forks, renames, or derivatives of BAVCL
+intended to serve that role. This does not include application software
+(including but not limited to simulations, games, or machine-learning pipelines)
+that merely depends on BAVCL.
 
 ================================================================================
 3. Grant of Licence
@@ -58,6 +62,10 @@ depends on BAVCL.
 Subject to the terms below, Marcel Pawelczyk grants you a non-exclusive,
 royalty-free licence to use, copy, modify, and redistribute the Software (in
 source or binary form) for lawful purposes.
+
+Modified versions of the Software remain subject to this licence unless otherwise
+permitted by applicable law. Any redistributed modified version must continue to
+comply with this licence.
 
 ================================================================================
 4. Attribution
@@ -72,9 +80,10 @@ Attribution is required when you use the Software in:
 
 When attribution is required, it must be clear, legible, easily findable, and
 appropriate to the medium. It must identify BAVCL, Marcel Pawelczyk, and the
-Software's source repository (as published in this repository).
+Software's source repository (as published in this repository). Attribution may
+be provided either within the product or within accompanying documentation.
 
-Examples of appropriate placement (illustrative, not exhaustive):
+Appropriate placement includes, but is not limited to:
 
   - A Licences, Acknowledgements, or Third-party notices section in software
     (for example, an About dialog, Info tab, or settings screen)
@@ -91,22 +100,26 @@ Attribution must not be hidden, obscured, or buried in unrelated material.
 5. Permitted AI and Machine-Learning Use
 ================================================================================
 
-Use of BAVCL, including its binaries and source code, to develop, train,
-operate, or support an artificial intelligence or machine-learning system is
-permitted. This includes using BAVCL to accelerate neural-network training or
-inference and using AI-assisted development tools when developing software that
-uses BAVCL.
+Use of BAVCL as software in connection with the development, training, operation,
+or support of an artificial intelligence or machine-learning system is permitted.
+This includes, but is not limited to, using BAVCL to accelerate neural-network
+training or inference and using AI-assisted development tools when developing
+software that uses BAVCL.
+
+Use of BAVCL as part of an AI/ML system does not constitute use of BAVCL's
+Implementation Materials as training data.
 
 ================================================================================
 6. Source-Code Training Restriction
 ================================================================================
 
-You may not use the source code or other copyright-protected implementation
-materials of BAVCL, in whole or in part, as training, pre-training, fine-tuning,
-or similar training data for an artificial intelligence or machine-learning
-model.
+You may not use the Implementation Materials of BAVCL, in whole or in part, as
+training, pre-training, fine-tuning, or similar training data for an artificial
+intelligence or machine-learning model. This includes, but is not limited to,
+corpus ingestion, dataset construction, or using Implementation Materials to
+train or adapt model parameters.
 
-This restriction applies to ingestion of BAVCL's implementation materials as
+This restriction applies to ingestion of BAVCL's Implementation Materials as
 training material and does not prohibit ordinary use of BAVCL in AI/ML software,
 nor ordinary interactive use of AI tools to assist with software development.
 
@@ -119,8 +132,8 @@ on the Software or that incorporates the Software for that purpose.
 
 This restriction applies regardless of whether your use is personal, academic,
 commercial, or otherwise permitted under this licence. Application software that
-uses BAVCL as a dependency (for example, scientific simulations or neural-
-network applications) is not a Competing Product.
+uses BAVCL as a dependency (including but not limited to scientific simulations
+or neural-network applications) is not a Competing Product.
 
 ================================================================================
 8. Prohibited Uses
@@ -128,17 +141,17 @@ network applications) is not a Competing Product.
 
 You may not use the Software for any unlawful purpose.
 
-You may not use the Software for unethical purposes, including but not limited
-to:
+You may not use the Software to facilitate unlawful activity or the following
+prohibited harmful activities, including but not limited to:
 
   - Password cracking or credential-stuffing attacks
-  - Hacking or unauthorised access to systems (whitehat security research with
-    appropriate authorisation is excluded from this prohibition)
+  - Hacking or unauthorised access to systems (authorized security testing
+    conducted with the permission of the system or asset owner is excluded from
+    this prohibition)
   - Software intended to break encryption where the outcome is used maliciously
     to obtain monetary gain through fraud, theft, or similar criminal activity
-  - Similar activities that are illegal or clearly unethical
 
-This list is illustrative, not exhaustive.
+This list is illustrative and is not exhaustive.
 
 ================================================================================
 9. Redistribution
@@ -185,6 +198,6 @@ and does not replace or modify this licence.
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
 FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION
+HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

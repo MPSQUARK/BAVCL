@@ -61,7 +61,9 @@ BAVCL is source-available and intentionally permissive. The licence permits the 
 | Commercial / professional software | Yes | Clear, legible, findable attribution required (e.g. Licences/Info tab) |
 | Redistributing BAVCL (source or binary) | Yes | Include licence + attribution where applicable |
 | Forking to build a competing .NET GPU math library | No | Includes derivatives and standalone alternatives |
-| Password cracking, malicious hacking, fraud-related crypto attacks | No | Whitehat security research excluded from hacking ban |
+| Password cracking, malicious hacking, fraud-related crypto attacks | No | Authorized security testing with owner permission excluded |
+
+*Examples in the tables below are illustrative and not exhaustive.*
 
 ### AI and machine learning
 
@@ -71,11 +73,15 @@ BAVCL is source-available and intentionally permissive. The licence permits the 
 | Use BAVCL for model training/inference | Yes |
 | Use Claude/Copilot/ChatGPT to write code using BAVCL | Yes |
 | Ask an AI to explain how a BAVCL API works | Yes |
+| Ask an AI how to use `Vector` or other BAVCL APIs | Yes |
 | Train an AI model using BAVCL source as training data | No |
 | Fine-tune an AI model on BAVCL source | No |
 | Build a training dataset containing BAVCL source or binaries | No |
+| Bulk-ingest the repository into a model-training corpus | No |
 
-The training restriction exists to prevent use of BAVCL implementation materials as training input to exploit the copyrighted work — not because ordinary AI-assisted development or running BAVCL inside ML pipelines is discouraged.
+You can build AI with BAVCL and use AI tools while developing BAVCL software. You cannot use BAVCL's Implementation Materials as training data for a model.
+
+The training restriction exists to prevent use of BAVCL Implementation Materials as training input to exploit the copyrighted work — not because ordinary AI-assisted development or running BAVCL inside ML pipelines is discouraged.
 
 ### Unsure whether your use is permitted?
 
