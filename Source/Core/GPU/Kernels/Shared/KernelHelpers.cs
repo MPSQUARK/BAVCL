@@ -125,28 +125,6 @@ public partial class GPU
 		}
 	}
 
-	static int BroadcastOperandIndex(
-		Index1D flatOut,
-		SpecializedValue<int> outCols,
-		SpecializedValue<int> rows,
-		SpecializedValue<int> cols)
-	{
-		int outColsValue = outCols.Value;
-		int rowsValue = rows.Value;
-		int colsValue = cols.Value;
-
-		if (rowsValue == 1 && colsValue == 1)
-			return 0;
-
-		if (rowsValue == 1)
-			return flatOut % outColsValue;
-
-		if (colsValue == 1)
-			return flatOut / outColsValue;
-
-		return flatOut;
-	}
-
 	const int MaskWordShift = 5;
 	const int MaskLaneMask = 31;
 

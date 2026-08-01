@@ -75,10 +75,8 @@ internal static class Broadcast
 				gpu,
 				outLength,
 				outShape.Cols,
-				shapeA.Rows,
-				shapeA.Cols,
-				shapeB.Rows,
-				shapeB.Cols,
+				BroadcastStrides.For(shapeA),
+				BroadcastStrides.For(shapeB),
 				output.GetBuffer().View,
 				vectorA.GetBuffer().View,
 				vectorB.GetBuffer().View,
@@ -105,8 +103,7 @@ internal static class Broadcast
 				gpu,
 				outLength,
 				outShape.Cols,
-				shapeOther.Rows,
-				shapeOther.Cols,
+				BroadcastStrides.For(shapeOther),
 				io.GetBuffer().View,
 				other.GetBuffer().View,
 				op);
@@ -116,11 +113,9 @@ internal static class Broadcast
 	internal static void LaunchBroadcastOp(
 		GPU gpu,
 		int outLength,
-		int outCols,
-		int rowsA,
-		int colsA,
-		int rowsB,
-		int colsB,
+		int outputColumns,
+		BroadcastStrides leftStrides,
+		BroadcastStrides rightStrides,
 		ArrayView<float> output,
 		ArrayView<float> inputA,
 		ArrayView<float> inputB,
@@ -133,11 +128,9 @@ internal static class Broadcast
 			output,
 			inputA,
 			inputB,
-			new SpecializedValue<int>(outCols),
-			new SpecializedValue<int>(rowsA),
-			new SpecializedValue<int>(colsA),
-			new SpecializedValue<int>(rowsB),
-			new SpecializedValue<int>(colsB),
+			outputColumns,
+			leftStrides,
+			rightStrides,
 			operation);
 		gpu.accelerator.Synchronize();
 	}
@@ -145,9 +138,8 @@ internal static class Broadcast
 	internal static void LaunchBroadcastOpIP(
 		GPU gpu,
 		int outLength,
-		int outCols,
-		int rowsOther,
-		int colsOther,
+		int outputColumns,
+		BroadcastStrides rightStrides,
 		ArrayView<float> io,
 		ArrayView<float> other,
 		SpecializedValue<int> operation)
@@ -158,9 +150,8 @@ internal static class Broadcast
 			outLength,
 			io,
 			other,
-			new SpecializedValue<int>(outCols),
-			new SpecializedValue<int>(rowsOther),
-			new SpecializedValue<int>(colsOther),
+			outputColumns,
+			rightStrides,
 			operation);
 		gpu.accelerator.Synchronize();
 	}

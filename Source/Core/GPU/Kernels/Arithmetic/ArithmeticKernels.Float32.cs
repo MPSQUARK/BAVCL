@@ -22,10 +22,10 @@ public partial class GPU
 		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(reduceRowOpKernel));
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int> matmulKernel
 		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(matmulKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>> broadcastOpKernel
-		= (_, _, _, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastOpKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>> broadcastOpKernelIP
-		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastOpKernelIP));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>> broadcastOpKernel
+		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastOpKernel));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, SpecializedValue<int>> broadcastOpKernelIP
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastOpKernelIP));
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>> diffKernel
 		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(diffKernel));
 	public Action<AcceleratorStream, Index1D, ArrayView<float>> absKernel
@@ -44,8 +44,8 @@ public partial class GPU
 		s_opFKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernel);
 		reduceRowOpKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(ReduceRowOpKernel);
 		matmulKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(MatMulKernel);
-		broadcastOpKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>>(BroadcastOpKernel);
-		broadcastOpKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>, SpecializedValue<int>>(BroadcastOpKernelIP);
+		broadcastOpKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>>(BroadcastOpKernel);
+		broadcastOpKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, SpecializedValue<int>>(BroadcastOpKernelIP);
 		a_FloatOPKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernelIP);
 		s_FloatOPKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernelIP);
 		diffKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>>(DiffKernel);
@@ -229,15 +229,15 @@ public partial class GPU
 		ArrayView<float> output,
 		ArrayView<float> inputA,
 		ArrayView<float> inputB,
-		SpecializedValue<int> outCols,
-		SpecializedValue<int> rowsA,
-		SpecializedValue<int> colsA,
-		SpecializedValue<int> rowsB,
-		SpecializedValue<int> colsB,
+		int outputColumns,
+		BroadcastStrides leftStrides,
+		BroadcastStrides rightStrides,
 		SpecializedValue<int> operation)
 	{
-		int aIndex = BroadcastOperandIndex(flatOut, outCols, rowsA, colsA);
-		int bIndex = BroadcastOperandIndex(flatOut, outCols, rowsB, colsB);
+		int row = flatOut.X / outputColumns;
+		int column = flatOut.X - (row * outputColumns);
+		int aIndex = leftStrides.IndexOf(row, column);
+		int bIndex = rightStrides.IndexOf(row, column);
 		float result = 0f;
 		ApplyBroadcastOp(ref result, inputA[aIndex], inputB[bIndex], operation);
 		output[flatOut] = result;
@@ -247,12 +247,13 @@ public partial class GPU
 		Index1D flatOut,
 		ArrayView<float> io,
 		ArrayView<float> other,
-		SpecializedValue<int> outCols,
-		SpecializedValue<int> rowsOther,
-		SpecializedValue<int> colsOther,
+		int outputColumns,
+		BroadcastStrides rightStrides,
 		SpecializedValue<int> operation)
 	{
-		int otherIndex = BroadcastOperandIndex(flatOut, outCols, rowsOther, colsOther);
+		int row = flatOut.X / outputColumns;
+		int column = flatOut.X - (row * outputColumns);
+		int otherIndex = rightStrides.IndexOf(row, column);
 		float result = 0f;
 		ApplyBroadcastOp(ref result, io[flatOut], other[otherIndex], operation);
 		io[flatOut] = result;
