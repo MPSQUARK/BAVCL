@@ -37,8 +37,19 @@ public static class MaskModuleExtensions
 
 	extension(Vector vector)
 	{
-		public Vector Filter(Mask mask, float fill) => MaskVectorOps.Filter(vector, mask, fill);
+		public Vector Mask(Mask mask, float fill = 0f) => MaskVectorOps.Mask(vector, mask, fill);
 
-		public Vector Select(Mask mask) => MaskVectorOps.Select(vector, mask);
+		public Vector Filter(Mask mask) => MaskVectorOps.Filter(vector, mask);
+
+		public (Vector TrueLanes, Vector FalseLanes) Partition(Mask mask) => MaskVectorOps.Partition(vector, mask);
+	}
+
+	extension(VectorInt vector)
+	{
+		public VectorInt Mask(Mask mask, int fill = 0) => MaskVectorIntOps.Mask(vector, mask, fill);
+
+		public VectorInt Filter(Mask mask) => MaskVectorIntOps.Filter(vector, mask);
+
+		public (VectorInt TrueLanes, VectorInt FalseLanes) Partition(Mask mask) => MaskVectorIntOps.Partition(vector, mask);
 	}
 }
