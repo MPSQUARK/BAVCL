@@ -584,9 +584,9 @@ Kernels are loaded selectively via `KernelModuleLoader` (see §7). Each domain f
 
 | Format | Collection wire shape |
 | ------ | ---------------------- |
-| CSV | One shared header row + one metadata/data row per item |
-| JSON | `[{...},{...},...]` array (single item → `[{...}]`) |
-| XML | `<root>` wrapper with one typed child element per item (single item → `<root><vector>...</vector></root>`) |
+| CSV | `schemaVersion,<n>` line, then one shared item header row + one metadata/data row per item (items omit `schemaVersion`) |
+| JSON | `{"schemaVersion":<n>,"items":[{...},...]}` (items omit `schemaVersion`) |
+| XML | `<root schemaVersion="<n>">` wrapper with typed child elements per item (`<vector>`, `<vector3>`, `<mask>` — element name encodes type; children omit `schemaVersion` and `type`) |
 | TXT | Pipe `ToStr` segments joined by a line containing exactly `---` (single item → no delimiter) |
 
 Mask CSV rows are homogeneous per file: bool **or** packed for every row, fixed by the first item
@@ -616,14 +616,29 @@ Formatters implement two per-type interfaces, both singletons via `ISingleton<TF
 `Default` + `Extension`:
 
 - `IFormatter<T>` — serializes/deserializes a single item's bare fragment (unchanged shape from
-  before multi-document support: a JSON object, an XML typed element, a CSV header+row, or a TXT
+  before multi-document support: a JSON object, an XML element (type from node name), a CSV header+row, or a TXT
   pipe grid).
 - `ICollectionFormatter<T>` — combines fragments into a collection file (`OpenCollection` /
   `AppendItem` / `CloseCollection`) and splits a collection file back into `IReadOnlyList<T>`
   (`DeserializeAll`).
 
 JSON payloads are minimal (data + columns; Mask packed adds `count`). Optional `type`, `dtype`,
-`schemaVersion`. No forced `saved_data/` subdirectory.
+`schemaVersion` on collection roots (and on per-item `IFormatter` fragments). No forced
+`saved_data/` subdirectory.
+
+**Per-format metadata rules:**
+
+| Field | JSON collection items | CSV collection items | XML collection items | `IFormatter` fragments |
+| ----- | --------------------- | -------------------- | -------------------- | ---------------------- |
+| `schemaVersion` | Omitted (on root) | Omitted (on root line) | Omitted (on `<root>`) | Present (JSON/CSV/XML) |
+| `type` | Present (`type` property) | Present (`type` column) | **Omitted** — element name (`<vector>`, `<vector3>`, `<mask>`) encodes type | JSON/CSV: present; XML: omitted (node name) |
+
+JSON and CSV lack a typed node name, so collection items retain `type` for self-description.
+XML omits it deliberately to avoid repeating information already expressed by the element tag.
+
+**Fragment `schemaVersion` (XML):** when the attribute is absent on an `IFormatter` fragment,
+deserialization assumes `CurrentSchemaVersion` rather than failing. Serialized round-trips always
+include the attribute; the default exists for hand-crafted or legacy fragments only.
 
 Out of scope for now: mixing different BAVCL types (e.g. `Vector` + `Mask`) in one file, a
 forward-only streaming reader, and streamed/chunked write for very large datasets — all are
