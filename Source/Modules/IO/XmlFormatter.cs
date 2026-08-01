@@ -43,9 +43,9 @@ public sealed class XmlFormatter :
 	Mask IFormatter<Mask>.Deserialize(GPU gpu, string text) => DeserializeMask(gpu, text);
 
 	string ICollectionFormatter<Vector>.OpenCollection(Vector first, int flags) =>
-		IoSchema.Collection.XmlOpen + SerializeVector(first);
+		IoSchema.Collection.XmlOpen(StructuredIoValidation.CurrentSchemaVersion) + SerializeVectorItem(first);
 
-	string ICollectionFormatter<Vector>.AppendItem(Vector value, int flags) => SerializeVector(value);
+	string ICollectionFormatter<Vector>.AppendItem(Vector value, int flags) => SerializeVectorItem(value);
 
 	string ICollectionFormatter<Vector>.CloseCollection(int itemCount) => IoSchema.Collection.XmlClose;
 
@@ -58,9 +58,9 @@ public sealed class XmlFormatter :
 	}
 
 	string ICollectionFormatter<Vector3>.OpenCollection(Vector3 first, int flags) =>
-		IoSchema.Collection.XmlOpen + SerializeVector3(first);
+		IoSchema.Collection.XmlOpen(StructuredIoValidation.CurrentSchemaVersion) + SerializeVector3Item(first);
 
-	string ICollectionFormatter<Vector3>.AppendItem(Vector3 value, int flags) => SerializeVector3(value);
+	string ICollectionFormatter<Vector3>.AppendItem(Vector3 value, int flags) => SerializeVector3Item(value);
 
 	string ICollectionFormatter<Vector3>.CloseCollection(int itemCount) => IoSchema.Collection.XmlClose;
 
@@ -77,9 +77,9 @@ public sealed class XmlFormatter :
 	}
 
 	string ICollectionFormatter<Mask>.OpenCollection(Mask first, int flags) =>
-		IoSchema.Collection.XmlOpen + SerializeMask(first, flags);
+		IoSchema.Collection.XmlOpen(StructuredIoValidation.CurrentSchemaVersion) + SerializeMaskItem(first, flags);
 
-	string ICollectionFormatter<Mask>.AppendItem(Mask value, int flags) => SerializeMask(value, flags);
+	string ICollectionFormatter<Mask>.AppendItem(Mask value, int flags) => SerializeMaskItem(value, flags);
 
 	string ICollectionFormatter<Mask>.CloseCollection(int itemCount) => IoSchema.Collection.XmlClose;
 
@@ -88,13 +88,37 @@ public sealed class XmlFormatter :
 	string SerializeVector(Vector vector)
 	{
 		ArgumentNullException.ThrowIfNull(vector);
-		return SerializeFloatArray(typeof(Vector), vector.Columns, vector.RetrieveReadOnlySpan());
+		return SerializeFloatArrayFragment(typeof(Vector), vector.Columns, vector.RetrieveReadOnlySpan());
 	}
 
 	string SerializeVector3(Vector3 vector)
 	{
 		ArgumentNullException.ThrowIfNull(vector);
-		return SerializeFloatArray(typeof(Vector3), vector.Columns, vector.RetrieveReadOnlySpan());
+		return SerializeFloatArrayFragment(typeof(Vector3), vector.Columns, vector.RetrieveReadOnlySpan());
+	}
+
+	string SerializeVectorItem(Vector vector)
+	{
+		ArgumentNullException.ThrowIfNull(vector);
+		return SerializeFloatArrayItem(typeof(Vector), vector.Columns, vector.RetrieveReadOnlySpan());
+	}
+
+	string SerializeVector3Item(Vector3 vector)
+	{
+		ArgumentNullException.ThrowIfNull(vector);
+		return SerializeFloatArrayItem(typeof(Vector3), vector.Columns, vector.RetrieveReadOnlySpan());
+	}
+
+	string SerializeMaskItem(Mask mask, int flags)
+	{
+		ArgumentNullException.ThrowIfNull(mask);
+
+		return flags switch
+		{
+			MaskSerializeFlags.Packed => SerializeMaskPackedItem(mask),
+			MaskSerializeFlags.Bool => SerializeMaskBoolItem(mask),
+			_ => throw new ArgumentOutOfRangeException(nameof(flags), flags, "Unsupported mask serialize flags."),
+		};
 	}
 
 	string SerializeMask(Mask mask, int flags)
@@ -109,55 +133,109 @@ public sealed class XmlFormatter :
 		};
 	}
 
-	static string SerializeFloatArray(Type type, int columns, ReadOnlySpan<float> data)
+	static string SerializeFloatArrayFragment(Type type, int columns, ReadOnlySpan<float> data)
 	{
-		var root = new XElement(
-			IoSchema.Document.XmlRootOf(type),
-			new XAttribute(IoSchema.Field.SchemaVersion, StructuredIoValidation.CurrentSchemaVersion),
-			new XAttribute(IoSchema.Field.Type, IoSchema.Document.Of(type)),
+		XElement root = CreateFloatArrayFragmentRoot(type, columns);
+		AppendFloatDataElements(root, data);
+		return new XDocument(root).ToString(SaveOptions.DisableFormatting);
+	}
+
+	static string SerializeFloatArrayItem(Type type, int columns, ReadOnlySpan<float> data)
+	{
+		XElement root = CreateFloatArrayItemRoot(type, columns);
+		AppendFloatDataElements(root, data);
+		return new XDocument(root).ToString(SaveOptions.DisableFormatting);
+	}
+
+	static XElement CreateFloatArrayFragmentRoot(Type type, int columns)
+	{
+		var root = new XElement(IoSchema.Document.XmlRootOf(type));
+		root.Add(new XAttribute(IoSchema.Field.SchemaVersion, StructuredIoValidation.CurrentSchemaVersion));
+		root.Add(
 			new XAttribute(IoSchema.Field.Dtype, IoSchema.Dtype.Of<float>()),
 			new XAttribute(IoSchema.Field.Columns, columns));
+		return root;
+	}
 
+	static XElement CreateFloatArrayItemRoot(Type type, int columns)
+	{
+		var root = new XElement(IoSchema.Document.XmlRootOf(type));
+		root.Add(
+			new XAttribute(IoSchema.Field.Dtype, IoSchema.Dtype.Of<float>()),
+			new XAttribute(IoSchema.Field.Columns, columns));
+		return root;
+	}
+
+	static void AppendFloatDataElements(XElement root, ReadOnlySpan<float> data)
+	{
 		foreach (float value in data)
 			root.Add(new XElement(IoSchema.Field.Data, FloatIoParsing.FormatFloat(value)));
-
-		return new XDocument(root).ToString(SaveOptions.DisableFormatting);
 	}
 
 	static string SerializeMaskPacked(Mask mask)
 	{
-		XElement root = CreateMaskRoot(typeof(int), mask.Columns, mask.ElementCount);
-
-		foreach (int word in mask.RetrieveReadOnlySpan())
-			root.Add(new XElement(IoSchema.Field.Data, word.ToString(CultureInfo.InvariantCulture)));
-
+		XElement root = CreateMaskFragmentRoot(typeof(int), mask.Columns, mask.ElementCount);
+		AppendMaskPackedDataElements(root, mask.RetrieveReadOnlySpan());
 		return new XDocument(root).ToString(SaveOptions.DisableFormatting);
+	}
+
+	static string SerializeMaskPackedItem(Mask mask)
+	{
+		XElement root = CreateMaskItemRoot(typeof(int), mask.Columns, mask.ElementCount);
+		AppendMaskPackedDataElements(root, mask.RetrieveReadOnlySpan());
+		return new XDocument(root).ToString(SaveOptions.DisableFormatting);
+	}
+
+	static void AppendMaskPackedDataElements(XElement root, ReadOnlySpan<int> words)
+	{
+		foreach (int word in words)
+			root.Add(new XElement(IoSchema.Field.Data, word.ToString(CultureInfo.InvariantCulture)));
 	}
 
 	static string SerializeMaskBool(Mask mask)
 	{
-		XElement root = CreateMaskRoot(typeof(bool), mask.Columns);
-
-		// Bool masks are stored packed (int32 words); unpacking to one bool per element always allocates.
-		foreach (bool value in mask.ToBoolArray())
-			root.Add(new XElement(IoSchema.Field.Data, BoolIoParsing.FormatXml(value)));
-
+		XElement root = CreateMaskFragmentRoot(typeof(bool), mask.Columns, count: null);
+		AppendMaskBoolDataElements(root, mask);
 		return new XDocument(root).ToString(SaveOptions.DisableFormatting);
 	}
 
-	static XElement CreateMaskRoot(Type elementType, int columns, int? count = null)
+	static string SerializeMaskBoolItem(Mask mask)
 	{
-		var root = new XElement(
-			IoSchema.Document.XmlRootOf<Mask>(),
-			new XAttribute(IoSchema.Field.SchemaVersion, StructuredIoValidation.CurrentSchemaVersion),
-			new XAttribute(IoSchema.Field.Type, IoSchema.Document.Of<Mask>()),
+		XElement root = CreateMaskItemRoot(typeof(bool), mask.Columns, count: null);
+		AppendMaskBoolDataElements(root, mask);
+		return new XDocument(root).ToString(SaveOptions.DisableFormatting);
+	}
+
+	static void AppendMaskBoolDataElements(XElement root, Mask mask)
+	{
+		// Bool masks are stored packed (int32 words); unpacking to one bool per element always allocates.
+		foreach (bool value in mask.ToBoolArray())
+			root.Add(new XElement(IoSchema.Field.Data, BoolIoParsing.FormatXml(value)));
+	}
+
+	static XElement CreateMaskFragmentRoot(Type elementType, int columns, int? count)
+	{
+		var root = new XElement(IoSchema.Document.XmlRootOf<Mask>());
+		root.Add(new XAttribute(IoSchema.Field.SchemaVersion, StructuredIoValidation.CurrentSchemaVersion));
+		AppendMaskAttributes(root, elementType, columns, count);
+		return root;
+	}
+
+	static XElement CreateMaskItemRoot(Type elementType, int columns, int? count)
+	{
+		var root = new XElement(IoSchema.Document.XmlRootOf<Mask>());
+		AppendMaskAttributes(root, elementType, columns, count);
+		return root;
+	}
+
+	static void AppendMaskAttributes(XElement root, Type elementType, int columns, int? count)
+	{
+		root.Add(
 			new XAttribute(IoSchema.Field.Dtype, IoSchema.Dtype.Of(elementType)),
 			new XAttribute(IoSchema.Field.Columns, columns));
 
 		if (count is int packedCount)
 			root.Add(new XAttribute(IoSchema.Field.Count, packedCount));
-
-		return root;
 	}
 
 	Vector DeserializeVector(GPU gpu, string text)
@@ -192,13 +270,25 @@ public sealed class XmlFormatter :
 		ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
 		XElement root = ValidateCollectionRoot(text);
-		return root.Elements().Select(element => DeserializeMaskElement(gpu, element)).ToList();
+		int schemaVersion = ReadIntAttribute(root, IoSchema.Field.SchemaVersion);
+		StructuredIoValidation.ValidateSchemaVersion(schemaVersion);
+
+		return root.Elements().Select(element => DeserializeMaskItemElement(gpu, element)).ToList();
 	}
 
-	static Mask DeserializeMaskElement(GPU gpu, XElement root)
+	static Mask DeserializeMaskItemElement(GPU gpu, XElement root) =>
+		DeserializeMaskByDtype(gpu, root, DeserializeMaskPackedCollectionItem, DeserializeMaskBoolCollectionItem);
+
+	static Mask DeserializeMaskElement(GPU gpu, XElement root) =>
+		DeserializeMaskByDtype(gpu, root, DeserializeMaskPackedFragment, DeserializeMaskBoolFragment);
+
+	static Mask DeserializeMaskByDtype(
+		GPU gpu,
+		XElement root,
+		Func<GPU, XElement, Mask> deserializePacked,
+		Func<GPU, XElement, Mask> deserializeBool)
 	{
 		ValidateRootName(root, typeof(Mask));
-		ValidateOptionalMetadata(root, typeof(Mask), expectedElementType: null);
 
 		string? dtype = root.Attribute(IoSchema.Field.Dtype)?.Value;
 		if (dtype is null)
@@ -209,8 +299,8 @@ public sealed class XmlFormatter :
 
 		return format switch
 		{
-			MaskWireFormat.Packed => DeserializeMaskPacked(gpu, root),
-			MaskWireFormat.Bool => DeserializeMaskBool(gpu, root),
+			MaskWireFormat.Packed => deserializePacked(gpu, root),
+			MaskWireFormat.Bool => deserializeBool(gpu, root),
 			_ => throw new InvalidOperationException($"Unsupported mask wire format '{format}'."),
 		};
 	}
@@ -226,8 +316,11 @@ public sealed class XmlFormatter :
 	static IReadOnlyList<FloatArrayDocument> DeserializeAllFloatArray(string xml, Type expectedType, Type expectedElementType)
 	{
 		XElement root = ValidateCollectionRoot(xml);
+		int schemaVersion = ReadIntAttribute(root, IoSchema.Field.SchemaVersion);
+		StructuredIoValidation.ValidateSchemaVersion(schemaVersion);
+
 		return root.Elements()
-			.Select(element => DeserializeFloatArrayElement(element, expectedType, expectedElementType))
+			.Select(element => DeserializeFloatArrayItemElement(element, expectedType, expectedElementType, schemaVersion))
 			.ToList();
 	}
 
@@ -242,10 +335,34 @@ public sealed class XmlFormatter :
 		return root;
 	}
 
+	static FloatArrayDocument DeserializeFloatArrayItemElement(
+		XElement element,
+		Type expectedType,
+		Type expectedElementType,
+		int schemaVersion)
+	{
+		ValidateRootName(element, expectedType);
+		ValidateCollectionItemElementMetadata(element, expectedElementType);
+
+		int columns = ReadIntAttribute(element, IoSchema.Field.Columns);
+		StructuredIoValidation.ValidateColumns(columns);
+
+		float[] data = FloatArrayIo.ParseDataElements(element.Elements(IoSchema.Field.Data).Select(e => e.Value));
+
+		return new FloatArrayDocument
+		{
+			SchemaVersion = schemaVersion,
+			Type = IoSchema.Document.Of(expectedType),
+			Dtype = ReadOptionalStringAttribute(element, IoSchema.Field.Dtype),
+			Columns = columns,
+			Data = data,
+		};
+	}
+
 	static FloatArrayDocument DeserializeFloatArrayElement(XElement element, Type expectedType, Type expectedElementType)
 	{
 		ValidateRootName(element, expectedType);
-		ValidateOptionalMetadata(element, expectedType, expectedElementType);
+		ValidateFragmentElementMetadata(element, expectedElementType);
 
 		int columns = ReadIntAttribute(element, IoSchema.Field.Columns);
 		StructuredIoValidation.ValidateColumns(columns);
@@ -255,17 +372,28 @@ public sealed class XmlFormatter :
 		return new FloatArrayDocument
 		{
 			SchemaVersion = ReadSchemaVersion(element),
-			Type = ReadOptionalStringAttribute(element, IoSchema.Field.Type),
+			Type = IoSchema.Document.Of(expectedType),
 			Dtype = ReadOptionalStringAttribute(element, IoSchema.Field.Dtype),
 			Columns = columns,
 			Data = data,
 		};
 	}
 
-	static Mask DeserializeMaskPacked(GPU gpu, XElement root)
+	static Mask DeserializeMaskPackedFragment(GPU gpu, XElement root)
 	{
-		ValidateOptionalMetadata(root, typeof(Mask), typeof(int));
+		ValidateFragmentElementMetadata(root);
+		ValidateOptionalDtype(root, typeof(int));
+		return BuildMaskPacked(gpu, root);
+	}
 
+	static Mask DeserializeMaskPackedCollectionItem(GPU gpu, XElement root)
+	{
+		ValidateOptionalDtype(root, typeof(int));
+		return BuildMaskPacked(gpu, root);
+	}
+
+	static Mask BuildMaskPacked(GPU gpu, XElement root)
+	{
 		int columns = ReadIntAttribute(root, IoSchema.Field.Columns);
 		int count = ReadIntAttribute(root, IoSchema.Field.Count);
 		int[] words = root.Elements(IoSchema.Field.Data)
@@ -277,10 +405,21 @@ public sealed class XmlFormatter :
 		return new Mask(gpu, words, count, columns);
 	}
 
-	static Mask DeserializeMaskBool(GPU gpu, XElement root)
+	static Mask DeserializeMaskBoolFragment(GPU gpu, XElement root)
 	{
-		ValidateOptionalMetadata(root, typeof(Mask), typeof(bool));
+		ValidateFragmentElementMetadata(root);
+		ValidateOptionalDtype(root, typeof(bool));
+		return BuildMaskBool(gpu, root);
+	}
 
+	static Mask DeserializeMaskBoolCollectionItem(GPU gpu, XElement root)
+	{
+		ValidateOptionalDtype(root, typeof(bool));
+		return BuildMaskBool(gpu, root);
+	}
+
+	static Mask BuildMaskBool(GPU gpu, XElement root)
+	{
 		int columns = ReadIntAttribute(root, IoSchema.Field.Columns);
 		bool[] data = root.Elements(IoSchema.Field.Data)
 			.Select(element => BoolIoParsing.ParseWireToken(element.Value))
@@ -298,19 +437,36 @@ public sealed class XmlFormatter :
 			throw new FormatException($"XML root '{root.Name.LocalName}' does not match expected '{expectedRoot}'.");
 	}
 
-	static void ValidateOptionalMetadata(XElement root, Type expectedType, Type? expectedElementType)
+	static void ValidateFragmentElementMetadata(XElement element, Type expectedElementType)
 	{
-		if (root.Attribute(IoSchema.Field.SchemaVersion) is XAttribute versionAttribute
-			&& int.TryParse(versionAttribute.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int version))
+		ValidateOptionalSchemaVersion(element);
+		ValidateOptionalDtype(element, expectedElementType);
+	}
+
+	static void ValidateCollectionItemElementMetadata(XElement element, Type expectedElementType) =>
+		ValidateOptionalDtype(element, expectedElementType);
+
+	static void ValidateFragmentElementMetadata(XElement element) =>
+		ValidateOptionalSchemaVersion(element);
+
+	static void ValidateOptionalSchemaVersion(XElement element)
+	{
+		if (element.Attribute(IoSchema.Field.SchemaVersion) is not XAttribute versionAttribute)
+			return;
+
+		if (int.TryParse(versionAttribute.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int version))
 			StructuredIoValidation.ValidateSchemaVersion(version);
-
-		if (root.Attribute(IoSchema.Field.Type) is XAttribute typeAttribute)
-			StructuredIoValidation.ValidateOptionalType(typeAttribute.Value, expectedType);
-
-		if (expectedElementType is not null && root.Attribute(IoSchema.Field.Dtype) is XAttribute dtypeAttribute)
+	}
+	static void ValidateOptionalDtype(XElement root, Type expectedElementType)
+	{
+		if (root.Attribute(IoSchema.Field.Dtype) is XAttribute dtypeAttribute)
 			StructuredIoValidation.ValidateOptionalDtype(dtypeAttribute.Value, expectedElementType);
 	}
 
+	/// <summary>
+	/// Reads fragment <c>schemaVersion</c>; defaults to <see cref="StructuredIoValidation.CurrentSchemaVersion"/>
+	/// when the attribute is absent (hand-crafted fragments without version metadata still deserialize).
+	/// </summary>
 	static int ReadSchemaVersion(XElement root) =>
 		root.Attribute(IoSchema.Field.SchemaVersion) is XAttribute attribute
 			? int.Parse(attribute.Value, NumberStyles.Integer, CultureInfo.InvariantCulture)

@@ -14,30 +14,63 @@ internal static class StructuredCsv
 	const char DataSeparator = ';';
 
 	internal static string SerializeFloatArray(Type type, int columns, ReadOnlySpan<float> data) =>
-		string.Join(',', IoSchema.Field.DefaultHeader) + '\n' + SerializeFloatArrayRow(type, columns, data);
+		string.Join(',', IoSchema.Field.DefaultHeader) + '\n' + SerializeFloatArrayFragmentRow(type, columns, data);
 
-	internal static string SerializeFloatArrayRow(Type type, int columns, ReadOnlySpan<float> data)
+	internal static string SerializeFloatArrayFragmentRow(Type type, int columns, ReadOnlySpan<float> data)
 	{
 		string dataField = JoinDataField(data, FloatIoParsing.FormatFloat);
-		return string.Join(',', BuildMetadataValues(type, typeof(float), columns, dataField));
+		return string.Join(',', BuildFragmentMetadataValues(type, typeof(float), columns, dataField));
+	}
+
+	internal static string OpenFloatArrayCollection(Type type, int columns, ReadOnlySpan<float> firstItem) =>
+		IoSchema.Collection.CsvSchemaVersionLine(StructuredIoValidation.CurrentSchemaVersion) + '\n' +
+		string.Join(',', IoSchema.Field.ItemDefaultHeader) + '\n' +
+		SerializeFloatArrayItemRow(type, columns, firstItem);
+
+	internal static string SerializeFloatArrayItemRow(Type type, int columns, ReadOnlySpan<float> data)
+	{
+		string dataField = JoinDataField(data, FloatIoParsing.FormatFloat);
+		return string.Join(',', BuildItemMetadataValues(type, typeof(float), columns, dataField));
 	}
 
 	internal static string SerializeMaskBool(int columns, ReadOnlySpan<bool> data) =>
-		string.Join(',', IoSchema.Field.DefaultHeader) + '\n' + SerializeMaskBoolRow(columns, data);
+		string.Join(',', IoSchema.Field.DefaultHeader) + '\n' + SerializeMaskBoolFragmentRow(columns, data);
 
-	internal static string SerializeMaskBoolRow(int columns, ReadOnlySpan<bool> data)
+	internal static string SerializeMaskBoolFragmentRow(int columns, ReadOnlySpan<bool> data)
 	{
 		string dataField = JoinDataField(data, BoolIoParsing.FormatCsv);
-		return string.Join(',', BuildMetadataValues(typeof(Mask), typeof(bool), columns, dataField));
+		return string.Join(',', BuildFragmentMetadataValues(typeof(Mask), typeof(bool), columns, dataField));
+	}
+
+	internal static string OpenMaskBoolCollection(int columns, ReadOnlySpan<bool> firstItem) =>
+		IoSchema.Collection.CsvSchemaVersionLine(StructuredIoValidation.CurrentSchemaVersion) + '\n' +
+		string.Join(',', IoSchema.Field.ItemDefaultHeader) + '\n' +
+		SerializeMaskBoolItemRow(columns, firstItem);
+
+	internal static string SerializeMaskBoolItemRow(int columns, ReadOnlySpan<bool> data)
+	{
+		string dataField = JoinDataField(data, BoolIoParsing.FormatCsv);
+		return string.Join(',', BuildItemMetadataValues(typeof(Mask), typeof(bool), columns, dataField));
 	}
 
 	internal static string SerializeMaskPacked(int columns, int count, ReadOnlySpan<int> words) =>
-		string.Join(',', IoSchema.Field.MaskPackedHeader) + '\n' + SerializeMaskPackedRow(columns, count, words);
+		string.Join(',', IoSchema.Field.MaskPackedHeader) + '\n' + SerializeMaskPackedFragmentRow(columns, count, words);
 
-	internal static string SerializeMaskPackedRow(int columns, int count, ReadOnlySpan<int> words)
+	internal static string SerializeMaskPackedFragmentRow(int columns, int count, ReadOnlySpan<int> words)
 	{
 		string dataField = JoinDataField(words, static word => word.ToString(CultureInfo.InvariantCulture));
-		return string.Join(',', BuildMetadataValues(typeof(Mask), typeof(int), columns, dataField, count));
+		return string.Join(',', BuildFragmentMetadataValues(typeof(Mask), typeof(int), columns, dataField, count));
+	}
+
+	internal static string OpenMaskPackedCollection(int columns, int count, ReadOnlySpan<int> firstWords) =>
+		IoSchema.Collection.CsvSchemaVersionLine(StructuredIoValidation.CurrentSchemaVersion) + '\n' +
+		string.Join(',', IoSchema.Field.ItemMaskPackedHeader) + '\n' +
+		SerializeMaskPackedItemRow(columns, count, firstWords);
+
+	internal static string SerializeMaskPackedItemRow(int columns, int count, ReadOnlySpan<int> words)
+	{
+		string dataField = JoinDataField(words, static word => word.ToString(CultureInfo.InvariantCulture));
+		return string.Join(',', BuildItemMetadataValues(typeof(Mask), typeof(int), columns, dataField, count));
 	}
 
 	internal static FloatArrayDocument DeserializeFloatArray(string csv, Type expectedType)
@@ -55,8 +88,9 @@ internal static class StructuredCsv
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(csv);
 
-		(string[] header, List<string[]> rows) = ParseRows(csv);
-		return rows.Select(row => BuildFloatArrayDocument(ZipFields(header, row), expectedType)).ToList();
+		(int schemaVersion, string[] header, List<string[]> rows) = ParseCollectionFile(csv);
+		StructuredIoValidation.ValidateSchemaVersion(schemaVersion);
+		return rows.Select(row => BuildFloatArrayDocumentFromItem(ZipFields(header, row), expectedType, schemaVersion)).ToList();
 	}
 
 	internal static Mask DeserializeMask(GPU gpu, string csv)
@@ -76,11 +110,19 @@ internal static class StructuredCsv
 		ArgumentNullException.ThrowIfNull(gpu);
 		ArgumentException.ThrowIfNullOrWhiteSpace(csv);
 
-		(string[] header, List<string[]> rows) = ParseRows(csv);
-		return rows.Select(row => DeserializeMaskRow(gpu, ZipFields(header, row))).ToList();
+		(int schemaVersion, string[] header, List<string[]> rows) = ParseCollectionFile(csv);
+		StructuredIoValidation.ValidateSchemaVersion(schemaVersion);
+		return rows.Select(row => DeserializeMaskItemRow(gpu, ZipFields(header, row), schemaVersion)).ToList();
 	}
 
 	static Mask DeserializeMaskRow(GPU gpu, IReadOnlyDictionary<string, string> fields)
+	{
+		int schemaVersion = ReadIntField(fields, IoSchema.Field.SchemaVersion);
+		StructuredIoValidation.ValidateSchemaVersion(schemaVersion);
+		return DeserializeMaskItemRow(gpu, fields, schemaVersion);
+	}
+
+	static Mask DeserializeMaskItemRow(GPU gpu, IReadOnlyDictionary<string, string> fields, int schemaVersion)
 	{
 		string? dtype = ReadOptionalStringField(fields, IoSchema.Field.Dtype);
 
@@ -89,10 +131,68 @@ internal static class StructuredCsv
 
 		return format switch
 		{
-			MaskWireFormat.Packed => DeserializeMaskPackedRow(gpu, fields),
-			MaskWireFormat.Bool => DeserializeMaskBoolRow(gpu, fields),
+			MaskWireFormat.Packed => DeserializeMaskPackedItemRow(gpu, fields, schemaVersion),
+			MaskWireFormat.Bool => DeserializeMaskBoolItemRow(gpu, fields, schemaVersion),
 			_ => throw new InvalidOperationException($"Unsupported mask wire format '{format}'."),
 		};
+	}
+
+	static FloatArrayDocument BuildFloatArrayDocumentFromItem(
+		IReadOnlyDictionary<string, string> fields,
+		Type expectedType,
+		int schemaVersion)
+	{
+		var document = new FloatArrayDocument
+		{
+			SchemaVersion = schemaVersion,
+			Type = ReadStringField(fields, IoSchema.Field.Type),
+			Dtype = ReadStringField(fields, IoSchema.Field.Dtype),
+			Columns = ReadIntField(fields, IoSchema.Field.Columns),
+			Data = ParseFloatData(ReadStringField(fields, IoSchema.Field.Data)),
+		};
+
+		StructuredIoValidation.ValidateOptionalType(document.Type, expectedType);
+		StructuredIoValidation.ValidateOptionalDtype(document.Dtype, typeof(float));
+		StructuredIoValidation.ValidateColumns(document.Columns);
+
+		return document;
+	}
+
+	static Mask DeserializeMaskBoolItemRow(GPU gpu, IReadOnlyDictionary<string, string> fields, int schemaVersion)
+	{
+		var document = new MaskBoolDocument
+		{
+			SchemaVersion = schemaVersion,
+			Type = ReadStringField(fields, IoSchema.Field.Type),
+			Dtype = ReadStringField(fields, IoSchema.Field.Dtype),
+			Columns = ReadIntField(fields, IoSchema.Field.Columns),
+			Data = ParseBoolData(ReadStringField(fields, IoSchema.Field.Data)),
+		};
+
+		StructuredIoValidation.ValidateOptionalType(document.Type, typeof(Mask));
+		StructuredIoValidation.ValidateOptionalDtype(document.Dtype, typeof(bool));
+		StructuredIoValidation.ValidateMaskBoolLayout(document.Columns, document.Data.Length);
+
+		return new Mask(gpu, document.Data, document.Columns);
+	}
+
+	static Mask DeserializeMaskPackedItemRow(GPU gpu, IReadOnlyDictionary<string, string> fields, int schemaVersion)
+	{
+		var document = new MaskPackedDocument
+		{
+			SchemaVersion = schemaVersion,
+			Type = ReadStringField(fields, IoSchema.Field.Type),
+			Dtype = ReadStringField(fields, IoSchema.Field.Dtype),
+			Columns = ReadIntField(fields, IoSchema.Field.Columns),
+			Count = ReadIntField(fields, IoSchema.Field.Count),
+			Data = ParseIntData(ReadStringField(fields, IoSchema.Field.Data)),
+		};
+
+		StructuredIoValidation.ValidateOptionalType(document.Type, typeof(Mask));
+		StructuredIoValidation.ValidateOptionalDtype(document.Dtype, typeof(int));
+		StructuredIoValidation.ValidateMaskPackedLayout(document.Columns, document.Count, document.Data.Length);
+
+		return new Mask(gpu, document.Data, document.Count, document.Columns);
 	}
 
 	static FloatArrayDocument BuildFloatArrayDocument(IReadOnlyDictionary<string, string> fields, Type expectedType)
@@ -114,46 +214,23 @@ internal static class StructuredCsv
 		return document;
 	}
 
-	static Mask DeserializeMaskBoolRow(GPU gpu, IReadOnlyDictionary<string, string> fields)
+	static string[] BuildItemMetadataValues(Type documentType, Type elementType, int columns, string dataField, int? count = null)
 	{
-		var document = new MaskBoolDocument
+		var values = new List<string>(count is int ? 5 : 4)
 		{
-			SchemaVersion = ReadIntField(fields, IoSchema.Field.SchemaVersion),
-			Type = ReadStringField(fields, IoSchema.Field.Type),
-			Dtype = ReadStringField(fields, IoSchema.Field.Dtype),
-			Columns = ReadIntField(fields, IoSchema.Field.Columns),
-			Data = ParseBoolData(ReadStringField(fields, IoSchema.Field.Data)),
+			IoSchema.Document.Of(documentType),
+			IoSchema.Dtype.Of(elementType),
+			columns.ToString(CultureInfo.InvariantCulture),
 		};
 
-		StructuredIoValidation.ValidateSchemaVersion(document.SchemaVersion);
-		StructuredIoValidation.ValidateOptionalType(document.Type, typeof(Mask));
-		StructuredIoValidation.ValidateOptionalDtype(document.Dtype, typeof(bool));
-		StructuredIoValidation.ValidateMaskBoolLayout(document.Columns, document.Data.Length);
+		if (count is int packedCount)
+			values.Add(packedCount.ToString(CultureInfo.InvariantCulture));
 
-		return new Mask(gpu, document.Data, document.Columns);
+		values.Add(dataField);
+		return values.ToArray();
 	}
 
-	static Mask DeserializeMaskPackedRow(GPU gpu, IReadOnlyDictionary<string, string> fields)
-	{
-		var document = new MaskPackedDocument
-		{
-			SchemaVersion = ReadIntField(fields, IoSchema.Field.SchemaVersion),
-			Type = ReadStringField(fields, IoSchema.Field.Type),
-			Dtype = ReadStringField(fields, IoSchema.Field.Dtype),
-			Columns = ReadIntField(fields, IoSchema.Field.Columns),
-			Count = ReadIntField(fields, IoSchema.Field.Count),
-			Data = ParseIntData(ReadStringField(fields, IoSchema.Field.Data)),
-		};
-
-		StructuredIoValidation.ValidateSchemaVersion(document.SchemaVersion);
-		StructuredIoValidation.ValidateOptionalType(document.Type, typeof(Mask));
-		StructuredIoValidation.ValidateOptionalDtype(document.Dtype, typeof(int));
-		StructuredIoValidation.ValidateMaskPackedLayout(document.Columns, document.Count, document.Data.Length);
-
-		return new Mask(gpu, document.Data, document.Count, document.Columns);
-	}
-
-	static string[] BuildMetadataValues(Type documentType, Type elementType, int columns, string dataField, int? count = null)
+	static string[] BuildFragmentMetadataValues(Type documentType, Type elementType, int columns, string dataField, int? count = null)
 	{
 		var values = new List<string>(count is int ? 6 : 5)
 		{
@@ -171,9 +248,56 @@ internal static class StructuredCsv
 	}
 
 	/// <summary>
-	/// Parses a CSV document into its header and data rows. Metadata columns are fixed names with
-	/// no embedded commas; the last column is 'data' and uses semicolon-separated values internally
-	/// (no commas in field values). A document has one header row and one or more data rows.
+	/// Parses a collection CSV file: schema-version line, item header row, then one or more data rows.
+	/// </summary>
+	static (int SchemaVersion, string[] Header, List<string[]> Rows) ParseCollectionFile(string csv)
+	{
+		string[] lines = csv
+			.Replace("\r\n", "\n")
+			.Replace('\r', '\n')
+			.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+		if (lines.Length < 3)
+			throw new FormatException($"CSV collection must contain a schema-version line, a header row, and at least one data row. Received {lines.Length} non-empty lines.");
+
+		string[] schemaLine = lines[0].Split(',');
+		if (schemaLine.Length != 2
+			|| !string.Equals(schemaLine[0].Trim(), IoSchema.Field.SchemaVersion, StringComparison.OrdinalIgnoreCase))
+			throw new FormatException($"CSV collection must start with a '{IoSchema.Field.SchemaVersion},<version>' line.");
+
+		if (!int.TryParse(schemaLine[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int schemaVersion))
+			throw new FormatException($"CSV collection schema version '{schemaLine[1]}' is not a valid integer.");
+
+		string[] header = lines[1].Split(',');
+		if (!string.Equals(header[^1], IoSchema.Field.Data, StringComparison.OrdinalIgnoreCase))
+			throw new FormatException($"CSV header must end with a '{IoSchema.Field.Data}' column.");
+
+		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (string name in header)
+		{
+			string trimmed = name.Trim();
+			if (trimmed.Length == 0)
+				throw new FormatException("CSV header contains an empty column name.");
+
+			if (!seen.Add(trimmed))
+				throw new FormatException($"CSV header contains duplicate column '{trimmed}'.");
+		}
+
+		var rows = new List<string[]>(lines.Length - 2);
+		for (int i = 2; i < lines.Length; i++)
+		{
+			string[] values = lines[i].Split(',');
+			if (values.Length != header.Length)
+				throw new FormatException($"CSV row {i} column count {values.Length} does not match header column count {header.Length}.");
+
+			rows.Add(values);
+		}
+
+		return (schemaVersion, header, rows);
+	}
+
+	/// <summary>
+	/// Parses a single-document CSV fragment into its header and one data row.
 	/// </summary>
 	static (string[] Header, List<string[]> Rows) ParseRows(string csv)
 	{

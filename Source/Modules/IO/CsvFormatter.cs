@@ -40,10 +40,11 @@ public sealed class CsvFormatter :
 
 	Mask IFormatter<Mask>.Deserialize(GPU gpu, string text) => StructuredCsv.DeserializeMask(gpu, text);
 
-	string ICollectionFormatter<Vector>.OpenCollection(Vector first, int flags) => SerializeVector(first);
+	string ICollectionFormatter<Vector>.OpenCollection(Vector first, int flags) =>
+		StructuredCsv.OpenFloatArrayCollection(typeof(Vector), first.Columns, first.RetrieveReadOnlySpan());
 
 	string ICollectionFormatter<Vector>.AppendItem(Vector value, int flags) =>
-		'\n' + StructuredCsv.SerializeFloatArrayRow(typeof(Vector), value.Columns, value.RetrieveReadOnlySpan());
+		'\n' + StructuredCsv.SerializeFloatArrayItemRow(typeof(Vector), value.Columns, value.RetrieveReadOnlySpan());
 
 	string ICollectionFormatter<Vector>.CloseCollection(int itemCount) => string.Empty;
 
@@ -52,10 +53,11 @@ public sealed class CsvFormatter :
 			.Select(document => new Vector(gpu, document.Data, document.Columns, cache: document.Data.Length > 0))
 			.ToList();
 
-	string ICollectionFormatter<Vector3>.OpenCollection(Vector3 first, int flags) => SerializeVector3(first);
+	string ICollectionFormatter<Vector3>.OpenCollection(Vector3 first, int flags) =>
+		StructuredCsv.OpenFloatArrayCollection(typeof(Vector3), first.Columns, first.RetrieveReadOnlySpan());
 
 	string ICollectionFormatter<Vector3>.AppendItem(Vector3 value, int flags) =>
-		'\n' + StructuredCsv.SerializeFloatArrayRow(typeof(Vector3), value.Columns, value.RetrieveReadOnlySpan());
+		'\n' + StructuredCsv.SerializeFloatArrayItemRow(typeof(Vector3), value.Columns, value.RetrieveReadOnlySpan());
 
 	string ICollectionFormatter<Vector3>.CloseCollection(int itemCount) => string.Empty;
 
@@ -68,13 +70,22 @@ public sealed class CsvFormatter :
 			})
 			.ToList();
 
-	string ICollectionFormatter<Mask>.OpenCollection(Mask first, int flags) => SerializeMask(first, flags);
+	string ICollectionFormatter<Mask>.OpenCollection(Mask first, int flags) =>
+		flags switch
+		{
+			MaskSerializeFlags.Packed => StructuredCsv.OpenMaskPackedCollection(
+				first.Columns,
+				first.ElementCount,
+				first.RetrieveReadOnlySpan()),
+			MaskSerializeFlags.Bool => StructuredCsv.OpenMaskBoolCollection(first.Columns, first.ToBoolArray()),
+			_ => throw new ArgumentOutOfRangeException(nameof(flags), flags, "Unsupported mask serialize flags."),
+		};
 
 	string ICollectionFormatter<Mask>.AppendItem(Mask value, int flags) =>
 		'\n' + flags switch
 		{
-			MaskSerializeFlags.Packed => StructuredCsv.SerializeMaskPackedRow(value.Columns, value.ElementCount, value.RetrieveReadOnlySpan()),
-			MaskSerializeFlags.Bool => StructuredCsv.SerializeMaskBoolRow(value.Columns, value.ToBoolArray()),
+			MaskSerializeFlags.Packed => StructuredCsv.SerializeMaskPackedItemRow(value.Columns, value.ElementCount, value.RetrieveReadOnlySpan()),
+			MaskSerializeFlags.Bool => StructuredCsv.SerializeMaskBoolItemRow(value.Columns, value.ToBoolArray()),
 			_ => throw new ArgumentOutOfRangeException(nameof(flags), flags, "Unsupported mask serialize flags."),
 		};
 
