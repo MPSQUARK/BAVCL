@@ -18,6 +18,10 @@ internal static class IoSchema
 
 		internal static readonly string[] DefaultHeader = [SchemaVersion, Type, Dtype, Columns, Data];
 		internal static readonly string[] MaskPackedHeader = [SchemaVersion, Type, Dtype, Columns, Count, Data];
+
+		// Collection item headers omit schemaVersion (it lives on the collection root line).
+		internal static readonly string[] ItemDefaultHeader = DefaultHeader[1..];
+		internal static readonly string[] ItemMaskPackedHeader = MaskPackedHeader[1..];
 	}
 
 	internal static class Document
@@ -56,14 +60,25 @@ internal static class IoSchema
 		/// <summary>XML wrapper element name for a multi-document file (e.g. &lt;root&gt;&lt;vector/&gt;...&lt;/root&gt;).</summary>
 		internal const string XmlRoot = "root";
 
-		/// <summary>Opening tag for the XML collection wrapper.</summary>
-		internal const string XmlOpen = $"<{XmlRoot}>";
+		/// <summary>JSON property holding collection items.</summary>
+		internal const string Items = "items";
 
 		/// <summary>Closing tag for the XML collection wrapper.</summary>
 		internal const string XmlClose = $"</{XmlRoot}>";
 
 		/// <summary>TXT line marking the boundary between consecutive documents in a multi-document file.</summary>
 		internal const string TxtBoundary = "---";
+
+		internal static string XmlOpen(int schemaVersion) =>
+			$"<{XmlRoot} {Field.SchemaVersion}=\"{schemaVersion}\">";
+
+		internal static string JsonOpen(int schemaVersion) =>
+			$"{{\"{Field.SchemaVersion}\":{schemaVersion},\"{Items}\":[";
+
+		internal const string JsonClose = "]}";
+
+		internal static string CsvSchemaVersionLine(int schemaVersion) =>
+			$"{Field.SchemaVersion},{schemaVersion}";
 	}
 
 	static string Name(System.Type type, HashSet<System.Type> allowed, string category)
