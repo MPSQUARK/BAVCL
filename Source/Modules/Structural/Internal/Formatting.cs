@@ -13,14 +13,6 @@ internal static class FormattingCore
 		int columns = vector.Columns;
 		int length = vector.Length;
 
-		if (columns > 1)
-		{
-			for (int i = 0; i < length; i++)
-				stringBuilder.Append($"{data[i]},");
-
-			return stringBuilder.ToString();
-		}
-
 		if (columns == 0)
 		{
 			for (int i = 0; i < length; i++)
@@ -31,12 +23,15 @@ internal static class FormattingCore
 
 		stringBuilder.Append($"{data[0]},");
 
-		for (int i = 1; i < length; i++)
+		for (int i = 1, col = 0; i < length; i++, col++)
 		{
-			if (i % columns == 0)
-				stringBuilder.AppendLine();
+            if (col == columns)
+            {
+                stringBuilder.AppendLine();
+                col = 0;
+            }
 
-			stringBuilder.Append($"{data[i]},");
+            stringBuilder.Append($"{data[i]},");
 		}
 
 		return stringBuilder.ToString();
@@ -172,9 +167,13 @@ internal static class FormattingCore
 			string afterinf = new(' ', decimalplaces + 1);
 			string nan = new(' ', decimalplaces);
 
-			for (int i = 0; i < vector.Length; i++)
+			for (int i = 0, col = 0; i < vector.Length; i++, col++)
 			{
-				if (i % layoutColumns == 0) { stringBuilder.AppendLine(); }
+				if (col == layoutColumns)
+				{
+					stringBuilder.AppendLine();
+					col = 0;
+				}
 
 				Template[2] = data[i] < 0f ? '-' : ' ';
 
@@ -210,9 +209,13 @@ internal static class FormattingCore
 
 		if (hasnegative)
 		{
-			for (int i = 0; i < vector.Length; i++)
+			for (int i = 0, col = 0; i < vector.Length; i++, col++)
 			{
-				if (i % layoutColumns == 0) { stringBuilder.AppendLine(); }
+				if (col == layoutColumns)
+				{
+					stringBuilder.AppendLine();
+					col = 0;
+				}
 
 				Template[2] = data[i] < 0f ? '-' : ' ';
 
@@ -226,9 +229,13 @@ internal static class FormattingCore
 			return stringBuilder.ToString();
 		}
 
-		for (int i = 0; i < vector.Length; i++)
+		for (int i = 0, col = 0; i < vector.Length; i++, col++)
 		{
-			if (i % layoutColumns == 0) { stringBuilder.AppendLine(); }
+			if (col == layoutColumns)
+			{
+				stringBuilder.AppendLine();
+				col = 0;
+			}
 
 			clear.CopyTo(Template, 3);
 			string val = data[i].ToString(format);
