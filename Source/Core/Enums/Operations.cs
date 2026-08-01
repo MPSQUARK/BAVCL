@@ -34,4 +34,28 @@ public enum Operations
 	/// Sqrt(a^2 + b^2)
 	/// </summary>
 	magnitude = 10, // square root of the sum of the squares
+	/// <summary>
+	/// VectorInt only: a % b
+	/// </summary>
+	modulo = 11,
+	/// <summary>
+	/// VectorInt only: a &lt;&lt; b
+	/// </summary>
+	leftShift = 12,
+	/// <summary>
+	/// VectorInt only: a &gt;&gt; b (arithmetic, sign-extending)
+	/// </summary>
+	rightShift = 13,
+	/// <summary>
+	/// VectorInt only: a ^ b (bitwise XOR)
+	/// </summary>
+	bitwiseXor = 14,
+	/// <summary>
+	/// VectorInt only: b % a
+	/// </summary>
+	flipModulo = 15,
+	/// <summary>
+	/// VectorInt only: a &amp; b (bitwise AND)
+	/// </summary>
+	bitwiseAnd = 16,
 }
