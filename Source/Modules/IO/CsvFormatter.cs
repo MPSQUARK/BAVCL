@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using BAVCL.Geometric;
 using BAVCL.Core.Interfaces;
 using BAVCL.Modules.IO.Enums;
@@ -13,58 +15,114 @@ public sealed class CsvFormatter :
 	IFormatter<Vector>,
 	IFormatter<Vector3>,
 	IFormatter<Mask>,
+	ICollectionFormatter<Vector>,
+	ICollectionFormatter<Vector3>,
+	ICollectionFormatter<Mask>,
 	ISingleton<CsvFormatter>
 {
 	public static CsvFormatter Default { get; } = new();
 
 	static CsvFormatter ISingleton<CsvFormatter>.Default => Default;
 
+	CsvFormatter() { }
+
 	public string Extension => ".csv";
 
-	string IFormatter<Vector>.Serialize(Vector vector, int flags)
+	string IFormatter<Vector>.Serialize(Vector vector, int flags) => SerializeVector(vector);
+
+	Vector IFormatter<Vector>.Deserialize(GPU gpu, string text) => DeserializeVector(gpu, text);
+
+	string IFormatter<Vector3>.Serialize(Vector3 vector, int flags) => SerializeVector3(vector);
+
+	Vector3 IFormatter<Vector3>.Deserialize(GPU gpu, string text) => DeserializeVector3(gpu, text);
+
+	string IFormatter<Mask>.Serialize(Mask mask, int flags) => SerializeMask(mask, flags);
+
+	Mask IFormatter<Mask>.Deserialize(GPU gpu, string text) => StructuredCsv.DeserializeMask(gpu, text);
+
+	string ICollectionFormatter<Vector>.OpenCollection(Vector first, int flags) => SerializeVector(first);
+
+	string ICollectionFormatter<Vector>.AppendItem(Vector value, int flags) =>
+		'\n' + StructuredCsv.SerializeFloatArrayRow(typeof(Vector), value.Columns, value.RetrieveReadOnlySpan());
+
+	string ICollectionFormatter<Vector>.CloseCollection(int itemCount) => string.Empty;
+
+	IReadOnlyList<Vector> ICollectionFormatter<Vector>.DeserializeAll(GPU gpu, string text) =>
+		StructuredCsv.DeserializeAllFloatArray(text, typeof(Vector))
+			.Select(document => new Vector(gpu, document.Data, document.Columns, cache: document.Data.Length > 0))
+			.ToList();
+
+	string ICollectionFormatter<Vector3>.OpenCollection(Vector3 first, int flags) => SerializeVector3(first);
+
+	string ICollectionFormatter<Vector3>.AppendItem(Vector3 value, int flags) =>
+		'\n' + StructuredCsv.SerializeFloatArrayRow(typeof(Vector3), value.Columns, value.RetrieveReadOnlySpan());
+
+	string ICollectionFormatter<Vector3>.CloseCollection(int itemCount) => string.Empty;
+
+	IReadOnlyList<Vector3> ICollectionFormatter<Vector3>.DeserializeAll(GPU gpu, string text) =>
+		StructuredCsv.DeserializeAllFloatArray(text, typeof(Vector3))
+			.Select(document =>
+			{
+				StructuredIoValidation.ValidateVector3Layout(document.Columns, document.Data.Length);
+				return new Vector3(gpu, document.Data, cache: document.Data.Length > 0);
+			})
+			.ToList();
+
+	string ICollectionFormatter<Mask>.OpenCollection(Mask first, int flags) => SerializeMask(first, flags);
+
+	string ICollectionFormatter<Mask>.AppendItem(Mask value, int flags) =>
+		'\n' + flags switch
+		{
+			MaskSerializeFlags.Packed => StructuredCsv.SerializeMaskPackedRow(value.Columns, value.ElementCount, value.RetrieveReadOnlySpan()),
+			MaskSerializeFlags.Bool => StructuredCsv.SerializeMaskBoolRow(value.Columns, value.ToBoolArray()),
+			_ => throw new ArgumentOutOfRangeException(nameof(flags), flags, "Unsupported mask serialize flags."),
+		};
+
+	string ICollectionFormatter<Mask>.CloseCollection(int itemCount) => string.Empty;
+
+	IReadOnlyList<Mask> ICollectionFormatter<Mask>.DeserializeAll(GPU gpu, string text) =>
+		StructuredCsv.DeserializeAllMask(gpu, text);
+
+	static string SerializeVector(Vector vector)
 	{
 		ArgumentNullException.ThrowIfNull(vector);
-		vector.SyncCPU();
-		return StructuredCsv.SerializeFloatArray(typeof(Vector), vector.Columns, vector.ToArray());
+		return StructuredCsv.SerializeFloatArray(typeof(Vector), vector.Columns, vector.RetrieveReadOnlySpan());
 	}
 
-	Vector IFormatter<Vector>.Deserialize(GPU gpu, string text)
-	{
-		ArgumentNullException.ThrowIfNull(gpu);
-		FloatArrayDocument document = StructuredCsv.DeserializeFloatArray(text, typeof(Vector));
-		return new Vector(gpu, document.Data, document.Columns, cache: document.Data.Length > 0);
-	}
-
-	string IFormatter<Vector3>.Serialize(Vector3 vector, int flags)
+	static string SerializeVector3(Vector3 vector)
 	{
 		ArgumentNullException.ThrowIfNull(vector);
-		vector.SyncCPU();
-		return StructuredCsv.SerializeFloatArray(typeof(Vector3), vector.Columns, vector.ToArray());
+		return StructuredCsv.SerializeFloatArray(typeof(Vector3), vector.Columns, vector.RetrieveReadOnlySpan());
 	}
 
-	Vector3 IFormatter<Vector3>.Deserialize(GPU gpu, string text)
-	{
-		ArgumentNullException.ThrowIfNull(gpu);
-		FloatArrayDocument document = StructuredCsv.DeserializeFloatArray(text, typeof(Vector3));
-		StructuredIoValidation.ValidateVector3Layout(document.Columns, document.Data.Length);
-		return new Vector3(gpu, document.Data, cache: document.Data.Length > 0);
-	}
-
-	string IFormatter<Mask>.Serialize(Mask mask, int flags)
+	static string SerializeMask(Mask mask, int flags)
 	{
 		ArgumentNullException.ThrowIfNull(mask);
-		mask.SyncCPU();
 
 		return flags switch
 		{
 			MaskSerializeFlags.Packed => StructuredCsv.SerializeMaskPacked(
 				mask.Columns,
 				mask.ElementCount,
-				mask.ToWordArray()),
+				mask.RetrieveReadOnlySpan()),
+			// Bool masks are stored packed (int32 words); unpacking to one bool per element always allocates.
 			MaskSerializeFlags.Bool => StructuredCsv.SerializeMaskBool(mask.Columns, mask.ToBoolArray()),
 			_ => throw new ArgumentOutOfRangeException(nameof(flags), flags, "Unsupported mask serialize flags."),
 		};
 	}
 
-	Mask IFormatter<Mask>.Deserialize(GPU gpu, string text) => StructuredCsv.DeserializeMask(gpu, text);
+	static Vector DeserializeVector(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		FloatArrayDocument document = StructuredCsv.DeserializeFloatArray(text, typeof(Vector));
+		return new Vector(gpu, document.Data, document.Columns, cache: document.Data.Length > 0);
+	}
+
+	static Vector3 DeserializeVector3(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		FloatArrayDocument document = StructuredCsv.DeserializeFloatArray(text, typeof(Vector3));
+		StructuredIoValidation.ValidateVector3Layout(document.Columns, document.Data.Length);
+		return new Vector3(gpu, document.Data, cache: document.Data.Length > 0);
+	}
 }

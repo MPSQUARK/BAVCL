@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using BAVCL.Geometric;
@@ -15,6 +16,9 @@ public sealed class JsonFormatter :
 	IFormatter<Vector>,
 	IFormatter<Vector3>,
 	IFormatter<Mask>,
+	ICollectionFormatter<Vector>,
+	ICollectionFormatter<Vector3>,
+	ICollectionFormatter<Mask>,
 	ISingleton<JsonFormatter>
 {
 	public static JsonFormatter Default { get; } = new();
@@ -44,24 +48,64 @@ public sealed class JsonFormatter :
 
 	Mask IFormatter<Mask>.Deserialize(GPU gpu, string text) => DeserializeMask(gpu, text);
 
+	string ICollectionFormatter<Vector>.OpenCollection(Vector first, int flags) => '[' + SerializeVector(first);
+
+	string ICollectionFormatter<Vector>.AppendItem(Vector value, int flags) => ',' + SerializeVector(value);
+
+	string ICollectionFormatter<Vector>.CloseCollection(int itemCount) => "]";
+
+	IReadOnlyList<Vector> ICollectionFormatter<Vector>.DeserializeAll(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		var results = new List<Vector>();
+		foreach (FloatArrayDocument document in DeserializeAllFloatArray(text, typeof(Vector), typeof(float)))
+			results.Add(new Vector(gpu, document.Data, document.Columns, cache: document.Data.Length > 0));
+
+		return results;
+	}
+
+	string ICollectionFormatter<Vector3>.OpenCollection(Vector3 first, int flags) => '[' + SerializeVector3(first);
+
+	string ICollectionFormatter<Vector3>.AppendItem(Vector3 value, int flags) => ',' + SerializeVector3(value);
+
+	string ICollectionFormatter<Vector3>.CloseCollection(int itemCount) => "]";
+
+	IReadOnlyList<Vector3> ICollectionFormatter<Vector3>.DeserializeAll(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		var results = new List<Vector3>();
+		foreach (FloatArrayDocument document in DeserializeAllFloatArray(text, typeof(Vector3), typeof(float)))
+		{
+			ValidateJson(() => StructuredIoValidation.ValidateVector3Layout(document.Columns, document.Data.Length));
+			results.Add(new Vector3(gpu, document.Data, cache: document.Data.Length > 0));
+		}
+
+		return results;
+	}
+
+	string ICollectionFormatter<Mask>.OpenCollection(Mask first, int flags) => '[' + SerializeMask(first, flags);
+
+	string ICollectionFormatter<Mask>.AppendItem(Mask value, int flags) => ',' + SerializeMask(value, flags);
+
+	string ICollectionFormatter<Mask>.CloseCollection(int itemCount) => "]";
+
+	IReadOnlyList<Mask> ICollectionFormatter<Mask>.DeserializeAll(GPU gpu, string text) => DeserializeAllMask(gpu, text);
+
 	string SerializeVector(Vector vector)
 	{
 		ArgumentNullException.ThrowIfNull(vector);
-		vector.SyncCPU();
 		return SerializeFloatArray(typeof(Vector), vector.Columns, vector.ToArray());
 	}
 
 	string SerializeVector3(Vector3 vector)
 	{
 		ArgumentNullException.ThrowIfNull(vector);
-		vector.SyncCPU();
 		return SerializeFloatArray(typeof(Vector3), vector.Columns, vector.ToArray());
 	}
 
 	string SerializeMask(Mask mask, int flags)
 	{
 		ArgumentNullException.ThrowIfNull(mask);
-		mask.SyncCPU();
 
 		return flags switch
 		{
@@ -111,8 +155,28 @@ public sealed class JsonFormatter :
 		ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
 		using JsonDocument document = JsonDocument.Parse(text);
-		JsonElement root = document.RootElement;
+		return DeserializeMaskElement(gpu, document.RootElement);
+	}
 
+	static IReadOnlyList<Mask> DeserializeAllMask(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		ArgumentException.ThrowIfNullOrWhiteSpace(text);
+
+		using JsonDocument document = JsonDocument.Parse(text);
+		JsonElement root = document.RootElement;
+		if (root.ValueKind != JsonValueKind.Array)
+			throw new JsonException("Mask JSON collection must be a top-level array.");
+
+		var results = new List<Mask>(root.GetArrayLength());
+		foreach (JsonElement element in root.EnumerateArray())
+			results.Add(DeserializeMaskElement(gpu, element));
+
+		return results;
+	}
+
+	static Mask DeserializeMaskElement(GPU gpu, JsonElement root)
+	{
 		ValidateOptionalMetadata(root, typeof(Mask), expectedElementType: null);
 
 		if (!root.TryGetProperty(IoSchema.Field.Dtype, out JsonElement dtypeElement)
@@ -148,7 +212,29 @@ public sealed class JsonFormatter :
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(json);
 
-		FloatArrayDocument? document = JsonSerializer.Deserialize<FloatArrayDocument>(json, Serializer)
+		using JsonDocument document = JsonDocument.Parse(json);
+		return DeserializeFloatArrayElement(document.RootElement, expectedType, expectedElementType);
+	}
+
+	static IReadOnlyList<FloatArrayDocument> DeserializeAllFloatArray(string json, Type expectedType, Type expectedElementType)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(json);
+
+		using JsonDocument document = JsonDocument.Parse(json);
+		JsonElement root = document.RootElement;
+		if (root.ValueKind != JsonValueKind.Array)
+			throw new JsonException("JSON collection must be a top-level array.");
+
+		var results = new List<FloatArrayDocument>(root.GetArrayLength());
+		foreach (JsonElement element in root.EnumerateArray())
+			results.Add(DeserializeFloatArrayElement(element, expectedType, expectedElementType));
+
+		return results;
+	}
+
+	static FloatArrayDocument DeserializeFloatArrayElement(JsonElement element, Type expectedType, Type expectedElementType)
+	{
+		FloatArrayDocument? document = element.Deserialize<FloatArrayDocument>(Serializer)
 			?? throw new JsonException("JSON payload deserialized to null.");
 
 		ValidateJson(() => StructuredIoValidation.ValidateSchemaVersion(document.SchemaVersion));

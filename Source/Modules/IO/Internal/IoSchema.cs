@@ -50,6 +50,22 @@ internal static class IoSchema
 		internal static bool Is(string? name, System.Type type) => Matches(name, type);
 	}
 
+	/// <summary>Multi-document envelope conventions shared across formatters.</summary>
+	internal static class Collection
+	{
+		/// <summary>XML wrapper element name for a multi-document file (e.g. &lt;root&gt;&lt;vector/&gt;...&lt;/root&gt;).</summary>
+		internal const string XmlRoot = "root";
+
+		/// <summary>Opening tag for the XML collection wrapper.</summary>
+		internal const string XmlOpen = $"<{XmlRoot}>";
+
+		/// <summary>Closing tag for the XML collection wrapper.</summary>
+		internal const string XmlClose = $"</{XmlRoot}>";
+
+		/// <summary>TXT line marking the boundary between consecutive documents in a multi-document file.</summary>
+		internal const string TxtBoundary = "---";
+	}
+
 	static string Name(System.Type type, HashSet<System.Type> allowed, string category)
 	{
 		if (!allowed.Contains(type))
