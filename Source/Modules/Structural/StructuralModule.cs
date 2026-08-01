@@ -1,3 +1,4 @@
+using BAVCL.Core;
 using BAVCL.Modules.Generators;
 using BAVCL.Types;
 
@@ -121,7 +122,7 @@ public static class VectorStructural
 		public static Vector Prepend(Vector left, Vector right) =>
 			ShapeOpsCore.Prepend(left, right);
 
-		public static Vector Concat(Vector left, Vector right, char axis = 'r', bool warp = false) =>
+		public static Vector Concat(Vector left, Vector right, ConcatAxis axis = ConcatAxis.Row, bool warp = false) =>
 			ShapeOpsCore.Concat(left, right, axis, warp);
 
 		public static Vector Merge(Vector left, Vector right) =>
@@ -181,6 +182,80 @@ public static class VectorStructural
 		public static string ToStr(Mask mask) => FormattingCore.ToStr(mask);
 		public static void Print(Mask mask) => FormattingCore.Print(mask);
 
+	}
+}
+
+/// <summary>
+/// VectorInt static factories/shape ops. Split from <see cref="VectorStructural"/> because several
+/// members (e.g. Zeros, Ones) share signatures with the float overloads once the return type is
+/// excluded, which is a CS0111 conflict within one static class (see spec §2.6).
+/// </summary>
+public static class VectorIntStructural
+{
+	extension(VectorInt)
+	{
+		public static VectorInt Zeros(GPU gpu, int length, int columns = 0) =>
+			FactoriesCore.ZerosInt(gpu, length, columns);
+
+		public static VectorInt Ones(GPU gpu, int length, int columns = 0) =>
+			FactoriesCore.OnesInt(gpu, length, columns);
+
+		public static VectorInt Fill(GPU gpu, int value, int length, int columns = 0, bool cache = true) =>
+			FactoriesCore.Fill(gpu, value, length, columns, cache);
+
+		public static VectorInt Arange(GPU gpu, int startval, int endval, int interval, int columns = 0, bool cache = true) =>
+			FactoriesCore.Arange(gpu, startval, endval, interval, columns, cache);
+
+		public static VectorInt Linspace(GPU gpu, int startval, int endval, int steps, int columns = 0, bool cache = true) =>
+			FactoriesCore.Linspace(gpu, startval, endval, steps, columns, cache);
+
+		public static VectorInt Append(VectorInt left, VectorInt right) =>
+			ShapeOpsCore.Append(left, right);
+
+		public static VectorInt Prepend(VectorInt left, VectorInt right) =>
+			ShapeOpsCore.Prepend(left, right);
+
+		public static VectorInt Concat(VectorInt left, VectorInt right, ConcatAxis axis = ConcatAxis.Row, bool warp = false) =>
+			ShapeOpsCore.Concat(left, right, axis, warp);
+
+		public static VectorInt Merge(VectorInt left, VectorInt right) =>
+			ShapeOpsCore.Merge(left, right);
+
+		public static VectorInt Reverse(VectorInt vector) =>
+			ShapeOpsCore.Reverse(vector);
+
+		public static VectorInt ReverseX(VectorInt vector) =>
+			ShapeOpsCore.ReverseX(vector);
+
+		public static VectorInt Transpose(VectorInt vector) =>
+			ShapeOpsCore.Transpose(vector);
+
+		public static VectorInt Transpose_IP(VectorInt vector) =>
+			ShapeOpsCore.TransposeInPlace(vector);
+
+		public static VectorInt TransferBuffer(VectorInt inheritee, VectorInt temp, bool incColumns = false) =>
+			ShapeOpsCore.TransferBuffer(inheritee, temp, incColumns);
+
+		public static int[] GetRowAsArray(VectorInt vector, int row) =>
+			ShapeOpsCore.GetRowAsArray(vector, row);
+
+		public static VectorInt GetRowAsVector(VectorInt vector, int row) =>
+			ShapeOpsCore.GetRowAsVector(vector, row);
+
+		public static VectorInt GetColumnAsVector(VectorInt vector, int column) =>
+			ShapeOpsCore.GetColumnAsVector(vector, column);
+
+		public static int[] GetColumnAsArray(VectorInt vector, int column) =>
+			ShapeOpsCore.GetColumnAsArray(vector, column);
+
+		public static VectorInt GetSliceAsVector(VectorInt vector, int row_col_index, Axis axis) =>
+			ShapeOpsCore.GetSliceAsVector(vector, row_col_index, axis);
+
+		public static int[] GetSliceAsArray(VectorInt vector, int row_col_index, Axis axis) =>
+			ShapeOpsCore.GetSliceAsArray(vector, row_col_index, axis);
+
+		public static string ToStr(VectorInt vector) =>
+			FormattingCore.ToStr(vector);
 	}
 }
 
@@ -311,10 +386,10 @@ public static class VectorStructuralExtensions
 		public Vector Prepend(Vector vectorB) =>
 			Vector.Prepend(vector, vectorB);
 
-		public Vector Concat(Vector other, char axis = 'r', bool warp = false) =>
+		public Vector Concat(Vector other, ConcatAxis axis = ConcatAxis.Row, bool warp = false) =>
 			Vector.Concat(vector, other, axis, warp);
 
-		public Vector Concat_IP(Vector other, char axis = 'r', bool warp = false) =>
+		public Vector Concat_IP(Vector other, ConcatAxis axis = ConcatAxis.Row, bool warp = false) =>
 			ShapeOpsCore.ConcatInPlace(vector, other, axis, warp);
 
 		public Vector Merge(Vector vectorB) =>
@@ -373,6 +448,99 @@ public static class VectorStructuralExtensions
 
 		public string ToStr(byte decimalplaces = 2) =>
 			Vector.ToStr(vector, decimalplaces);
+	}
+
+	extension(VectorInt vector)
+	{
+		public VectorInt Zeros_IP(int length, int columns = 0)
+		{
+			FactoriesCore.ZerosInPlace(vector, length, columns);
+			return vector;
+		}
+
+		public VectorInt Ones_IP(int length, int columns = 0)
+		{
+			FactoriesCore.OnesInPlace(vector, length, columns);
+			return vector;
+		}
+
+		public VectorInt Fill_IP(int value, int length, int columns = 0)
+		{
+			FactoriesCore.FillInPlace(vector, value, length, columns);
+			return vector;
+		}
+
+		public VectorInt Append(VectorInt vectorB) =>
+			VectorInt.Append(vector, vectorB);
+
+		public VectorInt Append_IP(VectorInt vectorB)
+		{
+			ShapeOpsCore.AppendInPlace(vector, vectorB);
+			return vector;
+		}
+
+		public VectorInt Prepend(VectorInt vectorB) =>
+			VectorInt.Prepend(vector, vectorB);
+
+		public VectorInt Concat(VectorInt other, ConcatAxis axis = ConcatAxis.Row, bool warp = false) =>
+			VectorInt.Concat(vector, other, axis, warp);
+
+		public VectorInt Concat_IP(VectorInt other, ConcatAxis axis = ConcatAxis.Row, bool warp = false) =>
+			ShapeOpsCore.ConcatInPlace(vector, other, axis, warp);
+
+		public VectorInt Merge(VectorInt vectorB) =>
+			VectorInt.Merge(vector, vectorB);
+
+		public VectorInt Merge_IP(VectorInt vectorB)
+		{
+			ShapeOpsCore.MergeInPlace(vector, vectorB);
+			return vector;
+		}
+
+		public VectorInt Reverse() =>
+			VectorInt.Reverse(vector);
+
+		public VectorInt Reverse_IP()
+		{
+			ShapeOpsCore.ReverseInPlace(vector);
+			return vector;
+		}
+
+		public VectorInt ReverseX() =>
+			VectorInt.ReverseX(vector);
+
+		public VectorInt ReverseX_IP() =>
+			ShapeOpsCore.ReverseXInPlace(vector);
+
+		public VectorInt Transpose() =>
+			VectorInt.Transpose(vector);
+
+		public VectorInt Transpose_IP() =>
+			VectorInt.Transpose_IP(vector);
+
+		public VectorInt TransferBuffer(VectorInt temp, bool incColumns = false) =>
+			VectorInt.TransferBuffer(vector, temp, incColumns);
+
+		public int[] GetRowAsArray(int row) =>
+			VectorInt.GetRowAsArray(vector, row);
+
+		public VectorInt GetRowAsVector(int row) =>
+			VectorInt.GetRowAsVector(vector, row);
+
+		public VectorInt GetColumnAsVector(int column) =>
+			VectorInt.GetColumnAsVector(vector, column);
+
+		public int[] GetColumnAsArray(int column) =>
+			VectorInt.GetColumnAsArray(vector, column);
+
+		public VectorInt GetSliceAsVector(int row_col_index, Axis axis) =>
+			VectorInt.GetSliceAsVector(vector, row_col_index, axis);
+
+		public int[] GetSliceAsArray(int row_col_index, Axis axis) =>
+			VectorInt.GetSliceAsArray(vector, row_col_index, axis);
+
+		public string ToStr() =>
+			VectorInt.ToStr(vector);
 	}
 
 	extension(Mask mask){
