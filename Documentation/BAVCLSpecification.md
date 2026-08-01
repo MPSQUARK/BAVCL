@@ -166,40 +166,68 @@ flowchart TD
     subgraph consumers [Consumers]
         FALCON[FALCON]
         TC[Testing Console]
-        Other[Other Projects]
+        Tests[BAVCL.Tests]
     end
 
     subgraph bavcl [BAVCL Library]
         GM[GPUManager]
-        GPU[GPU Instance]
-        KM[Kernel Modules]
+        GPU[GPU instance]
+        KML[KernelModuleLoader]
+        KW[KernelWorkloads]
         MM[IMemoryManager / LRU]
-        GS[GPUScope]
-        subgraph types [Vector Types]
+
+        subgraph scopes [Memory scopes]
+            GS[GpuScope.Begin]
+            CS[CpuScope]
+        end
+
+        subgraph types [Cacheable types]
             CB[CacheableBase T]
             VB[VectorBase T]
             V[Vector fp32]
             V3[Vector3]
-            VT[Vertex CPU]
+            M[Mask packed int32]
         end
-        subgraph ops [Operations Extensions]
-            OP[Abs Normalise Sum etc]
+
+        subgraph modules [Feature modules]
+            AR[Arithmetic]
+            ST[Structural]
+            GP[GpuOps]
+            MK[Masking]
+            GE[Geometric]
+            GN[Generators]
+            IO[IO formatters]
         end
+
+        subgraph domains [Loaded kernel domains fp32]
+            KD_AR[Arithmetic]
+            KD_ST[Structural]
+            KD_GE[Geometry]
+            KD_MK[Mask]
+        end
+
+        VT[Vertex CPU struct]
     end
 
     consumers --> GM
     GM --> GPU
-    GPU --> KM
+    consumers --> KML
+    KW --> KML
+    KML --> domains
+    domains --> GPU
     GPU --> MM
-    consumers --> GS
-    GS --> types
-    types --> VB
-    VB --> CB
-    V --> VB
+    consumers --> scopes
+    scopes --> types
+    modules --> types
+    modules --> GPU
+    V --> VB --> CB
     V3 --> VB
-    ops --> types
-    ops --> GPU
+    M --> CB
+    GE --> V3
+    GE --> VT
 ```
+
+**Layout (repo):** types in `Source/Types/`; operations in `Source/Modules/*`; GPU core in `Source/Core/GPU/` and `Source/Core/Memory/`; kernels under `Source/Core/GPU/Kernels/{Arithmetic,Structural,Geometry,Mask}/`.
 
 ### 3.2 Type Hierarchy
 
@@ -208,9 +236,13 @@ classDiagram
     class ICacheable {
         +uint ID
         +uint LiveCount
-        +long MemorySize
+        +Residence Residence
         +DeCache()
         +SyncCPU()
+    }
+    class ICacheableT~T~ {
+        +RetrieveReadOnlySpan()
+        +UpdateCache(T[])
     }
     class CacheableBase~T~ {
         +T[] Value
@@ -227,21 +259,33 @@ classDiagram
         +ToCSV()
     }
     class Vector {
-        fp32 specialized
+        fp32 row/matrix
+        mask compare ops
     }
     class Vector3 {
-        3-component GPU
         Columns = 3 fixed
+        GPU 3D batches
     }
     class Mask {
-        packed bits implemented
+        packed int32 words
+        ElementCount logical
+    }
+    class Vertex {
+        CPU struct
+        not ICacheable
+    }
+    class Shape {
+        readonly struct Rows Cols
     }
 
-    ICacheable <|.. CacheableBase
+    ICacheable <|.. ICacheableT
+    ICacheableT <|.. CacheableBase
     CacheableBase <|-- VectorBase
-    CacheableBase <|.. Mask
+    CacheableBase <|-- Mask
     VectorBase <|-- Vector
     VectorBase <|-- Vector3
+    VectorBase ..> Shape : Shape()
+    Vector ..> Mask : compare filter select
 ```
 
 **`CacheableBase<T>`** is the abstract base for **any GPU-cacheable data** (`Source/Core/Bases/CacheableBase.cs`). It defines:
@@ -267,94 +311,102 @@ It is **not** a "CPU mirror" — `CacheableBase` owns memory; `VectorBase` owns 
 ```mermaid
 sequenceDiagram
     participant User
-    participant GPUScope
+    participant GpuScope
     participant Vector
     participant LRU
     participant GPU
 
     User->>Vector: new Vector(gpu, data)
-    Vector->>LRU: Cache() allocate buffer
-    LRU-->>Vector: ID assigned
+    Vector->>LRU: Cache allocate buffer
+    LRU-->>Vector: ID assigned Residence InSync
 
-    User->>GPUScope: Pin(vecA, vecB)
-    GPUScope->>Vector: Increment LiveCount
+    User->>GpuScope: Begin modified output readOnly inputA inputB
+    GpuScope->>Vector: ActiveGpu plus LiveCount++
 
-    User->>Vector: AbsX() via extension
-    Vector->>GPU: Launch kernel
+    User->>Vector: OP or AbsX via module extension
+    Note over Vector,GPU: Module uses GpuScope internally
+    Vector->>GPU: Launch kernel on DefaultStream
     GPU-->>Vector: Result on device
 
-    User->>GPUScope: Dispose
-    GPUScope->>Vector: Decrement LiveCount
+    User->>GpuScope: Dispose GpuPinScope
+    GpuScope->>Vector: LiveCount-- ActiveGpu to Gpu when zero
 
-    Note over LRU: If memory full and LiveCount==0
+    Note over LRU: If memory full and LiveCount == 0
     LRU->>Vector: SyncCPU on eviction
     LRU->>LRU: Dispose buffer
 ```
 
-### 3.4 GPUScope Flow
+### 3.4 GpuScope Flow
+
+`GpuScope` (`Source/Core/Memory/Scopes/GpuScope.cs`) returns a `GpuPinScope` that pins `ICacheable` instances for the duration of a `using` block. Library GPU operations call `GpuScope.Begin` internally; custom kernels should do the same.
 
 ```mermaid
-flowchart LR
-    subgraph pin [GPUScope.Pin]
-        A[Increment LiveCount per ICacheable]
-        B[Return IDisposable scope]
-        C[On Dispose decrement all]
+flowchart TD
+    subgraph enter [GpuScope.Begin]
+        M[Modified cacheables ActiveGpu plus LiveCount++]
+        R[Read-only cacheables LiveCount++ only]
+        S[Return GpuPinScope]
     end
-    subgraph run [GPUScope.Run]
-        D[Pin internally]
-        E[Execute callback]
-        F[Dispose even on exception]
+    subgraph exit [GpuPinScope.Dispose]
+        DR[Decrement read-only LiveCount]
+        DM[Decrement modified LiveCount]
+        RG[When modified LiveCount hits 0 ActiveGpu to Gpu]
     end
-    A --> B --> C
-    D --> E --> F
+    M --> R --> S
+    S --> DR --> DM --> RG
 ```
 
-| API                                 | Use case                           |
-| ----------------------------------- | ---------------------------------- |
-| `GPUScope.Pin(params ICacheable[])` | Multi-statement GPU blocks         |
-| `GPUScope.Run(cacheables, Func<T>)` | Single expressions; exception-safe |
-| `GPUScope.Run(cacheables, Action)`  | Void GPU blocks                    |
+| API | Use case |
+| --- | -------- |
+| `GpuScope.Begin(modified)` | Single output buffer |
+| `GpuScope.Begin(modified, readOnly...)` | Output plus one or more read-only inputs |
+| `GpuScope.Begin(modified[], readOnly[])` | Multiple outputs and inputs |
+| `GpuScope.BeginReadOnly(readOnly...)` | Read-only pin (e.g. input-only kernel) |
 
-Nested scopes are supported via `Interlocked` refcount on `LiveCount`.
+Nested scopes are supported via `Interlocked` refcount on `LiveCount`. Pair with `CpuScope` / `.CpuScope()` for host-side edits (`Source/Core/Memory/Scopes/CpuScope.cs`).
 
 ### 3.5 Kernel Module Registration (IMPLEMENTED)
 
 ```mermaid
 flowchart TD
     Consumer[Consumer]
-    GPUManager[GPUManager]
-    Workloads[KernelWorkloads]
+    GM[GPUManager]
+    WL[KernelWorkloads]
     Loader[KernelModuleLoader]
-    GPU0[GPU instance 0]
-    GPU1[GPU instance 1]
+    GPU0[GPU instance]
 
-    Consumer --> GPUManager
-    GPUManager -->|"GetGPU(): device + memory only"| GPU0
-    GPUManager --> GPU1
-    Consumer --> Config
-    Consumer --> Loader
-    Loader -->|"Load(gpu, config)"| GPU0
-    Loader -->|"Load(gpu, config)"| GPU1
+    Consumer -->|"GetGPU memory only"| GM
+    GM --> GPU0
+    Consumer -->|"Default lazy singleton"| GM
+    GM -->|"Load float Default workload"| Loader
+    WL -->|"Arithmetic Structural Mask"| Loader
+    Loader -->|"compile delegates onto GPU"| GPU0
+    Consumer -->|"Load Geometry etc."| Loader
+    Loader --> GPU0
 ```
 
-GPU creation and kernel loading are **separate steps**. Each `GPU` instance is configured independently via `KernelModuleLoader.Load<T>(gpu, domains)`. There is no implicit Core domain — if no modules are loaded, no kernels compile.
+GPU creation and kernel loading are **separate steps**. Each `GPU` instance is configured independently via `KernelModuleLoader.Load<T>(gpu, domains)`. There is no implicit domain — if no modules are loaded, kernel delegates throw `KernelNotCompiledException`.
 
-`GPUManager.Default` convenience: creates a GPU and loads `KernelWorkloads.Default` (fp32 Arithmetic + Structural).
+Registered fp32 domains today: **Arithmetic**, **Structural**, **Geometry**, **Mask** (`Source/Core/GPU/KernelModules/KernelModuleLoader.cs`).
+
+`GPUManager.Default` convenience: creates a GPU with LRU memory manager and loads `KernelWorkloads.Default` (fp32 Arithmetic + Structural + **Mask**). `KernelWorkloads.Geometry` adds Geometry on top of Default.
 
 ### 3.6 Multi-GPU Data Flow (Target - WIP)
 
+**Current:** `GPUManager.Default` is a single lazy GPU; `GetGPU()` can create additional instances, but cross-device transfer is not implemented.
+
 ```mermaid
 flowchart LR
-    GM[GPUManager.Default]
-    GPU0[GPU 0 Primary]
-    GPU1[GPU 1 Secondary]
+    GM[GPUManager]
+    GPU0[GPU 0 primary]
+    GPU1[GPU 1 future]
     VecA[Vector on GPU0]
     VecB[Vector on GPU1]
-    Transfer[Cross-device transfer]
-    Op[GPU Operation]
+    Transfer[Cross-device transfer TBD]
+    Op[GPU operation]
 
     GM --> GPU0
-    GM --> GPU1
+    GM -.-> GPU1
     VecA --> Transfer
     VecB --> Transfer
     Transfer --> Op
