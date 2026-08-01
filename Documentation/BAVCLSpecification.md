@@ -464,7 +464,7 @@ Binary `+`, `-`, `*`, `/`, `^` operator overloads use **NumPy-style element-wise
 
 **No in-place row reduce:** `ReduceIPOP` is intentionally omitted. Row reduction reads a full coefficient vector (`Length == matrix.Columns`) and writes one scalar per row (`Length == matrix.RowCount()`). A single buffer cannot satisfy both layouts except on square matrices, and even then the row-wise kernel reads every coefficient element on each thread while writing row outputs into the same buffer — unsafe GPU aliasing without a coefficient snapshot. A column-wise per-thread scheme would avoid aliasing but would not implement shared-coefficient row reduction and would harm row-major coalescing. Use allocating `ReduceOP` instead.
 
-**Broadcasting:** `broadcastOpKernel` / `broadcastOpKernelIP` derive per-operand indices from logical shape (`rows==1` → column index, `cols==1` → row index, scalar → 0, else `flatOut`). Operand shapes and `outCols` are passed as `SpecializedValue<int>` for compile-time branch folding. Incompatible shapes throw `ShapeMismatchException`. `IPOP` throws `PerformanceException` (prefix: *This operation will lead to degraded performance:*) when the left operand would need resizing.
+**Broadcasting:** Operand shapes are resolved host-side into `BroadcastStrides` (row stride, column stride) where a length-one axis gets stride `0`. `broadcastOpKernel` / `broadcastOpKernelIP` map each output element to operand indices via multiply-add with no shape tests on device; only the operation stays specialized. Incompatible shapes throw `ShapeMismatchException`. `IPOP` throws `PerformanceException` (prefix: *This operation will lead to degraded performance:*) when the left operand would need resizing.
 
 **Note:** `Vector3.Cross` is a separate optimised 3D geometric kernel — not related to `Vector.Cross` (matrix multiply).
 
@@ -791,7 +791,7 @@ Authoring rules and design principles: **[GPGPUKernelGuide.md](./GPGPUKernelGuid
 | `vectorMaskFilterKernel` | one thread per element | branchless `Utilities.Select` between the source value and the fill |
 | `vectorGatherKernel` | one thread per output element | `output[i] = input[indices[i]]` |
 
-**Broadcast addressing.** Operand shapes are resolved host-side into a `BroadcastStrides` pair (row stride, column stride) where a length-one axis gets stride `0`. Operand indexing is then a multiply-add with no shape tests, replacing the five specialized shape constants the `Vector` broadcast kernels take. Only the operation stays specialized.
+**Broadcast addressing.** Operand shapes are resolved host-side into a `BroadcastStrides` pair (row stride, column stride) where a length-one axis gets stride `0`. Operand indexing is then a multiply-add with no shape tests; only the operation stays specialized. Vector broadcast and mask lane kernels share this pattern.
 
 **Padding lanes.** Word kernels take a precomputed `(lastWord, tailMask)` pair and clear padding with a `Utilities.Select`. Lane kernels need no padding handling: mask storage is allocated zeroed and only logical lanes are launched.
 

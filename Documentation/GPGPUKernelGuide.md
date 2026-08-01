@@ -95,7 +95,7 @@ No hard caps on loop count, parameter count, or kernel variants.
 - Uniform operation dispatch via `SpecializedValue`
 - Memory access patterns that must coalesce at runtime
 
-**Legacy note:** `BroadcastOpKernel` still passes shape via multiple specialized params — acceptable as existing debt. **New domains** should prefer host-resolved strides unless there is a documented reason not to.
+**New domains** should resolve broadcast addressing on the host via `BroadcastStrides` unless there is a documented reason not to.
 
 ---
 
