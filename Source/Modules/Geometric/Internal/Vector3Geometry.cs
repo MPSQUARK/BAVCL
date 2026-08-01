@@ -218,9 +218,13 @@ internal static class Vector3Geometry
 			string afterinf = new(' ', decimalplaces + 1);
 			string nan = new(' ', decimalplaces);
 
-			for (int i = 0; i < vector3.Length; i++)
+			for (int i = 0, col = 0; i < vector3.Length; i++, col++)
 			{
-				if (i % vector3.Columns == 0) { stringBuilder.AppendLine(); }
+				if (col == vector3.Columns)
+				{
+					stringBuilder.AppendLine();
+					col = 0;
+				}
 
 				Template[2] = data[i] < 0f ? '-' : ' ';
 
@@ -256,9 +260,13 @@ internal static class Vector3Geometry
 
 		if (hasnegative)
 		{
-			for (int i = 0; i < vector3.Length; i++)
+			for (int i = 0, col = 0; i < vector3.Length; i++, col++)
 			{
-				if (i % vector3.Columns == 0) { stringBuilder.AppendLine(); }
+				if (col == vector3.Columns)
+				{
+					stringBuilder.AppendLine();
+					col = 0;
+				}
 
 				Template[2] = data[i] < 0f ? '-' : ' ';
 
@@ -272,9 +280,13 @@ internal static class Vector3Geometry
 			return stringBuilder.ToString();
 		}
 
-		for (int i = 0; i < vector3.Length; i++)
+		for (int i = 0, col = 0; i < vector3.Length; i++, col++)
 		{
-			if (i % vector3.Columns == 0) { stringBuilder.AppendLine(); }
+			if (col == vector3.Columns)
+			{
+				stringBuilder.AppendLine();
+				col = 0;
+			}
 
 			clear.CopyTo(Template, 3);
 			string val = data[i].ToString(format);
