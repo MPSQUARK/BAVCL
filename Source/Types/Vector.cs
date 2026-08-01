@@ -65,7 +65,7 @@ public sealed partial class Vector : VectorBase<float>
 
 	public override string ToString() => VectorStructuralExtensions.ToStr(this);
 
-	public Vector this[Mask mask] => MaskVectorOps.Select(this, mask);
+	public Vector this[Mask mask] => MaskVectorOps.Filter(this, mask);
 
 	public Mask CompareEquals(Vector other) =>
 		MaskVectorOps.Compare(this, other, VectorComparison.Equal);
@@ -85,7 +85,7 @@ public sealed partial class Vector : VectorBase<float>
 	public Mask Compare(float scalar, VectorComparison comparison) =>
 		MaskVectorOps.Compare(this, scalar, comparison);
 
-    #region "OPERATORS"
+    #region OPERATORS
     /// <summary>
     /// Returns the absolute value of the vector.
     /// </summary>
@@ -97,7 +97,7 @@ public sealed partial class Vector : VectorBase<float>
 		vector.OP(Scalar, Operations.add);
 	public static Vector operator +(float Scalar, Vector vector) =>
 		vector.OP(Scalar, Operations.add);
-    // In-place operators optimation
+    // In-place operator optimization
     public void operator +=(Vector vectorB) =>
 		this.IPOP(vectorB, Operations.add);
 	public void operator +=(float Scalar) =>
@@ -114,7 +114,7 @@ public sealed partial class Vector : VectorBase<float>
 		vector.OP(scalar, Operations.subtract);
 	public static Vector operator -(float scalar, Vector vector) =>
 		vector.OP(scalar, Operations.flipSubtract);
-    // In-place operators optimation
+    // In-place operator optimization
     public void operator -=(Vector vectorB) =>
         this.IPOP(vectorB, Operations.subtract);
     public void operator -=(float Scalar) =>
@@ -126,7 +126,7 @@ public sealed partial class Vector : VectorBase<float>
 		vector.OP(scalar, Operations.multiply);
 	public static Vector operator *(float scalar, Vector vector) =>
 		vector.OP(scalar, Operations.multiply);
-    // In-place operators optimation
+    // In-place operator optimization
     public void operator *=(Vector vectorB) =>
         this.IPOP(vectorB, Operations.multiply);
     public void operator *=(float Scalar) =>
@@ -138,7 +138,11 @@ public sealed partial class Vector : VectorBase<float>
 		vector.OP(scalar, Operations.divide);
 	public static Vector operator /(float scalar, Vector vector) =>
 		vector.OP(scalar, Operations.flipDivide);
-    // In-place operators optimation
+
+	public static (Vector TrueLanes, Vector FalseLanes) operator /(Vector vector, Mask mask) =>
+		MaskVectorOps.Partition(vector, mask);
+
+    // In-place operator optimization
     public void operator /=(Vector vectorB) =>
         this.IPOP(vectorB, Operations.divide);
     public void operator /=(float Scalar) =>
@@ -150,17 +154,20 @@ public sealed partial class Vector : VectorBase<float>
 		vector.OP(scalar, Operations.pow);
 	public static Vector operator ^(float Scalar, Vector vector) =>
 		vector.OP(Scalar, Operations.flipPow);
-    // In-place operators optimation
+    // In-place operator optimization
     public void operator ^=(Vector vectorB) =>
         this.IPOP(vectorB, Operations.pow);
 	public void operator ^=(float Scalar) =>
         this.IPOP(Scalar, Operations.pow);
 
 	public static Vector operator &(Vector vector, Mask mask) =>
-		MaskVectorOps.Filter(vector, mask, 0f);
+		MaskVectorOps.Mask(vector, mask, 0f);
 
-	public static Vector operator <<(Vector vector, Mask mask) =>
-		MaskVectorOps.Select(vector, mask);
+	public static Vector operator &(Vector vector, (Mask mask, float fill) masked) =>
+		MaskVectorOps.Mask(vector, masked.mask, masked.fill);
+
+	public static Vector operator |(Vector vector, Mask mask) =>
+		MaskVectorOps.Filter(vector, mask);
 
 	public static Mask operator >(Vector left, Vector right) =>
 		MaskVectorOps.Compare(left, right, VectorComparison.Greater);
