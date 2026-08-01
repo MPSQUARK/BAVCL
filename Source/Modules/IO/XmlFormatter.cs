@@ -15,9 +15,11 @@ namespace BAVCL.Modules.IO;
 /// <summary>XML persistence for Vector, Vector3, and Mask.</summary>
 public sealed class XmlFormatter :
 	IFormatter<Vector>,
+	IFormatter<VectorInt>,
 	IFormatter<Vector3>,
 	IFormatter<Mask>,
 	ICollectionFormatter<Vector>,
+	ICollectionFormatter<VectorInt>,
 	ICollectionFormatter<Vector3>,
 	ICollectionFormatter<Mask>,
 	ISingleton<XmlFormatter>
@@ -33,6 +35,10 @@ public sealed class XmlFormatter :
 	string IFormatter<Vector>.Serialize(Vector value, int flags) => SerializeVector(value);
 
 	Vector IFormatter<Vector>.Deserialize(GPU gpu, string text) => DeserializeVector(gpu, text);
+
+	string IFormatter<VectorInt>.Serialize(VectorInt value, int flags) => SerializeVectorInt(value);
+
+	VectorInt IFormatter<VectorInt>.Deserialize(GPU gpu, string text) => DeserializeVectorInt(gpu, text);
 
 	string IFormatter<Vector3>.Serialize(Vector3 value, int flags) => SerializeVector3(value);
 
@@ -54,6 +60,21 @@ public sealed class XmlFormatter :
 		ArgumentNullException.ThrowIfNull(gpu);
 		return DeserializeAllFloatArray(text, typeof(Vector), typeof(float))
 			.Select(document => new Vector(gpu, document.Data, document.Columns, cache: document.Data.Length > 0))
+			.ToList();
+	}
+
+	string ICollectionFormatter<VectorInt>.OpenCollection(VectorInt first, int flags) =>
+		IoSchema.Collection.XmlOpen(StructuredIoValidation.CurrentSchemaVersion) + SerializeVectorIntItem(first);
+
+	string ICollectionFormatter<VectorInt>.AppendItem(VectorInt value, int flags) => SerializeVectorIntItem(value);
+
+	string ICollectionFormatter<VectorInt>.CloseCollection(int itemCount) => IoSchema.Collection.XmlClose;
+
+	IReadOnlyList<VectorInt> ICollectionFormatter<VectorInt>.DeserializeAll(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		return DeserializeAllIntArray(text, typeof(VectorInt), typeof(int))
+			.Select(document => new VectorInt(gpu, document.Data, document.Columns, cache: document.Data.Length > 0))
 			.ToList();
 	}
 
@@ -91,6 +112,12 @@ public sealed class XmlFormatter :
 		return SerializeFloatArrayFragment(typeof(Vector), vector.Columns, vector.RetrieveReadOnlySpan());
 	}
 
+	string SerializeVectorInt(VectorInt vector)
+	{
+		ArgumentNullException.ThrowIfNull(vector);
+		return SerializeIntArrayFragment(typeof(VectorInt), vector.Columns, vector.RetrieveReadOnlySpan());
+	}
+
 	string SerializeVector3(Vector3 vector)
 	{
 		ArgumentNullException.ThrowIfNull(vector);
@@ -101,6 +128,12 @@ public sealed class XmlFormatter :
 	{
 		ArgumentNullException.ThrowIfNull(vector);
 		return SerializeFloatArrayItem(typeof(Vector), vector.Columns, vector.RetrieveReadOnlySpan());
+	}
+
+	string SerializeVectorIntItem(VectorInt vector)
+	{
+		ArgumentNullException.ThrowIfNull(vector);
+		return SerializeIntArrayItem(typeof(VectorInt), vector.Columns, vector.RetrieveReadOnlySpan());
 	}
 
 	string SerializeVector3Item(Vector3 vector)
@@ -170,6 +203,45 @@ public sealed class XmlFormatter :
 	{
 		foreach (float value in data)
 			root.Add(new XElement(IoSchema.Field.Data, FloatIoParsing.FormatFloat(value)));
+	}
+
+	static string SerializeIntArrayFragment(Type type, int columns, ReadOnlySpan<int> data)
+	{
+		XElement root = CreateIntArrayFragmentRoot(type, columns);
+		AppendIntDataElements(root, data);
+		return new XDocument(root).ToString(SaveOptions.DisableFormatting);
+	}
+
+	static string SerializeIntArrayItem(Type type, int columns, ReadOnlySpan<int> data)
+	{
+		XElement root = CreateIntArrayItemRoot(type, columns);
+		AppendIntDataElements(root, data);
+		return new XDocument(root).ToString(SaveOptions.DisableFormatting);
+	}
+
+	static XElement CreateIntArrayFragmentRoot(Type type, int columns)
+	{
+		var root = new XElement(IoSchema.Document.XmlRootOf(type));
+		root.Add(new XAttribute(IoSchema.Field.SchemaVersion, StructuredIoValidation.CurrentSchemaVersion));
+		root.Add(
+			new XAttribute(IoSchema.Field.Dtype, IoSchema.Dtype.Of<int>()),
+			new XAttribute(IoSchema.Field.Columns, columns));
+		return root;
+	}
+
+	static XElement CreateIntArrayItemRoot(Type type, int columns)
+	{
+		var root = new XElement(IoSchema.Document.XmlRootOf(type));
+		root.Add(
+			new XAttribute(IoSchema.Field.Dtype, IoSchema.Dtype.Of<int>()),
+			new XAttribute(IoSchema.Field.Columns, columns));
+		return root;
+	}
+
+	static void AppendIntDataElements(XElement root, ReadOnlySpan<int> data)
+	{
+		foreach (int value in data)
+			root.Add(new XElement(IoSchema.Field.Data, IntIoParsing.FormatInt(value)));
 	}
 
 	static string SerializeMaskPacked(Mask mask)
@@ -243,6 +315,13 @@ public sealed class XmlFormatter :
 		ArgumentNullException.ThrowIfNull(gpu);
 		FloatArrayDocument document = DeserializeFloatArray(text, typeof(Vector), typeof(float));
 		return new Vector(gpu, document.Data, document.Columns, cache: document.Data.Length > 0);
+	}
+
+	VectorInt DeserializeVectorInt(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		IntArrayDocument document = DeserializeIntArray(text, typeof(VectorInt), typeof(int));
+		return new VectorInt(gpu, document.Data, document.Columns, cache: document.Data.Length > 0);
 	}
 
 	Vector3 DeserializeVector3(GPU gpu, string text)
@@ -370,6 +449,69 @@ public sealed class XmlFormatter :
 		float[] data = FloatArrayIo.ParseDataElements(element.Elements(IoSchema.Field.Data).Select(e => e.Value));
 
 		return new FloatArrayDocument
+		{
+			SchemaVersion = ReadSchemaVersion(element),
+			Type = IoSchema.Document.Of(expectedType),
+			Dtype = ReadOptionalStringAttribute(element, IoSchema.Field.Dtype),
+			Columns = columns,
+			Data = data,
+		};
+	}
+
+	static IntArrayDocument DeserializeIntArray(string xml, Type expectedType, Type expectedElementType)
+	{
+		XElement root = XDocument.Parse(xml).Root
+			?? throw new FormatException("XML document must have a root element.");
+
+		return DeserializeIntArrayElement(root, expectedType, expectedElementType);
+	}
+
+	static IReadOnlyList<IntArrayDocument> DeserializeAllIntArray(string xml, Type expectedType, Type expectedElementType)
+	{
+		XElement root = ValidateCollectionRoot(xml);
+		int schemaVersion = ReadIntAttribute(root, IoSchema.Field.SchemaVersion);
+		StructuredIoValidation.ValidateSchemaVersion(schemaVersion);
+
+		return root.Elements()
+			.Select(element => DeserializeIntArrayItemElement(element, expectedType, expectedElementType, schemaVersion))
+			.ToList();
+	}
+
+	static IntArrayDocument DeserializeIntArrayItemElement(
+		XElement element,
+		Type expectedType,
+		Type expectedElementType,
+		int schemaVersion)
+	{
+		ValidateRootName(element, expectedType);
+		ValidateCollectionItemElementMetadata(element, expectedElementType);
+
+		int columns = ReadIntAttribute(element, IoSchema.Field.Columns);
+		StructuredIoValidation.ValidateColumns(columns);
+
+		int[] data = IntArrayIo.ParseDataElements(element.Elements(IoSchema.Field.Data).Select(e => e.Value));
+
+		return new IntArrayDocument
+		{
+			SchemaVersion = schemaVersion,
+			Type = IoSchema.Document.Of(expectedType),
+			Dtype = ReadOptionalStringAttribute(element, IoSchema.Field.Dtype),
+			Columns = columns,
+			Data = data,
+		};
+	}
+
+	static IntArrayDocument DeserializeIntArrayElement(XElement element, Type expectedType, Type expectedElementType)
+	{
+		ValidateRootName(element, expectedType);
+		ValidateFragmentElementMetadata(element, expectedElementType);
+
+		int columns = ReadIntAttribute(element, IoSchema.Field.Columns);
+		StructuredIoValidation.ValidateColumns(columns);
+
+		int[] data = IntArrayIo.ParseDataElements(element.Elements(IoSchema.Field.Data).Select(e => e.Value));
+
+		return new IntArrayDocument
 		{
 			SchemaVersion = ReadSchemaVersion(element),
 			Type = IoSchema.Document.Of(expectedType),
