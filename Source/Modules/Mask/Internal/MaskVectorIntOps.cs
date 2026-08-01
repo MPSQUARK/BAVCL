@@ -7,9 +7,9 @@ using ILGPU.Runtime;
 
 namespace BAVCL.Modules.Masking;
 
-internal static class MaskVectorOps
+internal static class MaskVectorIntOps
 {
-	internal static Mask Compare(Vector left, Vector right, VectorComparison comparison)
+	internal static Mask Compare(VectorInt left, VectorInt right, VectorComparison comparison)
 	{
 		Shape leftShape = left.Shape();
 		Shape rightShape = right.Shape();
@@ -20,7 +20,7 @@ internal static class MaskVectorOps
 
 		using (GpuScope.Begin(output, left, right))
 		{
-			gpu.vectorCompareMaskKernel(
+			gpu.vectorIntCompareMaskKernel(
 				gpu.DefaultStream,
 				outputShape.ElementCount,
 				output.GetBuffer().View,
@@ -37,14 +37,14 @@ internal static class MaskVectorOps
 		return output;
 	}
 
-	internal static Mask Compare(Vector vector, float scalar, VectorComparison comparison)
+	internal static Mask Compare(VectorInt vector, int scalar, VectorComparison comparison)
 	{
 		GPU gpu = vector.Gpu;
 		Mask output = new(gpu, vector.Length, vector.Columns);
 
 		using (GpuScope.Begin(output, vector))
 		{
-			gpu.vectorScalarCompareMaskKernel(
+			gpu.vectorIntScalarCompareMaskKernel(
 				gpu.DefaultStream,
 				vector.Length,
 				output.GetBuffer().View,
@@ -58,18 +58,18 @@ internal static class MaskVectorOps
 		return output;
 	}
 
-	internal static Vector Mask(Vector vector, Mask mask, float fill)
+	internal static VectorInt Mask(VectorInt vector, Mask mask, int fill)
 	{
 		Shape vectorShape = vector.Shape();
 		Shape maskShape = mask.Shape();
 		Shape outputShape = OutputShape(vectorShape, maskShape, nameof(Mask));
 
 		GPU gpu = vector.Gpu;
-		Vector output = new(gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
+		VectorInt output = new(gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
 
 		using (GpuScope.Begin(output, vector, mask))
 		{
-			gpu.vectorMaskFilterKernel(
+			gpu.vectorIntMaskFilterKernel(
 				gpu.DefaultStream,
 				outputShape.ElementCount,
 				output.GetBuffer().View,
@@ -86,7 +86,7 @@ internal static class MaskVectorOps
 		return output;
 	}
 
-	internal static Vector Filter(Vector vector, Mask mask)
+	internal static VectorInt Filter(VectorInt vector, Mask mask)
 	{
 		Shape vectorShape = vector.Shape();
 		Shape maskShape = mask.Shape();
@@ -96,7 +96,7 @@ internal static class MaskVectorOps
 		return Gather(vector, sourceIndices);
 	}
 
-	internal static (Vector TrueLanes, Vector FalseLanes) Partition(Vector vector, Mask mask)
+	internal static (VectorInt TrueLanes, VectorInt FalseLanes) Partition(VectorInt vector, Mask mask)
 	{
 		Shape vectorShape = vector.Shape();
 		Shape maskShape = mask.Shape();
@@ -108,10 +108,10 @@ internal static class MaskVectorOps
 		return (Gather(vector, trueIndices), Gather(vector, falseIndices));
 	}
 
-	static Vector Gather(Vector vector, int[] sourceIndices)
+	static VectorInt Gather(VectorInt vector, int[] sourceIndices)
 	{
 		GPU gpu = vector.Gpu;
-		Vector output = new(gpu, sourceIndices.Length, 0);
+		VectorInt output = new(gpu, sourceIndices.Length, 0);
 
 		if (sourceIndices.Length == 0)
 			return output;
@@ -119,7 +119,7 @@ internal static class MaskVectorOps
 		using (GpuScope.Begin(output, vector))
 		using (MemoryBuffer1D<int, Stride1D.Dense> indices = gpu.accelerator.Allocate1D(sourceIndices))
 		{
-			gpu.vectorGatherKernel(
+			gpu.vectorIntGatherKernel(
 				gpu.DefaultStream,
 				sourceIndices.Length,
 				output.GetBuffer().View,
@@ -158,7 +158,7 @@ internal static class MaskVectorOps
 
 	static Shape OutputShape(Shape left, Shape right, string operation)
 	{
-		Broadcast.EnsureBroadcastable($"{nameof(Vector)}.{operation}", left, right);
+		Broadcast.EnsureBroadcastable($"{nameof(VectorInt)}.{operation}", left, right);
 		return left.BroadcastWith(right);
 	}
 }
