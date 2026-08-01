@@ -1,9 +1,10 @@
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using BAVCL.Core.Helpers;
 using BAVCL.Geometric;
 using BAVCL.Modules.IO.Enums;
+using BAVCL.Modules.IO.Internal;
+using BAVCL.Modules.IO.Internal.Schema;
 using BAVCL.Core.Interfaces;
 using BAVCL.Types;
 
@@ -19,8 +20,6 @@ public sealed class JsonFormatter :
 	public static JsonFormatter Default { get; } = new();
 
 	static JsonFormatter ISingleton<JsonFormatter>.Default => Default;
-
-	const int CurrentSchemaVersion = 1;
 
 	static readonly JsonSerializerOptions Serializer = new()
 	{
@@ -49,14 +48,14 @@ public sealed class JsonFormatter :
 	{
 		ArgumentNullException.ThrowIfNull(vector);
 		vector.SyncCPU();
-		return SerializeFloatArray(JsonTypeNames.Vector, vector.Columns, vector.ToArray());
+		return SerializeFloatArray(typeof(Vector), vector.Columns, vector.ToArray());
 	}
 
 	string SerializeVector3(Vector3 vector)
 	{
 		ArgumentNullException.ThrowIfNull(vector);
 		vector.SyncCPU();
-		return SerializeFloatArray(JsonTypeNames.Vector3, vector.Columns, vector.ToArray());
+		return SerializeFloatArray(typeof(Vector3), vector.Columns, vector.ToArray());
 	}
 
 	string SerializeMask(Mask mask, int flags)
@@ -69,9 +68,9 @@ public sealed class JsonFormatter :
 			MaskSerializeFlags.Packed => JsonSerializer.Serialize(
 				new MaskPackedDocument
 				{
-					SchemaVersion = CurrentSchemaVersion,
-					Type = JsonTypeNames.Mask,
-					Dtype = JsonDtypes.Int32,
+					SchemaVersion = StructuredIoValidation.CurrentSchemaVersion,
+					Type = IoSchema.Document.Of<Mask>(),
+					Dtype = IoSchema.Dtype.Of<int>(),
 					Columns = mask.Columns,
 					Count = mask.ElementCount,
 					Data = mask.ToWordArray(),
@@ -80,9 +79,9 @@ public sealed class JsonFormatter :
 			MaskSerializeFlags.Bool => JsonSerializer.Serialize(
 				new MaskBoolDocument
 				{
-					SchemaVersion = CurrentSchemaVersion,
-					Type = JsonTypeNames.Mask,
-					Dtype = JsonDtypes.Bool,
+					SchemaVersion = StructuredIoValidation.CurrentSchemaVersion,
+					Type = IoSchema.Document.Of<Mask>(),
+					Dtype = IoSchema.Dtype.Of<bool>(),
 					Columns = mask.Columns,
 					Data = mask.ToBoolArray(),
 				},
@@ -94,14 +93,15 @@ public sealed class JsonFormatter :
 	Vector DeserializeVector(GPU gpu, string text)
 	{
 		ArgumentNullException.ThrowIfNull(gpu);
-		FloatArrayDocument document = DeserializeFloatArray(text, JsonTypeNames.Vector, JsonDtypes.Float32);
+		FloatArrayDocument document = DeserializeFloatArray(text, typeof(Vector), typeof(float));
 		return new Vector(gpu, document.Data, document.Columns, cache: document.Data.Length > 0);
 	}
 
 	Vector3 DeserializeVector3(GPU gpu, string text)
 	{
 		ArgumentNullException.ThrowIfNull(gpu);
-		FloatArrayDocument document = DeserializeFloatArray(text, JsonTypeNames.Vector3, JsonDtypes.Float32);
+		FloatArrayDocument document = DeserializeFloatArray(text, typeof(Vector3), typeof(float));
+		ValidateJson(() => StructuredIoValidation.ValidateVector3Layout(document.Columns, document.Data.Length));
 		return new Vector3(gpu, document.Data, cache: document.Data.Length > 0);
 	}
 
@@ -113,52 +113,50 @@ public sealed class JsonFormatter :
 		using JsonDocument document = JsonDocument.Parse(text);
 		JsonElement root = document.RootElement;
 
-		ValidateOptionalMetadata(root, JsonTypeNames.Mask, expectedDtype: null);
+		ValidateOptionalMetadata(root, typeof(Mask), expectedElementType: null);
 
-		if (root.TryGetProperty("count", out _))
-			return DeserializeMaskPacked(gpu, root);
+		if (!root.TryGetProperty(IoSchema.Field.Dtype, out JsonElement dtypeElement)
+			|| dtypeElement.ValueKind != JsonValueKind.String)
+			throw new JsonException($"Mask JSON '{IoSchema.Field.Dtype}' is required.");
 
-		if (root.TryGetProperty("data", out JsonElement data) && data.ValueKind == JsonValueKind.Array)
+		string? dtype = dtypeElement.GetString();
+
+		if (!MaskIoRouting.TryResolve(dtype, out MaskWireFormat format))
+			throw new JsonException(MaskIoRouting.UnsupportedDtypeMessage(dtype, "JSON"));
+
+		return format switch
 		{
-			if (data.GetArrayLength() == 0)
-				throw new JsonException("Mask JSON 'data' must contain at least one element.");
-
-			if (data[0].ValueKind is JsonValueKind.True or JsonValueKind.False)
-				return DeserializeMaskBool(gpu, root);
-
-			if (data[0].ValueKind == JsonValueKind.Number)
-				return DeserializeMaskPacked(gpu, root);
-		}
-
-		throw new JsonException("Mask JSON must use bool[] data or packed { count, data: int[] }.");
+			MaskWireFormat.Packed => DeserializeMaskPacked(gpu, root),
+			MaskWireFormat.Bool => DeserializeMaskBool(gpu, root),
+			_ => throw new InvalidOperationException($"Unsupported mask wire format '{format}'."),
+		};
 	}
 
-	string SerializeFloatArray(string type, int columns, float[] data) =>
+	string SerializeFloatArray(Type type, int columns, float[] data) =>
 		JsonSerializer.Serialize(
 			new FloatArrayDocument
 			{
-				SchemaVersion = CurrentSchemaVersion,
-				Type = type,
-				Dtype = JsonDtypes.Float32,
+				SchemaVersion = StructuredIoValidation.CurrentSchemaVersion,
+				Type = IoSchema.Document.Of(type),
+				Dtype = IoSchema.Dtype.Of<float>(),
 				Columns = columns,
 				Data = data,
 			},
 			Serializer);
 
-	static FloatArrayDocument DeserializeFloatArray(string json, string expectedType, string expectedDtype)
+	static FloatArrayDocument DeserializeFloatArray(string json, Type expectedType, Type expectedElementType)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(json);
 
 		FloatArrayDocument? document = JsonSerializer.Deserialize<FloatArrayDocument>(json, Serializer)
 			?? throw new JsonException("JSON payload deserialized to null.");
 
-		ValidateSchemaVersion(document.SchemaVersion);
-		ValidateOptionalType(document.Type, expectedType);
-		ValidateOptionalDtype(document.Dtype, expectedDtype);
+		ValidateJson(() => StructuredIoValidation.ValidateSchemaVersion(document.SchemaVersion));
+		ValidateJson(() => StructuredIoValidation.ValidateOptionalType(document.Type, expectedType));
+		ValidateJson(() => StructuredIoValidation.ValidateOptionalDtype(document.Dtype, expectedElementType));
 
 		document.Data ??= [];
-		if (document.Columns < 0)
-			throw new JsonException($"JSON 'columns' must be >= 0. Received {document.Columns}.");
+		ValidateJson(() => StructuredIoValidation.ValidateColumns(document.Columns));
 
 		return document;
 	}
@@ -168,21 +166,15 @@ public sealed class JsonFormatter :
 		MaskPackedDocument? document = root.Deserialize<MaskPackedDocument>(Serializer)
 			?? throw new JsonException("Mask packed JSON deserialized to null.");
 
-		ValidateSchemaVersion(document.SchemaVersion);
-		ValidateOptionalType(document.Type, JsonTypeNames.Mask);
-		ValidateOptionalDtype(document.Dtype, JsonDtypes.Int32);
+		ValidateJson(() => StructuredIoValidation.ValidateSchemaVersion(document.SchemaVersion));
+		ValidateJson(() => StructuredIoValidation.ValidateOptionalType(document.Type, typeof(Mask)));
+		ValidateJson(() => StructuredIoValidation.ValidateOptionalDtype(document.Dtype, typeof(int)));
 
 		document.Data ??= [];
-		if (document.Columns < 0)
-			throw new JsonException($"JSON 'columns' must be >= 0. Received {document.Columns}.");
-
-		if (document.Count <= 0)
-			throw new JsonException($"Mask packed JSON 'count' must be > 0. Received {document.Count}.");
-
-		int expectedWords = MaskBitOps.WordCount(document.Count);
-		if (document.Data.Length != expectedWords)
-			throw new JsonException(
-				$"Mask packed JSON word length {document.Data.Length} does not match count {document.Count} (expected {expectedWords} words).");
+		ValidateJson(() => StructuredIoValidation.ValidateMaskPackedLayout(
+			document.Columns,
+			document.Count,
+			document.Data.Length));
 
 		return new Mask(gpu, document.Data, document.Count, document.Columns);
 	}
@@ -192,99 +184,41 @@ public sealed class JsonFormatter :
 		MaskBoolDocument? document = root.Deserialize<MaskBoolDocument>(Serializer)
 			?? throw new JsonException("Mask bool JSON deserialized to null.");
 
-		ValidateSchemaVersion(document.SchemaVersion);
-		ValidateOptionalType(document.Type, JsonTypeNames.Mask);
-		ValidateOptionalDtype(document.Dtype, JsonDtypes.Bool);
+		ValidateJson(() => StructuredIoValidation.ValidateSchemaVersion(document.SchemaVersion));
+		ValidateJson(() => StructuredIoValidation.ValidateOptionalType(document.Type, typeof(Mask)));
+		ValidateJson(() => StructuredIoValidation.ValidateOptionalDtype(document.Dtype, typeof(bool)));
 
 		document.Data ??= [];
-		if (document.Columns < 0)
-			throw new JsonException($"JSON 'columns' must be >= 0. Received {document.Columns}.");
-
-		if (document.Data.Length == 0)
-			throw new JsonException("Mask bool JSON 'data' must contain at least one element.");
+		ValidateJson(() => StructuredIoValidation.ValidateMaskBoolLayout(document.Columns, document.Data.Length));
 
 		return new Mask(gpu, document.Data, document.Columns);
 	}
 
-	static void ValidateOptionalMetadata(JsonElement element, string expectedType, string? expectedDtype)
+	static void ValidateOptionalMetadata(JsonElement element, Type expectedType, Type? expectedElementType)
 	{
-		if (element.TryGetProperty("schemaVersion", out JsonElement versionElement)
+		if (element.TryGetProperty(IoSchema.Field.SchemaVersion, out JsonElement versionElement)
 			&& versionElement.TryGetInt32(out int version))
-			ValidateSchemaVersion(version);
+			ValidateJson(() => StructuredIoValidation.ValidateSchemaVersion(version));
 
-		if (element.TryGetProperty("type", out JsonElement typeElement)
+		if (element.TryGetProperty(IoSchema.Field.Type, out JsonElement typeElement)
 			&& typeElement.ValueKind == JsonValueKind.String)
-			ValidateOptionalType(typeElement.GetString(), expectedType);
+			ValidateJson(() => StructuredIoValidation.ValidateOptionalType(typeElement.GetString(), expectedType));
 
-		if (expectedDtype is not null
-			&& element.TryGetProperty("dtype", out JsonElement dtypeElement)
+		if (expectedElementType is not null
+			&& element.TryGetProperty(IoSchema.Field.Dtype, out JsonElement dtypeElement)
 			&& dtypeElement.ValueKind == JsonValueKind.String)
-			ValidateOptionalDtype(dtypeElement.GetString(), expectedDtype);
+			ValidateJson(() => StructuredIoValidation.ValidateOptionalDtype(dtypeElement.GetString(), expectedElementType));
 	}
 
-	static void ValidateSchemaVersion(int schemaVersion)
+	static void ValidateJson(Action validate)
 	{
-		if (schemaVersion is not 0 and not CurrentSchemaVersion)
-			throw new JsonException($"Unsupported schemaVersion {schemaVersion}. Supported: {CurrentSchemaVersion}.");
-	}
-
-	static void ValidateOptionalType(string? type, string expectedType)
-	{
-		if (type is null)
-			return;
-
-		if (!string.Equals(type, expectedType, StringComparison.Ordinal))
-			throw new JsonException($"JSON type '{type}' does not match expected '{expectedType}'.");
-	}
-
-	static void ValidateOptionalDtype(string? dtype, string expectedDtype)
-	{
-		if (dtype is null)
-			return;
-
-		if (!string.Equals(dtype, expectedDtype, StringComparison.Ordinal))
-			throw new JsonException($"JSON dtype '{dtype}' does not match expected '{expectedDtype}'.");
-	}
-
-	static class JsonTypeNames
-	{
-		internal const string Vector = "Vector";
-		internal const string Vector3 = "Vector3";
-		internal const string Mask = "Mask";
-	}
-
-	static class JsonDtypes
-	{
-		internal const string Float32 = "float32";
-		internal const string Int32 = "int32";
-		internal const string Bool = "bool";
-	}
-
-	sealed class FloatArrayDocument
-	{
-		public int SchemaVersion { get; set; } = 1;
-		public string? Type { get; set; }
-		public string? Dtype { get; set; }
-		public int Columns { get; set; }
-		public float[] Data { get; set; } = [];
-	}
-
-	sealed class MaskBoolDocument
-	{
-		public int SchemaVersion { get; set; } = 1;
-		public string? Type { get; set; }
-		public string? Dtype { get; set; }
-		public int Columns { get; set; }
-		public bool[] Data { get; set; } = [];
-	}
-
-	sealed class MaskPackedDocument
-	{
-		public int SchemaVersion { get; set; } = 1;
-		public string? Type { get; set; }
-		public string? Dtype { get; set; }
-		public int Columns { get; set; }
-		public int Count { get; set; }
-		public int[] Data { get; set; } = [];
+		try
+		{
+			validate();
+		}
+		catch (FormatException ex)
+		{
+			throw new JsonException(ex.Message, ex);
+		}
 	}
 }

@@ -2,11 +2,12 @@ using System;
 using BAVCL.Geometric;
 using BAVCL.Modules.Structural;
 using BAVCL.Core.Interfaces;
+using BAVCL.Modules.IO.Internal;
 using BAVCL.Types;
 
 namespace BAVCL.Modules.IO;
 
-/// <summary>Plain-text output via type formatting (write only).</summary>
+/// <summary>Plain-text persistence via pipe-formatted ToStr output.</summary>
 public sealed class TxtFormatter :
 	IFormatter<Vector>,
 	IFormatter<Vector3>,
@@ -27,8 +28,12 @@ public sealed class TxtFormatter :
 		return vector.ToString()!;
 	}
 
-	Vector IFormatter<Vector>.Deserialize(GPU gpu, string text) =>
-		throw new NotSupportedException("Reading Vector from TXT is not supported.");
+	Vector IFormatter<Vector>.Deserialize(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		(float[] values, int columns) = TxtParsing.ParseFloatGrid(text);
+		return new Vector(gpu, values, columns, cache: values.Length > 0);
+	}
 
 	string IFormatter<Vector3>.Serialize(Vector3 vector, int flags)
 	{
@@ -36,8 +41,14 @@ public sealed class TxtFormatter :
 		return vector.ToString()!;
 	}
 
-	Vector3 IFormatter<Vector3>.Deserialize(GPU gpu, string text) =>
-		throw new NotSupportedException("Reading Vector3 from TXT is not supported.");
+	Vector3 IFormatter<Vector3>.Deserialize(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		(float[] values, int columns) = TxtParsing.ParseFloatGrid(text, requiredColumns: 3);
+		StructuredIoValidation.ValidateVector3Layout(columns, values.Length);
+
+		return new Vector3(gpu, values, cache: values.Length > 0);
+	}
 
 	string IFormatter<Mask>.Serialize(Mask mask, int flags)
 	{
@@ -45,6 +56,10 @@ public sealed class TxtFormatter :
 		return mask.ToStr();
 	}
 
-	Mask IFormatter<Mask>.Deserialize(GPU gpu, string text) =>
-		throw new NotSupportedException("Reading Mask from TXT is not supported.");
+	Mask IFormatter<Mask>.Deserialize(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		(bool[] values, int columns) = TxtParsing.ParseBoolGrid(text);
+		return new Mask(gpu, values, columns);
+	}
 }
