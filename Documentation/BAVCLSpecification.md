@@ -579,16 +579,55 @@ Kernels are loaded selectively via `KernelModuleLoader` (see §7). Each domain f
 
 ### 4.6 IO
 
-`BAVCL.Modules.IO.IO` — typed persistence with formatter strategies:
+`BAVCL.Modules.IO.IO` — typed persistence with formatter strategies. Every on-disk file is a
+**collection** (one canonical shape per format, used for both a single document and many):
+
+| Format | Collection wire shape |
+| ------ | ---------------------- |
+| CSV | One shared header row + one metadata/data row per item |
+| JSON | `[{...},{...},...]` array (single item → `[{...}]`) |
+| XML | `<root>` wrapper with one typed child element per item (single item → `<root><vector>...</vector></root>`) |
+| TXT | Pipe `ToStr` segments joined by a line containing exactly `---` (single item → no delimiter) |
+
+Mask CSV rows are homogeneous per file: bool **or** packed for every row, fixed by the first item
+written to that `FileSession`.
 
 | API | Notes |
 | --- | ----- |
-| `IO.Serialize<T, TFormatter>(value, fileName, directory?, overwrite?, flags?)` | Write one document; `flags` default 0 (see `MaskSerializeFlags` for Mask JSON) |
-| `IO.Deserialize<T, TFormatter>(gpu, fileName, directory?)` | Read and return `T` |
-| `CreateWriter<T, TFormatter>` / `CreateReader<T, TFormatter>` | `FileSession` for multi-step or raw text |
-| Formatters | `IFormatter<T>` per supported type; each formatter class implements `ISingleton<TFormatter>` with `Default` + `Extension` |
+| `IO.Serialize<T, TFormatter>(value, fileName, directory?, overwrite?, flags?)` | One-shot: write a finalized collection file containing exactly `value` |
+| `IO.Deserialize<T, TFormatter>(gpu, fileName, directory?)` | Read the file; throws unless it contains exactly one document |
+| `IO.DeserializeAll<T, TFormatter>(gpu, fileName, directory?)` | Read every document in the file as `IReadOnlyList<T>` |
+| `CreateWriter<T, TFormatter>` / `CreateReader<T, TFormatter>` | Returns a `FileSession<T, TFormatter>` |
 
-JSON payloads are minimal (data + columns; Mask packed adds `count`). Optional `type`, `dtype`, `schemaVersion`. No forced `saved_data/` subdirectory.
+`FileSession<T, TFormatter>` (`IDisposable`):
+
+| Method | Behavior |
+| --- | ----- |
+| `string Serialize(value, flags?)` | Formatter fragment only; no disk I/O |
+| `void Write(value, flags?)` | Replace the file with a finalized collection containing exactly one item |
+| `void Append(value, flags?)` | Open the collection (if needed) and add another item |
+| `void Flush()` | Finalize an in-progress collection (closes the JSON `]` / XML `</root>`); idempotent |
+| `void Dispose()` | Calls `Flush()` |
+| `T Deserialize(gpu)` | Exactly one document; throws (pointing to `DeserializeAll`) otherwise |
+| `IReadOnlyList<T> DeserializeAll(gpu)` | Every document in the file |
+| `void WriteRaw(content)` / `string ReadRaw()` | Raw text access; `WriteRaw` throws while a collection is open |
+
+Formatters implement two per-type interfaces, both singletons via `ISingleton<TFormatter>` with
+`Default` + `Extension`:
+
+- `IFormatter<T>` — serializes/deserializes a single item's bare fragment (unchanged shape from
+  before multi-document support: a JSON object, an XML typed element, a CSV header+row, or a TXT
+  pipe grid).
+- `ICollectionFormatter<T>` — combines fragments into a collection file (`OpenCollection` /
+  `AppendItem` / `CloseCollection`) and splits a collection file back into `IReadOnlyList<T>`
+  (`DeserializeAll`).
+
+JSON payloads are minimal (data + columns; Mask packed adds `count`). Optional `type`, `dtype`,
+`schemaVersion`. No forced `saved_data/` subdirectory.
+
+Out of scope for now: mixing different BAVCL types (e.g. `Vector` + `Mask`) in one file, a
+forward-only streaming reader, and streamed/chunked write for very large datasets — all are
+potential future roadmap items (see §13.4).
 
 ### 4.7 Extensions
 
@@ -1090,6 +1129,14 @@ Formatters: `JsonFormatter`, `CsvFormatter`, `TxtFormatter`. Later placeholders:
 ### 13.3 Design Goals
 
 IO persists computed results via generic `FileSession<T, TFormatter>` writers/readers. JSON is the structured interchange format for `Vector`, `Vector3`, and `Mask` (packed default + bool interop). `IIO` remains a display/CSV helper contract, not the persistence surface.
+
+### 13.4 Roadmap
+
+- **Streamed/chunked write for very large datasets** — avoid building the full serialized
+  string/XML tree/JSON document in memory; write collection envelopes and per-item fragments
+  incrementally to disk (complements today's `Append`/`Flush` session model).
+- Mixed BAVCL types in one file (e.g. `Vector` + `Vector3` + `Mask`).
+- Forward-only streaming reader (`ReadNext`).
 
 ---
 
