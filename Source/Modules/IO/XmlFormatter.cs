@@ -17,6 +17,9 @@ public sealed class XmlFormatter :
 	IFormatter<Vector>,
 	IFormatter<Vector3>,
 	IFormatter<Mask>,
+	ICollectionFormatter<Vector>,
+	ICollectionFormatter<Vector3>,
+	ICollectionFormatter<Mask>,
 	ISingleton<XmlFormatter>
 {
 	public static XmlFormatter Default { get; } = new();
@@ -39,24 +42,64 @@ public sealed class XmlFormatter :
 
 	Mask IFormatter<Mask>.Deserialize(GPU gpu, string text) => DeserializeMask(gpu, text);
 
+	string ICollectionFormatter<Vector>.OpenCollection(Vector first, int flags) =>
+		IoSchema.Collection.XmlOpen + SerializeVector(first);
+
+	string ICollectionFormatter<Vector>.AppendItem(Vector value, int flags) => SerializeVector(value);
+
+	string ICollectionFormatter<Vector>.CloseCollection(int itemCount) => IoSchema.Collection.XmlClose;
+
+	IReadOnlyList<Vector> ICollectionFormatter<Vector>.DeserializeAll(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		return DeserializeAllFloatArray(text, typeof(Vector), typeof(float))
+			.Select(document => new Vector(gpu, document.Data, document.Columns, cache: document.Data.Length > 0))
+			.ToList();
+	}
+
+	string ICollectionFormatter<Vector3>.OpenCollection(Vector3 first, int flags) =>
+		IoSchema.Collection.XmlOpen + SerializeVector3(first);
+
+	string ICollectionFormatter<Vector3>.AppendItem(Vector3 value, int flags) => SerializeVector3(value);
+
+	string ICollectionFormatter<Vector3>.CloseCollection(int itemCount) => IoSchema.Collection.XmlClose;
+
+	IReadOnlyList<Vector3> ICollectionFormatter<Vector3>.DeserializeAll(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		return DeserializeAllFloatArray(text, typeof(Vector3), typeof(float))
+			.Select(document =>
+			{
+				StructuredIoValidation.ValidateVector3Layout(document.Columns, document.Data.Length);
+				return new Vector3(gpu, document.Data, cache: document.Data.Length > 0);
+			})
+			.ToList();
+	}
+
+	string ICollectionFormatter<Mask>.OpenCollection(Mask first, int flags) =>
+		IoSchema.Collection.XmlOpen + SerializeMask(first, flags);
+
+	string ICollectionFormatter<Mask>.AppendItem(Mask value, int flags) => SerializeMask(value, flags);
+
+	string ICollectionFormatter<Mask>.CloseCollection(int itemCount) => IoSchema.Collection.XmlClose;
+
+	IReadOnlyList<Mask> ICollectionFormatter<Mask>.DeserializeAll(GPU gpu, string text) => DeserializeAllMask(gpu, text);
+
 	string SerializeVector(Vector vector)
 	{
 		ArgumentNullException.ThrowIfNull(vector);
-		vector.SyncCPU();
-		return SerializeFloatArray(typeof(Vector), vector.Columns, vector.ToArray());
+		return SerializeFloatArray(typeof(Vector), vector.Columns, vector.RetrieveReadOnlySpan());
 	}
 
 	string SerializeVector3(Vector3 vector)
 	{
 		ArgumentNullException.ThrowIfNull(vector);
-		vector.SyncCPU();
-		return SerializeFloatArray(typeof(Vector3), vector.Columns, vector.ToArray());
+		return SerializeFloatArray(typeof(Vector3), vector.Columns, vector.RetrieveReadOnlySpan());
 	}
 
 	string SerializeMask(Mask mask, int flags)
 	{
 		ArgumentNullException.ThrowIfNull(mask);
-		mask.SyncCPU();
 
 		return flags switch
 		{
@@ -66,7 +109,7 @@ public sealed class XmlFormatter :
 		};
 	}
 
-	static string SerializeFloatArray(Type type, int columns, float[] data)
+	static string SerializeFloatArray(Type type, int columns, ReadOnlySpan<float> data)
 	{
 		var root = new XElement(
 			IoSchema.Document.XmlRootOf(type),
@@ -85,7 +128,7 @@ public sealed class XmlFormatter :
 	{
 		XElement root = CreateMaskRoot(typeof(int), mask.Columns, mask.ElementCount);
 
-		foreach (int word in mask.ToWordArray())
+		foreach (int word in mask.RetrieveReadOnlySpan())
 			root.Add(new XElement(IoSchema.Field.Data, word.ToString(CultureInfo.InvariantCulture)));
 
 		return new XDocument(root).ToString(SaveOptions.DisableFormatting);
@@ -95,6 +138,7 @@ public sealed class XmlFormatter :
 	{
 		XElement root = CreateMaskRoot(typeof(bool), mask.Columns);
 
+		// Bool masks are stored packed (int32 words); unpacking to one bool per element always allocates.
 		foreach (bool value in mask.ToBoolArray())
 			root.Add(new XElement(IoSchema.Field.Data, BoolIoParsing.FormatXml(value)));
 
@@ -139,6 +183,20 @@ public sealed class XmlFormatter :
 		XElement root = XDocument.Parse(text).Root
 			?? throw new FormatException("XML document must have a root element.");
 
+		return DeserializeMaskElement(gpu, root);
+	}
+
+	static IReadOnlyList<Mask> DeserializeAllMask(GPU gpu, string text)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		ArgumentException.ThrowIfNullOrWhiteSpace(text);
+
+		XElement root = ValidateCollectionRoot(text);
+		return root.Elements().Select(element => DeserializeMaskElement(gpu, element)).ToList();
+	}
+
+	static Mask DeserializeMaskElement(GPU gpu, XElement root)
+	{
 		ValidateRootName(root, typeof(Mask));
 		ValidateOptionalMetadata(root, typeof(Mask), expectedElementType: null);
 
@@ -162,19 +220,43 @@ public sealed class XmlFormatter :
 		XElement root = XDocument.Parse(xml).Root
 			?? throw new FormatException("XML document must have a root element.");
 
-		ValidateRootName(root, expectedType);
-		ValidateOptionalMetadata(root, expectedType, expectedElementType);
+		return DeserializeFloatArrayElement(root, expectedType, expectedElementType);
+	}
 
-		int columns = ReadIntAttribute(root, IoSchema.Field.Columns);
+	static IReadOnlyList<FloatArrayDocument> DeserializeAllFloatArray(string xml, Type expectedType, Type expectedElementType)
+	{
+		XElement root = ValidateCollectionRoot(xml);
+		return root.Elements()
+			.Select(element => DeserializeFloatArrayElement(element, expectedType, expectedElementType))
+			.ToList();
+	}
+
+	static XElement ValidateCollectionRoot(string xml)
+	{
+		XElement root = XDocument.Parse(xml).Root
+			?? throw new FormatException("XML document must have a root element.");
+
+		if (!string.Equals(root.Name.LocalName, IoSchema.Collection.XmlRoot, StringComparison.OrdinalIgnoreCase))
+			throw new FormatException($"XML collection root '{root.Name.LocalName}' does not match expected '{IoSchema.Collection.XmlRoot}'.");
+
+		return root;
+	}
+
+	static FloatArrayDocument DeserializeFloatArrayElement(XElement element, Type expectedType, Type expectedElementType)
+	{
+		ValidateRootName(element, expectedType);
+		ValidateOptionalMetadata(element, expectedType, expectedElementType);
+
+		int columns = ReadIntAttribute(element, IoSchema.Field.Columns);
 		StructuredIoValidation.ValidateColumns(columns);
 
-		float[] data = FloatArrayIo.ParseDataElements(root.Elements(IoSchema.Field.Data).Select(element => element.Value));
+		float[] data = FloatArrayIo.ParseDataElements(element.Elements(IoSchema.Field.Data).Select(e => e.Value));
 
 		return new FloatArrayDocument
 		{
-			SchemaVersion = ReadSchemaVersion(root),
-			Type = ReadOptionalStringAttribute(root, IoSchema.Field.Type),
-			Dtype = ReadOptionalStringAttribute(root, IoSchema.Field.Dtype),
+			SchemaVersion = ReadSchemaVersion(element),
+			Type = ReadOptionalStringAttribute(element, IoSchema.Field.Type),
+			Dtype = ReadOptionalStringAttribute(element, IoSchema.Field.Dtype),
 			Columns = columns,
 			Data = data,
 		};

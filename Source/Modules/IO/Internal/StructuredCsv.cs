@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using BAVCL.Core.Helpers;
 using BAVCL.Modules.IO.Internal.Schema;
 using BAVCL.Types;
@@ -12,35 +13,90 @@ internal static class StructuredCsv
 {
 	const char DataSeparator = ';';
 
-	internal static string SerializeFloatArray(Type type, int columns, float[] data)
+	internal static string SerializeFloatArray(Type type, int columns, ReadOnlySpan<float> data) =>
+		string.Join(',', IoSchema.Field.DefaultHeader) + '\n' + SerializeFloatArrayRow(type, columns, data);
+
+	internal static string SerializeFloatArrayRow(Type type, int columns, ReadOnlySpan<float> data)
 	{
-		string dataField = JoinDataField(data.Select(FloatIoParsing.FormatFloat));
-		return BuildDocument(
-			IoSchema.Field.DefaultHeader,
-			BuildMetadataValues(type, typeof(float), columns, dataField));
+		string dataField = JoinDataField(data, FloatIoParsing.FormatFloat);
+		return string.Join(',', BuildMetadataValues(type, typeof(float), columns, dataField));
 	}
 
-	internal static string SerializeMaskBool(int columns, bool[] data)
+	internal static string SerializeMaskBool(int columns, ReadOnlySpan<bool> data) =>
+		string.Join(',', IoSchema.Field.DefaultHeader) + '\n' + SerializeMaskBoolRow(columns, data);
+
+	internal static string SerializeMaskBoolRow(int columns, ReadOnlySpan<bool> data)
 	{
-		string dataField = JoinDataField(data.Select(BoolIoParsing.FormatCsv));
-		return BuildDocument(
-			IoSchema.Field.DefaultHeader,
-			BuildMetadataValues(typeof(Mask), typeof(bool), columns, dataField));
+		string dataField = JoinDataField(data, BoolIoParsing.FormatCsv);
+		return string.Join(',', BuildMetadataValues(typeof(Mask), typeof(bool), columns, dataField));
 	}
 
-	internal static string SerializeMaskPacked(int columns, int count, int[] words)
+	internal static string SerializeMaskPacked(int columns, int count, ReadOnlySpan<int> words) =>
+		string.Join(',', IoSchema.Field.MaskPackedHeader) + '\n' + SerializeMaskPackedRow(columns, count, words);
+
+	internal static string SerializeMaskPackedRow(int columns, int count, ReadOnlySpan<int> words)
 	{
-		string dataField = JoinDataField(words.Select(word => word.ToString(CultureInfo.InvariantCulture)));
-		return BuildDocument(
-			IoSchema.Field.MaskPackedHeader,
-			BuildMetadataValues(typeof(Mask), typeof(int), columns, dataField, count));
+		string dataField = JoinDataField(words, static word => word.ToString(CultureInfo.InvariantCulture));
+		return string.Join(',', BuildMetadataValues(typeof(Mask), typeof(int), columns, dataField, count));
 	}
 
 	internal static FloatArrayDocument DeserializeFloatArray(string csv, Type expectedType)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(csv);
 
-		IReadOnlyDictionary<string, string> fields = ParseDocument(csv);
+		(string[] header, List<string[]> rows) = ParseRows(csv);
+		if (rows.Count != 1)
+			throw new FormatException($"CSV document must contain exactly one data row. Received {rows.Count}. Use DeserializeAllFloatArray for multi-row files.");
+
+		return BuildFloatArrayDocument(ZipFields(header, rows[0]), expectedType);
+	}
+
+	internal static IReadOnlyList<FloatArrayDocument> DeserializeAllFloatArray(string csv, Type expectedType)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(csv);
+
+		(string[] header, List<string[]> rows) = ParseRows(csv);
+		return rows.Select(row => BuildFloatArrayDocument(ZipFields(header, row), expectedType)).ToList();
+	}
+
+	internal static Mask DeserializeMask(GPU gpu, string csv)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		ArgumentException.ThrowIfNullOrWhiteSpace(csv);
+
+		(string[] header, List<string[]> rows) = ParseRows(csv);
+		if (rows.Count != 1)
+			throw new FormatException($"CSV document must contain exactly one data row. Received {rows.Count}. Use DeserializeAllMask for multi-row files.");
+
+		return DeserializeMaskRow(gpu, ZipFields(header, rows[0]));
+	}
+
+	internal static IReadOnlyList<Mask> DeserializeAllMask(GPU gpu, string csv)
+	{
+		ArgumentNullException.ThrowIfNull(gpu);
+		ArgumentException.ThrowIfNullOrWhiteSpace(csv);
+
+		(string[] header, List<string[]> rows) = ParseRows(csv);
+		return rows.Select(row => DeserializeMaskRow(gpu, ZipFields(header, row))).ToList();
+	}
+
+	static Mask DeserializeMaskRow(GPU gpu, IReadOnlyDictionary<string, string> fields)
+	{
+		string? dtype = ReadOptionalStringField(fields, IoSchema.Field.Dtype);
+
+		if (!MaskIoRouting.TryResolve(dtype, out MaskWireFormat format))
+			throw new FormatException(MaskIoRouting.UnsupportedDtypeMessage(dtype, "CSV"));
+
+		return format switch
+		{
+			MaskWireFormat.Packed => DeserializeMaskPackedRow(gpu, fields),
+			MaskWireFormat.Bool => DeserializeMaskBoolRow(gpu, fields),
+			_ => throw new InvalidOperationException($"Unsupported mask wire format '{format}'."),
+		};
+	}
+
+	static FloatArrayDocument BuildFloatArrayDocument(IReadOnlyDictionary<string, string> fields, Type expectedType)
+	{
 		var document = new FloatArrayDocument
 		{
 			SchemaVersion = ReadIntField(fields, IoSchema.Field.SchemaVersion),
@@ -58,26 +114,7 @@ internal static class StructuredCsv
 		return document;
 	}
 
-	internal static Mask DeserializeMask(GPU gpu, string csv)
-	{
-		ArgumentNullException.ThrowIfNull(gpu);
-		ArgumentException.ThrowIfNullOrWhiteSpace(csv);
-
-		IReadOnlyDictionary<string, string> fields = ParseDocument(csv);
-		string? dtype = ReadOptionalStringField(fields, IoSchema.Field.Dtype);
-
-		if (!MaskIoRouting.TryResolve(dtype, out MaskWireFormat format))
-			throw new FormatException(MaskIoRouting.UnsupportedDtypeMessage(dtype, "CSV"));
-
-		return format switch
-		{
-			MaskWireFormat.Packed => DeserializeMaskPacked(gpu, fields),
-			MaskWireFormat.Bool => DeserializeMaskBool(gpu, fields),
-			_ => throw new InvalidOperationException($"Unsupported mask wire format '{format}'."),
-		};
-	}
-
-	static Mask DeserializeMaskBool(GPU gpu, IReadOnlyDictionary<string, string> fields)
+	static Mask DeserializeMaskBoolRow(GPU gpu, IReadOnlyDictionary<string, string> fields)
 	{
 		var document = new MaskBoolDocument
 		{
@@ -96,7 +133,7 @@ internal static class StructuredCsv
 		return new Mask(gpu, document.Data, document.Columns);
 	}
 
-	static Mask DeserializeMaskPacked(GPU gpu, IReadOnlyDictionary<string, string> fields)
+	static Mask DeserializeMaskPackedRow(GPU gpu, IReadOnlyDictionary<string, string> fields)
 	{
 		var document = new MaskPackedDocument
 		{
@@ -133,50 +170,75 @@ internal static class StructuredCsv
 		return values.ToArray();
 	}
 
-	static string BuildDocument(string[] header, string[] values)
+	/// <summary>
+	/// Parses a CSV document into its header and data rows. Metadata columns are fixed names with
+	/// no embedded commas; the last column is 'data' and uses semicolon-separated values internally
+	/// (no commas in field values). A document has one header row and one or more data rows.
+	/// </summary>
+	static (string[] Header, List<string[]> Rows) ParseRows(string csv)
 	{
-		if (header.Length != values.Length)
-			throw new InvalidOperationException("CSV header and value column counts must match.");
-
-		return string.Join(',', header) + '\n' + string.Join(',', values);
-	}
-
-	static IReadOnlyDictionary<string, string> ParseDocument(string csv)
-	{
-		// Metadata columns are fixed names with no embedded commas; the last column is 'data'
-		// and uses semicolon-separated values internally (no commas in field values).
 		string[] lines = csv
 			.Replace("\r\n", "\n")
 			.Replace('\r', '\n')
 			.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-		if (lines.Length != 2)
-			throw new FormatException($"CSV document must contain exactly one header row and one data row. Received {lines.Length} non-empty lines.");
+		if (lines.Length < 2)
+			throw new FormatException($"CSV document must contain a header row and at least one data row. Received {lines.Length} non-empty lines.");
 
 		string[] header = lines[0].Split(',');
-		string[] values = lines[1].Split(',');
-
-		if (header.Length != values.Length)
-			throw new FormatException($"CSV header column count {header.Length} does not match data column count {values.Length}.");
 
 		if (!string.Equals(header[^1], IoSchema.Field.Data, StringComparison.OrdinalIgnoreCase))
 			throw new FormatException($"CSV header must end with a '{IoSchema.Field.Data}' column.");
 
+		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (string name in header)
+		{
+			string trimmed = name.Trim();
+			if (trimmed.Length == 0)
+				throw new FormatException("CSV header contains an empty column name.");
+
+			if (!seen.Add(trimmed))
+				throw new FormatException($"CSV header contains duplicate column '{trimmed}'.");
+		}
+
+		var rows = new List<string[]>(lines.Length - 1);
+		for (int i = 1; i < lines.Length; i++)
+		{
+			string[] values = lines[i].Split(',');
+			if (values.Length != header.Length)
+				throw new FormatException($"CSV row {i} column count {values.Length} does not match header column count {header.Length}.");
+
+			rows.Add(values);
+		}
+
+		return (header, rows);
+	}
+
+	static IReadOnlyDictionary<string, string> ZipFields(string[] header, string[] values)
+	{
 		var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 		for (int i = 0; i < header.Length; i++)
-		{
-			string name = header[i].Trim();
-			if (name.Length == 0)
-				throw new FormatException($"CSV header column {i + 1} is empty.");
-
-			if (!fields.TryAdd(name, values[i].Trim()))
-				throw new FormatException($"CSV header contains duplicate column '{name}'.");
-		}
+			fields[header[i].Trim()] = values[i].Trim();
 
 		return fields;
 	}
 
-	static string JoinDataField(IEnumerable<string> values) => string.Join(DataSeparator, values);
+	static string JoinDataField<TValue>(ReadOnlySpan<TValue> values, Func<TValue, string> format)
+	{
+		if (values.Length == 0)
+			return string.Empty;
+
+		var field = new StringBuilder();
+		for (int i = 0; i < values.Length; i++)
+		{
+			if (i > 0)
+				field.Append(DataSeparator);
+
+			field.Append(format(values[i]));
+		}
+
+		return field.ToString();
+	}
 
 	static float[] ParseFloatData(string dataField)
 	{

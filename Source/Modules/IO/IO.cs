@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using BAVCL.Core.Interfaces;
 
@@ -17,24 +18,32 @@ public static class IO
 		string? directory = null,
 		bool overwrite = false,
 		int flags = 0)
-		where TFormatter : class, IFormatter<T>, ISingleton<TFormatter>
+		where TFormatter : class, IFormatter<T>, ICollectionFormatter<T>, ISingleton<TFormatter>
 	{
 		ArgumentNullException.ThrowIfNull(value);
-		CreateWriter<T, TFormatter>(fileName, directory, overwrite).Serialize(value, flags);
+		using FileSession<T, TFormatter> writer = CreateWriter<T, TFormatter>(fileName, directory, overwrite);
+		writer.Write(value, flags);
 	}
 
 	public static T Deserialize<T, TFormatter>(GPU gpu, string fileName, string? directory = null)
-		where TFormatter : class, IFormatter<T>, ISingleton<TFormatter>
+		where TFormatter : class, IFormatter<T>, ICollectionFormatter<T>, ISingleton<TFormatter>
 	{
 		var session = CreateReader<T, TFormatter>(fileName, directory);
 		return session.Deserialize(gpu);
+	}
+
+	public static IReadOnlyList<T> DeserializeAll<T, TFormatter>(GPU gpu, string fileName, string? directory = null)
+		where TFormatter : class, IFormatter<T>, ICollectionFormatter<T>, ISingleton<TFormatter>
+	{
+		var session = CreateReader<T, TFormatter>(fileName, directory);
+		return session.DeserializeAll(gpu);
 	}
 
 	public static FileSession<T, TFormatter> CreateWriter<T, TFormatter>(
 		string fileName,
 		string? directory = null,
 		bool overwrite = false)
-		where TFormatter : class, IFormatter<T>, ISingleton<TFormatter>
+		where TFormatter : class, IFormatter<T>, ICollectionFormatter<T>, ISingleton<TFormatter>
 	{
 		string path = ResolvePath<TFormatter>(directory, fileName);
 		return new FileSession<T, TFormatter>(path, overwrite);
@@ -43,7 +52,7 @@ public static class IO
 	public static FileSession<T, TFormatter> CreateReader<T, TFormatter>(
 		string fileName,
 		string? directory = null)
-		where TFormatter : class, IFormatter<T>, ISingleton<TFormatter>
+		where TFormatter : class, IFormatter<T>, ICollectionFormatter<T>, ISingleton<TFormatter>
 	{
 		string path = ResolvePath<TFormatter>(directory, fileName);
 		return new FileSession<T, TFormatter>(path, overwrite: true);
