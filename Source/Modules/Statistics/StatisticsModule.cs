@@ -120,6 +120,26 @@ public static class VectorStatistics
 		public static float Range(BAVCL.Geometric.Vector3 vector3) =>
 			DescriptiveStatistics.Range(vector3);
 	}
+
+	extension(VectorInt)
+	{
+		public static float Mean(VectorInt vector) => DescriptiveStatistics.Mean(vector);
+
+		public static float Var(VectorInt vector) => DescriptiveStatistics.Var(vector);
+
+		public static float Std(VectorInt vector) => DescriptiveStatistics.Std(vector);
+
+		public static int Min(VectorInt vector) => DescriptiveStatistics.Min(vector);
+
+		public static int Max(VectorInt vector) => DescriptiveStatistics.Max(vector);
+
+		public static int Range(VectorInt vector) => DescriptiveStatistics.Range(vector);
+
+		public static bool All(VectorInt vector) => DescriptiveStatistics.All(vector);
+
+		public static VectorInt ReduceOP(VectorInt vector, VectorInt matrix, Operations operation) =>
+			ReduceCore.ReduceOP(vector, matrix, operation);
+	}
 }
 
 public static class StatisticsModule
@@ -230,5 +250,25 @@ public static class StatisticsModule
 		public float Max() => VectorStatistics.Max(vector3);
 
 		public float Range() => VectorStatistics.Range(vector3);
+	}
+
+	extension(VectorInt vector)
+	{
+		public float Mean() => VectorStatistics.Mean(vector);
+
+		public float Var() => VectorStatistics.Var(vector);
+
+		public float Std() => VectorStatistics.Std(vector);
+
+		public int Min() => VectorStatistics.Min(vector);
+
+		public int Max() => VectorStatistics.Max(vector);
+
+		public int Range() => VectorStatistics.Range(vector);
+
+		public bool All() => VectorStatistics.All(vector);
+
+		public VectorInt ReduceOP(VectorInt matrix, Operations operation) =>
+			VectorStatistics.ReduceOP(vector, matrix, operation);
 	}
 }
