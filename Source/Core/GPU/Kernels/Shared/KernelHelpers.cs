@@ -2,6 +2,7 @@ using ILGPU;
 using ILGPU.Algorithms;
 using ILGPU.Runtime;
 using ILGPU.Util;
+using BAVCL.Core;
 
 namespace BAVCL;
 
@@ -167,4 +168,124 @@ public partial class GPU
 		(left == right) | (float.IsNaN(left) & float.IsNaN(right));
 
 	static int AsLane(bool set) => Utilities.Select(set, 1, 0);
+
+	static int AccumulateReduceRowInt(
+		ArrayView<int> coeffs,
+		ArrayView<int> inputB,
+		int startidx,
+		int cols,
+		SpecializedValue<int> operation)
+	{
+		switch ((Operations)operation.Value)
+		{
+			case Operations.multiply:
+				{
+					int sum = 0;
+					for (int i = 0; i < cols; i++)
+						sum += coeffs[i] * inputB[startidx + i];
+					return sum;
+				}
+			case Operations.add:
+				{
+					int sum = 0;
+					for (int i = 0; i < cols; i++)
+						sum += coeffs[i] + inputB[startidx + i];
+					return sum;
+				}
+			case Operations.subtract:
+				{
+					int sum = 0;
+					for (int i = 0; i < cols; i++)
+						sum += coeffs[i] - inputB[startidx + i];
+					return sum;
+				}
+			case Operations.flipSubtract:
+				{
+					int sum = 0;
+					for (int i = 0; i < cols; i++)
+						sum += inputB[startidx + i] - coeffs[i];
+					return sum;
+				}
+			case Operations.divide:
+				{
+					int sum = 0;
+					for (int i = 0; i < cols; i++)
+						sum += coeffs[i] / inputB[startidx + i];
+					return sum;
+				}
+			case Operations.flipDivide:
+				{
+					int sum = 0;
+					for (int i = 0; i < cols; i++)
+						sum += inputB[startidx + i] / coeffs[i];
+					return sum;
+				}
+			default:
+				return 0;
+		}
+	}
+
+	static void ApplyBroadcastOpInt(ref int target, int a, int b, SpecializedValue<int> operation)
+	{
+		switch ((Operations)operation.Value)
+		{
+			case Operations.multiply:
+				target = a * b;
+				break;
+			case Operations.add:
+				target = a + b;
+				break;
+			case Operations.subtract:
+				target = a - b;
+				break;
+			case Operations.flipSubtract:
+				target = b - a;
+				break;
+			case Operations.divide:
+				target = a / b;
+				break;
+			case Operations.flipDivide:
+				target = b / a;
+				break;
+			case Operations.differenceSquared:
+				{
+					int diff = a - b;
+					target = diff * diff;
+					break;
+				}
+			case Operations.modulo:
+				target = a % b;
+				break;
+			case Operations.flipModulo:
+				target = b % a;
+				break;
+			case Operations.leftShift:
+				target = a << b;
+				break;
+			case Operations.rightShift:
+				target = a >> b;
+				break;
+			case Operations.bitwiseXor:
+				target = a ^ b;
+				break;
+			case Operations.bitwiseAnd:
+				target = a & b;
+				break;
+		}
+	}
+
+	static int AbsIntBitwise(int value) => value & int.MaxValue;
+
+	static int NegateIntBitwise(int value) => unchecked(~value + 1);
+
+	static int CompareLaneInt(int left, int right, VectorComparison comparison) => comparison switch
+	{
+		VectorComparison.Greater => AsLane(left > right),
+		VectorComparison.Less => AsLane(left < right),
+		VectorComparison.GreaterOrEqual => AsLane(left >= right),
+		VectorComparison.LessOrEqual => AsLane(left <= right),
+		VectorComparison.Equal => AsLane(left == right),
+		VectorComparison.NotEqual => AsLane(left != right),
+		_ => 0,
+	};
 }

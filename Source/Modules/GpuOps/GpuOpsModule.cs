@@ -22,6 +22,21 @@ public static class GpuOpsModule
 			VectorGpuOps.Log_IP(vector, @base);
 	}
 
+	extension(VectorInt)
+	{
+		public static VectorInt OP(VectorInt left, VectorInt right, Operations operation) =>
+			Broadcast.BroadcastOP(left, right, operation);
+
+		public static VectorInt OP(VectorInt vector, int scalar, Operations operation) =>
+			VectorIntGpuOps.ScalarOP(vector, scalar, operation);
+
+		public static VectorInt IPOP(VectorInt vector, VectorInt right, Operations operation) =>
+			Broadcast.BroadcastOP_IP(vector, right, operation);
+
+		public static VectorInt IPOP(VectorInt vector, int scalar, Operations operation) =>
+			VectorIntGpuOps.ScalarOP_IP(vector, scalar, operation);
+	}
+
 	extension(Vector3)
 	{
 		public static Vector VOP(Vector3 vector, Operations operation) =>
@@ -62,6 +77,21 @@ public static class GpuOpsModuleExtensions
 
 		public Vector Log_IP(float @base) =>
 			Vector.Log_IP(vectorA, @base);
+	}
+
+	extension(VectorInt vectorA)
+	{
+		public VectorInt OP(VectorInt vectorB, Operations operation) =>
+			VectorInt.OP(vectorA, vectorB, operation);
+
+		public VectorInt IPOP(VectorInt vectorB, Operations operation) =>
+			VectorInt.IPOP(vectorA, vectorB, operation);
+
+		public VectorInt OP(int scalar, Operations operation) =>
+			VectorInt.OP(vectorA, scalar, operation);
+
+		public VectorInt IPOP(int scalar, Operations operation) =>
+			VectorInt.IPOP(vectorA, scalar, operation);
 	}
 
 	extension(Vector3 vectorA)
