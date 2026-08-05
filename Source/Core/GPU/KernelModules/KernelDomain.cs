@@ -9,4 +9,5 @@ public enum KernelDomain
 	LinearAlgebra,
 	Astrophysics,
 	Mask,
+	Sorting,
 }
