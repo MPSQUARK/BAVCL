@@ -28,6 +28,8 @@ public static class KernelModuleLoader
 			gpu.LoadMaskWordKernels();
 			gpu.LoadMaskVectorIntKernels();
 		},
+		[(KernelDomain.Sorting, typeof(float))] = static gpu => gpu.LoadSortFloatKernels(),
+		[(KernelDomain.Sorting, typeof(int))] = static gpu => gpu.LoadSortSegmentedRadixKernels(),
 	};
 
 	/// <summary>
