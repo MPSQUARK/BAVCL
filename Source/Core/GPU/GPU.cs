@@ -3,6 +3,7 @@ using ILGPU.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using BAVCL.GpuAlgorithms;
 using BAVCL.Core.Interfaces;
 
 namespace BAVCL;
@@ -10,6 +11,7 @@ namespace BAVCL;
 public sealed partial class GPU(Accelerator accelerator, IMemoryManager memoryManager) : IDisposable
 {
 	private readonly IMemoryManager _memoryManager = memoryManager;
+	internal readonly AlgorithmProviders AlgorithmProviders = new(accelerator);
 	private readonly Lock _kernelLoadLock = new();
 	private readonly HashSet<(KernelDomain Domain, Type ElementType)> _loadedModules = [];
 	public Accelerator accelerator = accelerator;
@@ -56,5 +58,9 @@ public sealed partial class GPU(Accelerator accelerator, IMemoryManager memoryMa
 	public string PrintMemoryUsage(bool percentage, string format = "F2") => _memoryManager.PrintMemoryUsage(percentage, format);
 	public string GetMemUsage() => _memoryManager.MemoryUsed.ToString();
 
-	public void Dispose() => accelerator.Dispose();
+	public void Dispose()
+	{
+		AlgorithmProviders.Dispose();
+		accelerator.Dispose();
+	}
 }
