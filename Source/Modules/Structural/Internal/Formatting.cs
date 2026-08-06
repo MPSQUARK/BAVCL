@@ -135,7 +135,7 @@ internal static class FormattingCore
 	{
 		ReadOnlySpan<float> data = vector.RetrieveReadOnlySpan();
 
-		int layoutColumns = vector.Is1D() ? vector.Length : vector.Columns;
+		int layoutColumns = vector.Is1DRowVector() ? vector.Length : vector.Columns;
 
 		(float min, float max, bool hasinfinity) = Util.MinMaxInf(data);
 
@@ -251,7 +251,7 @@ internal static class FormattingCore
 	{
 		ReadOnlySpan<int> data = vector.RetrieveReadOnlySpan();
 
-		int layoutColumns = vector.Is1D() ? vector.Length : vector.Columns;
+		int layoutColumns = vector.Is1DRowVector() ? vector.Length : vector.Columns;
 
 		int min = data[0], max = data[0];
 		for (int i = 1; i < data.Length; i++)

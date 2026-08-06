@@ -23,7 +23,7 @@ internal static class CrossCore
 		if (left.Is1D() && right.Columns > 1)
 			return CrossVectorMatrix(left, right);
 
-		if (left.Columns > 1 && (right.Is1D() || right.Columns == 1))
+		if (left.Columns > 1 && right.Is1D())
 			return CrossMatrixVector(left, right);
 
 		throw new ArgumentException(
@@ -107,7 +107,7 @@ internal static class CrossCore
 		if (left.Is1D() && right.Columns > 1)
 			return CrossVectorMatrix(left, right);
 
-		if (left.Columns > 1 && (right.Is1D() || right.Columns == 1))
+		if (left.Columns > 1 && right.Is1D())
 			return CrossMatrixVector(left, right);
 
 		throw new ArgumentException(
