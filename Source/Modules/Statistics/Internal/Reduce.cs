@@ -19,7 +19,7 @@ internal static class ReduceCore
 
 	static void ValidateReduceOperands(Vector vector, Vector matrix, string operationName)
 	{
-		if (!vector.Is1D())
+		if (!vector.Is1DRowVector())
 		{
 			throw new ShapeMismatchException(
 				operationName,
@@ -48,7 +48,7 @@ internal static class ReduceCore
 
 	static void ValidateReduceOperands(VectorInt vector, VectorInt matrix, string operationName)
 	{
-		if (!vector.Is1D())
+		if (!vector.Is1DRowVector())
 		{
 			throw new ShapeMismatchException(
 				operationName,

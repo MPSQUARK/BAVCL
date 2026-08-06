@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using BAVCL.Modules.Structural;
 
 namespace BAVCL.Core;
@@ -38,6 +38,11 @@ public abstract class VectorBase<T> : CacheableBase<T>, IIO where T : unmanaged
 		return Length / Columns;
 	}
 
+	/// <summary>
+	/// Number of elements per row. For 1D (<see cref="Is1D"/>) vectors this is the full length.
+	/// </summary>
+	public int ElementsPerRow() => Is1D() ? Length : Columns;
+
 	public virtual BAVCL.Shape Shape() => BAVCL.Shape.FromStorage(Length, Columns);
 
 	internal void ValidateIndexForView(int index)
@@ -57,7 +62,17 @@ public abstract class VectorBase<T> : CacheableBase<T>, IIO where T : unmanaged
 
 	public bool IsRectangular() => Columns == 0 || Length % Columns == 0;
 
-	public bool Is1D() => Columns == 0;
+	/// <summary>
+	/// True for flat/single-row (<c>Columns == 0</c>) or column-vector (<c>Columns == 1</c>) storage —
+	/// both lay out as one global, non-row-segmented sequence.
+	/// </summary>
+	public bool Is1D() => Columns <= 1;
+
+	/// <summary>True for flat/single-row storage (<c>Columns == 0</c>), as distinct from column-vector storage.</summary>
+	public bool Is1DRowVector() => Columns == 0;
+
+	/// <summary>True for a true 2D matrix (<c>Columns > 1</c>), which sorts/reshapes row-wise.</summary>
+	public bool Is2D() => Columns > 1;
 
 	public T this[int i]
 	{

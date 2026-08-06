@@ -59,7 +59,7 @@ internal static class ShapeOpsCore
 			}
 		}
 
-		if (other.Is1D())
+		if (other.Is1DRowVector())
 		{
 			if (other.Length % vector.RowCount() != 0)
 			{
@@ -139,7 +139,7 @@ internal static class ShapeOpsCore
 
 	internal static Vector Transpose(Vector vector)
 	{
-		if (vector.Is1D() || vector.Columns >= vector.Length) { throw new Exception("Cannot transpose 1D Vector"); }
+		if (vector.Is1DRowVector() || vector.Columns >= vector.Length) { throw new Exception("Cannot transpose 1D Vector"); }
 
 		Vector output = new(vector.Gpu, vector.Length, vector.RowCount());
 
@@ -209,7 +209,7 @@ internal static class ShapeOpsCore
 
 	internal static Vector GetSliceAsVector(Vector vector, int row_col_index, Axis axis)
 	{
-		if (vector.Is1D())
+		if (vector.Is1DRowVector())
 			throw new Exception("Input Vector cannot be 1D");
 
 		return axis switch
@@ -222,7 +222,7 @@ internal static class ShapeOpsCore
 
 	internal static float[] GetSliceAsArray(Vector vector, int row_col_index, Axis axis)
 	{
-		if (vector.Is1D())
+		if (vector.Is1DRowVector())
 			throw new Exception("Input Vector cannot be 1D");
 
 		return axis switch
@@ -284,7 +284,7 @@ internal static class ShapeOpsCore
 			}
 		}
 
-		if (other.Is1D())
+		if (other.Is1DRowVector())
 		{
 			if (other.Length % vector.RowCount() != 0)
 			{
@@ -364,7 +364,7 @@ internal static class ShapeOpsCore
 
 	internal static VectorInt Transpose(VectorInt vector)
 	{
-		if (vector.Is1D() || vector.Columns >= vector.Length) { throw new Exception("Cannot transpose 1D Vector"); }
+		if (vector.Is1DRowVector() || vector.Columns >= vector.Length) { throw new Exception("Cannot transpose 1D Vector"); }
 
 		VectorInt output = new(vector.Gpu, vector.Length, vector.RowCount());
 
@@ -431,7 +431,7 @@ internal static class ShapeOpsCore
 
 	internal static VectorInt GetSliceAsVector(VectorInt vector, int row_col_index, Axis axis)
 	{
-		if (vector.Is1D())
+		if (vector.Is1DRowVector())
 			throw new Exception("Input Vector cannot be 1D");
 
 		return axis switch
@@ -444,7 +444,7 @@ internal static class ShapeOpsCore
 
 	internal static int[] GetSliceAsArray(VectorInt vector, int row_col_index, Axis axis)
 	{
-		if (vector.Is1D())
+		if (vector.Is1DRowVector())
 			throw new Exception("Input Vector cannot be 1D");
 
 		return axis switch
