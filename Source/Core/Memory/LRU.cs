@@ -11,7 +11,7 @@ namespace BAVCL.Core;
 
 internal class LRU : IMemoryManager
 {
-    readonly object _gate = new();
+    readonly Lock _gate = new();
     public ConcurrentDictionary<uint, CacheEntry> Caches = new();
 
     readonly Queue<uint> _lru = new();
