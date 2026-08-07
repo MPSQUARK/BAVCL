@@ -1,6 +1,6 @@
 using ILGPU.Runtime;
 using System;
-using System.Linq;
+using System.Collections.Generic;
 
 namespace BAVCL.Core.Interfaces;
 
@@ -29,7 +29,7 @@ public interface IMemoryManager
     #endregion
 
     #region Debug
-    public uint[] StoredIDs();
+    public HashSet<uint> StoredIDs();
     /// <summary>
     /// Checks whether the item with the given ID is stored in the memory manager.
     /// </summary>
