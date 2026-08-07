@@ -3,6 +3,7 @@ using ILGPU;
 using ILGPU.Runtime;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
@@ -10,9 +11,10 @@ namespace BAVCL.Core;
 
 internal class LRU : IMemoryManager
 {
+    readonly object _gate = new();
     public ConcurrentDictionary<uint, CacheEntry> Caches = new();
 
-    protected internal ConcurrentQueue<uint> _lru = new();
+    readonly Queue<uint> _lru = new();
     protected internal long _memoryUsed = 0;
     protected internal int _liveObjectCount = 0;
     protected internal uint _currentVecId = 0;
@@ -27,11 +29,10 @@ internal class LRU : IMemoryManager
     }
 
     #region Debug
-    public uint[] StoredIDs()
+    public HashSet<uint> StoredIDs()
     {
-        uint[] ids = new uint[_lru.Count];
-        _lru.CopyTo(ids, 0);
-        return ids;
+        lock (_gate)
+            return [.. _lru];
     }
 
     public bool IsStored(uint id) => Caches.ContainsKey(id);
@@ -39,7 +40,6 @@ internal class LRU : IMemoryManager
 
     public long AvailableMemory { get; set; } = -1;
     public long MemoryUsed => Interlocked.Read(ref _memoryUsed);
-    public long MaxMemory { get; init; }
 
     public (uint, MemoryBuffer) AllocateEmpty<T>(ICacheable cacheable, int length, Accelerator accelerator) where T : unmanaged
     {
@@ -47,16 +47,14 @@ internal class LRU : IMemoryManager
         MemoryBuffer1D<T, Stride1D.Dense> buffer;
         long memNeeded = (long)Interop.SizeOf<T>() * (long)length;
 
-        lock (this)
+        lock (_gate)
         {
             GC(memNeeded);
             UpdateMemoryUsage(memNeeded);
             buffer = accelerator.Allocate1D<T>(length);
-            Caches.TryAdd(id, new CacheEntry(buffer, new WeakReference<ICacheable>(cacheable)));
-            _lru.Enqueue(id);
+            RegisterEntry(id, buffer, cacheable);
         }
 
-        AddLiveTask();
         return (id, buffer);
     }
 
@@ -66,17 +64,15 @@ internal class LRU : IMemoryManager
         uint id = GenerateId();
         MemoryBuffer1D<T, Stride1D.Dense> buffer;
 
-        lock (this)
+        lock (_gate)
         {
             GC(cacheable.MemorySize);
             UpdateMemoryUsage(cacheable.MemorySize);
             buffer = accelerator.Allocate1D<T>(values.Length);
             buffer.AsArrayView<T>(0, values.Length).CopyFromCPU(values);
-            Caches.TryAdd(id, new CacheEntry(buffer, new WeakReference<ICacheable>(cacheable)));
-            _lru.Enqueue(id);
+            RegisterEntry(id, buffer, cacheable);
         }
 
-        AddLiveTask();
         return (id, buffer);
     }
 
@@ -85,16 +81,14 @@ internal class LRU : IMemoryManager
         uint id = GenerateId();
         MemoryBuffer1D<T, Stride1D.Dense> buffer;
 
-        lock (this)
+        lock (_gate)
         {
             GC(cacheable.MemorySize);
             UpdateMemoryUsage(cacheable.MemorySize);
             buffer = accelerator.Allocate1D(values);
-            Caches.TryAdd(id, new CacheEntry(buffer, new WeakReference<ICacheable>(cacheable)));
-            _lru.Enqueue(id);
+            RegisterEntry(id, buffer, cacheable);
         }
 
-        AddLiveTask();
         return (id, buffer);
     }
 
@@ -117,7 +111,7 @@ internal class LRU : IMemoryManager
                 throw new Exception(
                     $"GPU states {_liveObjectCount} Live Tasks Running, while requiring {memRequired >> 20} MB which is more than available {(AvailableMemory - MemoryUsed) >> 20} MB. Potential cause: memory leak");
 
-            lock (this)
+            lock (_gate)
             {
                 if (!_lru.TryDequeue(out uint Id))
                     throw new Exception($"LRU Empty Cannot Continue DeCaching");
@@ -126,10 +120,8 @@ internal class LRU : IMemoryManager
                 {
                     if (IsICacheableLive(entry, Id, syncOnEvict: true)) continue;
 
-                    entry.MemoryBuffer.Dispose();
-                    UpdateMemoryUsage(-entry.MemoryBuffer.LengthInBytes);
-                    SubtractLiveTask();
-                    Caches.TryRemove(Id, out _);
+                    // Id was already dequeued above; DisposeCacheEntry's RemoveFromLRU is a harmless no-op here.
+                    DisposeCacheEntry(entry, Id);
                 }
             }
         }
@@ -139,7 +131,7 @@ internal class LRU : IMemoryManager
     {
         if (!TryGetCacheEntry(Id, out CacheEntry entry)) return 0;
 
-        lock (this)
+        lock (_gate)
         {
             if (IsICacheableLive(entry, Id, syncOnEvict: true)) return Id;
             DisposeCacheEntry(entry, Id);
@@ -152,7 +144,7 @@ internal class LRU : IMemoryManager
     {
         if (!TryGetCacheEntry(Id, out CacheEntry entry)) return 0;
 
-        lock (this)
+        lock (_gate)
         {
             if (IsICacheableLive(entry, Id, syncOnEvict: false)) return Id;
             DisposeCacheEntry(entry, Id);
@@ -163,6 +155,9 @@ internal class LRU : IMemoryManager
 
     void DisposeCacheEntry(CacheEntry entry, uint Id)
     {
+        if (entry.CachedObjRef.TryGetTarget(out ICacheable? cacheable) && cacheable.ID == Id)
+            cacheable.ID = 0;
+
         entry.MemoryBuffer.Dispose();
         UpdateMemoryUsage(-entry.MemoryBuffer.LengthInBytes);
         SubtractLiveTask();
@@ -187,7 +182,7 @@ internal class LRU : IMemoryManager
         if (!entry.CachedObjRef.TryGetTarget(out ICacheable? cacheable))
             return false;
 
-        if (cacheable.LiveCount > 0)
+        if (cacheable.LiveCount > 0 || ResidenceHelper.IsActiveGpu(cacheable.Residence))
         {
             _lru.Enqueue(Id);
             return true;
@@ -203,9 +198,17 @@ internal class LRU : IMemoryManager
         return false;
     }
 
+    /// <summary>Registers a freshly-allocated buffer under <paramref name="id"/>. Caller must hold <see cref="_gate"/>.</summary>
+    void RegisterEntry(uint id, MemoryBuffer buffer, ICacheable cacheable)
+    {
+        Caches.TryAdd(id, new CacheEntry(buffer, new WeakReference<ICacheable>(cacheable)));
+        _lru.Enqueue(id);
+        AddLiveTask();
+    }
+
     void RemoveFromLRU(uint Id)
     {
-        if (_lru.IsEmpty || !LruContains(Id)) return;
+        if (_lru.Count == 0 || !LruContains(Id)) return;
 
         _lru.TryDequeue(out uint DequeuedId);
 
@@ -244,7 +247,7 @@ internal class LRU : IMemoryManager
 
         ReadOnlySpan<T> values = cacheable.RetrieveReadOnlySpan();
 
-        lock (this)
+        lock (_gate)
         {
             if (!TryGetCacheEntry(id, out CacheEntry entry))
                 return AllocateFromSpanUnderLock(cacheable, values, accelerator);
@@ -266,7 +269,7 @@ internal class LRU : IMemoryManager
         uint id = cacheable.ID;
         if (id == 0) return Allocate(cacheable, values, accelerator);
 
-        lock (this)
+        lock (_gate)
         {
             if (!TryGetCacheEntry(id, out CacheEntry entry))
                 return AllocateArrayUnderLock(cacheable, values, accelerator);
@@ -291,9 +294,7 @@ internal class LRU : IMemoryManager
         buffer.AsArrayView<T>(0, values.Length).CopyFromCPU(values);
         GC(cacheable.MemorySize);
         UpdateMemoryUsage(cacheable.MemorySize);
-        Caches.TryAdd(id, new CacheEntry(buffer, new WeakReference<ICacheable>(cacheable)));
-        _lru.Enqueue(id);
-        AddLiveTask();
+        RegisterEntry(id, buffer, cacheable);
         return (id, buffer);
     }
 
@@ -304,9 +305,7 @@ internal class LRU : IMemoryManager
         MemoryBuffer1D<T, Stride1D.Dense> buffer = accelerator.Allocate1D(values);
         GC(cacheable.MemorySize);
         UpdateMemoryUsage(cacheable.MemorySize);
-        Caches.TryAdd(id, new CacheEntry(buffer, new WeakReference<ICacheable>(cacheable)));
-        _lru.Enqueue(id);
-        AddLiveTask();
+        RegisterEntry(id, buffer, cacheable);
         return (id, buffer);
     }
 }
