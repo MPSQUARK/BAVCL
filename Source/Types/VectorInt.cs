@@ -280,7 +280,7 @@ public sealed partial class VectorInt : VectorBase<int>
 		return copy;
 	}
 
-	internal void NegateInPlace(VectorInt vector)
+	internal static void NegateInPlace(VectorInt vector)
 	{
 		using (GpuScope.Begin(vector))
 		{
