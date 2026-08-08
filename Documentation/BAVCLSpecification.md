@@ -133,6 +133,7 @@ Data types stay thin (`Vector.cs`, `Vector3.cs` — constructors, operators, cop
 | `BAVCL.Modules.Geometric` | `GeometricModule.cs` (`Vector3Geometric`, `Vector3GeometricExtensions`) | `Internal/Vector3Geometry.cs` |
 | `BAVCL.Modules.GpuOps` | `GpuOpsModule.cs` | `Internal/Broadcast.cs`, `VectorGpuOps.cs`, `Vector3GpuOps.cs`, `VectorVectorOp.cs`, … |
 | `BAVCL.Modules.Masking` | `MaskModule.cs` (`MaskModuleExtensions`) | `Internal/MaskBitwiseOps.cs`, `MaskVectorOps.cs` |
+| `BAVCL.Modules.Sorting` | `SortingModule.cs` (`VectorSorting`, `SortingModule`) | `Internal/SortCore.cs`, `ArgsortCore.cs`, `GpuSortingCore.cs`; GPU bridge in `BAVCL.GpuAlgorithms` |
 | `BAVCL.Modules.IO` | `IO.cs`, formatters (`JsonFormatter`, `CsvFormatter`, `XmlFormatter`, `TxtFormatter`) | `Internal/IoSchema.cs`, `StructuredCsv.cs`, … |
 
 Primitive-array `Print`, `Sum`, `Average`, `Min`, and `Max` live in **Structural** and **Statistics** modules (the former `Extensions/` folder was merged into `Modules/` — see §9.2).
@@ -144,6 +145,7 @@ using BAVCL;                          // core Vector only
 
 using BAVCL.Modules.Arithmetic;       // + Vector.Sum(v), v.Cross(b), …
 using BAVCL.Modules.Statistics;       // + v.Mean(), arr.Min(), …
+using BAVCL.Modules.Sorting;          // + v.Sort(SortOrder), v.SortAscIP(), v.SortAscXIP(), v.Argsort(SortOrder), …
 
 Vector.Sum(vec);   // NumPy-style static extension
 vec.Sum();         // ndarray-style instance extension
@@ -529,7 +531,7 @@ Binary `+`, `-`, `*`, `/`, `^` operator overloads use **NumPy-style element-wise
 | `1` | `(N, 1)` column | `[[1],[2],[3],[4]]` |
 | `N > 1` | `(Length/N, N)` matrix | `[[1,2,3],[4,5,6]]` |
 
-`RowCount()` and `Shape()` derive from `Columns` and `Length` as above. `Is1D()` is true only when `Columns == 0`.
+`RowCount()` and `Shape()` derive from `Columns` and `Length` as above. `Is1D()` is true when `Columns == 0` or `Columns == 1` (both lay out as one global, non-row-segmented sequence); `Is1DRowVector()` narrows to `Columns == 0` alone; `Is2D()` is true when `Columns > 1`.
 
 **No in-place row reduce:** `ReduceIPOP` is intentionally omitted. Row reduction reads a full coefficient vector (`Length == matrix.Columns`) and writes one scalar per row (`Length == matrix.RowCount()`). A single buffer cannot satisfy both layouts except on square matrices, and even then the row-wise kernel reads every coefficient element on each thread while writing row outputs into the same buffer — unsafe GPU aliasing without a coefficient snapshot. A column-wise per-thread scheme would avoid aliasing but would not implement shared-coefficient row reduction and would harm row-major coalescing. Use allocating `ReduceOP` instead.
 
@@ -570,6 +572,34 @@ Defined on `Source/Types/Vector.cs`; GPU kernels in `BAVCL.Modules.Masking`. See
 | `Print(decimalplaces, syncCPU)` | Console output   |
 | `ToStr(decimalplaces, syncCPU)` | Formatted string |
 | `ToCSV()` (via `VectorBase`)    | CSV string       |
+
+#### 4.2.8 Sorting (`BAVCL.Modules.Sorting`) — `Vector` and `VectorInt`
+
+**Naming convention** (library-wide standard, pioneered here — supersedes the `X_IP` spelling used elsewhere, e.g. `AbsX_IP`):
+
+| Suffix     | Meaning                                                                                | Example         |
+| ---------- | --------------------------------------------------------------------------------------- | --------------- |
+| *(none)*   | Allocating — returns a new `Vector` / `VectorInt`; input unchanged                      | `SortAsc()`     |
+| `IP`       | In-place — mutates the receiver (sort), or writes into a caller-provided buffer (argsort) | `SortAscIP()`   |
+| `X`        | GPU, allocating                                                                          | `SortAscX()`    |
+| `XIP`      | GPU, in-place                                                                            | `SortAscXIP()`  |
+
+Order is abbreviated `Asc` / `Desc` (not `Ascending` / `Descending`); `Kern` marks device kernel entry points and their delegate fields.
+
+Full API matrix, 12 methods × {`Sort`, `Argsort`} = 24 methods per type (`Vector`, `VectorInt`), mirrored as static extensions (`VectorSorting`) and instance extensions (`SortingModule`):
+
+| Operation | CPU allocating | CPU in-place | GPU allocating | GPU in-place |
+| --------- | --------------- | ------------- | ---------------- | -------------- |
+| Sort      | `Sort(order)` / `SortAsc()` / `SortDesc()` | `SortIP(order)` / `SortAscIP()` / `SortDescIP()` | `SortX(order)` / `SortAscX()` / `SortDescX()` | `SortXIP(order)` / `SortAscXIP()` / `SortDescXIP()` |
+| Argsort   | `Argsort(order)` / `ArgsortAsc()` / `ArgsortDesc()` | `ArgsortIP(indices, order)` / `ArgsortAscIP(indices)` / `ArgsortDescIP(indices)` | `ArgsortX(order)` / `ArgsortAscX()` / `ArgsortDescX()` | `ArgsortXIP(indices, order)` / `ArgsortAscXIP(indices)` / `ArgsortDescXIP(indices)` |
+
+Notes:
+
+- `Sort` is per-row for `Is2D()` vectors (`Columns > 1`); global for `Is1D()` (`Columns == 0` or `1`).
+- `Argsort` never mutates the source values, on either CPU or GPU, for both the allocating and in-place forms.
+- `ArgsortIP` / `ArgsortXIP` require the caller-provided `indices` buffer to match the source's shape (`Length` and `Columns`); mismatches throw `ShapeMismatchException`.
+- GPU `SortX` / `SortXIP` / `ArgsortX` / `ArgsortXIP` require the **Sorting** kernel domain on the target `GPU` before use. Load via `KernelModuleLoader.Load<float>(gpu, KernelWorkloads.Sorting)` and `KernelModuleLoader.Load<int>(gpu, KernelWorkloads.Sorting)` (or `KernelDomain.Sorting` directly). Unloaded delegates throw `KernelNotCompiledException` — same contract as other GPU modules (§7).
+- GPU float sort/argsort maps floats to sortable `int` keys (`floatToSortableIntKern` / `sortableIntToFloatKern`), then reuses the int radix path.
 
 ### 4.3 Vector3 (GPU 3D)
 
@@ -644,7 +674,39 @@ Kernels are loaded selectively via `KernelModuleLoader` (see §7). Each domain f
 
 **Never loaded:** `TestSQRTKernel`, `TestMYSQRTKernel` in `Kernels/Experimental/` — no module provides them, so they throw `KernelNotCompiledException` if called.
 
-#### 4.5.3 LRU Memory Manager
+#### 4.5.3 Pooled buffer entities (`BufferPool`)
+
+`BufferPools.For(gpu)` returns a per-device **`BufferPool`** with **`Int`** and **`Float`** lanes. `pool.Int.Rent(length)` returns a disposable **`BufferEntity<int>`** (float via `pool.Float.Rent`) — a pooled GPU buffer spirit with an LRU ID on an internal slot. Buffers are bucketed by power-of-two capacity, returned to the pool on `Dispose`, and evicted by the LRU only when GPU memory is needed elsewhere.
+
+**Necromancy glossary** (intentional naming for the possess/banish lifecycle):
+
+| Term | Type | Meaning |
+|------|------|---------|
+| **Entity** | `BufferEntity<T>` | Pooled GPU buffer rental |
+| **Vessel** | `Vessel<TCacheable>` | Empty domain shell (`ID == 0`) from `Mask.CreateVessel(gpu, …)`, etc. — GPU required at creation |
+| **Possess** | `entity.Possess(vessel)` | Transfers buffer ID from entity slot → vessel |
+| **Soul** | `possession.Soul` | Inhabited `Mask` / `VectorInt` / … during the scope |
+| **Banish** | possession `Dispose` | Reverse transfer — soul loses ID, entity slot regains it |
+
+**Kernel path** (sort, internal temps): `entity.View` + `GpuScope.Begin(entity.PinTarget)` — no vessel.
+
+**Domain path**:
+
+```csharp
+using BufferEntity<int> entity = BufferPools.For(gpu).Int.Rent(wordCount);
+Vessel<Mask> vessel = Mask.CreateVessel(gpu, elementCount);
+using (var possession = entity.Possess(vessel))
+{
+    Mask mask = possession.Soul;
+    // domain APIs + GpuScope.Begin(mask)
+}
+```
+
+**Rules:** one entity → one active possession; vessel must be empty (`ID == 0`) before possess; vessel and entity must use the same `gpu` (`CreateVessel(gpu, …)` + `BufferPools.For(gpu)`); dispose entity only after Banish. Violations throw `EntityAlreadyPossessedException`, `VesselAlreadyInhabitedException`, `EntityDisposeWhilePossessedException`, or `VesselGpuMismatchException`.
+
+Sort/argsort uses the kernel path internally.
+
+#### 4.5.4 LRU Memory Manager
 
 `BAVCL.Core.LRU` (in `Source/Core/Memory/`) implements `IMemoryManager`:
 
@@ -1025,6 +1087,7 @@ GPU gpu = GPUManager.Default;
 | -------------------------- | --------------------------------- | --------------------------------------------------- |
 | `KernelWorkloads.Default`  | Arithmetic, Structural, **Mask**  | Standard numerics + mask kernels                    |
 | `KernelWorkloads.Geometry` | Default + Geometry                | Vector3 GPU ops (cross, magnitude/distance)         |
+| `KernelWorkloads.Sorting`  | Sorting                           | GPU sort/argsort (`SortX`, `SortXIP`, `ArgsortX`, `ArgsortXIP`) |
 
 For full parity with the old load-all behaviour, use `LoadAll<T>`.
 
