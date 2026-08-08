@@ -7,7 +7,7 @@ namespace BAVCL.Modules.GpuOps;
 
 internal static class Vector3GpuOps
 {
-	internal static Vector VOP(Vector3 vector, Operations operation)
+	internal static Vector VOPX(Vector3 vector, Operations operation)
 	{
 		GPU gpu = vector.Gpu;
 		Vector output = Vector.Zeros(gpu, vector.RowCount(), 0);
@@ -24,7 +24,7 @@ internal static class Vector3GpuOps
 		return output;
 	}
 
-	internal static Vector VOP(Vector3 left, Vector3 right, Operations operation)
+	internal static Vector VOPX(Vector3 left, Vector3 right, Operations operation)
 	{
 		GPU gpu = left.Gpu;
 		Vector output = Vector.Zeros(gpu, left.RowCount(), 0);
@@ -42,7 +42,7 @@ internal static class Vector3GpuOps
 		return output;
 	}
 
-	internal static Vector3 OP(Vector3 left, Vector3 right, Operations operation)
+	internal static Vector3 OPX(Vector3 left, Vector3 right, Operations operation)
 	{
 		GPU gpu = left.Gpu;
 		Vector3 output = new(gpu, left.Length);
@@ -61,7 +61,7 @@ internal static class Vector3GpuOps
 		return output;
 	}
 
-	internal static Vector3 OP(Vector3 vector, float scalar, Operations operation)
+	internal static Vector3 OPX(Vector3 vector, float scalar, Operations operation)
 	{
 		GPU gpu = vector.Gpu;
 		Vector3 output = new(gpu, vector.Length);
@@ -79,7 +79,7 @@ internal static class Vector3GpuOps
 		return output;
 	}
 
-	internal static Vector3 OP_IP(Vector3 vector, Vector3 other, Operations operation)
+	internal static Vector3 IPOP(Vector3 vector, Vector3 other, Operations operation)
 	{
 		using (GpuScope.Begin(vector, other))
 		{
@@ -94,7 +94,7 @@ internal static class Vector3GpuOps
 		return vector;
 	}
 
-	internal static Vector3 OP_IP(Vector3 vector, float scalar, Operations operation)
+	internal static Vector3 IPOP(Vector3 vector, float scalar, Operations operation)
 	{
 		using (GpuScope.Begin(vector))
 		{

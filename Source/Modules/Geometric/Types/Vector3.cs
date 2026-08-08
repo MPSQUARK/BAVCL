@@ -74,47 +74,47 @@ public sealed class Vector3 : VectorBase<float>
 	public override string ToString() => this.Format(2);
 
 	public static Vector3 operator +(Vector3 vectorA, Vector3 vectorB) =>
-		vectorA.OP(vectorB, Operations.add);
+		vectorA.OPX(vectorB, Operations.add);
 
 	public static Vector3 operator -(Vector3 vectorA, Vector3 vectorB) =>
-		vectorA.OP(vectorB, Operations.subtract);
+		vectorA.OPX(vectorB, Operations.subtract);
 
 	public static Vector3 operator *(Vector3 vectorA, Vector3 vectorB) =>
-		vectorA.OP(vectorB, Operations.multiply);
+		vectorA.OPX(vectorB, Operations.multiply);
 
 	public static Vector3 operator /(Vector3 vectorA, Vector3 vectorB) =>
-		vectorA.OP(vectorB, Operations.divide);
+		vectorA.OPX(vectorB, Operations.divide);
 
 	public static Vector3 operator ^(Vector3 vectorA, Vector3 vectorB) =>
-		vectorA.OP(vectorB, Operations.pow);
+		vectorA.OPX(vectorB, Operations.pow);
 
 	public static Vector3 operator +(Vector3 vector, float scalar) =>
-		vector.OP(scalar, Operations.add);
+		vector.OPX(scalar, Operations.add);
 
 	public static Vector3 operator -(Vector3 vector, float scalar) =>
-		vector.OP(scalar, Operations.subtract);
+		vector.OPX(scalar, Operations.subtract);
 
 	public static Vector3 operator *(Vector3 vector, float scalar) =>
-		vector.OP(scalar, Operations.multiply);
+		vector.OPX(scalar, Operations.multiply);
 
 	public static Vector3 operator /(Vector3 vector, float scalar) =>
-		vector.OP(scalar, Operations.divide);
+		vector.OPX(scalar, Operations.divide);
 
 	public static Vector3 operator ^(Vector3 vector, float scalar) =>
-		vector.OP(scalar, Operations.pow);
+		vector.OPX(scalar, Operations.pow);
 
 	public static Vector3 operator +(float scalar, Vector3 vector) =>
-		vector.OP(scalar, Operations.add);
+		vector.OPX(scalar, Operations.add);
 
 	public static Vector3 operator -(float scalar, Vector3 vector) =>
-		vector.OP(scalar, Operations.flipSubtract);
+		vector.OPX(scalar, Operations.flipSubtract);
 
 	public static Vector3 operator *(float scalar, Vector3 vector) =>
-		vector.OP(scalar, Operations.multiply);
+		vector.OPX(scalar, Operations.multiply);
 
 	public static Vector3 operator /(float scalar, Vector3 vector) =>
-		vector.OP(scalar, Operations.flipDivide);
+		vector.OPX(scalar, Operations.flipDivide);
 
 	public static Vector3 operator ^(float scalar, Vector3 vector) =>
-		vector.OP(scalar, Operations.flipPow);
+		vector.OPX(scalar, Operations.flipPow);
 }

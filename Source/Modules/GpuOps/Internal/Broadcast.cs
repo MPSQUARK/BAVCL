@@ -21,7 +21,7 @@ internal static class Broadcast
 		return RunBroadcastOp(vectorA, vectorB, operation, shapeA, shapeB);
 	}
 
-	internal static Vector BroadcastOP_IP(Vector vector, Vector vectorB, Operations operation)
+	internal static Vector BroadcastIPOP(Vector vector, Vector vectorB, Operations operation)
 	{
 		Shape leftShape = vector.Shape();
 		Shape rightShape = vectorB.Shape();
@@ -37,7 +37,7 @@ internal static class Broadcast
 		if (leftShape.MatchesDimensions(rightShape)
 			&& vector.Length == vectorB.Length
 			&& vector.Columns == vectorB.Columns)
-			return VectorVectorOp.VectorVectorOP_IP(vector, vectorB, operation);
+			return VectorVectorOp.VectorVectorOPIP(vector, vectorB, operation);
 
 		RunBroadcastOpIP(vector, vectorB, operation, rightShape);
 		return vector;
@@ -171,7 +171,7 @@ internal static class Broadcast
 		return RunBroadcastOp(vectorA, vectorB, operation, shapeA, shapeB);
 	}
 
-	internal static VectorInt BroadcastOP_IP(VectorInt vector, VectorInt vectorB, Operations operation)
+	internal static VectorInt BroadcastIPOP(VectorInt vector, VectorInt vectorB, Operations operation)
 	{
 		Shape leftShape = vector.Shape();
 		Shape rightShape = vectorB.Shape();
@@ -187,7 +187,7 @@ internal static class Broadcast
 		if (leftShape.MatchesDimensions(rightShape)
 			&& vector.Length == vectorB.Length
 			&& vector.Columns == vectorB.Columns)
-			return VectorVectorOp.VectorVectorOP_IP(vector, vectorB, operation);
+			return VectorVectorOp.VectorVectorOPIP(vector, vectorB, operation);
 
 		RunBroadcastOpIP(vector, vectorB, operation, rightShape);
 		return vector;

@@ -9,11 +9,11 @@ namespace BAVCL.Modules.Masking;
 
 internal static class MaskVectorIntOps
 {
-	internal static Mask Compare(VectorInt left, VectorInt right, VectorComparison comparison)
+	internal static Mask CompareX(VectorInt left, VectorInt right, VectorComparison comparison)
 	{
 		Shape leftShape = left.Shape();
 		Shape rightShape = right.Shape();
-		Shape outputShape = OutputShape(leftShape, rightShape, nameof(Compare));
+		Shape outputShape = OutputShape(leftShape, rightShape, nameof(CompareX));
 
 		GPU gpu = left.Gpu;
 		Mask output = new(gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
@@ -37,7 +37,7 @@ internal static class MaskVectorIntOps
 		return output;
 	}
 
-	internal static Mask Compare(VectorInt vector, int scalar, VectorComparison comparison)
+	internal static Mask CompareX(VectorInt vector, int scalar, VectorComparison comparison)
 	{
 		GPU gpu = vector.Gpu;
 		Mask output = new(gpu, vector.Length, vector.Columns);
@@ -58,11 +58,11 @@ internal static class MaskVectorIntOps
 		return output;
 	}
 
-	internal static VectorInt Mask(VectorInt vector, Mask mask, int fill)
+	internal static VectorInt MaskX(VectorInt vector, Mask mask, int fill)
 	{
 		Shape vectorShape = vector.Shape();
 		Shape maskShape = mask.Shape();
-		Shape outputShape = OutputShape(vectorShape, maskShape, nameof(Mask));
+		Shape outputShape = OutputShape(vectorShape, maskShape, nameof(MaskX));
 
 		GPU gpu = vector.Gpu;
 		VectorInt output = new(gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
@@ -86,21 +86,21 @@ internal static class MaskVectorIntOps
 		return output;
 	}
 
-	internal static VectorInt Filter(VectorInt vector, Mask mask)
+	internal static VectorInt FilterX(VectorInt vector, Mask mask)
 	{
 		Shape vectorShape = vector.Shape();
 		Shape maskShape = mask.Shape();
-		Shape outputShape = OutputShape(vectorShape, maskShape, nameof(Filter));
+		Shape outputShape = OutputShape(vectorShape, maskShape, nameof(FilterX));
 
 		int[] sourceIndices = SelectedSourceIndices(mask, maskShape, vectorShape, outputShape, selected: true);
 		return Gather(vector, sourceIndices);
 	}
 
-	internal static (VectorInt TrueLanes, VectorInt FalseLanes) Partition(VectorInt vector, Mask mask)
+	internal static (VectorInt TrueLanes, VectorInt FalseLanes) PartitionX(VectorInt vector, Mask mask)
 	{
 		Shape vectorShape = vector.Shape();
 		Shape maskShape = mask.Shape();
-		Shape outputShape = OutputShape(vectorShape, maskShape, nameof(Partition));
+		Shape outputShape = OutputShape(vectorShape, maskShape, nameof(PartitionX));
 
 		int[] trueIndices = SelectedSourceIndices(mask, maskShape, vectorShape, outputShape, selected: true);
 		int[] falseIndices = SelectedSourceIndices(mask, maskShape, vectorShape, outputShape, selected: false);

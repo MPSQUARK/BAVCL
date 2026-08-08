@@ -24,7 +24,7 @@ internal static class VectorVectorOp
 		return output;
 	}
 
-	internal static Vector VectorVectorOP_IP(Vector vector, Vector vectorB, Operations operation)
+	internal static Vector VectorVectorOPIP(Vector vector, Vector vectorB, Operations operation)
 	{
 		using (GpuScope.Begin(vector, vectorB))
 		{
@@ -92,7 +92,7 @@ internal static class VectorVectorOp
 		return output;
 	}
 
-	internal static VectorInt VectorVectorOP_IP(VectorInt vector, VectorInt vectorB, Operations operation)
+	internal static VectorInt VectorVectorOPIP(VectorInt vector, VectorInt vectorB, Operations operation)
 	{
 		VectorIntOperationValidation.ValidateOperation(operation);
 		using (GpuScope.Begin(vector, vectorB))
