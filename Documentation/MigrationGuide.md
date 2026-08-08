@@ -280,6 +280,60 @@ The `BAVCL.Modules.GpuOps` namespace requires **Arithmetic** (fp32) kernels (bro
 
 To restore old load-all behaviour: `KernelModuleLoader.LoadAll<float>(gpu)`.
 
+### API naming (suffix, PascalCase, CPU/GPU alignment)
+
+BAVCL now uses a single suffix scheme (pioneered by Sorting):
+
+| Suffix | Meaning | Execution |
+|--------|---------|-----------|
+| *(none)* | Allocating | **CPU** |
+| `IP` | In-place | **CPU** |
+| `X` | Allocating | **GPU** |
+| `XIP` | In-place | **GPU** |
+
+**Exceptions (unchanged names, GPU-only):** `OP` / `IPOP` on `Vector`, `VectorInt`, and `Mask`; C# operator overloads; explicit `(Vector)` / `(VectorInt)` casts.
+
+#### Suffix / PascalCase renames
+
+| Old | New |
+|-----|-----|
+| `Abs_IP` | `AbsIP` |
+| `AbsX_IP` | `AbsXIP` |
+| `ReverseX_IP` | `ReverseXIP` |
+| `Transpose_IP` | `TransposeXIP` |
+| `Append_IP` | `AppendIP` |
+| `Nan_to_num` | `NanToNumX` |
+| `Nan_to_num_IP` | `NanToNumXIP` |
+| `Aces_approx` | `AcesApprox` |
+| `Aces_approx_IP` | `AcesApproxIP` |
+| `Vector3.OP_IP` | `Vector3.IPOP` |
+| `Log_IP` | `LogXIP` |
+
+(Apply the same `_IP` → `IP` pattern to all other in-place methods.)
+
+#### CPU/GPU alignment renames
+
+GPU paths that previously had no `X` suffix now do:
+
+| Old | New |
+|-----|-----|
+| `Reciprocal` / `Reciprocal_IP` | `ReciprocalX` / `ReciprocalXIP` |
+| `Diff` / `Diff_IP` | `DiffX` / `DiffXIP` |
+| `Normalise` / `Normalise_IP` | `NormaliseX` / `NormaliseXIP` |
+| `Transpose` / `Transpose_IP` | `TransposeX` / `TransposeXIP` |
+| `Cross` (matrix multiply) | `CrossX` |
+| `MatrixAdd` … `MatrixMultiply` | `MatrixAddX` … `MatrixMultiplyX` |
+| `ReduceOP` | `ReduceOPX` |
+| `Mask` / `Filter` / `Partition` | `MaskX` / `FilterX` / `PartitionX` |
+| `CompareEquals` / `CompareNotEquals` / `Compare` | `CompareEqualsX` / `CompareNotEqualsX` / `CompareX` |
+| `GetColumnAsVector` | `GetColumnAsVectorX` |
+| Column `GetSliceAsVector` / `GetSliceAsArray` | `GetSliceAsVectorX` / `GetSliceAsArrayX` |
+| `Vector3.Magnitude` / `Distance` / `Dot` / `Cross` / `Normalise` | `*X` variants |
+| `VOP` | `VOPX` |
+| `Vector3.OP` (allocating) | `Vector3.OPX` |
+
+**Concat:** `Concat` / `ConcatIP` are **row-axis only** (CPU). Column-axis GPU concat uses `ConcatColumnX` / `ConcatColumnXIP`. Passing `ConcatAxis.Column` to `Concat` throws — use the column APIs instead.
+
 ## Benchmarks
 
 Span/read and memory-manager benchmarks: `BAVCL.Benchmarks` — see `BAVCL.Benchmarks/README.md`.
