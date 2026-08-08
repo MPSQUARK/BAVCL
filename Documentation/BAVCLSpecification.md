@@ -138,12 +138,12 @@ Data types stay thin (`Vector.cs`, `Vector3.cs` — constructors, operators, cop
 
 Primitive-array `Print`, `Sum`, `Average`, `Min`, and `Max` live in **Structural** and **Statistics** modules (the former `Extensions/` folder was merged into `Modules/` — see §9.2).
 
-Each module exposes **one API-catalog file** with C# 14 extension blocks. Static and instance members are split across paired public classes when required (CS0111), e.g. `VectorArithmetic` (static) + `VectorArithmeticExtensions` (instance + `*_IP`). Implementation lives in `Internal/` as `internal static` types — consumers never import or reference them.
+Each module exposes **one API-catalog file** with C# 14 extension blocks. Static and instance members are split across paired public classes when required (CS0111), e.g. `VectorArithmetic` (static) + `VectorArithmeticExtensions` (instance + `*IP` / `*XIP`). Implementation lives in `Internal/` as `internal static` types — consumers never import or reference them.
 
 ```csharp
 using BAVCL;                          // core Vector only
 
-using BAVCL.Modules.Arithmetic;       // + Vector.Sum(v), v.Cross(b), …
+using BAVCL.Modules.Arithmetic;       // + Vector.Sum(v), v.CrossX(b), …
 using BAVCL.Modules.Statistics;       // + v.Mean(), arr.Min(), …
 using BAVCL.Modules.Sorting;          // + v.Sort(SortOrder), v.SortAscIP(), v.SortAscXIP(), v.Argsort(SortOrder), …
 
@@ -487,39 +487,39 @@ Implemented in `BAVCL.Modules.Structural` (`VectorStructural`) and `BAVCL.Module
 
 #### 4.2.4 Element-wise and Unary Operations
 
-| Operation  | CPU               | GPU (`X` / module)        | In-place (`_IP`) |
-| ---------- | ----------------- | ------------------------- | ---------------- |
-| Abs        | `Abs`, `Abs_IP`   | `AbsX`, `AbsX_IP`         | yes              |
-| Reciprocal | —                 | GPU kernel                | `Reciprocal_IP`  |
-| Rsqrt      | CPU path          | `RsqrtX`, `RsqrtX_IP`     | yes              |
-| Reverse    | `Reverse()` (CPU) | `ReverseX`, `ReverseX_IP` | yes              |
-| Diff       | —                 | allocating GPU kernel     | `Diff_IP` (reuses buffer) |
-| NanToNum   | —                 | `nanToNumKernel`          | `Nan_to_num_IP`  |
-| Normalise  | —                 | GPU `OP` multiply (`GpuOpsModule`) | `Normalise_IP` |
-| Log        | —                 | `LogKernel` (`GpuOpsModule`) | `Log_IP`      |
+| Operation  | CPU               | GPU | In-place (CPU) | In-place (GPU) |
+| ---------- | ----------------- | --- | -------------- | -------------- |
+| Abs        | `Abs`             | `AbsX` | `AbsIP` | `AbsXIP` |
+| Reciprocal | —                 | `ReciprocalX` | — | `ReciprocalXIP` |
+| Rsqrt      | `Rsqrt`           | `RsqrtX` | `RsqrtIP` | `RsqrtXIP` |
+| Reverse    | `Reverse`         | `ReverseX` | `ReverseIP` | `ReverseXIP` |
+| Diff       | —                 | `DiffX` | — | `DiffXIP` |
+| NanToNum   | —                 | `NanToNumX` | — | `NanToNumXIP` |
+| Normalise  | —                 | `NormaliseX` | — | `NormaliseXIP` |
+| Log        | —                 | `LogX` (`GpuOpsModule`) | — | `LogXIP` |
 
 #### 4.2.5 Binary Operations and Operators
 
-**Migration:** See [`MigrationGuide.md`](MigrationGuide.md) for breaking changes to `Columns`, `OP`/`IPOP`, `ReduceOP`, and `Matrix*`.
+**Migration:** See [`MigrationGuide.md`](MigrationGuide.md) for naming (`_IP` → `IP`, GPU `X` alignment) and breaking changes to `Columns`, `OP`/`IPOP`, `ReduceOPX`, and `Matrix*X`.
 
 Binary `+`, `-`, `*`, `/`, `^` operator overloads use **NumPy-style element-wise broadcast** via `OP()` / `IPOP()`. Three separate API families exist for different semantics:
 
 | Family | Methods | Semantics |
 | ------ | ------- | --------- |
-| **Broadcast (default)** | `OP`, `IPOP`, operators | NumPy element-wise broadcast via `broadcastOpKernel` / `broadcastOpKernelIP` |
-| **Matrix calculator** | `MatrixAdd`, `MatrixSubtract`, `MatrixDivide`, `MatrixPow`, `MatrixMultiply`, `Cross` | Strict 2D rules: same shape for add/sub/div/pow; inner-dimension match for multiply |
-| **Row reduction** | `ReduceOP` | `reduceRowOpKernel` — one output per matrix row (not broadcast, not matmul) |
+| **Broadcast (default)** | `OP`, `IPOP`, operators | NumPy element-wise broadcast via `broadcastOpKernel` / `broadcastOpKernelIP` — **GPU-only; no `X` suffix** |
+| **Matrix calculator** | `MatrixAddX`, `MatrixSubtractX`, `MatrixDivideX`, `MatrixPowX`, `MatrixMultiplyX`, `CrossX` | Strict 2D rules: same shape for add/sub/div/pow; inner-dimension match for multiply |
+| **Row reduction** | `ReduceOPX` | `reduceRowOpKernel` — one output per matrix row (not broadcast, not matmul) |
 
 | Method                        | Description                              |
 | ----------------------------- | ---------------------------------------- |
-| `OP(vecA, vecB, Operations)`  | NumPy broadcast element-wise             |
-| `OP(vec, scalar, Operations)` | Vector-scalar                            |
+| `OP(vecA, vecB, Operations)`  | NumPy broadcast element-wise (GPU)       |
+| `OP(vec, scalar, Operations)` | Vector-scalar (GPU)                      |
 | `IPOP(vecB, Operations)`      | In-place broadcast when left shape equals output shape |
 | `IPOP(scalar, Operations)`    | In-place vector-scalar                   |
-| `MatrixAdd` / `MatrixSubtract` / `MatrixDivide` / `MatrixPow` | Identical `(M,N)` matrices, element-wise |
-| `MatrixMultiply` / `Cross`    | Matrix multiply `(M,K) × (K,N)` — `Cross` is the primary name; `MatrixMultiply` is an alias |
-| `ReduceOP(vector, matrix, op)` | 1D row coefficient (`Columns=0`), length == matrix columns; allocates output length == matrix rows |
-| `Dot(vecA, vecB)`             | Scalar inner product (equal length only) |
+| `MatrixAddX` / `MatrixSubtractX` / `MatrixDivideX` / `MatrixPowX` | Identical `(M,N)` matrices, element-wise (GPU) |
+| `MatrixMultiplyX` / `CrossX`    | Matrix multiply `(M,K) × (K,N)` — `CrossX` is the primary name; `MatrixMultiplyX` is an alias |
+| `ReduceOPX(vector, matrix, op)` | 1D row coefficient (`Columns=0`), length == matrix columns; allocates output length == matrix rows |
+| `Dot(vecA, vecB)`             | Scalar inner product (equal length only; uses `OP` + CPU `Sum`) |
 
 **`Operations` enum** (`Source/Core/Enums/Operations.cs`): `multiply`, `add`, `subtract`, `divide`, `pow`, `flipDivide`, `flipSubtract`, `flipPow`, `differenceSquared`, `distance`, `magnitude`.
 
@@ -533,11 +533,11 @@ Binary `+`, `-`, `*`, `/`, `^` operator overloads use **NumPy-style element-wise
 
 `RowCount()` and `Shape()` derive from `Columns` and `Length` as above. `Is1D()` is true when `Columns == 0` or `Columns == 1` (both lay out as one global, non-row-segmented sequence); `Is1DRowVector()` narrows to `Columns == 0` alone; `Is2D()` is true when `Columns > 1`.
 
-**No in-place row reduce:** `ReduceIPOP` is intentionally omitted. Row reduction reads a full coefficient vector (`Length == matrix.Columns`) and writes one scalar per row (`Length == matrix.RowCount()`). A single buffer cannot satisfy both layouts except on square matrices, and even then the row-wise kernel reads every coefficient element on each thread while writing row outputs into the same buffer — unsafe GPU aliasing without a coefficient snapshot. A column-wise per-thread scheme would avoid aliasing but would not implement shared-coefficient row reduction and would harm row-major coalescing. Use allocating `ReduceOP` instead.
+**No in-place row reduce:** `ReduceIPOP` is intentionally omitted. Row reduction reads a full coefficient vector (`Length == matrix.Columns`) and writes one scalar per row (`Length == matrix.RowCount()`). A single buffer cannot satisfy both layouts except on square matrices, and even then the row-wise kernel reads every coefficient element on each thread while writing row outputs into the same buffer — unsafe GPU aliasing without a coefficient snapshot. A column-wise per-thread scheme would avoid aliasing but would not implement shared-coefficient row reduction and would harm row-major coalescing. Use allocating `ReduceOPX` instead.
 
 **Broadcasting:** Operand shapes are resolved host-side into `BroadcastStrides` (row stride, column stride) where a length-one axis gets stride `0`. `broadcastOpKernel` / `broadcastOpKernelIP` map each output element to operand indices via multiply-add with no shape tests on device; only the operation stays specialized. Incompatible shapes throw `ShapeMismatchException`. `IPOP` throws `PerformanceException` (prefix: *This operation will lead to degraded performance:*) when the left operand would need resizing.
 
-**Note:** `Vector3.Cross` is a separate optimised 3D geometric kernel — not related to `Vector.Cross` (matrix multiply).
+**Note:** `Vector3.CrossX` is a separate optimised 3D geometric kernel — not related to `Vector.CrossX` (matrix multiply).
 
 **Note:** Unary `+` operator currently calls `AbsX` (likely unintentional — see §19 #21).
 
@@ -547,21 +547,23 @@ Defined on `Source/Types/Vector.cs`; GPU kernels in `BAVCL.Modules.Masking`. See
 
 | Surface | Examples |
 | ------- | -------- |
-| Compare → `Mask` | `CompareEquals`, `CompareNotEquals`, `Compare`, `>`, `<`, `>=`, `<=` |
-| Filter / select | `vector & mask`, `vector & (mask, fill)`, `vector \| mask`, `vector / mask`, `vector[mask]` |
+| Compare → `Mask` | `CompareEqualsX`, `CompareNotEqualsX`, `CompareX`, `>`, `<`, `>=`, `<=` |
+| Filter / select | `vector & mask` → `MaskX`, `vector \| mask` → `FilterX`, `vector / mask` → `PartitionX`, `vector[mask]` → `FilterX` |
 
 #### 4.2.6 Structural Operations
 
 | Method                                   | Description                                 |
 | ---------------------------------------- | ------------------------------------------- |
-| `Transpose` / `Transpose_IP`             | GPU transpose kernel                        |
-| `Dot(vecA, vecB)` / `Dot(scalar)`        | Dot product                                 |
-| `Concat(vecA, vecB, axis, warp)`         | Concatenate along axis                      |
-| `Append` / `Prepend`                     | Vector append                               |
-| `Merge`                                  | Merge vectors                               |
-| `GetSliceAsVector` / `GetSliceAsArray`   | Slice by row or column                      |
-| `GetColumnAsVector` / `GetColumnAsArray` | Column extraction                           |
-| `GetRowAsVector` / `GetRowAsArray`       | Row extraction                              |
+| `TransposeX` / `TransposeXIP`            | GPU transpose kernel                        |
+| `Dot(vecA, vecB)` / `Dot(scalar)`        | Dot product (scalar; uses `OP` + CPU `Sum`) |
+| `Concat(vecA, vecB)` / `ConcatIP`        | Row-axis concatenate (CPU)                  |
+| `ConcatColumnX` / `ConcatColumnXIP`      | Column-axis concatenate (GPU)               |
+| `Append` / `Prepend`                     | Vector append (CPU allocating)              |
+| `Merge`                                  | Merge vectors (CPU)                         |
+| `GetSliceAsVector` / `GetSliceAsArray`   | Row slice (CPU)                             |
+| `GetSliceAsVectorX` / `GetSliceAsArrayX` | Column slice (GPU)                          |
+| `GetColumnAsVectorX` / `GetColumnAsArray`| Column extraction (GPU)                     |
+| `GetRowAsVector` / `GetRowAsArray`       | Row extraction (CPU)                        |
 | `TransferBuffer`                         | Copy GPU buffer reference to another vector |
 | `All()`                                  | True if no zero values                      |
 
@@ -575,7 +577,7 @@ Defined on `Source/Types/Vector.cs`; GPU kernels in `BAVCL.Modules.Masking`. See
 
 #### 4.2.8 Sorting (`BAVCL.Modules.Sorting`) — `Vector` and `VectorInt`
 
-**Naming convention** (library-wide standard, pioneered here — supersedes the `X_IP` spelling used elsewhere, e.g. `AbsX_IP`):
+**Naming convention** (library-wide standard — see [Features.md](Features.md)):
 
 | Suffix     | Meaning                                                                                | Example         |
 | ---------- | --------------------------------------------------------------------------------------- | --------------- |
@@ -656,7 +658,7 @@ Kernels are loaded selectively via `KernelModuleLoader` (see §7). Each domain f
 | `a_opFKernel` / `s_opFKernel`             | Arithmetic  | Binary ops (array/scalar)                       |
 | `a_FloatOPKernelIP` / `s_FloatOPKernelIP` | Arithmetic  | In-place binary ops                             |
 | `broadcastOpKernel` / `broadcastOpKernelIP` | Arithmetic  | NumPy-style element-wise broadcast              |
-| `reduceRowOpKernel`                       | Arithmetic  | Row-wise vector-matrix reduction (`ReduceOP`)   |
+| `reduceRowOpKernel`                       | Arithmetic  | Row-wise vector-matrix reduction (`ReduceOPX`)   |
 | `matmulKernel`                            | Arithmetic  | Matrix multiply (`Cross` / `MatrixMultiply`)    |
 | `diffKernel`                              | Arithmetic  | Adjacent difference                             |
 | `absKernel`                               | Arithmetic  | Absolute value                                  |
@@ -847,10 +849,10 @@ Host-side checks remain for **API misuse** only: `InvalidOperationOnTypeExceptio
 | **`\|` operator** | `VectorInt \| mask` — filter (compact true lanes). `Mask \| Mask` remains bitwise OR (different LHS type). |
 | **`/` operator** | `VectorInt / VectorInt` — divide. `VectorInt / mask` — partition → `(trueLanes, falseLanes)`. |
 | **Bit shifts** | `<<` / `>>` / `<<=` / `>>=` with `int` or `VectorInt` RHS only (no `<< mask` overload). `>>` is arithmetic. Counts follow C# mod-32 masking. |
-| **Omitted** | Float-only ops (`Log`, `Rsqrt`, `Reciprocal`, `Nan_to_num`, `Normalise`, `distance`, `magnitude`, `pow`) throw `InvalidOperationOnTypeException` if passed to GpuOps. |
-| **Reduce** | Unsupported `ReduceOP` values throw `UnsupportedOperationException`. |
+| **Omitted** | Float-only ops (`LogX`, `Rsqrt`, `ReciprocalX`, `NanToNumX`, `NormaliseX`, `distance`, `magnitude`, `pow`) throw `InvalidOperationOnTypeException` if passed to GpuOps. |
+| **Reduce** | Unsupported `ReduceOPX` values throw `UnsupportedOperationException`. |
 | **Statistics** | `Sum()` via `long` internally; `Min()`/`Max()`/`Range()` return `int`. `All()` — true when no zero values. |
-| **Structural** | `Concat`/`Merge`/`Append_IP`/`Reverse_IP`/`GetRowAsArray(noSync)` — parity with `Vector`. Axis via `ConcatAxis` enum (`Row`, `Column`). |
+| **Structural** | `Concat`/`ConcatColumnX`/`Merge`/`AppendIP`/`ReverseIP`/`GetRowAsArray(noSync)` — parity with `Vector`. Row concat via `Concat`/`ConcatIP`; column via `ConcatColumnX`/`ConcatColumnXIP`. |
 
 #### Mask operators (same semantics as `Vector`)
 
