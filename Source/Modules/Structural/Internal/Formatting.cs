@@ -135,7 +135,7 @@ internal static class FormattingCore
 	{
 		ReadOnlySpan<float> data = vector.RetrieveReadOnlySpan();
 
-		int layoutColumns = vector.Is1D() ? vector.Length : vector.Columns;
+		int layoutColumns = vector.Is1DRowVector() ? vector.Length : vector.Columns;
 
 		(float min, float max, bool hasinfinity) = Util.MinMaxInf(data);
 
@@ -239,6 +239,54 @@ internal static class FormattingCore
 
 			clear.CopyTo(Template, 3);
 			string val = data[i].ToString(format);
+			val.CopyTo(0, Template, _diff - val.Length, val.Length);
+
+			stringBuilder.Append(Template);
+		}
+
+		return stringBuilder.ToString();
+	}
+
+	internal static string ToStr(VectorInt vector)
+	{
+		ReadOnlySpan<int> data = vector.RetrieveReadOnlySpan();
+
+		int layoutColumns = vector.Is1DRowVector() ? vector.Length : vector.Columns;
+
+		int min = data[0], max = data[0];
+		for (int i = 1; i < data.Length; i++)
+		{
+			if (data[i] < min) min = data[i];
+			if (data[i] > max) max = data[i];
+		}
+
+		bool hasnegative = min < 0;
+		int high = max.ToString().Length;
+		int low = hasnegative ? min.ToString().Length - 1 : min.ToString().Length;
+		int digits = high > low ? high : low;
+
+		char[] Template = new char[digits + 5];
+		Template[0] = '|';
+		Template[1] = ' ';
+		Template[2] = ' ';
+		Template[^2] = ' ';
+		Template[^1] = '|';
+
+		StringBuilder stringBuilder = new();
+		char[] clear = new string(' ', Template.Length - 5).ToCharArray();
+		int _diff = digits + 3;
+
+		for (int i = 0, col = 0; i < vector.Length; i++, col++)
+		{
+			if (col == layoutColumns)
+			{
+				stringBuilder.AppendLine();
+				col = 0;
+			}
+
+			Template[2] = data[i] < 0 ? '-' : ' ';
+			clear.CopyTo(Template, 3);
+			string val = Math.Abs(data[i]).ToString();
 			val.CopyTo(0, Template, _diff - val.Length, val.Length);
 
 			stringBuilder.Append(Template);

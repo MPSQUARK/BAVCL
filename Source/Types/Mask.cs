@@ -68,6 +68,17 @@ public sealed class Mask : CacheableBase<int>
 		ValidateRectangularLayout();
 	}
 
+	private Mask(GPU gpu, int elementCount, int columns) : base(gpu, [], cache: false)
+	{
+		_elementCount = elementCount;
+		_columns = columns;
+		ValidateRectangularLayout();
+	}
+
+	/// <summary>Creates an empty vessel shell with no GPU buffer.</summary>
+	public static Vessel<Mask> CreateVessel(GPU gpu, int elementCount, int columns = 0) =>
+		new(new Mask(gpu, elementCount, columns), gpu);
+
 	public int RowCount()
 	{
 		if (Columns == 0)

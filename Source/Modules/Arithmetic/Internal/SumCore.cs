@@ -31,6 +31,16 @@ internal static class SumCore
 
 	internal static float Sum(BAVCL.Geometric.Vector3 vector3) => Sum(vector3.ToArray());
 
+	internal static float Sum(VectorInt vector) => Sum(vector.RetrieveReadOnlySpan());
+
+	static float Sum(ReadOnlySpan<int> data)
+	{
+		long total = 0;
+		for (int i = 0; i < data.Length; i++)
+			total += data[i];
+		return total;
+	}
+
 	static float SimpleSum(float[] arr)
 	{
 		NumericVectorF sumVector = NumericVectorF.Zero;

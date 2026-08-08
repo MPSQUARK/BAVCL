@@ -21,6 +21,15 @@ public static class KernelModuleLoader
 			gpu.LoadMaskWordKernels();
 			gpu.LoadMaskVectorKernels();
 		},
+		[(KernelDomain.Arithmetic, typeof(int))] = static gpu => gpu.LoadArithmeticInt32Kernels(),
+		[(KernelDomain.Structural, typeof(int))] = static gpu => gpu.LoadStructuralInt32Kernels(),
+		[(KernelDomain.Mask, typeof(int))] = static gpu =>
+		{
+			gpu.LoadMaskWordKernels();
+			gpu.LoadMaskVectorIntKernels();
+		},
+		[(KernelDomain.Sorting, typeof(float))] = static gpu => gpu.LoadSortFloatKernels(),
+		[(KernelDomain.Sorting, typeof(int))] = static gpu => gpu.LoadSortSegmentedRadixKernels(),
 	};
 
 	/// <summary>

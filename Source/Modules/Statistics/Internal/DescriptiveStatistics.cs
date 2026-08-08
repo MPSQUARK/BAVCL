@@ -97,4 +97,64 @@ internal static class DescriptiveStatistics
 
 		return true;
 	}
+
+	internal static float Mean(VectorInt vector) => vector.Sum() / vector.Length;
+
+	internal static float Var(VectorInt vector)
+	{
+		float mean = Mean(vector);
+		ReadOnlySpan<int> data = vector.RetrieveReadOnlySpan();
+
+		float sum = 0f;
+		for (int i = 0; i < data.Length; i++)
+			sum += XMath.Pow(data[i] - mean, 2f);
+
+		return sum / vector.Length;
+	}
+
+	internal static float Std(VectorInt vector) => XMath.Sqrt(Var(vector));
+
+	internal static int Min(VectorInt vector)
+	{
+		ReadOnlySpan<int> data = vector.RetrieveReadOnlySpan();
+		if (data.Length == 0) throw new Exception("Cannot Be Length 0");
+
+		int min = data[0];
+		for (int i = 1; i < data.Length; i++)
+		{
+			if (min > data[i])
+				min = data[i];
+		}
+
+		return min;
+	}
+
+	internal static int Max(VectorInt vector)
+	{
+		ReadOnlySpan<int> data = vector.RetrieveReadOnlySpan();
+		if (data.Length == 0) throw new Exception("Cannot Be Length 0");
+
+		int max = data[0];
+		for (int i = 1; i < data.Length; i++)
+		{
+			if (max < data[i])
+				max = data[i];
+		}
+
+		return max;
+	}
+
+	internal static int Range(VectorInt vector) => Max(vector) - Min(vector);
+
+	internal static bool All(VectorInt vector)
+	{
+		ReadOnlySpan<int> data = vector.RetrieveReadOnlySpan();
+		for (int i = 0; i < data.Length; i++)
+		{
+			if (data[i] == 0)
+				return false;
+		}
+
+		return true;
+	}
 }
