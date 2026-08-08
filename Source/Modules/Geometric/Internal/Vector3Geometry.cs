@@ -12,34 +12,34 @@ namespace BAVCL.Modules.Geometric;
 
 internal static class Vector3Geometry
 {
-	internal static Vector Magnitude(Vector3 left, Vector3 right)
+	internal static Vector MagnitudeX(Vector3 left, Vector3 right)
 	{
 		if (left.Length != right.Length)
-			throw new LengthMismatchException(nameof(Magnitude), left.Length, right.Length);
+			throw new LengthMismatchException(nameof(MagnitudeX), left.Length, right.Length);
 
-		return left.VOP(right, Operations.magnitude);
+		return left.VOPX(right, Operations.magnitude);
 	}
 
-	internal static Vector Magnitude(Vector3 vector) =>
-		vector.VOP(Operations.magnitude);
+	internal static Vector MagnitudeX(Vector3 vector) =>
+		vector.VOPX(Operations.magnitude);
 
-	internal static Vector Distance(Vector3 left, Vector3 right)
+	internal static Vector DistanceX(Vector3 left, Vector3 right)
 	{
 		if (left.Length != right.Length)
-			throw new LengthMismatchException(nameof(Distance), left.Length, right.Length);
+			throw new LengthMismatchException(nameof(DistanceX), left.Length, right.Length);
 
-		return left.VOP(right, Operations.distance);
+		return left.VOPX(right, Operations.distance);
 	}
 
-	internal static Vector Dot(Vector3 left, Vector3 right)
+	internal static Vector DotX(Vector3 left, Vector3 right)
 	{
 		if (left.Length != right.Length)
-			throw new LengthMismatchException(nameof(Dot), left.Length, right.Length);
+			throw new LengthMismatchException(nameof(DotX), left.Length, right.Length);
 
-		return left.VOP(right, Operations.multiply);
+		return left.VOPX(right, Operations.multiply);
 	}
 
-	internal static Vector3 Cross(Vector3 left, Vector3 right)
+	internal static Vector3 CrossX(Vector3 left, Vector3 right)
 	{
 		if (left.Length != right.Length)
 			throw new Exception($"Cannot Cross Product two Vector3's together of different lengths. {left.Length} != {right.Length}");
@@ -61,7 +61,7 @@ internal static class Vector3Geometry
 		return output;
 	}
 
-	internal static Vector3 Normalise(Vector3 vector)
+	internal static Vector3 NormaliseX(Vector3 vector)
 	{
 		GPU gpu = vector.Gpu;
 		Vector3 output = new(gpu, vector.Length);
@@ -87,24 +87,24 @@ internal static class Vector3Geometry
 	}
 
 	internal static Vector3 Concat(Vector3 left, Vertex vertA) =>
-		left.Copy().Concat_IP(vertA);
+		left.Copy().ConcatIP(vertA);
 
 	internal static Vector3 Concat(Vector3 left, Vertex[] vertices) =>
-		left.Copy().Concat_IP(vertices);
+		left.Copy().ConcatIP(vertices);
 
 	internal static Vector3 Concat(Vector3 left, List<Vertex> vertices) =>
-		left.Copy().Concat_IP(vertices);
+		left.Copy().ConcatIP(vertices);
 
 	internal static Vector3 Concat(Vector3 left, Vector3 right) =>
-		left.Copy().Concat_IP(right);
+		left.Copy().ConcatIP(right);
 
 	internal static Vector3 Concat(Vector3 left, Vector3[] vectors) =>
-		left.Copy().Concat_IP(vectors);
+		left.Copy().ConcatIP(vectors);
 
 	internal static Vector3 Concat(Vector3 left, List<Vector3> vectors) =>
-		left.Copy().Concat_IP(vectors);
+		left.Copy().ConcatIP(vectors);
 
-	internal static Vector3 Concat_IP(Vector3 vector, Vertex vertA)
+	internal static Vector3 ConcatIP(Vector3 vector, Vertex vertA)
 	{
 		using (vector.CpuScopeAndSync())
 		{
@@ -116,7 +116,7 @@ internal static class Vector3Geometry
 		return vector;
 	}
 
-	internal static Vector3 Concat_IP(Vector3 vector, Vertex[] vertices)
+	internal static Vector3 ConcatIP(Vector3 vector, Vertex[] vertices)
 	{
 		using (vector.CpuScopeAndSync())
 		{
@@ -129,7 +129,7 @@ internal static class Vector3Geometry
 		return vector;
 	}
 
-	internal static Vector3 Concat_IP(Vector3 vector, List<Vertex> vertices)
+	internal static Vector3 ConcatIP(Vector3 vector, List<Vertex> vertices)
 	{
 		using (vector.CpuScopeAndSync())
 		{
@@ -142,7 +142,7 @@ internal static class Vector3Geometry
 		return vector;
 	}
 
-	internal static Vector3 Concat_IP(Vector3 vector, Vector3 other)
+	internal static Vector3 ConcatIP(Vector3 vector, Vector3 other)
 	{
 		using (vector.CpuScopeAndSync())
 		{
@@ -155,7 +155,7 @@ internal static class Vector3Geometry
 		return vector;
 	}
 
-	internal static Vector3 Concat_IP(Vector3 vector, Vector3[] vectors)
+	internal static Vector3 ConcatIP(Vector3 vector, Vector3[] vectors)
 	{
 		using (vector.CpuScopeAndSync())
 		{
@@ -170,7 +170,7 @@ internal static class Vector3Geometry
 		return vector;
 	}
 
-	internal static Vector3 Concat_IP(Vector3 vector, List<Vector3> vectors)
+	internal static Vector3 ConcatIP(Vector3 vector, List<Vector3> vectors)
 	{
 		using (vector.CpuScopeAndSync())
 		{

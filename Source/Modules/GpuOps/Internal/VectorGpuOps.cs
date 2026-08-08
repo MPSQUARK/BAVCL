@@ -23,7 +23,7 @@ internal static class VectorGpuOps
 		return output;
 	}
 
-	internal static Vector ScalarOP_IP(Vector vector, float scalar, Operations operation)
+	internal static Vector ScalarIPOP(Vector vector, float scalar, Operations operation)
 	{
 		using (GpuScope.Begin(vector))
 		{
@@ -35,7 +35,14 @@ internal static class VectorGpuOps
 		return vector;
 	}
 
-	internal static Vector Log_IP(Vector vector, float @base)
+	internal static Vector LogX(Vector vector, float @base)
+	{
+		Vector copy = vector.Copy();
+		LogXIP(copy, @base);
+		return copy;
+	}
+
+	internal static Vector LogXIP(Vector vector, float @base)
 	{
 		using (GpuScope.Begin(vector))
 		{

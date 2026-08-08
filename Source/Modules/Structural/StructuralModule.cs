@@ -128,17 +128,20 @@ public static class VectorStructural
 		public static Vector Merge(Vector left, Vector right) =>
 			ShapeOpsCore.Merge(left, right);
 
+		public static Vector ConcatColumnX(Vector left, Vector right, bool warp = false) =>
+			ShapeOpsCore.ConcatColumnX(left, right, warp);
+
 		public static Vector Reverse(Vector vector) =>
 			ShapeOpsCore.Reverse(vector);
 
 		public static Vector ReverseX(Vector vector) =>
 			ShapeOpsCore.ReverseX(vector);
 
-		public static Vector Transpose(Vector vector) =>
-			ShapeOpsCore.Transpose(vector);
+		public static Vector TransposeX(Vector vector) =>
+			ShapeOpsCore.TransposeX(vector);
 
-		public static Vector Transpose_IP(Vector vector) =>
-			ShapeOpsCore.TransposeInPlace(vector);
+		public static Vector TransposeXIP(Vector vector) =>
+			ShapeOpsCore.TransposeXInPlace(vector);
 
 		public static Vector TransferBuffer(Vector inheritee, Vector temp, bool incColumns = false) =>
 			ShapeOpsCore.TransferBuffer(inheritee, temp, incColumns);
@@ -152,8 +155,8 @@ public static class VectorStructural
 		public static Vector GetRowAsVector(Vector vector, int row) =>
 			ShapeOpsCore.GetRowAsVector(vector, row);
 
-		public static Vector GetColumnAsVector(Vector vector, int column) =>
-			ShapeOpsCore.GetColumnAsVector(vector, column);
+		public static Vector GetColumnAsVectorX(Vector vector, int column) =>
+			ShapeOpsCore.GetColumnAsVectorX(vector, column);
 
 		public static float[] GetColumnAsArray(Vector vector, int column) =>
 			ShapeOpsCore.GetColumnAsArray(vector, column);
@@ -161,8 +164,14 @@ public static class VectorStructural
 		public static Vector GetSliceAsVector(Vector vector, int row_col_index, Axis axis) =>
 			ShapeOpsCore.GetSliceAsVector(vector, row_col_index, axis);
 
+		public static Vector GetSliceAsVectorX(Vector vector, int row_col_index, Axis axis) =>
+			ShapeOpsCore.GetSliceAsVectorX(vector, row_col_index, axis);
+
 		public static float[] GetSliceAsArray(Vector vector, int row_col_index, Axis axis) =>
 			ShapeOpsCore.GetSliceAsArray(vector, row_col_index, axis);
+
+		public static float[] GetSliceAsArrayX(Vector vector, int row_col_index, Axis axis) =>
+			ShapeOpsCore.GetSliceAsArrayX(vector, row_col_index, axis);
 
 		public static string ToStr(Vector vector, byte decimalplaces = 2) =>
 			FormattingCore.ToStr(vector, decimalplaces);
@@ -221,17 +230,20 @@ public static class VectorIntStructural
 		public static VectorInt Merge(VectorInt left, VectorInt right) =>
 			ShapeOpsCore.Merge(left, right);
 
+		public static VectorInt ConcatColumnX(VectorInt left, VectorInt right, bool warp = false) =>
+			ShapeOpsCore.ConcatColumnX(left, right, warp);
+
 		public static VectorInt Reverse(VectorInt vector) =>
 			ShapeOpsCore.Reverse(vector);
 
 		public static VectorInt ReverseX(VectorInt vector) =>
 			ShapeOpsCore.ReverseX(vector);
 
-		public static VectorInt Transpose(VectorInt vector) =>
-			ShapeOpsCore.Transpose(vector);
+		public static VectorInt TransposeX(VectorInt vector) =>
+			ShapeOpsCore.TransposeX(vector);
 
-		public static VectorInt Transpose_IP(VectorInt vector) =>
-			ShapeOpsCore.TransposeInPlace(vector);
+		public static VectorInt TransposeXIP(VectorInt vector) =>
+			ShapeOpsCore.TransposeXInPlace(vector);
 
 		public static VectorInt TransferBuffer(VectorInt inheritee, VectorInt temp, bool incColumns = false) =>
 			ShapeOpsCore.TransferBuffer(inheritee, temp, incColumns);
@@ -242,8 +254,8 @@ public static class VectorIntStructural
 		public static VectorInt GetRowAsVector(VectorInt vector, int row) =>
 			ShapeOpsCore.GetRowAsVector(vector, row);
 
-		public static VectorInt GetColumnAsVector(VectorInt vector, int column) =>
-			ShapeOpsCore.GetColumnAsVector(vector, column);
+		public static VectorInt GetColumnAsVectorX(VectorInt vector, int column) =>
+			ShapeOpsCore.GetColumnAsVectorX(vector, column);
 
 		public static int[] GetColumnAsArray(VectorInt vector, int column) =>
 			ShapeOpsCore.GetColumnAsArray(vector, column);
@@ -251,8 +263,14 @@ public static class VectorIntStructural
 		public static VectorInt GetSliceAsVector(VectorInt vector, int row_col_index, Axis axis) =>
 			ShapeOpsCore.GetSliceAsVector(vector, row_col_index, axis);
 
+		public static VectorInt GetSliceAsVectorX(VectorInt vector, int row_col_index, Axis axis) =>
+			ShapeOpsCore.GetSliceAsVectorX(vector, row_col_index, axis);
+
 		public static int[] GetSliceAsArray(VectorInt vector, int row_col_index, Axis axis) =>
 			ShapeOpsCore.GetSliceAsArray(vector, row_col_index, axis);
+
+		public static int[] GetSliceAsArrayX(VectorInt vector, int row_col_index, Axis axis) =>
+			ShapeOpsCore.GetSliceAsArrayX(vector, row_col_index, axis);
 
 		public static string ToStr(VectorInt vector) =>
 			FormattingCore.ToStr(vector);
@@ -356,19 +374,19 @@ public static class VectorStructuralExtensions
 
 	extension(Vector vector)
 	{
-		public Vector Zeros_IP(int length, int columns = 0)
+		public Vector ZerosIP(int length, int columns = 0)
 		{
 			FactoriesCore.ZerosInPlace(vector, length, columns);
 			return vector;
 		}
 
-		public Vector Ones_IP(int length, int columns = 0)
+		public Vector OnesIP(int length, int columns = 0)
 		{
 			FactoriesCore.OnesInPlace(vector, length, columns);
 			return vector;
 		}
 
-		public Vector Fill_IP(float value, int length, int columns = 0)
+		public Vector FillIP(float value, int length, int columns = 0)
 		{
 			FactoriesCore.FillInPlace(vector, value, length, columns);
 			return vector;
@@ -377,7 +395,7 @@ public static class VectorStructuralExtensions
 		public Vector Append(Vector vectorB) =>
 			Vector.Append(vector, vectorB);
 
-		public Vector Append_IP(Vector vectorB)
+		public Vector AppendIP(Vector vectorB)
 		{
 			ShapeOpsCore.AppendInPlace(vector, vectorB);
 			return vector;
@@ -389,13 +407,19 @@ public static class VectorStructuralExtensions
 		public Vector Concat(Vector other, ConcatAxis axis = ConcatAxis.Row, bool warp = false) =>
 			Vector.Concat(vector, other, axis, warp);
 
-		public Vector Concat_IP(Vector other, ConcatAxis axis = ConcatAxis.Row, bool warp = false) =>
+		public Vector ConcatIP(Vector other, ConcatAxis axis = ConcatAxis.Row, bool warp = false) =>
 			ShapeOpsCore.ConcatInPlace(vector, other, axis, warp);
+
+		public Vector ConcatColumnX(Vector other, bool warp = false) =>
+			Vector.ConcatColumnX(vector, other, warp);
+
+		public Vector ConcatColumnXIP(Vector other, bool warp = false) =>
+			ShapeOpsCore.ConcatColumnXInPlace(vector, other, warp);
 
 		public Vector Merge(Vector vectorB) =>
 			Vector.Merge(vector, vectorB);
 
-		public Vector Merge_IP(Vector vectorB)
+		public Vector MergeIP(Vector vectorB)
 		{
 			ShapeOpsCore.MergeInPlace(vector, vectorB);
 			return vector;
@@ -404,7 +428,7 @@ public static class VectorStructuralExtensions
 		public Vector Reverse() =>
 			Vector.Reverse(vector);
 
-		public Vector Reverse_IP()
+		public Vector ReverseIP()
 		{
 			ShapeOpsCore.ReverseInPlace(vector);
 			return vector;
@@ -413,14 +437,14 @@ public static class VectorStructuralExtensions
 		public Vector ReverseX() =>
 			Vector.ReverseX(vector);
 
-		public Vector ReverseX_IP() =>
+		public Vector ReverseXIP() =>
 			ShapeOpsCore.ReverseXInPlace(vector);
 
-		public Vector Transpose() =>
-			Vector.Transpose(vector);
+		public Vector TransposeX() =>
+			Vector.TransposeX(vector);
 
-		public Vector Transpose_IP() =>
-			Vector.Transpose_IP(vector);
+		public Vector TransposeXIP() =>
+			Vector.TransposeXIP(vector);
 
 		public Vector TransferBuffer(Vector temp, bool incColumns = false) =>
 			Vector.TransferBuffer(vector, temp, incColumns);
@@ -434,8 +458,8 @@ public static class VectorStructuralExtensions
 		public Vector GetRowAsVector(int row) =>
 			Vector.GetRowAsVector(vector, row);
 
-		public Vector GetColumnAsVector(int column) =>
-			Vector.GetColumnAsVector(vector, column);
+		public Vector GetColumnAsVectorX(int column) =>
+			Vector.GetColumnAsVectorX(vector, column);
 
 		public float[] GetColumnAsArray(int column) =>
 			Vector.GetColumnAsArray(vector, column);
@@ -443,8 +467,14 @@ public static class VectorStructuralExtensions
 		public Vector GetSliceAsVector(int row_col_index, Axis axis) =>
 			Vector.GetSliceAsVector(vector, row_col_index, axis);
 
+		public Vector GetSliceAsVectorX(int row_col_index, Axis axis) =>
+			Vector.GetSliceAsVectorX(vector, row_col_index, axis);
+
 		public float[] GetSliceAsArray(int row_col_index, Axis axis) =>
 			Vector.GetSliceAsArray(vector, row_col_index, axis);
+
+		public float[] GetSliceAsArrayX(int row_col_index, Axis axis) =>
+			Vector.GetSliceAsArrayX(vector, row_col_index, axis);
 
 		public string ToStr(byte decimalplaces = 2) =>
 			Vector.ToStr(vector, decimalplaces);
@@ -452,19 +482,19 @@ public static class VectorStructuralExtensions
 
 	extension(VectorInt vector)
 	{
-		public VectorInt Zeros_IP(int length, int columns = 0)
+		public VectorInt ZerosIP(int length, int columns = 0)
 		{
 			FactoriesCore.ZerosInPlace(vector, length, columns);
 			return vector;
 		}
 
-		public VectorInt Ones_IP(int length, int columns = 0)
+		public VectorInt OnesIP(int length, int columns = 0)
 		{
 			FactoriesCore.OnesInPlace(vector, length, columns);
 			return vector;
 		}
 
-		public VectorInt Fill_IP(int value, int length, int columns = 0)
+		public VectorInt FillIP(int value, int length, int columns = 0)
 		{
 			FactoriesCore.FillInPlace(vector, value, length, columns);
 			return vector;
@@ -473,7 +503,7 @@ public static class VectorStructuralExtensions
 		public VectorInt Append(VectorInt vectorB) =>
 			VectorInt.Append(vector, vectorB);
 
-		public VectorInt Append_IP(VectorInt vectorB)
+		public VectorInt AppendIP(VectorInt vectorB)
 		{
 			ShapeOpsCore.AppendInPlace(vector, vectorB);
 			return vector;
@@ -485,13 +515,19 @@ public static class VectorStructuralExtensions
 		public VectorInt Concat(VectorInt other, ConcatAxis axis = ConcatAxis.Row, bool warp = false) =>
 			VectorInt.Concat(vector, other, axis, warp);
 
-		public VectorInt Concat_IP(VectorInt other, ConcatAxis axis = ConcatAxis.Row, bool warp = false) =>
+		public VectorInt ConcatIP(VectorInt other, ConcatAxis axis = ConcatAxis.Row, bool warp = false) =>
 			ShapeOpsCore.ConcatInPlace(vector, other, axis, warp);
+
+		public VectorInt ConcatColumnX(VectorInt other, bool warp = false) =>
+			VectorInt.ConcatColumnX(vector, other, warp);
+
+		public VectorInt ConcatColumnXIP(VectorInt other, bool warp = false) =>
+			ShapeOpsCore.ConcatColumnXInPlace(vector, other, warp);
 
 		public VectorInt Merge(VectorInt vectorB) =>
 			VectorInt.Merge(vector, vectorB);
 
-		public VectorInt Merge_IP(VectorInt vectorB)
+		public VectorInt MergeIP(VectorInt vectorB)
 		{
 			ShapeOpsCore.MergeInPlace(vector, vectorB);
 			return vector;
@@ -500,7 +536,7 @@ public static class VectorStructuralExtensions
 		public VectorInt Reverse() =>
 			VectorInt.Reverse(vector);
 
-		public VectorInt Reverse_IP()
+		public VectorInt ReverseIP()
 		{
 			ShapeOpsCore.ReverseInPlace(vector);
 			return vector;
@@ -509,14 +545,14 @@ public static class VectorStructuralExtensions
 		public VectorInt ReverseX() =>
 			VectorInt.ReverseX(vector);
 
-		public VectorInt ReverseX_IP() =>
+		public VectorInt ReverseXIP() =>
 			ShapeOpsCore.ReverseXInPlace(vector);
 
-		public VectorInt Transpose() =>
-			VectorInt.Transpose(vector);
+		public VectorInt TransposeX() =>
+			VectorInt.TransposeX(vector);
 
-		public VectorInt Transpose_IP() =>
-			VectorInt.Transpose_IP(vector);
+		public VectorInt TransposeXIP() =>
+			VectorInt.TransposeXIP(vector);
 
 		public VectorInt TransferBuffer(VectorInt temp, bool incColumns = false) =>
 			VectorInt.TransferBuffer(vector, temp, incColumns);
@@ -527,8 +563,8 @@ public static class VectorStructuralExtensions
 		public VectorInt GetRowAsVector(int row) =>
 			VectorInt.GetRowAsVector(vector, row);
 
-		public VectorInt GetColumnAsVector(int column) =>
-			VectorInt.GetColumnAsVector(vector, column);
+		public VectorInt GetColumnAsVectorX(int column) =>
+			VectorInt.GetColumnAsVectorX(vector, column);
 
 		public int[] GetColumnAsArray(int column) =>
 			VectorInt.GetColumnAsArray(vector, column);
@@ -536,8 +572,14 @@ public static class VectorStructuralExtensions
 		public VectorInt GetSliceAsVector(int row_col_index, Axis axis) =>
 			VectorInt.GetSliceAsVector(vector, row_col_index, axis);
 
+		public VectorInt GetSliceAsVectorX(int row_col_index, Axis axis) =>
+			VectorInt.GetSliceAsVectorX(vector, row_col_index, axis);
+
 		public int[] GetSliceAsArray(int row_col_index, Axis axis) =>
 			VectorInt.GetSliceAsArray(vector, row_col_index, axis);
+
+		public int[] GetSliceAsArrayX(int row_col_index, Axis axis) =>
+			VectorInt.GetSliceAsArrayX(vector, row_col_index, axis);
 
 		public string ToStr() =>
 			VectorInt.ToStr(vector);

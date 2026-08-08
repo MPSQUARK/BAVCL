@@ -30,7 +30,7 @@ internal static class VectorIntGpuOps
 		return output;
 	}
 
-	internal static VectorInt ScalarOP_IP(VectorInt vector, int scalar, Operations operation)
+	internal static VectorInt ScalarIPOP(VectorInt vector, int scalar, Operations operation)
 	{
 		VectorIntOperationValidation.ValidateOperation(operation);
 		using (GpuScope.Begin(vector))

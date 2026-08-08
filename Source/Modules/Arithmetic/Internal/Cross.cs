@@ -12,7 +12,7 @@ namespace BAVCL.Modules.Arithmetic;
 /// </summary>
 internal static class CrossCore
 {
-	internal static Vector Cross(Vector left, Vector right)
+	internal static Vector CrossX(Vector left, Vector right)
 	{
 		if (left.RowCount() == 1 && right.Columns > 1 && left.Columns == right.RowCount())
 			return CrossMatMul2D(left, right);
@@ -27,7 +27,7 @@ internal static class CrossCore
 			return CrossMatrixVector(left, right);
 
 		throw new ArgumentException(
-			$"Cross requires 2D×2D, 1D×2D, or 2D×1D operands. Got shapes ({left.RowCount()},{left.Columns}) and ({right.RowCount()},{right.Columns}).");
+			$"CrossX requires 2D×2D, 1D×2D, or 2D×1D operands. Got shapes ({left.RowCount()},{left.Columns}) and ({right.RowCount()},{right.Columns}).");
 	}
 
 	static bool IsMatMul2D(Vector a, Vector b) => a.Columns > 1 && b.Columns > 1;
@@ -42,7 +42,7 @@ internal static class CrossCore
 		if (colsA != rowsB)
 		{
 			throw new ArgumentException(
-				$"Cross inner dimensions must match: ({rowsA},{colsA}) × ({rowsB},{colsB}).");
+				$"CrossX inner dimensions must match: ({rowsA},{colsA}) × ({rowsB},{colsB}).");
 		}
 
 		GPU gpu = matrixA.Gpu;
@@ -75,7 +75,7 @@ internal static class CrossCore
 		if (vector.Length != matrix.Columns)
 		{
 			throw new LengthMismatchException(
-				"Cross 1D×2D",
+				"CrossX 1D×2D",
 				matrix.Columns,
 				vector.Length);
 		}
@@ -88,7 +88,7 @@ internal static class CrossCore
 		if (matrix.Columns != vector.Length)
 		{
 			throw new LengthMismatchException(
-				"Cross 2D×1D",
+				"CrossX 2D×1D",
 				matrix.Columns,
 				vector.Length);
 		}
@@ -96,7 +96,7 @@ internal static class CrossCore
 		return VectorVectorOp.RunReduceRowOp(vector, matrix, Operations.multiply);
 	}
 
-	internal static VectorInt Cross(VectorInt left, VectorInt right)
+	internal static VectorInt CrossX(VectorInt left, VectorInt right)
 	{
 		if (left.RowCount() == 1 && right.Columns > 1 && left.Columns == right.RowCount())
 			return CrossMatMul2D(left, right);
@@ -111,7 +111,7 @@ internal static class CrossCore
 			return CrossMatrixVector(left, right);
 
 		throw new ArgumentException(
-			$"Cross requires 2D×2D, 1D×2D, or 2D×1D operands. Got shapes ({left.RowCount()},{left.Columns}) and ({right.RowCount()},{right.Columns}).");
+			$"CrossX requires 2D×2D, 1D×2D, or 2D×1D operands. Got shapes ({left.RowCount()},{left.Columns}) and ({right.RowCount()},{right.Columns}).");
 	}
 
 	static bool IsMatMul2D(VectorInt a, VectorInt b) => a.Columns > 1 && b.Columns > 1;
@@ -126,7 +126,7 @@ internal static class CrossCore
 		if (colsA != rowsB)
 		{
 			throw new ArgumentException(
-				$"Cross inner dimensions must match: ({rowsA},{colsA}) × ({rowsB},{colsB}).");
+				$"CrossX inner dimensions must match: ({rowsA},{colsA}) × ({rowsB},{colsB}).");
 		}
 
 		GPU gpu = matrixA.Gpu;
@@ -158,7 +158,7 @@ internal static class CrossCore
 		if (vector.Length != matrix.Columns)
 		{
 			throw new LengthMismatchException(
-				"Cross 1D×2D",
+				"CrossX 1D×2D",
 				matrix.Columns,
 				vector.Length);
 		}
@@ -171,7 +171,7 @@ internal static class CrossCore
 		if (matrix.Columns != vector.Length)
 		{
 			throw new LengthMismatchException(
-				"Cross 2D×1D",
+				"CrossX 2D×1D",
 				matrix.Columns,
 				vector.Length);
 		}

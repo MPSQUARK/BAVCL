@@ -102,8 +102,8 @@ public static class VectorStatistics
 
 		public static bool All(Vector vector) => DescriptiveStatistics.All(vector);
 
-		public static Vector ReduceOP(Vector vector, Vector matrix, Operations operation) =>
-			ReduceCore.ReduceOP(vector, matrix, operation);
+		public static Vector ReduceOPX(Vector vector, Vector matrix, Operations operation) =>
+			ReduceCore.ReduceOPX(vector, matrix, operation);
 	}
 
 	extension(BAVCL.Geometric.Vector3)
@@ -137,8 +137,8 @@ public static class VectorStatistics
 
 		public static bool All(VectorInt vector) => DescriptiveStatistics.All(vector);
 
-		public static VectorInt ReduceOP(VectorInt vector, VectorInt matrix, Operations operation) =>
-			ReduceCore.ReduceOP(vector, matrix, operation);
+		public static VectorInt ReduceOPX(VectorInt vector, VectorInt matrix, Operations operation) =>
+			ReduceCore.ReduceOPX(vector, matrix, operation);
 	}
 }
 
@@ -237,8 +237,8 @@ public static class StatisticsModule
 
 		public bool All() => VectorStatistics.All(vector);
 
-		public Vector ReduceOP(Vector matrix, Operations operation) =>
-			VectorStatistics.ReduceOP(vector, matrix, operation);
+		public Vector ReduceOPX(Vector matrix, Operations operation) =>
+			VectorStatistics.ReduceOPX(vector, matrix, operation);
 	}
 
 	extension(BAVCL.Geometric.Vector3 vector3)
@@ -268,7 +268,7 @@ public static class StatisticsModule
 
 		public bool All() => VectorStatistics.All(vector);
 
-		public VectorInt ReduceOP(VectorInt matrix, Operations operation) =>
-			VectorStatistics.ReduceOP(vector, matrix, operation);
+		public VectorInt ReduceOPX(VectorInt matrix, Operations operation) =>
+			VectorStatistics.ReduceOPX(vector, matrix, operation);
 	}
 }

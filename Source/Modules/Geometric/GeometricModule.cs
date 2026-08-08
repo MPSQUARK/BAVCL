@@ -7,23 +7,23 @@ public static class Vector3Geometric
 {
 	extension(Vector3)
 	{
-		public static Vector Magnitude(Vector3 left, Vector3 right) =>
-			Vector3Geometry.Magnitude(left, right);
+		public static Vector MagnitudeX(Vector3 left, Vector3 right) =>
+			Vector3Geometry.MagnitudeX(left, right);
 
-		public static Vector Magnitude(Vector3 vector) =>
-			Vector3Geometry.Magnitude(vector);
+		public static Vector MagnitudeX(Vector3 vector) =>
+			Vector3Geometry.MagnitudeX(vector);
 
-		public static Vector Distance(Vector3 left, Vector3 right) =>
-			Vector3Geometry.Distance(left, right);
+		public static Vector DistanceX(Vector3 left, Vector3 right) =>
+			Vector3Geometry.DistanceX(left, right);
 
-		public static Vector Dot(Vector3 left, Vector3 right) =>
-			Vector3Geometry.Dot(left, right);
+		public static Vector DotX(Vector3 left, Vector3 right) =>
+			Vector3Geometry.DotX(left, right);
 
-		public static Vector3 Cross(Vector3 left, Vector3 right) =>
-			Vector3Geometry.Cross(left, right);
+		public static Vector3 CrossX(Vector3 left, Vector3 right) =>
+			Vector3Geometry.CrossX(left, right);
 
-		public static Vector3 Normalise(Vector3 vector) =>
-			Vector3Geometry.Normalise(vector);
+		public static Vector3 NormaliseX(Vector3 vector) =>
+			Vector3Geometry.NormaliseX(vector);
 
 		public static Vector3 AccessRow(Vector3 vector, int vertRow) =>
 			Vector3Geometry.AccessRow(vector, vertRow);
@@ -55,23 +55,23 @@ public static class GeometricModule
 {
 	extension(Vector3 vector)
 	{
-		public Vector Magnitude(Vector3 vectorB) =>
-			Vector3.Magnitude(vector, vectorB);
+		public Vector MagnitudeX(Vector3 vectorB) =>
+			Vector3.MagnitudeX(vector, vectorB);
 
-		public Vector Magnitude() =>
-			Vector3.Magnitude(vector);
+		public Vector MagnitudeX() =>
+			Vector3.MagnitudeX(vector);
 
-		public Vector Distance(Vector3 vectorB) =>
-			Vector3.Distance(vector, vectorB);
+		public Vector DistanceX(Vector3 vectorB) =>
+			Vector3.DistanceX(vector, vectorB);
 
-		public Vector Dot(Vector3 vectorB) =>
-			Vector3.Dot(vector, vectorB);
+		public Vector DotX(Vector3 vectorB) =>
+			Vector3.DotX(vector, vectorB);
 
-		public Vector3 Cross(Vector3 vectorB) =>
-			Vector3.Cross(vector, vectorB);
+		public Vector3 CrossX(Vector3 vectorB) =>
+			Vector3.CrossX(vector, vectorB);
 
-		public Vector3 Normalise() =>
-			Vector3.Normalise(vector);
+		public Vector3 NormaliseX() =>
+			Vector3.NormaliseX(vector);
 
 		public Vector3 AccessRow(int vertRow) =>
 			Vector3.AccessRow(vector, vertRow);
@@ -94,23 +94,23 @@ public static class GeometricModule
 		public Vector3 Concat(List<Vector3> vectors) =>
 			Vector3.Concat(vector, vectors);
 
-		public Vector3 Concat_IP(Vertex vertA) =>
-			Vector3Geometry.Concat_IP(vector, vertA);
+		public Vector3 ConcatIP(Vertex vertA) =>
+			Vector3Geometry.ConcatIP(vector, vertA);
 
-		public Vector3 Concat_IP(Vertex[] vertices) =>
-			Vector3Geometry.Concat_IP(vector, vertices);
+		public Vector3 ConcatIP(Vertex[] vertices) =>
+			Vector3Geometry.ConcatIP(vector, vertices);
 
-		public Vector3 Concat_IP(List<Vertex> vertices) =>
-			Vector3Geometry.Concat_IP(vector, vertices);
+		public Vector3 ConcatIP(List<Vertex> vertices) =>
+			Vector3Geometry.ConcatIP(vector, vertices);
 
-		public Vector3 Concat_IP(Vector3 other) =>
-			Vector3Geometry.Concat_IP(vector, other);
+		public Vector3 ConcatIP(Vector3 other) =>
+			Vector3Geometry.ConcatIP(vector, other);
 
-		public Vector3 Concat_IP(Vector3[] vectors) =>
-			Vector3Geometry.Concat_IP(vector, vectors);
+		public Vector3 ConcatIP(Vector3[] vectors) =>
+			Vector3Geometry.ConcatIP(vector, vectors);
 
-		public Vector3 Concat_IP(List<Vector3> vectors) =>
-			Vector3Geometry.Concat_IP(vector, vectors);
+		public Vector3 ConcatIP(List<Vector3> vectors) =>
+			Vector3Geometry.ConcatIP(vector, vectors);
 
 		public string Format(byte decimalplaces = 2) =>
 			Vector3.Format(vector, decimalplaces);

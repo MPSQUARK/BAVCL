@@ -218,7 +218,7 @@ public struct Vertex
         System.Numerics.Vector3 vec2 = new(vert.values[0], vert.values[1], vert.values[2]);
         return System.Numerics.Vector3.Distance(vec, vec2);
     }
-    public void Fract_IP()
+    public void FractIP()
     {
         this.X -= XMath.Floor(X);
         this.Y -= XMath.Floor(Y);
@@ -235,14 +235,14 @@ public struct Vertex
     {
         return this.X * Scalar + this.Y * Scalar + this.Z * Scalar;
     }
-    public void Cross_IP(Vertex vert)
+    public void CrossIP(Vertex vert)
     {
         this.X = this.Y * vert.Z - this.Z * vert.Y;
         this.Y = -(this.X * vert.Z - this.Z * vert.X);
         this.Z = this.X * vert.Y - this.Y * vert.X;
         return;
     }
-    public void UnitVector_IP()
+    public void UnitVectorIP()
     {
         float InvMag = 1f / this.Magnitude();
         this.X *= InvMag;
@@ -250,7 +250,7 @@ public struct Vertex
         this.Z *= InvMag;
         return;
     }
-    public void Aces_approx_IP()
+    public void AcesApproxIP()
     {
         float a = 2.51f;
         float b = 0.03f;
@@ -263,7 +263,7 @@ public struct Vertex
         this.Z = XMath.Clamp(((this.Z * 0.6f * (a * this.Z * 0.6f + b)) / (this.Z * 0.6f * (c * this.Z * 0.6f + d) + e)), 0f, 1f);
         return;
     }
-    public void Reinhard_IP()
+    public void ReinhardIP()
     {
         this.X /= (1f + this.X);
         this.Y /= (1f + this.Y);
@@ -328,7 +328,7 @@ public struct Vertex
     }
     public static Vertex Refract(Vertex v, Vertex n, float niOverNt)
     {
-        v.UnitVector_IP();
+        v.UnitVectorIP();
         float dt = Dot(v, n);
         float discriminant = 1f - niOverNt * niOverNt * (1f - dt * dt);
 
@@ -351,14 +351,14 @@ public struct Vertex
 
         return (rPerpendicular * rPerpendicular + rParallel * rParallel) * 0.5f;
     }
-    public static Vertex Aces_approx(Vertex vert)
+    public static Vertex AcesApprox(Vertex vert)
     {
-        vert.Aces_approx_IP();
+        vert.AcesApproxIP();
         return vert;
     }
     public static Vertex Reinhard(Vertex vert)
     {
-        vert.Reinhard_IP();
+        vert.ReinhardIP();
         return vert;
     }
 

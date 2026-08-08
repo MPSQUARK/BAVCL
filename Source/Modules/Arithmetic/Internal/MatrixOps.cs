@@ -5,20 +5,20 @@ namespace BAVCL.Modules.Arithmetic;
 
 internal static class MatrixOpsCore
 {
-	internal static Vector MatrixAdd(Vector left, Vector right) =>
-		MatrixBinary(left, right, Operations.add, nameof(MatrixAdd));
+	internal static Vector MatrixAddX(Vector left, Vector right) =>
+		MatrixBinary(left, right, Operations.add, nameof(MatrixAddX));
 
-	internal static Vector MatrixSubtract(Vector left, Vector right) =>
-		MatrixBinary(left, right, Operations.subtract, nameof(MatrixSubtract));
+	internal static Vector MatrixSubtractX(Vector left, Vector right) =>
+		MatrixBinary(left, right, Operations.subtract, nameof(MatrixSubtractX));
 
-	internal static Vector MatrixDivide(Vector left, Vector right) =>
-		MatrixBinary(left, right, Operations.divide, nameof(MatrixDivide));
+	internal static Vector MatrixDivideX(Vector left, Vector right) =>
+		MatrixBinary(left, right, Operations.divide, nameof(MatrixDivideX));
 
-	internal static Vector MatrixPow(Vector left, Vector right) =>
-		MatrixBinary(left, right, Operations.pow, nameof(MatrixPow));
+	internal static Vector MatrixPowX(Vector left, Vector right) =>
+		MatrixBinary(left, right, Operations.pow, nameof(MatrixPowX));
 
-	internal static Vector MatrixMultiply(Vector left, Vector right) =>
-		CrossCore.Cross(left, right);
+	internal static Vector MatrixMultiplyX(Vector left, Vector right) =>
+		CrossCore.CrossX(left, right);
 
 	static Vector MatrixBinary(Vector matrixA, Vector matrixB, Operations operation, string operationName)
 	{
@@ -51,17 +51,17 @@ internal static class MatrixOpsCore
 		}
 	}
 
-	internal static VectorInt MatrixAdd(VectorInt left, VectorInt right) =>
-		MatrixBinary(left, right, Operations.add, nameof(MatrixAdd));
+	internal static VectorInt MatrixAddX(VectorInt left, VectorInt right) =>
+		MatrixBinary(left, right, Operations.add, nameof(MatrixAddX));
 
-	internal static VectorInt MatrixSubtract(VectorInt left, VectorInt right) =>
-		MatrixBinary(left, right, Operations.subtract, nameof(MatrixSubtract));
+	internal static VectorInt MatrixSubtractX(VectorInt left, VectorInt right) =>
+		MatrixBinary(left, right, Operations.subtract, nameof(MatrixSubtractX));
 
-	internal static VectorInt MatrixDivide(VectorInt left, VectorInt right) =>
-		MatrixBinary(left, right, Operations.divide, nameof(MatrixDivide));
+	internal static VectorInt MatrixDivideX(VectorInt left, VectorInt right) =>
+		MatrixBinary(left, right, Operations.divide, nameof(MatrixDivideX));
 
-	internal static VectorInt MatrixMultiply(VectorInt left, VectorInt right) =>
-		CrossCore.Cross(left, right);
+	internal static VectorInt MatrixMultiplyX(VectorInt left, VectorInt right) =>
+		CrossCore.CrossX(left, right);
 
 	static VectorInt MatrixBinary(VectorInt matrixA, VectorInt matrixB, Operations operation, string operationName)
 	{
