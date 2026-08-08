@@ -42,10 +42,11 @@ Vector sum = a + b;
 sum.Print();
 ```
 
-Where there exists two or more implementations of the same method, the GPU-backed operations use the `X` suffix (for example `AbsX()`). See the [GPGPU Kernel Guide](Documentation/GPGPUKernelGuide.md) and [Migration Guide](Documentation/MigrationGuide.md).
+Methods follow a consistent suffix scheme: no suffix = CPU, `X` = GPU, `IP` / `XIP` = in-place (CPU / GPU). See [Features](Documentation/Features.md) for the module catalog and full suffix guide.
 
 ## Documentation
 
+- [Features](Documentation/Features.md) — module catalog and API suffix guide
 - [BAVCL Specification](Documentation/BAVCLSpecification.md)
 - [GPGPU Kernel Guide](Documentation/GPGPUKernelGuide.md)
 - [Migration Guide](Documentation/MigrationGuide.md)
