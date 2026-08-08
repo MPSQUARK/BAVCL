@@ -106,7 +106,7 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 	{
 		if (_cpuScopeDepth == 0 || !ResidenceHelper.IsActiveCpu(Residence))
 			throw new InvalidOperationException(
-				$"{nameof(ICacheable<T>.EditCpu)} requires an open {nameof(CpuScope<T>)}.");
+				$"{nameof(ICacheable<>.EditCpu)} requires an open {nameof(CpuScope<>)}.");
 
 		edit(Value.AsMemory(0, Length));
 	}
