@@ -3,7 +3,7 @@ using ILGPU;
 using ILGPU.Algorithms;
 using ILGPU.Algorithms.Sequencers;
 using ILGPU.Runtime;
-using BAVCL.Core;
+using BAVCL.Core.Memory;
 using BAVCL.Core.Exceptions;
 
 namespace BAVCL.GpuAlgorithms;
@@ -46,7 +46,7 @@ internal static class SortAlgorithms
 
 		using (GpuScope.Begin(vector))
 		{
-			SortFloatSegment(gpu, vector.GetBuffer().View, vector.Columns, order);
+			SortFloatSegment(gpu, vector.GetBuffer().View, order);
 			gpu.Synchronize();
 		}
 	}
@@ -123,10 +123,10 @@ internal static class SortAlgorithms
 			return;
 		}
 
-		using SortScratchLease keysLease = gpu.RentIntScratch(input.Length, input.Columns);
-		using (GpuScope.Begin(keysLease.Vector))
+		using BufferEntity<int> keysEntity = BufferPools.For(gpu).Int.Rent(input.Length);
+		using (GpuScope.Begin(keysEntity.PinTarget))
 		{
-			ArgsortIntSegment(gpu, input.GetBuffer().View, indices.GetBuffer().View, keysLease.View, order);
+			ArgsortIntSegment(gpu, input.GetBuffer().View, indices.GetBuffer().View, keysEntity.View, order);
 			gpu.Synchronize();
 		}
 	}
@@ -139,10 +139,10 @@ internal static class SortAlgorithms
 			return;
 		}
 
-		using SortScratchLease keysLease = gpu.RentIntScratch(input.Length, input.Columns);
-		using (GpuScope.Begin(keysLease.Vector))
+		using BufferEntity<int> keysEntity = BufferPools.For(gpu).Int.Rent(input.Length);
+		using (GpuScope.Begin(keysEntity.PinTarget))
 		{
-			ArgsortFloatSegment(gpu, input.GetBuffer().View, indices.GetBuffer().View, keysLease.View, order);
+			ArgsortFloatSegment(gpu, input.GetBuffer().View, indices.GetBuffer().View, keysEntity.View, order);
 			gpu.Synchronize();
 		}
 	}
@@ -155,10 +155,10 @@ internal static class SortAlgorithms
 		// pass could otherwise evict vector while it still sits unpinned.
 		using (GpuScope.Begin(vector))
 		{
-			using SortScratchLease tempLease = gpu.RentSegmentedTemp(vector.Length);
-			using (GpuScope.Begin(tempLease.Vector))
+			using BufferEntity<int> tempEntity = BufferPools.For(gpu).Int.Rent(vector.Length);
+			using (GpuScope.Begin(tempEntity.PinTarget))
 			{
-				var (tempKeys, _) = GPU.SegmentedSortTempViews(tempLease.Vector, vector.Length, SortTempLayout.KeysOnly);
+				var (tempKeys, _) = GPU.SegmentedSortTempViews(tempEntity.Slot, vector.Length, SortTempLayout.KeysOnly);
 				SegmentedRowSort.SortIntRows(
 					gpu,
 					vector.GetBuffer().View,
@@ -177,10 +177,10 @@ internal static class SortAlgorithms
 		int rowCount = vector.RowCount(), cols = vector.Columns;
 		using (GpuScope.Begin(vector))
 		{
-			using SortScratchLease tempLease = gpu.RentSegmentedTemp(vector.Length);
-			using (GpuScope.Begin(tempLease.Vector))
+			using BufferEntity<int> tempEntity = BufferPools.For(gpu).Int.Rent(vector.Length);
+			using (GpuScope.Begin(tempEntity.PinTarget))
 			{
-				var (tempKeys, _) = GPU.SegmentedSortTempViews(tempLease.Vector, vector.Length, SortTempLayout.KeysOnly);
+				var (tempKeys, _) = GPU.SegmentedSortTempViews(tempEntity.Slot, vector.Length, SortTempLayout.KeysOnly);
 				SegmentedRowSort.SortFloatRows(
 					gpu,
 					vector.GetBuffer().View,
@@ -198,16 +198,16 @@ internal static class SortAlgorithms
 		int rowCount = input.RowCount(), cols = input.Columns;
 		// Pin each newly-rented scratch object immediately after creation: renting may allocate, and
 		// that allocation's own LRU.GC pass could otherwise evict an earlier, still-unpinned object.
-		using SortScratchLease keysLease = gpu.RentIntScratch(input.Length, input.Columns);
-		using (GpuScope.Begin(keysLease.Vector))
+		using BufferEntity<int> keysEntity = BufferPools.For(gpu).Int.Rent(input.Length);
+		using (GpuScope.Begin(keysEntity.PinTarget))
 		{
-			using SortScratchLease tempLease = gpu.RentSegmentedPairsTemp(input.Length);
-			using (GpuScope.Begin(tempLease.Vector))
+			using BufferEntity<int> tempEntity = BufferPools.For(gpu).Int.Rent(input.Length << 1);
+			using (GpuScope.Begin(tempEntity.PinTarget))
 			{
-				var keysView = keysLease.View;
+				var keysView = keysEntity.View;
 				// Segmented radix sort mutates keys in place; copy so the caller's input is left untouched.
 				input.GetBuffer().View.CopyTo(gpu.DefaultStream, keysView);
-				var (tempKeys, tempValues) = GPU.SegmentedSortTempViews(tempLease.Vector, input.Length, SortTempLayout.KeysAndValues);
+				var (tempKeys, tempValues) = GPU.SegmentedSortTempViews(tempEntity.Slot, input.Length, SortTempLayout.KeysAndValues);
 				SegmentedRowSort.ArgsortIntPairsRows(
 					gpu, keysView, indices.GetBuffer().View, tempKeys, tempValues, rowCount, cols, order);
 				gpu.Synchronize();
@@ -220,17 +220,17 @@ internal static class SortAlgorithms
 		int rowCount = input.RowCount(), cols = input.Columns;
 		// Pin each newly-rented scratch object immediately after creation: renting may allocate, and
 		// that allocation's own LRU.GC pass could otherwise evict an earlier, still-unpinned object.
-		using SortScratchLease keysLease = gpu.RentIntScratch(input.Length, input.Columns);
-		using (GpuScope.Begin(keysLease.Vector))
+		using BufferEntity<int> keysEntity = BufferPools.For(gpu).Int.Rent(input.Length);
+		using (GpuScope.Begin(keysEntity.PinTarget))
 		{
-			using SortScratchLease tempLease = gpu.RentSegmentedPairsTemp(input.Length);
-			using (GpuScope.Begin(tempLease.Vector))
+			using BufferEntity<int> tempEntity = BufferPools.For(gpu).Int.Rent(input.Length << 1);
+			using (GpuScope.Begin(tempEntity.PinTarget))
 			{
-				var (tempKeys, tempValues) = GPU.SegmentedSortTempViews(tempLease.Vector, input.Length, SortTempLayout.KeysAndValues);
+				var (tempKeys, tempValues) = GPU.SegmentedSortTempViews(tempEntity.Slot, input.Length, SortTempLayout.KeysAndValues);
 				SegmentedRowSort.ArgsortFloatPairsRows(
 					gpu,
 					input.GetBuffer().View,
-					keysLease.View,
+					keysEntity.View,
 					indices.GetBuffer().View,
 					tempKeys,
 					tempValues,
@@ -271,15 +271,14 @@ internal static class SortAlgorithms
 	static void SortFloatSegment(
 		GPU gpu,
 		ArrayView1D<float, Stride1D.Dense> segment,
-		int columns,
 		SortOrder order)
 	{
 		if (segment.Length <= 1)
 			return;
 
-		using SortScratchLease sortableLease = gpu.RentIntScratch((int)segment.Length, columns);
-		using (GpuScope.Begin(sortableLease.Vector))
-			RunFloatSortViaSortable(gpu, segment, sortableLease.View, order);
+		using BufferEntity<int> sortableEntity = BufferPools.For(gpu).Int.Rent((int)segment.Length);
+		using (GpuScope.Begin(sortableEntity.PinTarget))
+			RunFloatSortViaSortable(gpu, segment, sortableEntity.View, order);
 	}
 
 	static void RunFloatSortViaSortable(
