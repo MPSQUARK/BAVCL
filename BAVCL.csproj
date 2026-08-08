@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <RootNamespace>BAVCL</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +21,16 @@
 
   <ItemGroup>
     <Compile Include="Source/**/*.cs" />
+  </ItemGroup>
+
+  <!-- IDE0130: namespaces are rooted at Source/, not the repo directory that contains this csproj. -->
+  <PropertyGroup>
+    <ProjectDir>$(MSBuildProjectDirectory)\Source\</ProjectDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="RootNamespace" />
+    <CompilerVisibleProperty Include="ProjectDir" />
   </ItemGroup>
 
 </Project>
