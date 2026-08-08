@@ -25,6 +25,11 @@ public abstract class VectorBase<T> : CacheableBase<T>, IIO where T : unmanaged
 	protected VectorBase(GPU gpu, int length, int columns = 0) : base(gpu, length) =>
 		Columns = columns;
 
+	protected VectorBase(GPU gpu, int columns) : base(gpu, [], cache: false)
+	{
+		Columns = columns;
+	}
+
 	public virtual void Print() => Console.WriteLine(ToString());
 
 	public int RowCount()
