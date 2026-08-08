@@ -1,4 +1,5 @@
 using System;
+using BAVCL.Core;
 using BAVCL.Modules.Arithmetic;
 using BAVCL.Modules.GpuOps;
 using BAVCL.Modules.Masking;
@@ -20,6 +21,12 @@ public sealed partial class Vector : VectorBase<float>
 	public Vector(GPU gpu, int length, int columns = 0) :
 		base(gpu, length, columns)
 	{ }
+
+	private Vector(GPU gpu, int columns) : base(gpu, columns) { }
+
+	/// <summary>Creates an empty vessel shell with no GPU buffer.</summary>
+	public static Vessel<Vector> CreateVessel(GPU gpu, int columns = 0) =>
+		new(new Vector(gpu, columns), gpu);
 
 	public override void Print() => Console.WriteLine(this.ToStr());
 
