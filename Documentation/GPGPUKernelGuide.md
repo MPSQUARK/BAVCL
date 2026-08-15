@@ -119,7 +119,7 @@ No hard caps on loop count, parameter count, or kernel variants.
 | Registration | `BAVCL/Core/GPU/KernelModules/KernelModuleLoader.cs` |
 | Host dispatch | `BAVCL/Modules/*/Internal/` |
 | Broadcast strides | `BAVCL/Types/BroadcastStrides.cs` |
-| GPU lifecycle | `GpuScope`, `CacheableBase<T>`, `KernelWorkloads` |
+| GPU lifecycle | `GpuScope.Begin(modified, readOnly…)` default pin pattern; `CacheableBase<T>`; `KernelWorkloads` |
 
 ---
 
@@ -149,6 +149,24 @@ One example mapping symptoms to violated principles — not the definition of th
 
 ---
 
+## Host-side CPU reads and edits
+
+Host dispatch that reads or mutates `Vector` / `Mask` CPU storage must follow the coherence API — not raw buffer access:
+
+| Intent | API |
+|--------|-----|
+| Read | `RetrieveReadOnlySpan()` — syncs from GPU when needed; use for all reads |
+| Edit in-place | `CpuScope` / `CpuScopeAndSync` + `scope.View` |
+| Structural edit (resize) | `CpuScopeAndSync` + `RetrieveReadOnlySpan()` for inputs, then assign backing `Value` |
+
+Do **not** open `CpuScope` for read-only work. Do **not** call `SyncCPU()` from module code unless implementing coherence internals.
+
+Post-kernel CPU read: `RetrieveReadOnlySpan()` **outside** scope — not `CpuScope` for read-only.
+
+Pin GPU buffers with `GpuScope` before kernel launch. Full scope rules: [MigrationGuide.md](../../Documentation/MigrationGuide.md#host-api-and-scopes).
+
+---
+
 ## ILGPU mechanical constraints
 
 Factual compile/runtime limits — separate from design principles P1–P5:
@@ -156,7 +174,7 @@ Factual compile/runtime limits — separate from design principles P1–P5:
 - No lambda closures or delegates in kernel methods (`Ldftn` compile failure)
 - `ILGPU.Util.Utilities.Select` for branchless selection
 - `Atomic.Or` / `Atomic.And` for multi-lane writes into one word
-- `RetrieveReadOnlySpan()` before printing GPU-backed data — not `GetCpuReadOnlySpan()`
+- `RetrieveReadOnlySpan()` before printing or consuming GPU-backed data on the host
 
 Stack: ILGPU 1.5.3, `GPU` partial class, `LoadAutoGroupedKernel`, `AcceleratorStream`.
 
