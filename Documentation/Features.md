@@ -55,15 +55,16 @@ These names are **GPU-only** by design — no `X` suffix:
 
 ### Arithmetic (`BAVCL.Modules.Arithmetic`)
 
-- **CPU:** `Abs`, `Rsqrt`, `Sum`, `Dot` (scalar result via broadcast + CPU sum)
-- **GPU:** `AbsX`, `ReciprocalX`, `DiffX`, `NanToNumX`, `NormaliseX`, `RsqrtX`
+- **CPU:** `Abs`, `Rsqrt`, `Sum`, `Dot` (SIMD; scalar result)
+- **GPU:** `SumX`, `DotX`, `AbsX`, `ReciprocalX`, `DiffX`, `NanToNumX`, `NormaliseX`, `RsqrtX`
 - **Matrix:** `CrossX` (matrix multiply), `MatrixAddX`, `MatrixSubtractX`, `MatrixDivideX`, `MatrixPowX`, `MatrixMultiplyX`
 - In-place variants use `IP` (CPU) or `XIP` (GPU) suffixes
 
 ### Statistics (`BAVCL.Modules.Statistics`)
 
-- **CPU:** `Sum`, `Mean`, `Var`, `Std`, `Min`, `Max`, `Range` on vectors and primitive arrays
-- **GPU:** `ReduceOPX` — row reduction against a coefficient vector
+- **CPU:** `Sum` (via Arithmetic), `Mean`, `Var`, `Std`, `Min`, `Max`, `Range`, `All`, `Percentile`, `Median`, `Quartile1`, `Quartile3`, `Iqr` on vectors and primitive arrays
+- **GPU:** `SumX`, `MinX`, `MaxX`, `MeanX`, `VarX`, `StdX`, `AllX`, `RangeX`, `PercentileX`, `MedianX`, `Quartile1X`, `Quartile3X`, `IqrX` on `Vector` / `VectorInt`; `ReduceOPX` — row reduction against a coefficient vector
+- `SumX` uses a grouped Kahan-compensated GPU reduce (matches Kahan `Sum()` at large `N`); `DotX` uses a grouped dot-reduce kernel; `RangeX` uses a single grouped min/max pass
 
 ### Structural (`BAVCL.Modules.Structural`)
 
@@ -117,9 +118,46 @@ Per `Vector` and `VectorInt`:
 |-----------|------|
 | **`GPUManager`** | Default GPU singleton, device selection, memory cap |
 | **`KernelModuleLoader`** | Compile kernel domains (`Default`, `Geometry`, `Sorting`, …) per element type |
-| **`GpuScope` / `CpuScope`** | RAII buffer pinning and CPU edit scopes |
 | **LRU cache** | Automatic GPU buffer caching via `IMemoryManager` |
 | **`BufferPool`** | Pooled scratch buffers; **entity / vessel / possess / banish** API for domain temps (see spec §4.5.3) |
+
+### Scopes and reads
+
+Library `*X` / `*XIP` methods pin GPU buffers internally (`GpuScope`). Callers writing **custom kernels** or new module dispatch must pin explicitly.
+
+| Intent | API |
+|--------|-----|
+| Read (after GPU or anytime) | `RetrieveReadOnlySpan()` — do not open `CpuScope` for read-only |
+| Edit in-place | `CpuScope` / `CpuScopeAndSync` + `scope.View` |
+| Custom kernel | `GpuScope.Begin(output, input…)` then `Synchronize()` |
+
+```csharp
+// Read GPU result on CPU
+vector.SortAscX();
+ReadOnlySpan<float> sorted = vector.RetrieveReadOnlySpan();
+
+// Batch CPU edit
+using (var scope = vector.CpuScopeAndSync())
+{
+    EditableView<float> view = scope.View;
+    view[0] = 1f;
+}
+
+// Custom kernel — prefer combined pin
+using (GpuScope.Begin(output, input))
+{
+    kernel(...);
+    gpu.accelerator.Synchronize();
+}
+```
+
+**Module pointers:**
+
+- **Statistics `MedianX`** — `SortAscX()` then `RetrieveReadOnlySpan()` (load `KernelWorkloads.Statistics`)
+- **Sorting `SortAscXIP`** — pins internally; requires `KernelWorkloads.Sorting`
+- **GpuOps `OPX`** — pins operands internally; requires `KernelWorkloads.Default`
+
+Host API rules (loops, anti-patterns, nested GpuScope): [Migration Guide](MigrationGuide.md#host-api-and-scopes).
 
 Load kernels before GPU methods:
 
@@ -135,5 +173,5 @@ See [BAVCLSpecification.md §4.7–4.8](BAVCLSpecification.md#47-experimental-ma
 ## See also
 
 - [BAVCL Specification](BAVCLSpecification.md) — authoritative contracts
-- [Migration Guide](MigrationGuide.md) — breaking API changes including naming
+- [Migration Guide](MigrationGuide.md) — breaking API changes, **host API and scopes**
 - [GPGPU Kernel Guide](GPGPUKernelGuide.md) — kernel authoring
