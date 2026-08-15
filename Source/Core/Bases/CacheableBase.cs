@@ -180,9 +180,9 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 		Residence = Residence.Cpu;
 	}
 
-	public void IncrementLiveCount() => Interlocked.Increment(ref _livecount);
+	void ICacheable.IncrementLiveCount() => Interlocked.Increment(ref _livecount);
 
-	public void DecrementLiveCount() => Interlocked.Decrement(ref _livecount);
+	void ICacheable.DecrementLiveCount() => Interlocked.Decrement(ref _livecount);
 
 	public void EnterCpuScope()
 	{
