@@ -114,7 +114,7 @@ using (GpuScope.Begin(modified: output, readOnly: inputA, inputB))
 }
 ```
 
-CPU edits: `CpuScope.Begin<T>(ICacheable<T>, bool syncToGpu)` or `.CpuScope()` / `.CpuScopeAndSync()`. Scope on `ICacheable`; `GetReadOnlySpan` / explicit `EditCpu` on `ICacheable<T>`. See [MigrationGuide.md](MigrationGuide.md).
+CPU edits: `CpuScope.Begin<T>(ICacheable<T>, bool syncToGpu)` or `.CpuScope()` / `.CpuScopeAndSync()`. Scope on `ICacheable`; `RetrieveReadOnlySpan` / explicit `EditCpu` on `ICacheable<T>`. See [MigrationGuide.md](MigrationGuide.md).
 
 ### 2.5 Pluggable Memory Management
 
@@ -350,7 +350,7 @@ sequenceDiagram
 
 ### 3.4 GpuScope Flow
 
-`GpuScope` (`Source/Core/Memory/Scopes/GpuScope.cs`) returns a `GpuPinScope` that pins `ICacheable` instances for the duration of a `using` block. Library GPU operations call `GpuScope.Begin` internally; custom kernels should do the same.
+`GpuScope` (`Source/Core/Memory/Scopes/GpuScope.cs`) returns a `GpuPinScope` that pins `ICacheable` instances for the duration of a `using` block. Library GPU operations call `GpuScope.Begin` internally; custom kernels should do the same. **Prefer** `GpuScope.Begin(modified, readOnly…)` when all buffers exist — avoid stacking separate `BeginReadOnly` + `Begin(modified)` for the same launch.
 
 ```mermaid
 flowchart TD
@@ -459,18 +459,31 @@ This section documents **what exists in code today**. See [Section 19](#19-code-
 | `Flatten()`                                   | Set `Columns = 0` (1D row storage)         |
 | `ToVector3()`                                 | Convert when length % 3 == 0               |
 
-#### 4.2.2 Statistical Properties (CPU)
+#### 4.2.2 Statistical Properties
 
-Implemented in `BAVCL.Modules.Statistics` (`StatisticsModule`, `VectorStatistics`).
+Implemented in `BAVCL.Modules.Statistics` (`StatisticsModule`, `VectorStatistics`). Arithmetic `Sum()` / `SumX()` live in `BAVCL.Modules.Arithmetic`.
 
-| Method           | Implementation                                             | Notes    |
-| ---------------- | ---------------------------------------------------------- | -------- |
-| `Sum()`          | CPU SIMD (`System.Numerics.Vector<float>`); Kahan for ≥10⁴ | Override |
-| `Mean()`         | `Sum() / Length`                                           |          |
-| `Var()`          | SIMD for small; GPU `differenceSquared` for large          |          |
-| `Std()`          | `Sqrt(Var())`                                              |          |
-| `Min()`, `Max()` | CPU via `RetrieveReadOnlySpan()` after sync when needed    |          |
-| `Range()`        | `Max - Min`                                                |          |
+| Method | CPU | GPU (`X`) | Implementation / notes |
+| ------ | --- | --------- | ---------------------- |
+| `Sum()` | ✓ | — | CPU SIMD (`System.Numerics.Vector<float>`); Kahan for ≥10⁴ |
+| `SumX()` | — | ✓ | Grouped grid-stride reduce with per-thread Kahan accumulation (`AddFloat` tree for `VectorInt`); matches Kahan `Sum()` at large `N` |
+| `Mean()` | ✓ | — | `Sum() / Length` |
+| `MeanX()` | — | ✓ | `SumX() / Length` |
+| `Var()` | ✓ | — | Two-pass `System.Numerics.Vector` SIMD — **always CPU** (no size threshold) |
+| `VarX()` | — | ✓ | `MeanX` + GPU `differenceSquared` + `SumX`; needs **Statistics** + **Arithmetic** |
+| `Std()` / `StdX()` | ✓ | ✓ | `Sqrt(Var)` / `Sqrt(VarX)` after scalar sync |
+| `Min()`, `Max()` | ✓ | — | CPU SIMD via `CpuSimdReduce` |
+| `MinX()`, `MaxX()` | — | ✓ | ILGPU `MinFloat`/`MaxFloat`/`MinInt32`/`MaxInt32` |
+| `Range()` | ✓ | — | `Max - Min` |
+| `RangeX()` | — | ✓ | Fused grouped min/max kernel (one launch) |
+| `All()` | ✓ | — | CPU SIMD zero-check |
+| `AllX()` | — | ✓ | GPU compare-not-equals + packed-mask verify |
+| `Dot()` | ✓ | — | CPU SIMD dot (`Arithmetic` module); Kahan at ≥10⁴ |
+| `DotX()` | — | ✓ | Grouped `dotReduce` kernel with shared-memory block reduce (Statistics domain) |
+| `Percentile()`, `Median()`, `Quartile1()`, `Quartile3()`, `Iqr()` | ✓ | — | CPU `SortAsc` + linear interpolation |
+| `PercentileX()`, `MedianX()`, `Quartile1X()`, `Quartile3X()`, `IqrX()` | — | ✓ | GPU `SortAscX` + CPU index read |
+
+Load Statistics: `KernelModuleLoader.Load<float>(gpu, KernelWorkloads.Statistics)` and `KernelModuleLoader.Load<int>(gpu, KernelWorkloads.Statistics)`.
 
 #### 4.2.3 Factory Methods
 
@@ -617,7 +630,7 @@ Notes:
 | Operators    | `+`, `-`, `*`, `/`, `^` with Vector3 and float (GPU via `GpuOpsModule`)            |
 | Geometry     | `Cross(vecA, vecB)`, `Dot(vecA, vecB)`, `Magnitude()`, `Magnitude(vecA, vecB)`, `Distance(vec)` — `LengthMismatchException` on size mismatch |
 | Per-row ops  | `VOP(vec, op)`, `VOP(vecA, vecB, op)` → returns `Vector` of per-row results        |
-| Indexing     | `this[int row, Coord]`, `GetAt`, `SetAt` (reads sync via `GetReadOnlySpan`; writes use `CpuScope`) |
+| Indexing     | `this[int row, Coord]`, `GetAt`, `SetAt` (reads sync via `RetrieveReadOnlySpan`; writes use `CpuScope`) |
 | Concat       | With `Vector3`, `Vertex`, arrays, lists                                            |
 | Access       | `AccessRow(vec, row)`                                                              |
 | Copy         | `Copy()`                                                                           |
@@ -719,7 +732,7 @@ Sort/argsort uses the kernel path internally.
 - On eviction when `LiveCount == 0`: sync to CPU via `SyncCPU(buffer)`, dispose buffer
 - `GC(memRequired)` evicts until space available
 - **`GetBuffer`**: lock-free dictionary read
-- **`UpdateBuffer`**: `GetReadOnlySpan()` / CPU sync **outside** `lock(this)`; dictionary lookup, `CopyFromCPU`, and allocation **inside** the lock
+- **`UpdateBuffer`**: `RetrieveReadOnlySpan()` / CPU sync **outside** `lock(this)`; dictionary lookup, `CopyFromCPU`, and allocation **inside** the lock
 
 **TODOs in code:** dirty-flag to skip unnecessary CPU sync; only sync if data changed.
 
@@ -852,7 +865,7 @@ Host-side checks remain for **API misuse** only: `InvalidOperationOnTypeExceptio
 | **Omitted** | Float-only ops (`LogX`, `Rsqrt`, `ReciprocalX`, `NanToNumX`, `NormaliseX`, `distance`, `magnitude`, `pow`) throw `InvalidOperationOnTypeException` if passed to GpuOps. |
 | **Reduce** | Unsupported `ReduceOPX` values throw `UnsupportedOperationException`. |
 | **Statistics** | `Sum()` via `long` internally; `Min()`/`Max()`/`Range()` return `int`. `All()` — true when no zero values. |
-| **Structural** | `Concat`/`ConcatColumnX`/`Merge`/`AppendIP`/`ReverseIP`/`GetRowAsArray(noSync)` — parity with `Vector`. Row concat via `Concat`/`ConcatIP`; column via `ConcatColumnX`/`ConcatColumnXIP`. |
+| **Structural** | `Concat`/`ConcatColumnX`/`Merge`/`AppendIP`/`ReverseIP`/`GetRowAsArray` — parity with `Vector`. Row concat via `Concat`/`ConcatIP`; column via `ConcatColumnX`/`ConcatColumnXIP`. |
 
 #### Mask operators (same semantics as `Vector`)
 
@@ -1090,6 +1103,7 @@ GPU gpu = GPUManager.Default;
 | `KernelWorkloads.Default`  | Arithmetic, Structural, **Mask**  | Standard numerics + mask kernels                    |
 | `KernelWorkloads.Geometry` | Default + Geometry                | Vector3 GPU ops (cross, magnitude/distance)         |
 | `KernelWorkloads.Sorting`  | Sorting                           | GPU sort/argsort (`SortX`, `SortXIP`, `ArgsortX`, `ArgsortXIP`) |
+| `KernelWorkloads.Statistics` | Statistics                      | GPU global reduce (`SumX`, `MinX`, `MaxX`, `MeanX`, `VarX`, `StdX`, `AllX`, `DotX` reduce leg) |
 
 For full parity with the old load-all behaviour, use `LoadAll<T>`.
 
@@ -1104,7 +1118,7 @@ For full parity with the old load-all behaviour, use `LoadAll<T>`.
 | Structural (int32) | appendInt, getSliceInt, reverseInt, transposeInt                  | Implemented |
 | Arithmetic (int32) | absInt, negateInt, diffInt, matmulInt, a/s opInt, broadcastInt, reduceRowInt, floatToInt, intToFloat | Implemented |
 | Mask (int32 vectors) | vectorIntCompareMask, vectorIntScalarCompareMask, vectorIntMaskFilter, vectorIntGather | Implemented |
-| Statistics    | —                                                                       | Not yet  |
+| Statistics    | `LoadStatisticsFloatKernels` / `LoadStatisticsIntKernels` (ILGPU reduce compile) | **Yes** — global reduce `*X` |
 | LinearAlgebra | — (`matmul` in Arithmetic for now)                                    | Not yet  |
 | Astrophysics  | —                                                                       | Not yet  |
 
@@ -1188,11 +1202,10 @@ Feasibility depends on ILGPU and device APIs — document as investigation item.
 
 | Method | Behavior |
 |--------|----------|
-| `GetCpuReadOnlySpan()` | Zero-copy view of current CPU buffer; **no GPU sync** |
-| `GetReadOnlySpan()` | `SyncCPU()` then `GetCpuReadOnlySpan()` — use for reads and LRU upload |
-| `GetAt` / indexers (get) | `GetReadOnlySpan()[index]` |
+| `RetrieveReadOnlySpan()` | `SyncCPU()` when GPU is newer, then zero-copy `ReadOnlySpan` over CPU buffer — use for **all** reads |
+| `GetAt` / indexers (get) | `RetrieveReadOnlySpan()[index]` |
 | `ToArray()` | **Always allocates** a heap copy; syncs when needed |
-| `ICacheable<T>.GetReadOnlySpan()` | Same as above; used by memory manager for upload |
+| `ICacheable<T>.RetrieveReadOnlySpan()` | Same as above; used by memory manager for upload |
 
 **Write API:** `CpuScope` + `EditableView<T>` or `SetAt` (opens `CpuScope` internally; not for tight loops). `IndexingMode` removed — use scoping instead.
 
@@ -1521,7 +1534,7 @@ Companion test repository at `C:\Users\marce\Repos\BAVCL.Tests`. Source-only sib
 | Interface        | Purpose                                             |
 | ---------------- | --------------------------------------------------- |
 | `ICacheable`     | GPU cache contract: ID, LiveCount, Residence (volatile), DeCache, SyncCPU |
-| `ICacheable<T>`  | Typed cache contract: `GetReadOnlySpan()`, `UpdateCache(T[])` |
+| `ICacheable<T>`  | Typed cache contract: `RetrieveReadOnlySpan()`, `UpdateCache(T[])` |
 | `IMemoryManager` | Pluggable GPU memory strategy                       |
 | `IIO`            | CSV/string export contract                          |
 
