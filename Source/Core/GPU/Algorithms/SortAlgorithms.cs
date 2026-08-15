@@ -57,8 +57,6 @@ internal static class SortAlgorithms
 			return new VectorInt(input.Gpu, 0, input.Columns);
 
 		GPU gpu = input.Gpu;
-		// Pin input before allocating indices: `new VectorInt` allocates eagerly in its constructor,
-		// and that allocation's own LRU.GC pass could otherwise evict input while it still sits unpinned.
 		using (GpuScope.BeginReadOnly(input))
 		{
 			VectorInt indices = new(gpu, input.Length, input.Columns);
