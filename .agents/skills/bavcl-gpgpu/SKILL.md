@@ -11,6 +11,22 @@ description: >-
 
 BAVCL is an HPC GPU math library on ILGPU 1.5.3. Device-side code must exploit GPU parallelism and match this repo's patterns — not CPU idioms transplanted onto the accelerator.
 
+## Before host dispatch (not only kernels)
+
+1. Check [Features.md](../../Documentation/Features.md) for an existing `X` / `IP` API.
+2. Read [MigrationGuide.md](../../Documentation/MigrationGuide.md#host-api-and-scopes) — Host API and scopes.
+3. Then kernel steps below (GPGPUKernelGuide, P1–P6).
+
+### Host API do / don't
+
+| Do | Don't |
+|----|-------|
+| `RetrieveReadOnlySpan()` for all reads | Open `CpuScope` for read-only |
+| `CpuScope` + `scope.View` for in-place edits | Call `SyncCPU()` in module/consumer code |
+| `GpuScope.Begin(modified, readOnly…)` when buffers exist | Stack `BeginReadOnly` + `Begin(modified)` for same launch |
+| One `RetrieveReadOnlySpan()` per read loop | `GetAt` / `SetAt` in tight loops |
+| Pin via `GpuScope` only | Manual pinning outside `GpuScope` |
+
 ## Before coding
 
 1. Read [Documentation/GPGPUKernelGuide.md](../../Documentation/GPGPUKernelGuide.md) — principles (P1–P6) and pre-submit review questions.
@@ -40,6 +56,16 @@ Quick reference: [references/principles.md](./references/principles.md)
 | Kernel registration | `BAVCL/Core/GPU/KernelModules/KernelModuleLoader.cs` |
 | Host dispatch | `BAVCL/Modules/<Domain>/Internal/` |
 | Broadcast addressing | `BAVCL/Types/BroadcastStrides.cs` |
+
+## Host CPU/GPU coherence
+
+| Intent | API |
+|--------|-----|
+| Read | `RetrieveReadOnlySpan()` |
+| Edit in-place | `CpuScope` + `scope.View` |
+| Structural edit | `CpuScopeAndSync` + `RetrieveReadOnlySpan()` then assign `Value` |
+
+Do not open `CpuScope` for read-only access. Pin with `GpuScope` before kernels.
 
 ## Pre-submit (must justify any "no")
 
