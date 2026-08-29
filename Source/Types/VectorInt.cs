@@ -48,13 +48,8 @@ public sealed partial class VectorInt : VectorBase<int>
 		return true;
 	}
 
-	public VectorInt Copy(bool cache = true)
-	{
-		if (ID == 0)
-			return new VectorInt(Gpu, ToArray(), Columns, cache);
-
-		return new VectorInt(Gpu, Pull(), Columns, cache);
-	}
+	public VectorInt Copy(bool cache = true) =>
+		new(Gpu, ToArray(), Columns, cache);
 
 	public void Flatten() => Columns = 0;
 
