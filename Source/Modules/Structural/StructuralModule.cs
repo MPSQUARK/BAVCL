@@ -149,9 +149,6 @@ public static class VectorStructural
 		public static float[] GetRowAsArray(Vector vector, int row) =>
 			ShapeOpsCore.GetRowAsArray(vector, row);
 
-		public static float[] GetRowAsArray(Vector vector, int row, bool noSync) =>
-			ShapeOpsCore.GetRowAsArray(vector, row, noSync);
-
 		public static Vector GetRowAsVector(Vector vector, int row) =>
 			ShapeOpsCore.GetRowAsVector(vector, row);
 
@@ -451,9 +448,6 @@ public static class VectorStructuralExtensions
 
 		public float[] GetRowAsArray(int row) =>
 			Vector.GetRowAsArray(vector, row);
-
-		public float[] GetRowAsArray(int row, bool noSync) =>
-			Vector.GetRowAsArray(vector, row, noSync);
 
 		public Vector GetRowAsVector(int row) =>
 			Vector.GetRowAsVector(vector, row);
