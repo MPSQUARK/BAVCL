@@ -50,14 +50,8 @@ public sealed partial class Vector : VectorBase<float>
 		return true;
 	}
 
-	public Vector Copy(bool Cache = true)
-	{
-		if (ID == 0)
-			return new Vector(Gpu, ToArray(), Columns, Cache);
-
-		// TODO: I don't think PULL is the right API to use here. Need to investigate.
-		return new Vector(Gpu, Pull(), Columns, Cache);
-	}
+	public Vector Copy(bool Cache = true) =>
+		new(Gpu, ToArray(), Columns, Cache);
 
 	public void Flatten() => Columns = 0;
 
