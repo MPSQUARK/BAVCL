@@ -17,7 +17,7 @@ internal static class ShapeOpsCore
 	{
 		using (vectorA.CpuScopeAndSync())
 		{
-			ReadOnlySpan<float> left = vectorA.GetCpuReadOnlySpan();
+			ReadOnlySpan<float> left = vectorA.RetrieveReadOnlySpan();
 			ReadOnlySpan<float> right = vectorB.RetrieveReadOnlySpan();
 			vectorA.Value = [.. left, .. right];
 			vectorA.Length = vectorA.Value.Length;
@@ -107,7 +107,7 @@ internal static class ShapeOpsCore
 	{
 		using (vector.CpuScopeAndSync())
 		{
-			ReadOnlySpan<float> left = vector.GetCpuReadOnlySpan();
+			ReadOnlySpan<float> left = vector.RetrieveReadOnlySpan();
 			ReadOnlySpan<float> right = vectorB.RetrieveReadOnlySpan();
 			vector.Value = left.ToArray().Union(right.ToArray()).ToArray();
 			vector.Length = vector.Value.Length;
@@ -121,7 +121,7 @@ internal static class ShapeOpsCore
 	{
 		using (vector.CpuScopeAndSync())
 		{
-			ReadOnlySpan<float> src = vector.GetCpuReadOnlySpan();
+			ReadOnlySpan<float> src = vector.RetrieveReadOnlySpan();
 			float[] reversed = new float[src.Length];
 			for (int i = 0; i < src.Length; i++)
 				reversed[i] = src[src.Length - 1 - i];
@@ -188,9 +188,6 @@ internal static class ShapeOpsCore
 
 	internal static float[] GetRowAsArray(Vector vector, int row) =>
 		vector.RetrieveReadOnlySpan().Slice(row * vector.Columns, vector.Columns).ToArray();
-
-	internal static float[] GetRowAsArray(Vector vector, int row, bool noSync) =>
-		vector.GetCpuReadOnlySpan().Slice(row * vector.Columns, vector.Columns).ToArray();
 
 	internal static Vector GetRowAsVector(Vector vector, int row) =>
 		new(vector.Gpu, GetRowAsArray(vector, row), 0);
@@ -282,7 +279,7 @@ internal static class ShapeOpsCore
 	{
 		using (vectorA.CpuScopeAndSync())
 		{
-			ReadOnlySpan<int> left = vectorA.GetCpuReadOnlySpan();
+			ReadOnlySpan<int> left = vectorA.RetrieveReadOnlySpan();
 			ReadOnlySpan<int> right = vectorB.RetrieveReadOnlySpan();
 			vectorA.Value = [.. left, .. right];
 			vectorA.Length = vectorA.Value.Length;
@@ -370,7 +367,7 @@ internal static class ShapeOpsCore
 	{
 		using (vector.CpuScopeAndSync())
 		{
-			ReadOnlySpan<int> left = vector.GetCpuReadOnlySpan();
+			ReadOnlySpan<int> left = vector.RetrieveReadOnlySpan();
 			ReadOnlySpan<int> right = vectorB.RetrieveReadOnlySpan();
 			vector.Value = left.ToArray().Union(right.ToArray()).ToArray();
 			vector.Length = vector.Value.Length;
@@ -381,7 +378,7 @@ internal static class ShapeOpsCore
 	{
 		using (vector.CpuScopeAndSync())
 		{
-			ReadOnlySpan<int> src = vector.GetCpuReadOnlySpan();
+			ReadOnlySpan<int> src = vector.RetrieveReadOnlySpan();
 			int[] reversed = new int[src.Length];
 			for (int i = 0; i < src.Length; i++)
 				reversed[i] = src[src.Length - 1 - i];
