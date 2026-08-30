@@ -75,8 +75,7 @@ internal static class SortAlgorithms
 			return;
 
 		GPU gpu = input.Gpu;
-		using (GpuScope.BeginReadOnly(input))
-		using (GpuScope.Begin(indices))
+		using (GpuScope.Begin(indices, input))
 			RunArgsortInt(gpu, input, indices, order);
 	}
 
@@ -108,8 +107,7 @@ internal static class SortAlgorithms
 
 		GPU gpu = input.Gpu;
 
-		using (GpuScope.BeginReadOnly(input))
-		using (GpuScope.Begin(indices))
+		using (GpuScope.Begin(indices, input))
 			RunArgsortFloat(gpu, input, indices, order);
 	}
 
