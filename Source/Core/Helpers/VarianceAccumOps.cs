@@ -4,7 +4,7 @@ using BAVCL.Core.Helpers.Numerics;
 
 namespace BAVCL.Core.Helpers;
 
-/// <summary>CPU population-variance entry points. See citations.md [2].</summary>
+/// <summary>Population- and sample-variance entry points. See citations.md [2].</summary>
 internal static class VarianceAccumOps
 {
 	/// <summary>Welford single-element update. Used for tails and GPU host fold.</summary>
@@ -29,11 +29,22 @@ internal static class VarianceAccumOps
 
 	internal static float FromAccumulators(int count, float m2) =>
 		count == 0 ? 0f : m2 / count;
+
+	internal static float SampleFromAccumulators(int count, float m2) =>
+		new VarianceMoments(count, 0f, m2).SampleVariance();
+
 	/// <summary>SIMD block moments merged with streaming Chan–Golub–LeVeque.</summary>
-	internal static float PopulationVariance(ReadOnlySpan<float> data)
+	internal static float PopulationVariance(ReadOnlySpan<float> data) =>
+		ComputeMoments(data).PopulationVariance();
+
+	/// <summary>SIMD block moments merged with streaming Chan–Golub–LeVeque.</summary>
+	internal static float SampleVariance(ReadOnlySpan<float> data) =>
+		ComputeMoments(data).SampleVariance();
+
+	internal static VarianceMoments ComputeMoments(ReadOnlySpan<float> data)
 	{
 		if (data.IsEmpty)
-			return 0f;
+			return default;
 
 		int lanes = SimdMath.FloatLanes;
 		VarianceMoments total = default;
@@ -48,13 +59,19 @@ internal static class VarianceAccumOps
 		for (; index < data.Length; index++)
 			total.AddSample(data[index]);
 
-		return total.PopulationVariance();
+		return total;
 	}
 
-	internal static float PopulationVariance(ReadOnlySpan<int> data)
+	internal static float PopulationVariance(ReadOnlySpan<int> data) =>
+		ComputeMoments(data).PopulationVariance();
+
+	internal static float SampleVariance(ReadOnlySpan<int> data) =>
+		ComputeMoments(data).SampleVariance();
+
+	internal static VarianceMoments ComputeMoments(ReadOnlySpan<int> data)
 	{
 		if (data.IsEmpty)
-			return 0f;
+			return default;
 
 		int lanes = SimdMath.FloatLanes;
 		Span<float> intToFloatBuffer = stackalloc float[lanes];
@@ -71,6 +88,6 @@ internal static class VarianceAccumOps
 		for (; index < data.Length; index++)
 			total.AddSample(data[index]);
 
-		return total.PopulationVariance();
+		return total;
 	}
 }

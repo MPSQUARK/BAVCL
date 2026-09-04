@@ -5,6 +5,7 @@ using ILGPU.Algorithms;
 using BAVCL.Core.Exceptions;
 using BAVCL.Core.Kernels;
 using BAVCL.Core.Helpers;
+using BAVCL.Core.Helpers.Numerics;
 using BAVCL.Core.Memory;
 using BAVCL.Types;
 
@@ -111,7 +112,15 @@ internal static class GlobalReduceAlgorithms
 		if (vector.Length == 0)
 			return 0f;
 
-		return VarFloatGrouped(vector);
+		return VarianceMomentsFloatGrouped(vector).PopulationVariance();
+	}
+
+	internal static float SampleVar(Vector vector)
+	{
+		if (vector.Length == 0)
+			return 0f;
+
+		return VarianceMomentsFloatGrouped(vector).SampleVariance();
 	}
 
 	internal static float Var(VectorInt vector)
@@ -119,7 +128,15 @@ internal static class GlobalReduceAlgorithms
 		if (vector.Length == 0)
 			return 0f;
 
-		return VarIntGrouped(vector);
+		return VarianceMomentsIntGrouped(vector).PopulationVariance();
+	}
+
+	internal static float SampleVar(VectorInt vector)
+	{
+		if (vector.Length == 0)
+			return 0f;
+
+		return VarianceMomentsIntGrouped(vector).SampleVariance();
 	}
 
 	internal static float SumSquaredDiffInt(VectorInt vector, float mean)
@@ -402,7 +419,7 @@ internal static class GlobalReduceAlgorithms
 		return total;
 	}
 
-	static float VarFloatGrouped(Vector vector)
+	static VarianceMoments VarianceMomentsFloatGrouped(Vector vector)
 	{
 		GPU gpu = vector.Gpu;
 		(KernelConfig config, int numGroups) = ReduceLaunch(vector.Length);
@@ -419,10 +436,10 @@ internal static class GlobalReduceAlgorithms
 			gpu.Synchronize();
 		}
 
-		return FoldGroupedVariance(partial.ReadRentedSpan());
+		return FoldGroupedVarianceMoments(partial.ReadRentedSpan());
 	}
 
-	static float VarIntGrouped(VectorInt vector)
+	static VarianceMoments VarianceMomentsIntGrouped(VectorInt vector)
 	{
 		GPU gpu = vector.Gpu;
 		(KernelConfig config, int numGroups) = ReduceLaunch(vector.Length);
@@ -439,10 +456,10 @@ internal static class GlobalReduceAlgorithms
 			gpu.Synchronize();
 		}
 
-		return FoldGroupedVariance(partial.ReadRentedSpan());
+		return FoldGroupedVarianceMoments(partial.ReadRentedSpan());
 	}
 
-	static float FoldGroupedVariance(ReadOnlySpan<float> triples)
+	static VarianceMoments FoldGroupedVarianceMoments(ReadOnlySpan<float> triples)
 	{
 		int count = 0;
 		float mean = 0f;
@@ -453,7 +470,7 @@ internal static class GlobalReduceAlgorithms
 			VarianceAccumOps.Merge(ref count, ref mean, ref m2, groupCount, triples[i + 1], triples[i + 2]);
 		}
 
-		return VarianceAccumOps.FromAccumulators(count, m2);
+		return new VarianceMoments(count, mean, m2);
 	}
 
 	static bool FoldAllNonZero(ReadOnlySpan<int> groupFlags)

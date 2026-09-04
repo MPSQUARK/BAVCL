@@ -49,8 +49,20 @@ internal struct VarianceMoments(int count, float mean, float m2)
 
 	public readonly float PopulationVariance()
 	{
-		Guard.IsNotZero(Count);
+		if (Count == 0)
+			return 0f;
+
 		return M2 * InvCount;
+	}
+
+	/// <summary>Unbiased sample variance (s²): Σ(x−x̄)² / (N−1). Requires <see cref="Count"/> ≥ 2.</summary>
+	public readonly float SampleVariance()
+	{
+		if (Count == 0)
+			return 0f;
+
+		Guard.IsNotZero(Count - 1);
+		return M2 / (Count - 1);
 	}
 
 	/// <summary>Mean and M2 of one contiguous SIMD chunk (vectorized center + square).</summary>
