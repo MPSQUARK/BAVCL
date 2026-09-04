@@ -16,31 +16,38 @@ internal static class VectorGpuOps
 				buffer = output.GetBuffer(),
 				buffer2 = vector.GetBuffer();
 
-			gpu.s_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
+			gpu.sOpF(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
 			gpu.accelerator.Synchronize();
 		}
 
 		return output;
 	}
 
-	internal static Vector ScalarOP_IP(Vector vector, float scalar, Operations operation)
+	internal static Vector ScalarIPOP(Vector vector, float scalar, Operations operation)
 	{
 		using (GpuScope.Begin(vector))
 		{
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = vector.GetBuffer();
-			vector.Gpu.s_FloatOPKernelIP(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
+			vector.Gpu.sOpFIP(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
 			vector.Gpu.accelerator.Synchronize();
 		}
 
 		return vector;
 	}
 
-	internal static Vector Log_IP(Vector vector, float @base)
+	internal static Vector LogX(Vector vector, float @base)
+	{
+		Vector copy = vector.Copy();
+		LogXIP(copy, @base);
+		return copy;
+	}
+
+	internal static Vector LogXIP(Vector vector, float @base)
 	{
 		using (GpuScope.Begin(vector))
 		{
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = vector.GetBuffer();
-			vector.Gpu.LogKernel(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, @base);
+			vector.Gpu.logIP(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, @base);
 			vector.Gpu.accelerator.Synchronize();
 		}
 

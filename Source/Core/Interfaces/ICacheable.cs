@@ -11,8 +11,8 @@ public interface ICacheable
 	long MemorySize { get; }
 
 	void DeCache();
-	void IncrementLiveCount();
-	void DecrementLiveCount();
+	internal void IncrementLiveCount();
+	internal void DecrementLiveCount();
 	void SyncCPU();
 	void SyncCPU(MemoryBuffer buffer);
 	MemoryBuffer UpdateCache();
@@ -28,8 +28,8 @@ public interface ICacheable
 public interface ICacheable<T> : ICacheable where T : unmanaged
 {
 	/// <summary>
-	/// Syncs from GPU when needed, then returns a read-only CPU span.
-	/// Prefer <see cref="VectorBase{T}.GetCpuReadOnlySpan"/> for user reads without sync.
+	/// Syncs from GPU when needed, then returns a read-only CPU span. Use for all reads.
+	/// For writes, use <see cref="CpuScope{T}"/> and <see cref="EditableView{T}"/>.
 	/// </summary>
 	ReadOnlySpan<T> RetrieveReadOnlySpan();
 

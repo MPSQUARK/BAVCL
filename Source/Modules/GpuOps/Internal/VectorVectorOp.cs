@@ -17,14 +17,14 @@ internal static class VectorVectorOp
 				buffer2 = vectorA.GetBuffer(),
 				buffer3 = vectorB.GetBuffer();
 
-			gpu.a_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
+			gpu.aOpF(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
 			gpu.accelerator.Synchronize();
 		}
 
 		return output;
 	}
 
-	internal static Vector VectorVectorOP_IP(Vector vector, Vector vectorB, Operations operation)
+	internal static Vector VectorVectorOPIP(Vector vector, Vector vectorB, Operations operation)
 	{
 		using (GpuScope.Begin(vector, vectorB))
 		{
@@ -32,7 +32,7 @@ internal static class VectorVectorOp
 				buffer = vector.GetBuffer(),
 				buffer2 = vectorB.GetBuffer();
 
-			vector.Gpu.a_FloatOPKernelIP(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
+			vector.Gpu.aOpFIP(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
 			vector.Gpu.accelerator.Synchronize();
 		}
 
@@ -51,7 +51,7 @@ internal static class VectorVectorOp
 				buffer2 = vector.GetBuffer(),
 				buffer3 = matrix.GetBuffer();
 
-			gpu.reduceRowOpKernel(
+			gpu.reduceRowOp(
 				gpu.accelerator.DefaultStream,
 				matrix.RowCount(),
 				buffer.View,
@@ -79,7 +79,7 @@ internal static class VectorVectorOp
 				buffer2 = vectorA.GetBuffer(),
 				buffer3 = vectorB.GetBuffer();
 
-			gpu.a_opIKernel(
+			gpu.aOpI(
 				gpu.DefaultStream,
 				buffer.IntExtent,
 				buffer.View,
@@ -92,7 +92,7 @@ internal static class VectorVectorOp
 		return output;
 	}
 
-	internal static VectorInt VectorVectorOP_IP(VectorInt vector, VectorInt vectorB, Operations operation)
+	internal static VectorInt VectorVectorOPIP(VectorInt vector, VectorInt vectorB, Operations operation)
 	{
 		VectorIntOperationValidation.ValidateOperation(operation);
 		using (GpuScope.Begin(vector, vectorB))
@@ -101,7 +101,7 @@ internal static class VectorVectorOp
 				buffer = vector.GetBuffer(),
 				buffer2 = vectorB.GetBuffer();
 
-			vector.Gpu.a_opIKernelIP(
+			vector.Gpu.aOpIIP(
 				vector.Gpu.DefaultStream,
 				buffer.IntExtent,
 				buffer.View,
@@ -126,7 +126,7 @@ internal static class VectorVectorOp
 				buffer2 = vector.GetBuffer(),
 				buffer3 = matrix.GetBuffer();
 
-			gpu.reduceRowOpIntKernel(
+			gpu.reduceRowOpInt(
 				gpu.DefaultStream,
 				matrix.RowCount(),
 				buffer.View,

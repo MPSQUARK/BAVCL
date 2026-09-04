@@ -1,16 +1,15 @@
 # Third-Party Licences
 
-This file contains licence terms for third-party software used by BAVCL. These terms apply to the respective dependencies only and are separate from the BAVCL licence in [License.txt](License.txt).
+Third-party components used by BAVCL. Separate from the BAVCL licence in [License.txt](License.txt).
 
----
-
-## ILGPU 1.5.3 and ILGPU.Algorithms 1.5.3
-
-BAVCL depends on [ILGPU](https://ilgpu.net/) (University of Illinois/NCSA Open Source License).
+## ILGPU 1.5.3 and ILGPU.Algorithms 1.5.3 (NCSA)
 
 ```
+********************************************************************************
+                                  ILGPU License
+********************************************************************************
 University of Illinois/NCSA Open Source License
-Copyright (c) 2016-2020 Marcel Koester
+Copyright (c) 2016-2025 ILGPU Project
 All rights reserved.
 
 Developed by:           Marcel Koester (m4rs@m4rs.net)

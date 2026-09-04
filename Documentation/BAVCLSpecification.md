@@ -114,7 +114,7 @@ using (GpuScope.Begin(modified: output, readOnly: inputA, inputB))
 }
 ```
 
-CPU edits: `CpuScope.Begin<T>(ICacheable<T>, bool syncToGpu)` or `.CpuScope()` / `.CpuScopeAndSync()`. Scope on `ICacheable`; `GetReadOnlySpan` / explicit `EditCpu` on `ICacheable<T>`. See [MigrationGuide.md](MigrationGuide.md).
+CPU edits: `CpuScope.Begin<T>(ICacheable<T>, bool syncToGpu)` or `.CpuScope()` / `.CpuScopeAndSync()`. Scope on `ICacheable`; `RetrieveReadOnlySpan` / explicit `EditCpu` on `ICacheable<T>`. See [MigrationGuide.md](MigrationGuide.md).
 
 ### 2.5 Pluggable Memory Management
 
@@ -138,12 +138,12 @@ Data types stay thin (`Vector.cs`, `Vector3.cs` — constructors, operators, cop
 
 Primitive-array `Print`, `Sum`, `Average`, `Min`, and `Max` live in **Structural** and **Statistics** modules (the former `Extensions/` folder was merged into `Modules/` — see §9.2).
 
-Each module exposes **one API-catalog file** with C# 14 extension blocks. Static and instance members are split across paired public classes when required (CS0111), e.g. `VectorArithmetic` (static) + `VectorArithmeticExtensions` (instance + `*_IP`). Implementation lives in `Internal/` as `internal static` types — consumers never import or reference them.
+Each module exposes **one API-catalog file** with C# 14 extension blocks. Static and instance members are split across paired public classes when required (CS0111), e.g. `VectorArithmetic` (static) + `VectorArithmeticExtensions` (instance + `*IP` / `*XIP`). Implementation lives in `Internal/` as `internal static` types — consumers never import or reference them.
 
 ```csharp
 using BAVCL;                          // core Vector only
 
-using BAVCL.Modules.Arithmetic;       // + Vector.Sum(v), v.Cross(b), …
+using BAVCL.Modules.Arithmetic;       // + Vector.Sum(v), v.CrossX(b), …
 using BAVCL.Modules.Statistics;       // + v.Mean(), arr.Min(), …
 using BAVCL.Modules.Sorting;          // + v.Sort(SortOrder), v.SortAscIP(), v.SortAscXIP(), v.Argsort(SortOrder), …
 
@@ -156,6 +156,53 @@ vec.Sum();         // ndarray-style instance extension
 ### 2.7 Source-Only Distribution
 
 Consumers reference the BAVCL project directly. No NuGet packaging planned YET.
+
+### 2.8 Unchecked arithmetic (policy)
+
+**All BAVCL numeric code is unchecked.** Integer and floating-point operations use the storage type end-to-end — there is no silent widening of accumulators (e.g. no `int` → `long` in sum/dot kernels or CPU SIMD paths). Overflow, underflow, and modular wrap are the caller's responsibility, same as NumPy's default integer reductions.
+
+| Rule | Detail |
+|------|--------|
+| **Storage type = compute type** | `VectorInt` reductions accumulate in `int32`; element-wise `Vector` ops stay `float32`. CPU and GPU float **reductions** (`Sum`, `Dot`, `Var`) use float64 scratch accumulators where compensated summation applies (NumPy-style). |
+| **Wider results** | If the value range exceeds the storage type, use a wider type (`Vector` with float, or a future `VectorLong`) — BAVCL does not auto-promote element buffers. |
+| **Float error correction** | Float `Sum` / `Dot` / `SumX` / `DotX` always use **Neumaier** compensated summation ([`citations.md`](../citations.md) [9]). CPU widens SIMD chunks to float64 lanes; GPU uses float64 thread-local accumulators and host fold. `Var` / `VarX` use streaming Chan–Golub–LeVeque merge ([2]). |
+| **Algorithm design** | Prefer formulations that limit intermediate growth (e.g. `scalar * Sum(v)` for dot-with-scalar) without widening buffers. |
+
+Invalid fixed ranges (e.g. percentile outside [0, 100]) throw `FixedRangeException`. Division by zero length (`Mean` on empty) throws `DivideByZeroException`. Empty sequences for `Min`/`Max` on integers throw `InvalidOperationException`.
+
+### 2.9 Numerical accuracy
+
+**Target:** `float32` results within **6 decimal places** on well-behaved inputs. Future `fp64` types will target proportionally tighter bounds.
+
+**Literature citations:** [`citations.md`](../citations.md) (MNRAS reference layout, numbered [1]–[11]).
+
+| Category | Operations | Method | Typical bound |
+|----------|------------|--------|---------------|
+| EC reductions | `Sum`, `SumX`, `Dot`, `DotX` | Widened SIMD Neumaier | abs error &lt; 10⁻⁵ on 10⁶ × 0.1 stress |
+| Variance | `Var`, `SampleVar`, `Std`, `SampleStd`, `VarX`, `SampleVarX`, `StdX`, `SampleStdX` | Streaming CGL on SIMD blocks | &lt; 10⁻⁵; stable on large-mean-offset data. `Var`/`VarX` = population (÷N); `SampleVar`/`SampleVarX` = sample (÷N−1). |
+| Order-preserving | `Min`, `Max`, `Range`, `MinMax` | SIMD min/max | Exact (bit-identical) |
+| Order stats | `Percentile`, `Median`, quartiles | Sort + linear interpolation | &lt; 10⁻⁵ |
+| Integer | `VectorInt` sum, mean | Unchecked `int32` | Exact until overflow |
+
+#### fp32 precision limits (debugging aid)
+
+`float32` has ~7 significant decimal digits. If values differ only in digits beyond that magnitude, they **round to the same float** and variance/sum correctly returns 0 spread:
+
+- **Symptom:** `Var` ≈ 0 but you expected spread on values like `1e9+1`, `1e9+2`, …
+- **Cause:** At magnitude 10⁹, adjacent integers are not representable in `float32` (ULP ≫ 1).
+- **Fix:** Use a wider type when it exists (`fp64`), centre/scaling before stats, or subtract a baseline on CPU before upload.
+
+#### Production algorithms and literature survey
+
+**Sum / dot (CPU):** widened SIMD Neumaier with float64 lane accumulators. **~4×** naive SIMD at N = 10⁶; **0** abs error on 10M×0.1f stress.
+
+**Variance (CPU):** SIMD block moments + streaming Chan–Golub–LeVeque merge; Welford tail for remainders. Stable on large-mean-offset data.
+
+**Surveyed 2020–2026 (no change adopted):** see [`citations.md`](../citations.md) entries [3], [4], [8], [10]. None beat production on scalar float32 speed **and** our accuracy target.
+
+Implementation: `Source/Core/Helpers/Numerics/`. Accuracy report: `dotnet run -c Release --project BAVCL.Benchmarks -- --sum-accuracy-report`.
+
+CPU and GPU `*X` APIs are parity-tested to these bounds. See [MigrationGuide.md § Numerical accuracy](./MigrationGuide.md#numerical-accuracy-float32).
 
 ---
 
@@ -350,7 +397,7 @@ sequenceDiagram
 
 ### 3.4 GpuScope Flow
 
-`GpuScope` (`Source/Core/Memory/Scopes/GpuScope.cs`) returns a `GpuPinScope` that pins `ICacheable` instances for the duration of a `using` block. Library GPU operations call `GpuScope.Begin` internally; custom kernels should do the same.
+`GpuScope` (`Source/Core/Memory/Scopes/GpuScope.cs`) returns a `GpuPinScope` that pins `ICacheable` instances for the duration of a `using` block. Library GPU operations call `GpuScope.Begin` internally; custom kernels should do the same. **Prefer** `GpuScope.Begin(modified, readOnly…)` when all buffers exist — avoid stacking separate `BeginReadOnly` + `Begin(modified)` for the same launch.
 
 ```mermaid
 flowchart TD
@@ -459,18 +506,34 @@ This section documents **what exists in code today**. See [Section 19](#19-code-
 | `Flatten()`                                   | Set `Columns = 0` (1D row storage)         |
 | `ToVector3()`                                 | Convert when length % 3 == 0               |
 
-#### 4.2.2 Statistical Properties (CPU)
+#### 4.2.2 Statistical Properties
 
-Implemented in `BAVCL.Modules.Statistics` (`StatisticsModule`, `VectorStatistics`).
+Implemented in `BAVCL.Modules.Statistics` (`StatisticsModule`, `VectorStatistics`). Arithmetic `Sum()` / `SumX()` live in `BAVCL.Modules.Arithmetic`.
 
-| Method           | Implementation                                             | Notes    |
-| ---------------- | ---------------------------------------------------------- | -------- |
-| `Sum()`          | CPU SIMD (`System.Numerics.Vector<float>`); Kahan for ≥10⁴ | Override |
-| `Mean()`         | `Sum() / Length`                                           |          |
-| `Var()`          | SIMD for small; GPU `differenceSquared` for large          |          |
-| `Std()`          | `Sqrt(Var())`                                              |          |
-| `Min()`, `Max()` | CPU via `RetrieveReadOnlySpan()` after sync when needed    |          |
-| `Range()`        | `Max - Min`                                                |          |
+| Method | CPU | GPU (`X`) | Implementation / notes |
+| ------ | --- | --------- | ---------------------- |
+| `Sum()` | ✓ | — | Widened SIMD Neumaier (float64 scratch); always EC |
+| `SumX()` | — | ✓ | Grouped Neumaier kernel (float64 thread accumulators + host fold); `VectorInt` accumulates in `int32` (unchecked) |
+| `Mean()` | ✓ | — | `Sum() / Length` |
+| `MeanX()` | — | ✓ | `SumX() / Length` |
+| `Var()` | ✓ | — | **Population** variance (σ², ÷N). Streaming CGL on SIMD blocks + Welford tail — **always CPU** |
+| `SampleVar()` | ✓ | — | **Sample** variance (s², ÷N−1). Same accumulator as `Var()`; requires length ≥ 2 |
+| `VarX()` | — | ✓ | **Population** variance on GPU; grouped CGL reduce |
+| `SampleVarX()` | — | ✓ | **Sample** variance on GPU; same kernel as `VarX()` |
+| `Std()` / `StdX()` | ✓ | ✓ | √`Var` / √`VarX` (population) |
+| `SampleStd()` / `SampleStdX()` | ✓ | ✓ | √`SampleVar` / √`SampleVarX` |
+| `Min()`, `Max()` | ✓ | — | CPU SIMD via `CpuSimdReduce` |
+| `MinX()`, `MaxX()` | — | ✓ | ILGPU `MinFloat`/`MaxFloat`/`MinInt32`/`MaxInt32` |
+| `Range()` | ✓ | — | `Max - Min` |
+| `RangeX()` | — | ✓ | Fused grouped min/max kernel (one launch) |
+| `All()` | ✓ | — | CPU SIMD zero-check |
+| `AllX()` | — | ✓ | Grouped non-zero scan (scalar flags; no full `Mask` buffer) |
+| `Dot()` | ✓ | — | CPU SIMD dot (`Arithmetic` module); Neumaier EC; scalar form uses `scalar * Sum` |
+| `DotX()` | — | ✓ | Grouped compensated `dotReduce` kernel (Statistics domain) |
+| `Percentile()`, `Median()`, `Quartile1()`, `Quartile3()`, `Iqr()` | ✓ | — | CPU `SortAsc` + linear interpolation |
+| `PercentileX()`, `MedianX()`, `Quartile1X()`, `Quartile3X()`, `IqrX()` | — | ✓ | GPU `SortAscX` + CPU index read |
+
+Load Statistics: `KernelModuleLoader.Load<float>(gpu, KernelWorkloads.Statistics)` and `KernelModuleLoader.Load<int>(gpu, KernelWorkloads.Statistics)`.
 
 #### 4.2.3 Factory Methods
 
@@ -487,39 +550,39 @@ Implemented in `BAVCL.Modules.Structural` (`VectorStructural`) and `BAVCL.Module
 
 #### 4.2.4 Element-wise and Unary Operations
 
-| Operation  | CPU               | GPU (`X` / module)        | In-place (`_IP`) |
-| ---------- | ----------------- | ------------------------- | ---------------- |
-| Abs        | `Abs`, `Abs_IP`   | `AbsX`, `AbsX_IP`         | yes              |
-| Reciprocal | —                 | GPU kernel                | `Reciprocal_IP`  |
-| Rsqrt      | CPU path          | `RsqrtX`, `RsqrtX_IP`     | yes              |
-| Reverse    | `Reverse()` (CPU) | `ReverseX`, `ReverseX_IP` | yes              |
-| Diff       | —                 | allocating GPU kernel     | `Diff_IP` (reuses buffer) |
-| NanToNum   | —                 | `nanToNumKernel`          | `Nan_to_num_IP`  |
-| Normalise  | —                 | GPU `OP` multiply (`GpuOpsModule`) | `Normalise_IP` |
-| Log        | —                 | `LogKernel` (`GpuOpsModule`) | `Log_IP`      |
+| Operation  | CPU               | GPU | In-place (CPU) | In-place (GPU) |
+| ---------- | ----------------- | --- | -------------- | -------------- |
+| Abs        | `Abs`             | `AbsX` | `AbsIP` | `AbsXIP` |
+| Reciprocal | —                 | `ReciprocalX` | — | `ReciprocalXIP` |
+| Rsqrt      | `Rsqrt`           | `RsqrtX` | `RsqrtIP` | `RsqrtXIP` |
+| Reverse    | `Reverse`         | `ReverseX` | `ReverseIP` | `ReverseXIP` |
+| Diff       | —                 | `DiffX` | — | `DiffXIP` |
+| NanToNum   | —                 | `NanToNumX` | — | `NanToNumXIP` |
+| Normalise  | —                 | `NormaliseX` | — | `NormaliseXIP` |
+| Log        | —                 | `LogX` (`GpuOpsModule`) | — | `LogXIP` |
 
 #### 4.2.5 Binary Operations and Operators
 
-**Migration:** See [`MigrationGuide.md`](MigrationGuide.md) for breaking changes to `Columns`, `OP`/`IPOP`, `ReduceOP`, and `Matrix*`.
+**Migration:** See [`MigrationGuide.md`](MigrationGuide.md) for naming (`_IP` → `IP`, GPU `X` alignment) and breaking changes to `Columns`, `OP`/`IPOP`, `ReduceOPX`, and `Matrix*X`.
 
 Binary `+`, `-`, `*`, `/`, `^` operator overloads use **NumPy-style element-wise broadcast** via `OP()` / `IPOP()`. Three separate API families exist for different semantics:
 
 | Family | Methods | Semantics |
 | ------ | ------- | --------- |
-| **Broadcast (default)** | `OP`, `IPOP`, operators | NumPy element-wise broadcast via `broadcastOpKernel` / `broadcastOpKernelIP` |
-| **Matrix calculator** | `MatrixAdd`, `MatrixSubtract`, `MatrixDivide`, `MatrixPow`, `MatrixMultiply`, `Cross` | Strict 2D rules: same shape for add/sub/div/pow; inner-dimension match for multiply |
-| **Row reduction** | `ReduceOP` | `reduceRowOpKernel` — one output per matrix row (not broadcast, not matmul) |
+| **Broadcast (default)** | `OP`, `IPOP`, operators | NumPy element-wise broadcast via `broadcastOpKernel` / `broadcastOpKernelIP` — **GPU-only; no `X` suffix** |
+| **Matrix calculator** | `MatrixAddX`, `MatrixSubtractX`, `MatrixDivideX`, `MatrixPowX`, `MatrixMultiplyX`, `CrossX` | Strict 2D rules: same shape for add/sub/div/pow; inner-dimension match for multiply |
+| **Row reduction** | `ReduceOPX` | `reduceRowOpKernel` — one output per matrix row (not broadcast, not matmul) |
 
 | Method                        | Description                              |
 | ----------------------------- | ---------------------------------------- |
-| `OP(vecA, vecB, Operations)`  | NumPy broadcast element-wise             |
-| `OP(vec, scalar, Operations)` | Vector-scalar                            |
+| `OP(vecA, vecB, Operations)`  | NumPy broadcast element-wise (GPU)       |
+| `OP(vec, scalar, Operations)` | Vector-scalar (GPU)                      |
 | `IPOP(vecB, Operations)`      | In-place broadcast when left shape equals output shape |
 | `IPOP(scalar, Operations)`    | In-place vector-scalar                   |
-| `MatrixAdd` / `MatrixSubtract` / `MatrixDivide` / `MatrixPow` | Identical `(M,N)` matrices, element-wise |
-| `MatrixMultiply` / `Cross`    | Matrix multiply `(M,K) × (K,N)` — `Cross` is the primary name; `MatrixMultiply` is an alias |
-| `ReduceOP(vector, matrix, op)` | 1D row coefficient (`Columns=0`), length == matrix columns; allocates output length == matrix rows |
-| `Dot(vecA, vecB)`             | Scalar inner product (equal length only) |
+| `MatrixAddX` / `MatrixSubtractX` / `MatrixDivideX` / `MatrixPowX` | Identical `(M,N)` matrices, element-wise (GPU) |
+| `MatrixMultiplyX` / `CrossX`    | Matrix multiply `(M,K) × (K,N)` — `CrossX` is the primary name; `MatrixMultiplyX` is an alias |
+| `ReduceOPX(vector, matrix, op)` | 1D row coefficient (`Columns=0`), length == matrix columns; allocates output length == matrix rows |
+| `Dot(vecA, vecB)`             | Scalar inner product (equal length only; uses `OP` + CPU `Sum`) |
 
 **`Operations` enum** (`Source/Core/Enums/Operations.cs`): `multiply`, `add`, `subtract`, `divide`, `pow`, `flipDivide`, `flipSubtract`, `flipPow`, `differenceSquared`, `distance`, `magnitude`.
 
@@ -533,11 +596,11 @@ Binary `+`, `-`, `*`, `/`, `^` operator overloads use **NumPy-style element-wise
 
 `RowCount()` and `Shape()` derive from `Columns` and `Length` as above. `Is1D()` is true when `Columns == 0` or `Columns == 1` (both lay out as one global, non-row-segmented sequence); `Is1DRowVector()` narrows to `Columns == 0` alone; `Is2D()` is true when `Columns > 1`.
 
-**No in-place row reduce:** `ReduceIPOP` is intentionally omitted. Row reduction reads a full coefficient vector (`Length == matrix.Columns`) and writes one scalar per row (`Length == matrix.RowCount()`). A single buffer cannot satisfy both layouts except on square matrices, and even then the row-wise kernel reads every coefficient element on each thread while writing row outputs into the same buffer — unsafe GPU aliasing without a coefficient snapshot. A column-wise per-thread scheme would avoid aliasing but would not implement shared-coefficient row reduction and would harm row-major coalescing. Use allocating `ReduceOP` instead.
+**No in-place row reduce:** `ReduceIPOP` is intentionally omitted. Row reduction reads a full coefficient vector (`Length == matrix.Columns`) and writes one scalar per row (`Length == matrix.RowCount()`). A single buffer cannot satisfy both layouts except on square matrices, and even then the row-wise kernel reads every coefficient element on each thread while writing row outputs into the same buffer — unsafe GPU aliasing without a coefficient snapshot. A column-wise per-thread scheme would avoid aliasing but would not implement shared-coefficient row reduction and would harm row-major coalescing. Use allocating `ReduceOPX` instead.
 
 **Broadcasting:** Operand shapes are resolved host-side into `BroadcastStrides` (row stride, column stride) where a length-one axis gets stride `0`. `broadcastOpKernel` / `broadcastOpKernelIP` map each output element to operand indices via multiply-add with no shape tests on device; only the operation stays specialized. Incompatible shapes throw `ShapeMismatchException`. `IPOP` throws `PerformanceException` (prefix: *This operation will lead to degraded performance:*) when the left operand would need resizing.
 
-**Note:** `Vector3.Cross` is a separate optimised 3D geometric kernel — not related to `Vector.Cross` (matrix multiply).
+**Note:** `Vector3.CrossX` is a separate optimised 3D geometric kernel — not related to `Vector.CrossX` (matrix multiply).
 
 **Note:** Unary `+` operator currently calls `AbsX` (likely unintentional — see §19 #21).
 
@@ -547,21 +610,23 @@ Defined on `Source/Types/Vector.cs`; GPU kernels in `BAVCL.Modules.Masking`. See
 
 | Surface | Examples |
 | ------- | -------- |
-| Compare → `Mask` | `CompareEquals`, `CompareNotEquals`, `Compare`, `>`, `<`, `>=`, `<=` |
-| Filter / select | `vector & mask`, `vector & (mask, fill)`, `vector \| mask`, `vector / mask`, `vector[mask]` |
+| Compare → `Mask` | `CompareEqualsX`, `CompareNotEqualsX`, `CompareX`, `>`, `<`, `>=`, `<=` |
+| Filter / select | `vector & mask` → `MaskX`, `vector \| mask` → `FilterX`, `vector / mask` → `PartitionX`, `vector[mask]` → `FilterX` |
 
 #### 4.2.6 Structural Operations
 
 | Method                                   | Description                                 |
 | ---------------------------------------- | ------------------------------------------- |
-| `Transpose` / `Transpose_IP`             | GPU transpose kernel                        |
-| `Dot(vecA, vecB)` / `Dot(scalar)`        | Dot product                                 |
-| `Concat(vecA, vecB, axis, warp)`         | Concatenate along axis                      |
-| `Append` / `Prepend`                     | Vector append                               |
-| `Merge`                                  | Merge vectors                               |
-| `GetSliceAsVector` / `GetSliceAsArray`   | Slice by row or column                      |
-| `GetColumnAsVector` / `GetColumnAsArray` | Column extraction                           |
-| `GetRowAsVector` / `GetRowAsArray`       | Row extraction                              |
+| `TransposeX` / `TransposeXIP`            | GPU transpose kernel                        |
+| `Dot(vecA, vecB)` / `Dot(scalar)`        | Dot product (scalar; uses `OP` + CPU `Sum`) |
+| `Concat(vecA, vecB)` / `ConcatIP`        | Row-axis concatenate (CPU)                  |
+| `ConcatColumnX` / `ConcatColumnXIP`      | Column-axis concatenate (GPU)               |
+| `Append` / `Prepend`                     | Vector append (CPU allocating)              |
+| `Merge`                                  | Merge vectors (CPU)                         |
+| `GetSliceAsVector` / `GetSliceAsArray`   | Row slice (CPU)                             |
+| `GetSliceAsVectorX` / `GetSliceAsArrayX` | Column slice (GPU)                          |
+| `GetColumnAsVectorX` / `GetColumnAsArray`| Column extraction (GPU)                     |
+| `GetRowAsVector` / `GetRowAsArray`       | Row extraction (CPU)                        |
 | `TransferBuffer`                         | Copy GPU buffer reference to another vector |
 | `All()`                                  | True if no zero values                      |
 
@@ -575,7 +640,7 @@ Defined on `Source/Types/Vector.cs`; GPU kernels in `BAVCL.Modules.Masking`. See
 
 #### 4.2.8 Sorting (`BAVCL.Modules.Sorting`) — `Vector` and `VectorInt`
 
-**Naming convention** (library-wide standard, pioneered here — supersedes the `X_IP` spelling used elsewhere, e.g. `AbsX_IP`):
+**Naming convention** (library-wide standard — see [Features.md](Features.md)):
 
 | Suffix     | Meaning                                                                                | Example         |
 | ---------- | --------------------------------------------------------------------------------------- | --------------- |
@@ -615,7 +680,7 @@ Notes:
 | Operators    | `+`, `-`, `*`, `/`, `^` with Vector3 and float (GPU via `GpuOpsModule`)            |
 | Geometry     | `Cross(vecA, vecB)`, `Dot(vecA, vecB)`, `Magnitude()`, `Magnitude(vecA, vecB)`, `Distance(vec)` — `LengthMismatchException` on size mismatch |
 | Per-row ops  | `VOP(vec, op)`, `VOP(vecA, vecB, op)` → returns `Vector` of per-row results        |
-| Indexing     | `this[int row, Coord]`, `GetAt`, `SetAt` (reads sync via `GetReadOnlySpan`; writes use `CpuScope`) |
+| Indexing     | `this[int row, Coord]`, `GetAt`, `SetAt` (reads sync via `RetrieveReadOnlySpan`; writes use `CpuScope`) |
 | Concat       | With `Vector3`, `Vertex`, arrays, lists                                            |
 | Access       | `AccessRow(vec, row)`                                                              |
 | Copy         | `Copy()`                                                                           |
@@ -656,7 +721,7 @@ Kernels are loaded selectively via `KernelModuleLoader` (see §7). Each domain f
 | `a_opFKernel` / `s_opFKernel`             | Arithmetic  | Binary ops (array/scalar)                       |
 | `a_FloatOPKernelIP` / `s_FloatOPKernelIP` | Arithmetic  | In-place binary ops                             |
 | `broadcastOpKernel` / `broadcastOpKernelIP` | Arithmetic  | NumPy-style element-wise broadcast              |
-| `reduceRowOpKernel`                       | Arithmetic  | Row-wise vector-matrix reduction (`ReduceOP`)   |
+| `reduceRowOpKernel`                       | Arithmetic  | Row-wise vector-matrix reduction (`ReduceOPX`)   |
 | `matmulKernel`                            | Arithmetic  | Matrix multiply (`Cross` / `MatrixMultiply`)    |
 | `diffKernel`                              | Arithmetic  | Adjacent difference                             |
 | `absKernel`                               | Arithmetic  | Absolute value                                  |
@@ -717,7 +782,7 @@ Sort/argsort uses the kernel path internally.
 - On eviction when `LiveCount == 0`: sync to CPU via `SyncCPU(buffer)`, dispose buffer
 - `GC(memRequired)` evicts until space available
 - **`GetBuffer`**: lock-free dictionary read
-- **`UpdateBuffer`**: `GetReadOnlySpan()` / CPU sync **outside** `lock(this)`; dictionary lookup, `CopyFromCPU`, and allocation **inside** the lock
+- **`UpdateBuffer`**: `RetrieveReadOnlySpan()` / CPU sync **outside** `lock(this)`; dictionary lookup, `CopyFromCPU`, and allocation **inside** the lock
 
 **TODOs in code:** dirty-flag to skip unnecessary CPU sync; only sync if data changed.
 
@@ -847,10 +912,10 @@ Host-side checks remain for **API misuse** only: `InvalidOperationOnTypeExceptio
 | **`\|` operator** | `VectorInt \| mask` — filter (compact true lanes). `Mask \| Mask` remains bitwise OR (different LHS type). |
 | **`/` operator** | `VectorInt / VectorInt` — divide. `VectorInt / mask` — partition → `(trueLanes, falseLanes)`. |
 | **Bit shifts** | `<<` / `>>` / `<<=` / `>>=` with `int` or `VectorInt` RHS only (no `<< mask` overload). `>>` is arithmetic. Counts follow C# mod-32 masking. |
-| **Omitted** | Float-only ops (`Log`, `Rsqrt`, `Reciprocal`, `Nan_to_num`, `Normalise`, `distance`, `magnitude`, `pow`) throw `InvalidOperationOnTypeException` if passed to GpuOps. |
-| **Reduce** | Unsupported `ReduceOP` values throw `UnsupportedOperationException`. |
-| **Statistics** | `Sum()` via `long` internally; `Min()`/`Max()`/`Range()` return `int`. `All()` — true when no zero values. |
-| **Structural** | `Concat`/`Merge`/`Append_IP`/`Reverse_IP`/`GetRowAsArray(noSync)` — parity with `Vector`. Axis via `ConcatAxis` enum (`Row`, `Column`). |
+| **Omitted** | Float-only ops (`LogX`, `Rsqrt`, `ReciprocalX`, `NanToNumX`, `NormaliseX`, `distance`, `magnitude`, `pow`) throw `InvalidOperationOnTypeException` if passed to GpuOps. |
+| **Reduce** | Unsupported `ReduceOPX` values throw `UnsupportedOperationException`. |
+| **Statistics** | `Sum()` / `SumX()` unchecked `int32` accum → `float` result; `Min()`/`Max()`/`Range()` return `int`. `All()` — true when no zero values. |
+| **Structural** | `Concat`/`ConcatColumnX`/`Merge`/`AppendIP`/`ReverseIP`/`GetRowAsArray` — parity with `Vector`. Row concat via `Concat`/`ConcatIP`; column via `ConcatColumnX`/`ConcatColumnXIP`. |
 
 #### Mask operators (same semantics as `Vector`)
 
@@ -1038,7 +1103,22 @@ Implementation target: `System.Numerics.Vector<int>` / packed word scan via `Ret
 
 ## 7. Kernel Module System
 
-**Agent / implementer reference:** see [GPGPUKernelGuide.md](./GPGPUKernelGuide.md) for GPU design principles, host/device boundaries, and patterns. Project skill: `.agents/skills/bavcl-gpgpu/`.
+**Agent / implementer reference:** principles P1–P6 below (full elaboration in `.agents/skills/bavcl-gpgpu/`). Legacy standalone [GPGPUKernelGuide.md](./GPGPUKernelGuide.md) is a pointer to this section.
+
+### 7.0 Device-side design principles (P1–P6)
+
+| | Principle |
+|---|-----------|
+| **P1** | Maximize parallelism — map threads to independent work |
+| **P2** | Match hardware (element / word / gather as layout dictates) |
+| **P3** | Host precomputes O(1) setup; device does the operation |
+| **P4** | Avoid **divergent** branching; uniform specialized `switch` is fine |
+| **P5** | Kernels simple; dispatch must not dwarf them |
+| **P6** | Tests in `BAVCL.Tests`; `Testing Console/` is manual only |
+
+**Host API:** one `GpuScope.Begin(modified, readOnly…)` when all buffers exist. Rent scratch from `BufferPools` only — no `accelerator.Allocate1D` in dispatch. Reads: `RetrieveReadOnlySpan()`; never `CpuScope` for read-only.
+
+**Pre-submit:** launch maximizes parallel work? parallel unit fits layout? host precompute used? branches uniform? kernel simpler than dispatch? follows domain pattern?
 
 ### 7.1 Module Dimensions
 
@@ -1088,6 +1168,7 @@ GPU gpu = GPUManager.Default;
 | `KernelWorkloads.Default`  | Arithmetic, Structural, **Mask**  | Standard numerics + mask kernels                    |
 | `KernelWorkloads.Geometry` | Default + Geometry                | Vector3 GPU ops (cross, magnitude/distance)         |
 | `KernelWorkloads.Sorting`  | Sorting                           | GPU sort/argsort (`SortX`, `SortXIP`, `ArgsortX`, `ArgsortXIP`) |
+| `KernelWorkloads.Statistics` | Statistics                      | GPU global reduce (`SumX`, `MinX`, `MaxX`, `MeanX`, `VarX`, `StdX`, `AllX`, `DotX` reduce leg) |
 
 For full parity with the old load-all behaviour, use `LoadAll<T>`.
 
@@ -1102,7 +1183,7 @@ For full parity with the old load-all behaviour, use `LoadAll<T>`.
 | Structural (int32) | appendInt, getSliceInt, reverseInt, transposeInt                  | Implemented |
 | Arithmetic (int32) | absInt, negateInt, diffInt, matmulInt, a/s opInt, broadcastInt, reduceRowInt, floatToInt, intToFloat | Implemented |
 | Mask (int32 vectors) | vectorIntCompareMask, vectorIntScalarCompareMask, vectorIntMaskFilter, vectorIntGather | Implemented |
-| Statistics    | —                                                                       | Not yet  |
+| Statistics    | `LoadStatisticsFloatKernels` / `LoadStatisticsIntKernels` (ILGPU reduce compile) | **Yes** — global reduce `*X` |
 | LinearAlgebra | — (`matmul` in Arithmetic for now)                                    | Not yet  |
 | Astrophysics  | —                                                                       | Not yet  |
 
@@ -1186,11 +1267,10 @@ Feasibility depends on ILGPU and device APIs — document as investigation item.
 
 | Method | Behavior |
 |--------|----------|
-| `GetCpuReadOnlySpan()` | Zero-copy view of current CPU buffer; **no GPU sync** |
-| `GetReadOnlySpan()` | `SyncCPU()` then `GetCpuReadOnlySpan()` — use for reads and LRU upload |
-| `GetAt` / indexers (get) | `GetReadOnlySpan()[index]` |
+| `RetrieveReadOnlySpan()` | `SyncCPU()` when GPU is newer, then zero-copy `ReadOnlySpan` over CPU buffer — use for **all** reads |
+| `GetAt` / indexers (get) | `RetrieveReadOnlySpan()[index]` |
 | `ToArray()` | **Always allocates** a heap copy; syncs when needed |
-| `ICacheable<T>.GetReadOnlySpan()` | Same as above; used by memory manager for upload |
+| `ICacheable<T>.RetrieveReadOnlySpan()` | Same as above; used by memory manager for upload |
 
 **Write API:** `CpuScope` + `EditableView<T>` or `SetAt` (opens `CpuScope` internally; not for tight loops). `IndexingMode` removed — use scoping instead.
 
@@ -1275,7 +1355,7 @@ Evaluate C# DUs (expected .NET 11) to reduce per-type operation boilerplate. Unt
 
 ### 10.2 SIMD Usage (v0)
 
-`Vector.Sum()` uses `System.Numerics.Vector<float>` with Kahan summation for arrays ≥ 10⁴ elements. `Var()` uses SIMD for smaller arrays.
+`Vector.Sum()` and `Vector.Dot()` always use widened SIMD Neumaier (`System.Numerics.Vector<float>` chunks → float64 accumulators). `Var()` uses SIMD block moments + streaming CGL merge at all lengths.
 
 ### 10.3 Operator Overloads (Target)
 
@@ -1454,6 +1534,28 @@ VS Code `launch.json` references `net6.0` but projects target `net10.0` — stal
 | Public NuGet                | Not planned                       |
 | README                      | To be created after spec approval |
 
+### 18.1 ILGPU algorithm batches (roadmap)
+
+| Batch | Status | APIs |
+|-------|--------|------|
+| **1 Global reduce** | **Implemented** | `SumX`, `DotX`, `MinX`, `MaxX`, `MeanX`, `VarX`, `StdX`, `AllX`, `RangeX`, `MinMaxX`, `ReduceOPX` |
+| **2 Prefix scan** | Planned | `CumSumX`, `CumSumExclusiveX` |
+| **3 Histogram** | Planned | GPU histogram / binning |
+| **4 Segmented sort** | Partial | 2D row sort via `SortAscX` on matrices |
+
+Crossover benchmarks and measured `N` thresholds: `BAVCL.Benchmarks` (`ReduceBenchmark`, `MeanVarBenchmark`, `AllXBenchmark`).
+
+**`AllX` grouped scan vs legacy mask materialization** (`AllXBenchmark`, InProcess, RTX-class GPU, 2026-09-04):
+
+| N | Type | Grouped scan | Legacy mask | Speedup | Alloc ratio |
+|---|------|-------------|-------------|---------|-------------|
+| 10⁴ | float | 30.5 µs | 92.6 µs | ~3.0× | ~8.5× less |
+| 10⁴ | int | 124 µs | 169 µs | ~1.4× | ~11× less |
+| 10⁶ | float | 118 µs | 372 µs | ~3.2× | ~15× less |
+| 10⁶ | int | 58.5 µs | 432 µs | ~7.4× | ~15× less |
+
+Grouped non-zero scan is faster at all measured sizes and avoids allocating a full `Mask` buffer.
+
 ---
 
 ## 19. Code vs Vision Gaps
@@ -1519,7 +1621,7 @@ Companion test repository at `C:\Users\marce\Repos\BAVCL.Tests`. Source-only sib
 | Interface        | Purpose                                             |
 | ---------------- | --------------------------------------------------- |
 | `ICacheable`     | GPU cache contract: ID, LiveCount, Residence (volatile), DeCache, SyncCPU |
-| `ICacheable<T>`  | Typed cache contract: `GetReadOnlySpan()`, `UpdateCache(T[])` |
+| `ICacheable<T>`  | Typed cache contract: `RetrieveReadOnlySpan()`, `UpdateCache(T[])` |
 | `IMemoryManager` | Pluggable GPU memory strategy                       |
 | `IIO`            | CSV/string export contract                          |
 

@@ -180,9 +180,9 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 		Residence = Residence.Cpu;
 	}
 
-	public void IncrementLiveCount() => Interlocked.Increment(ref _livecount);
+	void ICacheable.IncrementLiveCount() => Interlocked.Increment(ref _livecount);
 
-	public void DecrementLiveCount() => Interlocked.Decrement(ref _livecount);
+	void ICacheable.DecrementLiveCount() => Interlocked.Decrement(ref _livecount);
 
 	public void EnterCpuScope()
 	{
@@ -197,9 +197,14 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 		{
 			Residence current = Residence;
 			if (!ResidenceHelper.IsActiveCpu(current))
-				ResidenceScopeHelper.TransitionOrReconcile(this, current, Residence.ActiveCpu);
+			{
+				// Pull while GPU is still exclusive authority. Transitioning to ActiveCpu first
+				// makes IsCpuAuthority true, so SyncCPU would skip the pull and leave stale host storage.
+				if (ResidenceHelper.IsGpuAuthority(current))
+					SyncCPU();
 
-			SyncCPU();
+				ResidenceScopeHelper.TransitionOrReconcile(this, Residence, Residence.ActiveCpu);
+			}
 		}
 		catch
 		{

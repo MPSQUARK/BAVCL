@@ -48,37 +48,32 @@ public sealed partial class VectorInt : VectorBase<int>
 		return true;
 	}
 
-	public VectorInt Copy(bool cache = true)
-	{
-		if (ID == 0)
-			return new VectorInt(Gpu, ToArray(), Columns, cache);
-
-		return new VectorInt(Gpu, Pull(), Columns, cache);
-	}
+	public VectorInt Copy(bool cache = true) =>
+		new(Gpu, ToArray(), Columns, cache);
 
 	public void Flatten() => Columns = 0;
 
 	public override string ToString() => VectorStructuralExtensions.ToStr(this);
 
-	public VectorInt this[Mask mask] => MaskVectorIntOps.Filter(this, mask);
+	public VectorInt this[Mask mask] => MaskVectorIntOps.FilterX(this, mask);
 
-	public Mask CompareEquals(VectorInt other) =>
-		MaskVectorIntOps.Compare(this, other, VectorComparison.Equal);
+	public Mask CompareEqualsX(VectorInt other) =>
+		MaskVectorIntOps.CompareX(this, other, VectorComparison.Equal);
 
-	public Mask CompareNotEquals(VectorInt other) =>
-		MaskVectorIntOps.Compare(this, other, VectorComparison.NotEqual);
+	public Mask CompareNotEqualsX(VectorInt other) =>
+		MaskVectorIntOps.CompareX(this, other, VectorComparison.NotEqual);
 
-	public Mask Compare(VectorInt other, VectorComparison comparison) =>
-		MaskVectorIntOps.Compare(this, other, comparison);
+	public Mask CompareX(VectorInt other, VectorComparison comparison) =>
+		MaskVectorIntOps.CompareX(this, other, comparison);
 
-	public Mask CompareEquals(int scalar) =>
-		MaskVectorIntOps.Compare(this, scalar, VectorComparison.Equal);
+	public Mask CompareEqualsX(int scalar) =>
+		MaskVectorIntOps.CompareX(this, scalar, VectorComparison.Equal);
 
-	public Mask CompareNotEquals(int scalar) =>
-		MaskVectorIntOps.Compare(this, scalar, VectorComparison.NotEqual);
+	public Mask CompareNotEqualsX(int scalar) =>
+		MaskVectorIntOps.CompareX(this, scalar, VectorComparison.NotEqual);
 
-	public Mask Compare(int scalar, VectorComparison comparison) =>
-		MaskVectorIntOps.Compare(this, scalar, comparison);
+	public Mask CompareX(int scalar, VectorComparison comparison) =>
+		MaskVectorIntOps.CompareX(this, scalar, comparison);
 
 	public static explicit operator VectorInt(Vector vector) => CastCore.ToVectorInt(vector);
 
@@ -154,7 +149,7 @@ public sealed partial class VectorInt : VectorBase<int>
 		vector.OP(scalar, Operations.flipDivide);
 
 	public static (VectorInt TrueLanes, VectorInt FalseLanes) operator /(VectorInt vector, Mask mask) =>
-		MaskVectorIntOps.Partition(vector, mask);
+		MaskVectorIntOps.PartitionX(vector, mask);
 
 	public void operator /=(VectorInt vectorB) =>
 		this.IPOP(vectorB, Operations.divide);
@@ -238,10 +233,10 @@ public sealed partial class VectorInt : VectorBase<int>
 		vector.OP(scalar, Operations.bitwiseAnd);
 
 	public static VectorInt operator &(VectorInt vector, Mask mask) =>
-		MaskVectorIntOps.Mask(vector, mask, 0);
+		MaskVectorIntOps.MaskX(vector, mask, 0);
 
 	public static VectorInt operator &(VectorInt vector, (Mask mask, int fill) masked) =>
-		MaskVectorIntOps.Mask(vector, masked.mask, masked.fill);
+		MaskVectorIntOps.MaskX(vector, masked.mask, masked.fill);
 
 	public void operator &=(VectorInt vectorB) =>
 		this.IPOP(vectorB, Operations.bitwiseAnd);
@@ -250,31 +245,31 @@ public sealed partial class VectorInt : VectorBase<int>
 		this.IPOP(scalar, Operations.bitwiseAnd);
 
 	public static VectorInt operator |(VectorInt vector, Mask mask) =>
-		MaskVectorIntOps.Filter(vector, mask);
+		MaskVectorIntOps.FilterX(vector, mask);
 
 	public static Mask operator >(VectorInt left, VectorInt right) =>
-		MaskVectorIntOps.Compare(left, right, VectorComparison.Greater);
+		MaskVectorIntOps.CompareX(left, right, VectorComparison.Greater);
 
 	public static Mask operator <(VectorInt left, VectorInt right) =>
-		MaskVectorIntOps.Compare(left, right, VectorComparison.Less);
+		MaskVectorIntOps.CompareX(left, right, VectorComparison.Less);
 
 	public static Mask operator >=(VectorInt left, VectorInt right) =>
-		MaskVectorIntOps.Compare(left, right, VectorComparison.GreaterOrEqual);
+		MaskVectorIntOps.CompareX(left, right, VectorComparison.GreaterOrEqual);
 
 	public static Mask operator <=(VectorInt left, VectorInt right) =>
-		MaskVectorIntOps.Compare(left, right, VectorComparison.LessOrEqual);
+		MaskVectorIntOps.CompareX(left, right, VectorComparison.LessOrEqual);
 
 	public static Mask operator >(VectorInt vector, int scalar) =>
-		MaskVectorIntOps.Compare(vector, scalar, VectorComparison.Greater);
+		MaskVectorIntOps.CompareX(vector, scalar, VectorComparison.Greater);
 
 	public static Mask operator <(VectorInt vector, int scalar) =>
-		MaskVectorIntOps.Compare(vector, scalar, VectorComparison.Less);
+		MaskVectorIntOps.CompareX(vector, scalar, VectorComparison.Less);
 
 	public static Mask operator >=(VectorInt vector, int scalar) =>
-		MaskVectorIntOps.Compare(vector, scalar, VectorComparison.GreaterOrEqual);
+		MaskVectorIntOps.CompareX(vector, scalar, VectorComparison.GreaterOrEqual);
 
 	public static Mask operator <=(VectorInt vector, int scalar) =>
-		MaskVectorIntOps.Compare(vector, scalar, VectorComparison.LessOrEqual);
+		MaskVectorIntOps.CompareX(vector, scalar, VectorComparison.LessOrEqual);
 
 	#endregion
 
@@ -290,7 +285,7 @@ public sealed partial class VectorInt : VectorBase<int>
 		using (GpuScope.Begin(vector))
 		{
 			MemoryBuffer1D<int, Stride1D.Dense> buffer = vector.GetBuffer();
-			vector.Gpu.negateIntKernel(vector.Gpu.DefaultStream, buffer.IntExtent, buffer.View);
+			vector.Gpu.negateIntIP(vector.Gpu.DefaultStream, buffer.IntExtent, buffer.View);
 			vector.Gpu.Synchronize();
 		}
 	}

@@ -8,6 +8,8 @@ namespace BAVCL.Modules.Structural;
 
 internal static class ShapeOpsCore
 {
+	const string ConcatColumnMessage = "Column-axis concatenation requires ConcatColumnX or ConcatColumnXIP.";
+
 	internal static Vector Append(Vector left, Vector right) =>
 		new(left.Gpu, left.RetrieveReadOnlySpan().ToArray().Concat(right.RetrieveReadOnlySpan().ToArray()).ToArray(), left.Columns);
 
@@ -15,7 +17,7 @@ internal static class ShapeOpsCore
 	{
 		using (vectorA.CpuScopeAndSync())
 		{
-			ReadOnlySpan<float> left = vectorA.GetCpuReadOnlySpan();
+			ReadOnlySpan<float> left = vectorA.RetrieveReadOnlySpan();
 			ReadOnlySpan<float> right = vectorB.RetrieveReadOnlySpan();
 			vectorA.Value = [.. left, .. right];
 			vectorA.Length = vectorA.Value.Length;
@@ -33,12 +35,22 @@ internal static class ShapeOpsCore
 
 	internal static Vector ConcatInPlace(Vector vector, Vector other, ConcatAxis axis = ConcatAxis.Row, bool warp = false)
 	{
-		if (axis == ConcatAxis.Row)
-		{
-			AppendInPlace(vector, other);
-			return vector;
-		}
+		if (axis == ConcatAxis.Column)
+			throw new Exception(ConcatColumnMessage);
 
+		AppendInPlace(vector, other);
+		return vector;
+	}
+
+	internal static Vector ConcatColumnX(Vector left, Vector right, bool warp = false)
+	{
+		Vector copy = left.Copy();
+		ConcatColumnXInPlace(copy, right, warp);
+		return copy;
+	}
+
+	internal static Vector ConcatColumnXInPlace(Vector vector, Vector other, bool warp = false)
+	{
 		if (vector.Columns > 1 && other.Columns > 1)
 		{
 			if ((vector.RowCount() != other.RowCount()) && (vector.RowCount() != other.Columns))
@@ -52,7 +64,7 @@ internal static class ShapeOpsCore
 			if (vector.RowCount() == other.Columns)
 			{
 				if (!warp)
-					TransposeInPlace(other);
+					TransposeXInPlace(other);
 
 				if (warp && (other.Length % vector.RowCount() == 0))
 					other.Columns = other.Length / vector.RowCount();
@@ -79,7 +91,7 @@ internal static class ShapeOpsCore
 				buffer2 = vector.GetBuffer(),
 				buffer3 = other.GetBuffer();
 
-			vector.Gpu.appendKernel(vector.Gpu.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View, vector.Columns, other.Columns);
+			vector.Gpu.append(vector.Gpu.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View, vector.Columns, other.Columns);
 			vector.Gpu.Synchronize();
 		}
 
@@ -95,7 +107,7 @@ internal static class ShapeOpsCore
 	{
 		using (vector.CpuScopeAndSync())
 		{
-			ReadOnlySpan<float> left = vector.GetCpuReadOnlySpan();
+			ReadOnlySpan<float> left = vector.RetrieveReadOnlySpan();
 			ReadOnlySpan<float> right = vectorB.RetrieveReadOnlySpan();
 			vector.Value = left.ToArray().Union(right.ToArray()).ToArray();
 			vector.Length = vector.Value.Length;
@@ -109,7 +121,7 @@ internal static class ShapeOpsCore
 	{
 		using (vector.CpuScopeAndSync())
 		{
-			ReadOnlySpan<float> src = vector.GetCpuReadOnlySpan();
+			ReadOnlySpan<float> src = vector.RetrieveReadOnlySpan();
 			float[] reversed = new float[src.Length];
 			for (int i = 0; i < src.Length; i++)
 				reversed[i] = src[src.Length - 1 - i];
@@ -130,14 +142,14 @@ internal static class ShapeOpsCore
 		using (GpuScope.Begin(vector))
 		{
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = vector.GetBuffer();
-			vector.Gpu.reverseKernel(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent >> 1, buffer.View);
+			vector.Gpu.reverseIP(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent >> 1, buffer.View);
 			vector.Gpu.accelerator.Synchronize();
 		}
 
 		return vector;
 	}
 
-	internal static Vector Transpose(Vector vector)
+	internal static Vector TransposeX(Vector vector)
 	{
 		if (vector.Is1DRowVector() || vector.Columns >= vector.Length) { throw new Exception("Cannot transpose 1D Vector"); }
 
@@ -149,15 +161,15 @@ internal static class ShapeOpsCore
 				buffer = output.GetBuffer(),
 				buffer2 = vector.GetBuffer();
 
-			vector.Gpu.transposekernel(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, vector.Columns);
+			vector.Gpu.transpose(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, vector.Columns);
 			vector.Gpu.accelerator.Synchronize();
 		}
 
 		return output;
 	}
 
-	internal static Vector TransposeInPlace(Vector vector) =>
-		TransferBuffer(vector, Transpose(vector), true);
+	internal static Vector TransposeXInPlace(Vector vector) =>
+		TransferBuffer(vector, TransposeX(vector), true);
 
 	internal static Vector TransferBuffer(Vector inheritee, Vector temp, bool incColumns = false)
 	{
@@ -177,13 +189,10 @@ internal static class ShapeOpsCore
 	internal static float[] GetRowAsArray(Vector vector, int row) =>
 		vector.RetrieveReadOnlySpan().Slice(row * vector.Columns, vector.Columns).ToArray();
 
-	internal static float[] GetRowAsArray(Vector vector, int row, bool noSync) =>
-		vector.GetCpuReadOnlySpan().Slice(row * vector.Columns, vector.Columns).ToArray();
-
 	internal static Vector GetRowAsVector(Vector vector, int row) =>
 		new(vector.Gpu, GetRowAsArray(vector, row), 0);
 
-	internal static Vector GetColumnAsVector(Vector vector, int column)
+	internal static Vector GetColumnAsVectorX(Vector vector, int column)
 	{
 		int[] select = [column, vector.Columns];
 		Vector output = new(vector.Gpu, vector.RowCount());
@@ -196,7 +205,7 @@ internal static class ShapeOpsCore
 
 			MemoryBuffer1D<int, Stride1D.Dense> buffer3 = vector.Gpu.accelerator.Allocate1D(select);
 
-			vector.Gpu.getSliceKernel(vector.Gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
+			vector.Gpu.getSlice(vector.Gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
 			vector.Gpu.accelerator.Synchronize();
 			buffer3.Dispose();
 		}
@@ -205,18 +214,32 @@ internal static class ShapeOpsCore
 	}
 
 	internal static float[] GetColumnAsArray(Vector vector, int column) =>
-		GetColumnAsVector(vector, column).ToArray();
+		GetColumnAsVectorX(vector, column).ToArray();
 
 	internal static Vector GetSliceAsVector(Vector vector, int row_col_index, Axis axis)
 	{
 		if (vector.Is1DRowVector())
 			throw new Exception("Input Vector cannot be 1D");
 
+		if (axis == Axis.Column)
+			throw new Exception("Column-axis slice extraction requires GetSliceAsVectorX.");
+
 		return axis switch
 		{
 			Axis.Row => GetRowAsVector(vector, row_col_index),
-			Axis.Column => GetColumnAsVector(vector, row_col_index),
 			_ => throw new Exception("Please select a valid Axis. This is a 2D Vector so ONLY Row and Column axis are valid."),
+		};
+	}
+
+	internal static Vector GetSliceAsVectorX(Vector vector, int row_col_index, Axis axis)
+	{
+		if (vector.Is1DRowVector())
+			throw new Exception("Input Vector cannot be 1D");
+
+		return axis switch
+		{
+			Axis.Column => GetColumnAsVectorX(vector, row_col_index),
+			_ => throw new Exception("GetSliceAsVectorX supports column axis only. Use GetSliceAsVector for row axis."),
 		};
 	}
 
@@ -225,11 +248,25 @@ internal static class ShapeOpsCore
 		if (vector.Is1DRowVector())
 			throw new Exception("Input Vector cannot be 1D");
 
+		if (axis == Axis.Column)
+			throw new Exception("Column-axis slice extraction requires GetSliceAsArrayX.");
+
 		return axis switch
 		{
 			Axis.Row => GetRowAsArray(vector, row_col_index),
-			Axis.Column => GetColumnAsArray(vector, row_col_index),
 			_ => throw new Exception("Please select a valid Axis. This is a 2D Vector so ONLY Row and Column axis are valid."),
+		};
+	}
+
+	internal static float[] GetSliceAsArrayX(Vector vector, int row_col_index, Axis axis)
+	{
+		if (vector.Is1DRowVector())
+			throw new Exception("Input Vector cannot be 1D");
+
+		return axis switch
+		{
+			Axis.Column => GetColumnAsArray(vector, row_col_index),
+			_ => throw new Exception("GetSliceAsArrayX supports column axis only. Use GetSliceAsArray for row axis."),
 		};
 	}
 
@@ -242,7 +279,7 @@ internal static class ShapeOpsCore
 	{
 		using (vectorA.CpuScopeAndSync())
 		{
-			ReadOnlySpan<int> left = vectorA.GetCpuReadOnlySpan();
+			ReadOnlySpan<int> left = vectorA.RetrieveReadOnlySpan();
 			ReadOnlySpan<int> right = vectorB.RetrieveReadOnlySpan();
 			vectorA.Value = [.. left, .. right];
 			vectorA.Length = vectorA.Value.Length;
@@ -258,12 +295,22 @@ internal static class ShapeOpsCore
 
 	internal static VectorInt ConcatInPlace(VectorInt vector, VectorInt other, ConcatAxis axis = ConcatAxis.Row, bool warp = false)
 	{
-		if (axis == ConcatAxis.Row)
-		{
-			AppendInPlace(vector, other);
-			return vector;
-		}
+		if (axis == ConcatAxis.Column)
+			throw new Exception(ConcatColumnMessage);
 
+		AppendInPlace(vector, other);
+		return vector;
+	}
+
+	internal static VectorInt ConcatColumnX(VectorInt left, VectorInt right, bool warp = false)
+	{
+		VectorInt copy = left.Copy();
+		ConcatColumnXInPlace(copy, right, warp);
+		return copy;
+	}
+
+	internal static VectorInt ConcatColumnXInPlace(VectorInt vector, VectorInt other, bool warp = false)
+	{
 		if (vector.Columns > 1 && other.Columns > 1)
 		{
 			if ((vector.RowCount() != other.RowCount()) && (vector.RowCount() != other.Columns))
@@ -277,7 +324,7 @@ internal static class ShapeOpsCore
 			if (vector.RowCount() == other.Columns)
 			{
 				if (!warp)
-					TransposeInPlace(other);
+					TransposeXInPlace(other);
 
 				if (warp && (other.Length % vector.RowCount() == 0))
 					other.Columns = other.Length / vector.RowCount();
@@ -304,7 +351,7 @@ internal static class ShapeOpsCore
 				buffer2 = vector.GetBuffer(),
 				buffer3 = other.GetBuffer();
 
-			vector.Gpu.appendIntKernel(vector.Gpu.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View, vector.Columns, other.Columns);
+			vector.Gpu.appendInt(vector.Gpu.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View, vector.Columns, other.Columns);
 			vector.Gpu.Synchronize();
 		}
 
@@ -320,7 +367,7 @@ internal static class ShapeOpsCore
 	{
 		using (vector.CpuScopeAndSync())
 		{
-			ReadOnlySpan<int> left = vector.GetCpuReadOnlySpan();
+			ReadOnlySpan<int> left = vector.RetrieveReadOnlySpan();
 			ReadOnlySpan<int> right = vectorB.RetrieveReadOnlySpan();
 			vector.Value = left.ToArray().Union(right.ToArray()).ToArray();
 			vector.Length = vector.Value.Length;
@@ -331,7 +378,7 @@ internal static class ShapeOpsCore
 	{
 		using (vector.CpuScopeAndSync())
 		{
-			ReadOnlySpan<int> src = vector.GetCpuReadOnlySpan();
+			ReadOnlySpan<int> src = vector.RetrieveReadOnlySpan();
 			int[] reversed = new int[src.Length];
 			for (int i = 0; i < src.Length; i++)
 				reversed[i] = src[src.Length - 1 - i];
@@ -355,14 +402,14 @@ internal static class ShapeOpsCore
 		using (GpuScope.Begin(vector))
 		{
 			MemoryBuffer1D<int, Stride1D.Dense> buffer = vector.GetBuffer();
-			vector.Gpu.reverseIntKernel(vector.Gpu.DefaultStream, buffer.IntExtent >> 1, buffer.View);
+			vector.Gpu.reverseIntIP(vector.Gpu.DefaultStream, buffer.IntExtent >> 1, buffer.View);
 			vector.Gpu.Synchronize();
 		}
 
 		return vector;
 	}
 
-	internal static VectorInt Transpose(VectorInt vector)
+	internal static VectorInt TransposeX(VectorInt vector)
 	{
 		if (vector.Is1DRowVector() || vector.Columns >= vector.Length) { throw new Exception("Cannot transpose 1D Vector"); }
 
@@ -374,15 +421,15 @@ internal static class ShapeOpsCore
 				buffer = output.GetBuffer(),
 				buffer2 = vector.GetBuffer();
 
-			vector.Gpu.transposeIntKernel(vector.Gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, vector.Columns);
+			vector.Gpu.transposeInt(vector.Gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, vector.Columns);
 			vector.Gpu.Synchronize();
 		}
 
 		return output;
 	}
 
-	internal static VectorInt TransposeInPlace(VectorInt vector) =>
-		TransferBuffer(vector, Transpose(vector), true);
+	internal static VectorInt TransposeXInPlace(VectorInt vector) =>
+		TransferBuffer(vector, TransposeX(vector), true);
 
 	internal static VectorInt TransferBuffer(VectorInt inheritee, VectorInt temp, bool incColumns = false)
 	{
@@ -405,7 +452,7 @@ internal static class ShapeOpsCore
 	internal static VectorInt GetRowAsVector(VectorInt vector, int row) =>
 		new(vector.Gpu, GetRowAsArray(vector, row), 0);
 
-	internal static VectorInt GetColumnAsVector(VectorInt vector, int column)
+	internal static VectorInt GetColumnAsVectorX(VectorInt vector, int column)
 	{
 		int[] select = [column, vector.Columns];
 		VectorInt output = new(vector.Gpu, vector.RowCount());
@@ -418,7 +465,7 @@ internal static class ShapeOpsCore
 
 			MemoryBuffer1D<int, Stride1D.Dense> buffer3 = vector.Gpu.accelerator.Allocate1D(select);
 
-			vector.Gpu.getSliceIntKernel(vector.Gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
+			vector.Gpu.getSliceInt(vector.Gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
 			vector.Gpu.accelerator.Synchronize();
 			buffer3.Dispose();
 		}
@@ -427,18 +474,32 @@ internal static class ShapeOpsCore
 	}
 
 	internal static int[] GetColumnAsArray(VectorInt vector, int column) =>
-		GetColumnAsVector(vector, column).ToArray();
+		GetColumnAsVectorX(vector, column).ToArray();
 
 	internal static VectorInt GetSliceAsVector(VectorInt vector, int row_col_index, Axis axis)
 	{
 		if (vector.Is1DRowVector())
 			throw new Exception("Input Vector cannot be 1D");
 
+		if (axis == Axis.Column)
+			throw new Exception("Column-axis slice extraction requires GetSliceAsVectorX.");
+
 		return axis switch
 		{
 			Axis.Row => GetRowAsVector(vector, row_col_index),
-			Axis.Column => GetColumnAsVector(vector, row_col_index),
 			_ => throw new Exception("Please select a valid Axis. This is a 2D Vector so ONLY Row and Column axis are valid."),
+		};
+	}
+
+	internal static VectorInt GetSliceAsVectorX(VectorInt vector, int row_col_index, Axis axis)
+	{
+		if (vector.Is1DRowVector())
+			throw new Exception("Input Vector cannot be 1D");
+
+		return axis switch
+		{
+			Axis.Column => GetColumnAsVectorX(vector, row_col_index),
+			_ => throw new Exception("GetSliceAsVectorX supports column axis only. Use GetSliceAsVector for row axis."),
 		};
 	}
 
@@ -447,11 +508,25 @@ internal static class ShapeOpsCore
 		if (vector.Is1DRowVector())
 			throw new Exception("Input Vector cannot be 1D");
 
+		if (axis == Axis.Column)
+			throw new Exception("Column-axis slice extraction requires GetSliceAsArrayX.");
+
 		return axis switch
 		{
 			Axis.Row => GetRowAsArray(vector, row_col_index),
-			Axis.Column => GetColumnAsArray(vector, row_col_index),
 			_ => throw new Exception("Please select a valid Axis. This is a 2D Vector so ONLY Row and Column axis are valid."),
+		};
+	}
+
+	internal static int[] GetSliceAsArrayX(VectorInt vector, int row_col_index, Axis axis)
+	{
+		if (vector.Is1DRowVector())
+			throw new Exception("Input Vector cannot be 1D");
+
+		return axis switch
+		{
+			Axis.Column => GetColumnAsArray(vector, row_col_index),
+			_ => throw new Exception("GetSliceAsArrayX supports column axis only. Use GetSliceAsArray for row axis."),
 		};
 	}
 }

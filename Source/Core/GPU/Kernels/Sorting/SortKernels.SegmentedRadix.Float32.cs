@@ -9,32 +9,32 @@ namespace BAVCL;
 
 public partial class GPU
 {
-	public Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<int>, int, int> segmentedSortFloatAscKern
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortFloatAscKern));
+	public Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<int>, int, int> segmentedSortFloatAscIP
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortFloatAscIP));
 
-	public Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<int>, int, int> segmentedSortFloatDescKern
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortFloatDescKern));
-
-	public Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>
-		segmentedSortFloatPairsAscKern
-		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortFloatPairsAscKern));
+	public Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<int>, int, int> segmentedSortFloatDescIP
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortFloatDescIP));
 
 	public Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>
-		segmentedSortFloatPairsDescKern
-		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortFloatPairsDescKern));
+		segmentedSortFloatPairsAscIP
+		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortFloatPairsAscIP));
+
+	public Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>
+		segmentedSortFloatPairsDescIP
+		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortFloatPairsDescIP));
 
 	internal void LoadSortSegmentedFloatRadixKernels()
 	{
-		segmentedSortFloatAscKern = accelerator.LoadKernel<
-			ArrayView<float>, ArrayView<int>, int, int>(SegmentedSortFloatRowKern<AscendingInt32>);
-		segmentedSortFloatDescKern = accelerator.LoadKernel<
-			ArrayView<float>, ArrayView<int>, int, int>(SegmentedSortFloatRowKern<DescendingInt32>);
-		segmentedSortFloatPairsAscKern = accelerator.LoadKernel<
+		segmentedSortFloatAscIP = accelerator.LoadKernel<
+			ArrayView<float>, ArrayView<int>, int, int>(SegmentedSortFloatRowIP_Kern<AscendingInt32>);
+		segmentedSortFloatDescIP = accelerator.LoadKernel<
+			ArrayView<float>, ArrayView<int>, int, int>(SegmentedSortFloatRowIP_Kern<DescendingInt32>);
+		segmentedSortFloatPairsAscIP = accelerator.LoadKernel<
 			ArrayView<float>, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>(
-			SegmentedSortFloatPairsRowKern<AscendingInt32>);
-		segmentedSortFloatPairsDescKern = accelerator.LoadKernel<
+			SegmentedSortFloatPairsRowIP_Kern<AscendingInt32>);
+		segmentedSortFloatPairsDescIP = accelerator.LoadKernel<
 			ArrayView<float>, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>(
-			SegmentedSortFloatPairsRowKern<DescendingInt32>);
+			SegmentedSortFloatPairsRowIP_Kern<DescendingInt32>);
 	}
 
 	/// <summary>
@@ -71,7 +71,7 @@ public partial class GPU
 	/// Pass 0 reads floats and writes sortable ints to temp; middle passes alias the float buffer
 	/// as raw int bit patterns; the final pass writes sorted IEEE floats back in place.
 	/// </summary>
-	static void SegmentedSortFloatRowKern<TOperation>(
+	static void SegmentedSortFloatRowIP_Kern<TOperation>(
 		ArrayView<float> input,
 		ArrayView<int> temp,
 		int cols,
@@ -144,7 +144,7 @@ public partial class GPU
 	/// Argsort variant: pass 0 reads unchanged float keys and writes sortable ints into <paramref name="keys"/>;
 	/// remaining passes match the int pairs kernel. Caller must supply a writable keys buffer.
 	/// </summary>
-	static void SegmentedSortFloatPairsRowKern<TOperation>(
+	static void SegmentedSortFloatPairsRowIP_Kern<TOperation>(
 		ArrayView<float> floatInput,
 		ArrayView<int> keys,
 		ArrayView<int> values,

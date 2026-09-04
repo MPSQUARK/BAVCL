@@ -2,6 +2,34 @@
 
 This guide covers breaking API changes introduced with the `Shape` struct, CPU/GPU coherence (`Residence` flags), and scope-based pinning.
 
+## Change history
+
+BAVCL is source-referenced (no NuGet yet). Pin your consumer to a **git commit** — not a calendar date or informal version number.
+
+```bash
+git checkout <commit>   # e.g. 40b8876
+```
+
+Milestones below are **oldest → newest**. When upgrading, read the breaking-change sections for every commit you cross.
+
+| Commit | Summary |
+|--------|---------|
+| [`9d9b79c`](https://github.com/MPSQUARK/BAVCL/commit/9d9b79c) | `Residence` flags; public `Value` removed; `GetValues` retired from the public read path |
+| [`b8527f3`](https://github.com/MPSQUARK/BAVCL/commit/b8527f3) | `Shape` struct; residence model approved |
+| [`0a95062`](https://github.com/MPSQUARK/BAVCL/commit/0a95062) | Residence model integrated across cache/sync paths |
+| [`1d3b611`](https://github.com/MPSQUARK/BAVCL/commit/1d3b611) | `KernelModuleLoader` — selective kernel domain loading |
+| [`0bf7d4f`](https://github.com/MPSQUARK/BAVCL/commit/0bf7d4f) | `KernelWorkloads` bundles |
+| [`0539b03`](https://github.com/MPSQUARK/BAVCL/commit/0539b03) | `X` / `IP` suffix rename; GPU-first operator alignment |
+| [`3304046`](https://github.com/MPSQUARK/BAVCL/commit/3304046) | `RetrieveReadOnlySpan()` as the read entry point |
+| [`57e3bac`](https://github.com/MPSQUARK/BAVCL/commit/57e3bac) | Deprecated read/write APIs removed |
+| [`8c5644b`](https://github.com/MPSQUARK/BAVCL/commit/8c5644b) | `GpuScope` pinning conventions |
+| [`af8dfac`](https://github.com/MPSQUARK/BAVCL/commit/af8dfac) | Statistics module (`MeanX`, `VarX`, order-stat `*X` foundation) |
+| [`40b8876`](https://github.com/MPSQUARK/BAVCL/commit/40b8876) | **HEAD** — current `main` at time of writing |
+
+> **Working tree:** global reduce (`SumX`, `DotX`, `MinX`, `MaxX`, `AllX`, …) and unchecked-arithmetic policy (spec §2.8) are documented in this guide but land **after** `40b8876` — pin to a later commit once merged, or match your local tree.
+
+When upgrading, read sections for your **from → to** commits in order.
+
 ## Breaking changes
 
 ### Public `Value` field removed
@@ -10,10 +38,9 @@ This guide covers breaking API changes introduced with the `Shape` struct, CPU/G
 
 | Need | API |
 |------|-----|
-| Read (zero-copy, no GPU sync) | `GetCpuReadOnlySpan()` — call `SyncCPU()` first when GPU may be newer |
-| Read (zero-copy, syncs if needed) | `GetReadOnlySpan()` |
+| Read (zero-copy, syncs if needed) | `RetrieveReadOnlySpan()` |
 | Read single element (syncs if needed) | `GetAt(i)`, `GetAt(row, col)` |
-| Read (heap copy, syncs if needed) | `ToArray()` — **always allocates**; prefer `GetReadOnlySpan()` for read-only access |
+| Read (heap copy, syncs if needed) | `ToArray()` — **always allocates**; prefer `RetrieveReadOnlySpan()` for read-only access |
 | Write / resize (CPU edit, no GPU upload) | `using (vector.CpuScope()) { ... }` |
 | Write via `EditableView` | `using (var scope = vector.CpuScope()) { scope.View[i] = x; }` when `HasView` |
 | Write / resize (CPU edit + GPU upload) | `using (vector.CpuScopeAndSync()) { ... }` |
@@ -22,7 +49,7 @@ This guide covers breaking API changes introduced with the `Shape` struct, CPU/G
 
 ### `GetValues()` replaced
 
-`ICacheable<T>.GetValues()` is replaced by `GetReadOnlySpan()` — syncs from GPU when needed (for memory-manager upload and user reads). It cannot be used to mutate CPU storage. User reads without sync use `GetCpuReadOnlySpan()` on `VectorBase<T>` after an explicit `SyncCPU()` when required.
+`ICacheable<T>.GetValues()` is replaced by `RetrieveReadOnlySpan()` — syncs from GPU when needed (for memory-manager upload and user reads). It cannot be used to mutate CPU storage. For writes, use `CpuScope` and `EditableView<T>`.
 
 ### `IndexingMode` removed
 
@@ -70,18 +97,92 @@ Vector result = vec * vec2;
 result.Columns = 2; // reshape result as needed
 ```
 
+## Host API and scopes
 
-### Read-only (no scope)
+Authoritative rules for CPU reads, CPU edits, and GPU buffer pinning. **One read path:** `RetrieveReadOnlySpan()` — syncs from GPU when needed, including inside `CpuScope` (no double-sync when already coherent).
+
+### Read model
 
 ```csharp
-ReadOnlySpan<float> data = vector.GetReadOnlySpan(); // sync + zero-copy
-float x = vector.GetAt(0); // syncs automatically
-float[] copy = vector.ToArray(); // syncs + heap allocation
+// Read — always RetrieveReadOnlySpan (syncs if GPU newer)
+ReadOnlySpan<float> data = vector.RetrieveReadOnlySpan();
 
-// Peek at CPU buffer without GPU pull (caller must ensure freshness):
-vector.SyncCPU();
-ReadOnlySpan<float> peek = vector.GetCpuReadOnlySpan();
+// Read inside CpuScope during structural edit — still Retrieve
+using (vector.CpuScopeAndSync())
+{
+    ReadOnlySpan<float> left = vector.RetrieveReadOnlySpan();
+    // library internal: Value = [.. left, .. extra]; Length = Value.Length;
+}
+
+// Edit in-place
+using (var scope = vector.CpuScopeAndSync())
+{
+    EditableView<float> view = scope.View;
+    for (int i = 0; i < view.Length; i++)
+        view[i] *= 2f;
+}
 ```
+
+Do **not** open `CpuScope` for read-only access — use `RetrieveReadOnlySpan()` instead.
+
+| Need | Use | Do not use |
+|------|-----|------------|
+| Read after GPU op | `RetrieveReadOnlySpan()` | `CpuScope` wrapper for read-only |
+| Read inside edit session | `RetrieveReadOnlySpan()` | Removed `GetCpuReadOnlySpan()` |
+| Edit in-place | `CpuScope` + `scope.View` | `RetrieveReadOnlySpan` for mutation |
+| Structural edit (resize) | `CpuScopeAndSync` + `RetrieveReadOnlySpan` + assign backing store | `EditableView` for resize |
+| Single element (occasional) | `GetAt` / indexer get | `GetAt` in tight loops |
+| Heap copy | `ToArray()` | `Pull()` unless you need detached array semantics |
+
+**Breaking:** `GetRowAsArray(row, noSync)` removed — use `GetRowAsArray(row)` only.
+
+### GetAt / SetAt / indexers — not for tight loops
+
+```csharp
+// Bad — may sync per iteration
+for (int i = 0; i < n; i++)
+    sum += vector.GetAt(i);
+
+// Good — one sync, then span iteration
+ReadOnlySpan<float> data = vector.RetrieveReadOnlySpan();
+for (int i = 0; i < data.Length; i++)
+    sum += data[i];
+
+// Bad — opens CpuScope per iteration
+for (int i = 0; i < n; i++)
+    vector.SetAt(i, values[i]);
+
+// Good — one scope, batch write
+using (var scope = vector.CpuScopeAndSync())
+{
+    EditableView<float> view = scope.View;
+    for (int i = 0; i < n; i++)
+        view[i] = values[i];
+}
+```
+
+`GetAt` / `SetAt` / `vector[i]` remain fine for **occasional** single-element access.
+
+### SyncCPU — callers rarely need it
+
+~99% of consumer code should **never** call `SyncCPU()`. It runs internally via `RetrieveReadOnlySpan()`, `GetAt`, `ToArray()`, `CpuScope`, LRU eviction, and library `*X` / `*IP` methods.
+
+| Caller | Legitimate `SyncCPU`? |
+|--------|----------------------|
+| Consumer / pipeline code | **No** — use `RetrieveReadOnlySpan()` or a library method |
+| `CpuScope` enter (library) | Yes (internal) |
+| LRU `GCItem` (library) | Yes (internal) |
+
+**Anti-patterns:**
+
+- `vector.SyncCPU(); span = vector.RetrieveReadOnlySpan()` — redundant
+- Opening `CpuScope` only to read after a GPU kernel — use `RetrieveReadOnlySpan()` outside scope
+- `GetAt` / `SetAt` / indexers inside `for` loops
+- Manual pinning outside `GpuScope` (`LiveCount` is observable for debugging)
+
+### Copy
+
+`Vector.Copy()` uses `ToArray()` (CPU path when coherent) — prefer that over `Pull()` when implementing new copy APIs.
 
 ### CPU mutation (`CpuScope`)
 
@@ -93,7 +194,7 @@ CpuScope<T> CpuScope.Begin<T>(ICacheable<T> cacheable, bool syncToGpu = false);
 
 Extensions: `.CpuScope(syncToGpu: false)` and `.CpuScopeAndSync()` (sugar for `syncToGpu: true`).
 
-CPU scope methods (`EnterCpuScope` / `ExitCpuScope`) live on `ICacheable` (symmetry with `GpuScope`). `ICacheable<T>` exposes `GetReadOnlySpan()` for reads and explicit `EditCpu(Action<Span<T>>)` for scoped writes (called only by `CpuScope`; guarded by open scope).
+CPU scope methods (`EnterCpuScope` / `ExitCpuScope`) live on `ICacheable` (symmetry with `GpuScope`). `ICacheable<T>` exposes `RetrieveReadOnlySpan()` for reads and explicit `EditCpu(Action<Memory<T>>)` for scoped writes (called only by `CpuScope`; guarded by open scope).
 
 ```csharp
 using (var scope = vector.CpuScopeAndSync())
@@ -105,25 +206,19 @@ using (var scope = vector.CpuScopeAndSync())
 
 **Important:** assign `scope.View` to a local `EditableView<T>` before writing through the indexer — `scope.View[i] = x` does not compile (CS1612).
 
-Coherence-only (no `.View`): mutate through your own APIs inside the scope:
-
-```csharp
-using (vector.CpuScopeAndSync()) { /* resize / replace backing store */ }
-```
+Coherence-only hosts (no `.View`): mutate through library APIs inside the scope that replace the backing store.
 
 **Thread safety:** scope depth and residence transitions use `Interlocked`; CPU buffer mutation is caller-synchronized.
 
-**Indexer writes:** `SetAt` / `vector[i] = x` open a scope per call — convenience only, **not for tight loops**. Batch edits should use explicit `CpuScope` + `View` or span.
-
 ### Array resize inside `CpuScope`
 
-When replacing the entire backing array (append, merge, fill):
+When replacing the entire backing array (append, merge, fill) — library pattern:
 
 ```csharp
-using (var scope = vector.CpuScopeAndSync())
+using (vector.CpuScopeAndSync())
 {
-  Value = left.ToArray().Concat(right.ToArray()).ToArray(); // internal API in library
-  Length = Value.Length;
+  ReadOnlySpan<float> left = vector.RetrieveReadOnlySpan();
+  // internal: Value = left.ToArray().Concat(right).ToArray(); Length = Value.Length;
 }
 ```
 
@@ -147,8 +242,26 @@ Consumers without `internal` access should build a new `Vector` from `ToArray()`
 
 Static class `BAVCL.Core.GpuScope` — use `Begin` / `BeginReadOnly`. Convenience extensions: `icacheable.GpuScope(...)`.
 
+**Prefer** one combined scope when all buffers already exist:
+
+```mermaid
+flowchart TD
+  subgraph good [Preferred single scope]
+    A[All buffers exist] --> B["GpuScope.Begin(output, inputA, inputB)"]
+    B --> C[kernel + Synchronize]
+  end
+  subgraph alloc [Valid nested pattern]
+    D[Pin inputs read-only] --> E[Allocate new Vector on GPU]
+    E --> F[Pin output in inner scope]
+  end
+  subgraph bad [Avoid]
+    G[BeginReadOnly inputs] --> H[Begin output separately]
+    H --> I["Same launch - use combined Begin instead"]
+  end
+```
+
 ```csharp
-// Output + two read-only inputs
+// Preferred: output + read-only inputs in one scope
 using (GpuScope.Begin(output, inputA, inputB))
 {
     kernel(output.GetBuffer()...);
@@ -158,7 +271,7 @@ using (GpuScope.Begin(output, inputA, inputB))
 // In-place modified
 using (GpuScope.Begin(vector)) { ... }
 
-// Nested: pin inputs, allocate output, pin output
+// Nested: pin inputs before allocation (LRU cannot evict unpinned inputs)
 using (GpuScope.BeginReadOnly(inputA, inputB))
 {
     Vector output = new(inputA.Gpu, n);
@@ -169,7 +282,7 @@ using (GpuScope.BeginReadOnly(inputA, inputB))
 **Modified** vectors: `ActiveGpu` + `LiveCount`; on last unpin → `Gpu`  
 **Read-only** vectors: `LiveCount` only
 
-Do **not** call `IncrementLiveCount` / `DecrementLiveCount` manually.
+`LiveCount` is **observable** for debugging. Pinning is **only** via `GpuScope`.
 
 ## Memory manager: FreeBuffer vs GCItem
 
@@ -180,14 +293,11 @@ Do **not** call `IncrementLiveCount` / `DecrementLiveCount` manually.
 
 ## Before / after
 
-### Manual LiveCount (old)
+### Manual pinning (old)
 
 ```csharp
-vector.IncrementLiveCount();
-output.IncrementLiveCount();
-kernel(...);
-vector.DecrementLiveCount();
-output.DecrementLiveCount();
+// Manual LiveCount refcount — no longer available on the public API
+kernel(...); // unpinned buffers could be evicted under LRU pressure
 ```
 
 ### GpuScope (new)
@@ -279,6 +389,85 @@ The `BAVCL.Modules.GpuOps` namespace requires **Arithmetic** (fp32) kernels (bro
 | `ShapeMismatchException` on `vec * vec2` | Same length, different 2D layout | Use `.Cross()` for matmul, or flatten both (`Columns = 0`) for flat element-wise (see above) |
 
 To restore old load-all behaviour: `KernelModuleLoader.LoadAll<float>(gpu)`.
+
+### API naming (suffix, PascalCase, CPU/GPU alignment)
+
+BAVCL now uses a single suffix scheme (pioneered by Sorting):
+
+| Suffix | Meaning | Execution |
+|--------|---------|-----------|
+| *(none)* | Allocating | **CPU** |
+| `IP` | In-place | **CPU** |
+| `X` | Allocating | **GPU** |
+| `XIP` | In-place | **GPU** |
+
+**Exceptions (unchanged names, GPU-only):** `OP` / `IPOP` on `Vector`, `VectorInt`, and `Mask`; C# operator overloads; explicit `(Vector)` / `(VectorInt)` casts.
+
+#### Suffix / PascalCase renames
+
+| Old | New |
+|-----|-----|
+| `Abs_IP` | `AbsIP` |
+| `AbsX_IP` | `AbsXIP` |
+| `ReverseX_IP` | `ReverseXIP` |
+| `Transpose_IP` | `TransposeXIP` |
+| `Append_IP` | `AppendIP` |
+| `Nan_to_num` | `NanToNumX` |
+| `Nan_to_num_IP` | `NanToNumXIP` |
+| `Aces_approx` | `AcesApprox` |
+| `Aces_approx_IP` | `AcesApproxIP` |
+| `Vector3.OP_IP` | `Vector3.IPOP` |
+| `Log_IP` | `LogXIP` |
+
+(Apply the same `_IP` → `IP` pattern to all other in-place methods.)
+
+#### CPU/GPU alignment renames
+
+GPU paths that previously had no `X` suffix now do:
+
+| Old | New |
+|-----|-----|
+| `Reciprocal` / `Reciprocal_IP` | `ReciprocalX` / `ReciprocalXIP` |
+| `Diff` / `Diff_IP` | `DiffX` / `DiffXIP` |
+| `Normalise` / `Normalise_IP` | `NormaliseX` / `NormaliseXIP` |
+| `Transpose` / `Transpose_IP` | `TransposeX` / `TransposeXIP` |
+| `Cross` (matrix multiply) | `CrossX` |
+| `MatrixAdd` … `MatrixMultiply` | `MatrixAddX` … `MatrixMultiplyX` |
+| `ReduceOP` | `ReduceOPX` |
+| `Mask` / `Filter` / `Partition` | `MaskX` / `FilterX` / `PartitionX` |
+| `CompareEquals` / `CompareNotEquals` / `Compare` | `CompareEqualsX` / `CompareNotEqualsX` / `CompareX` |
+| `GetColumnAsVector` | `GetColumnAsVectorX` |
+| Column `GetSliceAsVector` / `GetSliceAsArray` | `GetSliceAsVectorX` / `GetSliceAsArrayX` |
+| `Vector3.Magnitude` / `Distance` / `Dot` / `Cross` / `Normalise` | `*X` variants |
+| `VOP` | `VOPX` |
+| `Vector3.OP` (allocating) | `Vector3.OPX` |
+
+**Concat:** `Concat` / `ConcatIP` are **row-axis only** (CPU). Column-axis GPU concat uses `ConcatColumnX` / `ConcatColumnXIP`. Passing `ConcatAxis.Column` to `Concat` throws — use the column APIs instead.
+
+### Global reduce (`*X`)
+
+- **`Var()`** and **`Dot()`** are **always CPU** (SIMD). Use explicit `*X` APIs for GPU.
+- Load **`KernelWorkloads.Statistics`** before `SumX`, `MinX`, `DotX`, etc. Details: [BAVCLSpecification.md §4](./BAVCLSpecification.md#4-current-functionality-v0), [Features.md](./Features.md#statistics-bavclmodulesstatistics).
+- Float `SumX` / `DotX`: always compensated grouped reduce (Neumaier). Int paths: unchecked `int32` accum (see spec §2.8).
+- Invalid percentile → `FixedRangeException`. Empty `Mean` → `DivideByZeroException`.
+
+### Numerical accuracy (`float32`)
+
+Target: results within **6 significant decimal places** of the mathematically exact answer where EC accumulation applies. `fp64` is not implemented yet; when it is, expect tighter bounds (typically ≤ 12 dp).
+
+| Operation | CPU / GPU parity | Typical abs error (well-behaved data) | Notes |
+|-----------|------------------|---------------------------------------|-------|
+| `Sum` / `SumX` (all N) | ✓ | &lt; 10⁻⁵ on 10⁶-element stress (0.1 repeated) | Neumaier; float64 scratch (CPU and GPU) |
+| `Dot` / `DotX` | ✓ | Same as sum | Scalar dot uses `scalar * Sum(v)` |
+| `Min` / `Max` / `Range` | ✓ | Exact (bit-identical) | Except empty float GPU min → `NaN` |
+| `Mean` / `MeanX` | ✓ | Inherited from sum / N | |
+| `Var` / `Std` / `*X` | ✓ | &lt; 10⁻⁵ | Single-pass variance (Welford + Chan merge) |
+| Order stats (`Percentile`, `Median`, …) | ✓ | &lt; 10⁻⁵ | Sort + linear interpolation |
+| `VectorInt` sum / mean | ✓ | Exact until `int32` overflow | Unchecked wrap — see spec §2.8 |
+
+GPU `*X` paths are tested for parity with CPU within the tolerances above. Neumaier EC is always active on float sum/dot (see spec §2.9).
+
+**fp32 precision:** if `Var`/`Sum` look wrong on large-magnitude data, check spec §2.9 *fp32 precision limits* before chasing algorithm bugs.
 
 ## Benchmarks
 

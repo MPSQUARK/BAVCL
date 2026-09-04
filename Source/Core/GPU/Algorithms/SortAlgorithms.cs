@@ -57,8 +57,6 @@ internal static class SortAlgorithms
 			return new VectorInt(input.Gpu, 0, input.Columns);
 
 		GPU gpu = input.Gpu;
-		// Pin input before allocating indices: `new VectorInt` allocates eagerly in its constructor,
-		// and that allocation's own LRU.GC pass could otherwise evict input while it still sits unpinned.
 		using (GpuScope.BeginReadOnly(input))
 		{
 			VectorInt indices = new(gpu, input.Length, input.Columns);
@@ -77,8 +75,7 @@ internal static class SortAlgorithms
 			return;
 
 		GPU gpu = input.Gpu;
-		using (GpuScope.BeginReadOnly(input))
-		using (GpuScope.Begin(indices))
+		using (GpuScope.Begin(indices, input))
 			RunArgsortInt(gpu, input, indices, order);
 	}
 
@@ -110,8 +107,7 @@ internal static class SortAlgorithms
 
 		GPU gpu = input.Gpu;
 
-		using (GpuScope.BeginReadOnly(input))
-		using (GpuScope.Begin(indices))
+		using (GpuScope.Begin(indices, input))
 			RunArgsortFloat(gpu, input, indices, order);
 	}
 
@@ -288,9 +284,9 @@ internal static class SortAlgorithms
 		SortOrder order)
 	{
 		Index1D extent = GPU.SortLaunchExtent(segment.Length);
-		gpu.floatToSortableIntKern(gpu.DefaultStream, extent, segment, sortableView);
+		gpu.floatToSortableInt(gpu.DefaultStream, extent, segment, sortableView);
 		SortIntSegment(gpu, sortableView, order);
-		gpu.sortableIntToFloatKern(gpu.DefaultStream, extent, sortableView, segment);
+		gpu.sortableIntToFloat(gpu.DefaultStream, extent, sortableView, segment);
 	}
 
 	#endregion
@@ -344,7 +340,7 @@ internal static class SortAlgorithms
 		ArrayView1D<int, Stride1D.Dense> keysView,
 		SortOrder order)
 	{
-		gpu.floatToSortableIntKern(gpu.DefaultStream, GPU.SortLaunchExtent(inputView.Length), inputView, keysView);
+		gpu.floatToSortableInt(gpu.DefaultStream, GPU.SortLaunchExtent(inputView.Length), inputView, keysView);
 		gpu.accelerator.Sequence(gpu.DefaultStream, indexView, Int32Sequence);
 		ArgsortIntPairs(gpu, keysView, indexView, order);
 	}

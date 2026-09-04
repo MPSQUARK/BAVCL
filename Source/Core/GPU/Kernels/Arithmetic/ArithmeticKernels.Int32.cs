@@ -7,69 +7,72 @@ namespace BAVCL;
 
 public partial class GPU
 {
-	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, SpecializedValue<int>> a_opIKernel
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(a_opIKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, int, SpecializedValue<int>> s_opIKernel
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(s_opIKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, SpecializedValue<int>> a_opIKernelIP
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(a_opIKernelIP));
-	public Action<AcceleratorStream, Index1D, ArrayView<int>, int, SpecializedValue<int>> s_opIKernelIP
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(s_opIKernelIP));
-	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, SpecializedValue<int>> reduceRowOpIntKernel
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(reduceRowOpIntKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int> matmulIntKernel
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(matmulIntKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>> broadcastOpIntKernel
-		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastOpIntKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, int, BroadcastStrides, SpecializedValue<int>> broadcastOpIntKernelIP
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastOpIntKernelIP));
-	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>> diffIntKernel
-		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(diffIntKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<int>> absIntKernel
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(absIntKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<int>> negateIntKernel
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(negateIntKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<float>> floatToIntKernel
-		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(floatToIntKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<int>> intToFloatKernel
-		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(intToFloatKernel));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, SpecializedValue<int>> aOpI
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(aOpI));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, int, SpecializedValue<int>> sOpI
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(sOpI));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, SpecializedValue<int>> aOpIIP
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(aOpIIP));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>, int, SpecializedValue<int>> sOpIIP
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(sOpIIP));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, SpecializedValue<int>> reduceRowOpInt
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(reduceRowOpInt));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int> matmulInt
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(matmulInt));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>> broadcastInt
+		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastInt));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, int, BroadcastStrides, SpecializedValue<int>> broadcastIntIP
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastIntIP));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>> diffInt
+		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(diffInt));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>> absIntIP
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(absIntIP));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>> negateIntIP
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(negateIntIP));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<float>> floatToInt
+		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(floatToInt));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<int>> intToFloat
+		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(intToFloat));
 
 	internal void LoadArithmeticInt32Kernels()
 	{
-		a_opIKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, SpecializedValue<int>>(A_IntOPKernel);
-		s_opIKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, int, SpecializedValue<int>>(S_IntOPKernel);
-		a_opIKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, SpecializedValue<int>>(A_IntOPKernelIP);
-		s_opIKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, int, SpecializedValue<int>>(S_IntOPKernelIP);
-		reduceRowOpIntKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, SpecializedValue<int>>(ReduceRowOpIntKernel);
-		matmulIntKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>(MatMulIntKernel);
-		broadcastOpIntKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>>(BroadcastOpIntKernel);
-		broadcastOpIntKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, int, BroadcastStrides, SpecializedValue<int>>(BroadcastOpIntKernelIP);
-		diffIntKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>>(DiffIntKernel);
-		absIntKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>>(AbsIntKernel);
-		negateIntKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>>(NegateIntKernel);
-		floatToIntKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<float>>(FloatToIntKernel);
-		intToFloatKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<int>>(IntToFloatKernel);
+		aOpI = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, SpecializedValue<int>>(AIntOP_Kern);
+		sOpI = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, int, SpecializedValue<int>>(SIntOP_Kern);
+		aOpIIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, SpecializedValue<int>>(AIntOPIP_Kern);
+		sOpIIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, int, SpecializedValue<int>>(SIntOPIP_Kern);
+		reduceRowOpInt = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, SpecializedValue<int>>(ReduceRowOpInt_Kern);
+		matmulInt = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>(MatMulInt_Kern);
+		broadcastInt = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>>(BroadcastInt_Kern);
+		broadcastIntIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, int, BroadcastStrides, SpecializedValue<int>>(BroadcastIntIP_Kern);
+		diffInt = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>>(DiffInt_Kern);
+		absIntIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>>(AbsIntIP_Kern);
+		negateIntIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>>(NegateIntIP_Kern);
+		floatToInt = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<float>>(FloatToInt_Kern);
+		intToFloat = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<int>>(IntToFloat_Kern);
+		reduceRowFused = accelerator.LoadKernel<
+			ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int, SpecializedValue<int>>(
+			ReduceRowFused_Kern);
 	}
 
-	static void A_IntOPKernel(Index1D index, ArrayView<int> OutPut, ArrayView<int> InputA, ArrayView<int> InputB, SpecializedValue<int> operation) =>
+	static void AIntOP_Kern(Index1D index, ArrayView<int> OutPut, ArrayView<int> InputA, ArrayView<int> InputB, SpecializedValue<int> operation) =>
 		ApplyBroadcastOpInt(ref OutPut[index], InputA[index], InputB[index], operation);
 
-	static void A_IntOPKernelIP(Index1D index, ArrayView<int> IO, ArrayView<int> Input, SpecializedValue<int> operation) =>
+	static void AIntOPIP_Kern(Index1D index, ArrayView<int> IO, ArrayView<int> Input, SpecializedValue<int> operation) =>
 		ApplyBroadcastOpInt(ref IO[index], IO[index], Input[index], operation);
 
-	static void S_IntOPKernel(Index1D index, ArrayView<int> OutPut, ArrayView<int> Input, int Scalar, SpecializedValue<int> operation) =>
+	static void SIntOP_Kern(Index1D index, ArrayView<int> OutPut, ArrayView<int> Input, int Scalar, SpecializedValue<int> operation) =>
 		ApplyBroadcastOpInt(ref OutPut[index], Input[index], Scalar, operation);
 
-	static void S_IntOPKernelIP(Index1D index, ArrayView<int> IO, int Scalar, SpecializedValue<int> operation) =>
+	static void SIntOPIP_Kern(Index1D index, ArrayView<int> IO, int Scalar, SpecializedValue<int> operation) =>
 		ApplyBroadcastOpInt(ref IO[index], IO[index], Scalar, operation);
 
-	static void ReduceRowOpIntKernel(Index1D index, ArrayView<int> output, ArrayView<int> inputA, ArrayView<int> inputB, int cols, SpecializedValue<int> operation)
+	static void ReduceRowOpInt_Kern(Index1D index, ArrayView<int> output, ArrayView<int> inputA, ArrayView<int> inputB, int cols, SpecializedValue<int> operation)
 	{
 		int startidx = index * cols;
 		output[index] = AccumulateReduceRowInt(inputA, inputB, startidx, cols, operation);
 	}
 
-	static void MatMulIntKernel(
+	static void MatMulInt_Kern(
 		Index1D row,
 		ArrayView<int> output,
 		ArrayView<int> inputA,
@@ -90,7 +93,7 @@ public partial class GPU
 		}
 	}
 
-	static void BroadcastOpIntKernel(
+	static void BroadcastInt_Kern(
 		Index1D flatOut,
 		ArrayView<int> output,
 		ArrayView<int> inputA,
@@ -109,7 +112,7 @@ public partial class GPU
 		output[flatOut] = result;
 	}
 
-	static void BroadcastOpIntKernelIP(
+	static void BroadcastIntIP_Kern(
 		Index1D flatOut,
 		ArrayView<int> io,
 		ArrayView<int> other,
@@ -125,18 +128,18 @@ public partial class GPU
 		io[flatOut] = result;
 	}
 
-	static void DiffIntKernel(Index1D index, ArrayView<int> Output, ArrayView<int> Input) =>
+	static void DiffInt_Kern(Index1D index, ArrayView<int> Output, ArrayView<int> Input) =>
 		Output[index] = Input[index + 1] - Input[index];
 
-	static void AbsIntKernel(Index1D index, ArrayView<int> IO) =>
+	static void AbsIntIP_Kern(Index1D index, ArrayView<int> IO) =>
 		IO[index] = AbsIntBitwise(IO[index]);
 
-	static void NegateIntKernel(Index1D index, ArrayView<int> IO) =>
+	static void NegateIntIP_Kern(Index1D index, ArrayView<int> IO) =>
 		IO[index] = NegateIntBitwise(IO[index]);
 
-	static void FloatToIntKernel(Index1D index, ArrayView<int> Output, ArrayView<float> Input) =>
+	static void FloatToInt_Kern(Index1D index, ArrayView<int> Output, ArrayView<float> Input) =>
 		Output[index] = (int)Input[index];
 
-	static void IntToFloatKernel(Index1D index, ArrayView<float> Output, ArrayView<int> Input) =>
+	static void IntToFloat_Kern(Index1D index, ArrayView<float> Output, ArrayView<int> Input) =>
 		Output[index] = Input[index];
 }

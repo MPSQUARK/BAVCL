@@ -50,14 +50,8 @@ public sealed partial class Vector : VectorBase<float>
 		return true;
 	}
 
-	public Vector Copy(bool Cache = true)
-	{
-		if (ID == 0)
-			return new Vector(Gpu, ToArray(), Columns, Cache);
-
-		// TODO: I don't think PULL is the right API to use here. Need to investigate.
-		return new Vector(Gpu, Pull(), Columns, Cache);
-	}
+	public Vector Copy(bool Cache = true) =>
+		new(Gpu, ToArray(), Columns, Cache);
 
 	public void Flatten() => Columns = 0;
 
@@ -72,25 +66,25 @@ public sealed partial class Vector : VectorBase<float>
 
 	public override string ToString() => VectorStructuralExtensions.ToStr(this);
 
-	public Vector this[Mask mask] => MaskVectorOps.Filter(this, mask);
+	public Vector this[Mask mask] => MaskVectorOps.FilterX(this, mask);
 
-	public Mask CompareEquals(Vector other) =>
-		MaskVectorOps.Compare(this, other, VectorComparison.Equal);
+	public Mask CompareEqualsX(Vector other) =>
+		MaskVectorOps.CompareX(this, other, VectorComparison.Equal);
 
-	public Mask CompareNotEquals(Vector other) =>
-		MaskVectorOps.Compare(this, other, VectorComparison.NotEqual);
+	public Mask CompareNotEqualsX(Vector other) =>
+		MaskVectorOps.CompareX(this, other, VectorComparison.NotEqual);
 
-	public Mask Compare(Vector other, VectorComparison comparison) =>
-		MaskVectorOps.Compare(this, other, comparison);
+	public Mask CompareX(Vector other, VectorComparison comparison) =>
+		MaskVectorOps.CompareX(this, other, comparison);
 
-	public Mask CompareEquals(float scalar) =>
-		MaskVectorOps.Compare(this, scalar, VectorComparison.Equal);
+	public Mask CompareEqualsX(float scalar) =>
+		MaskVectorOps.CompareX(this, scalar, VectorComparison.Equal);
 
-	public Mask CompareNotEquals(float scalar) =>
-		MaskVectorOps.Compare(this, scalar, VectorComparison.NotEqual);
+	public Mask CompareNotEqualsX(float scalar) =>
+		MaskVectorOps.CompareX(this, scalar, VectorComparison.NotEqual);
 
-	public Mask Compare(float scalar, VectorComparison comparison) =>
-		MaskVectorOps.Compare(this, scalar, comparison);
+	public Mask CompareX(float scalar, VectorComparison comparison) =>
+		MaskVectorOps.CompareX(this, scalar, comparison);
 
     #region OPERATORS
     /// <summary>
@@ -147,7 +141,7 @@ public sealed partial class Vector : VectorBase<float>
 		vector.OP(scalar, Operations.flipDivide);
 
 	public static (Vector TrueLanes, Vector FalseLanes) operator /(Vector vector, Mask mask) =>
-		MaskVectorOps.Partition(vector, mask);
+		MaskVectorOps.PartitionX(vector, mask);
 
     // In-place operator optimization
     public void operator /=(Vector vectorB) =>
@@ -168,37 +162,37 @@ public sealed partial class Vector : VectorBase<float>
         this.IPOP(Scalar, Operations.pow);
 
 	public static Vector operator &(Vector vector, Mask mask) =>
-		MaskVectorOps.Mask(vector, mask, 0f);
+		MaskVectorOps.MaskX(vector, mask, 0f);
 
 	public static Vector operator &(Vector vector, (Mask mask, float fill) masked) =>
-		MaskVectorOps.Mask(vector, masked.mask, masked.fill);
+		MaskVectorOps.MaskX(vector, masked.mask, masked.fill);
 
 	public static Vector operator |(Vector vector, Mask mask) =>
-		MaskVectorOps.Filter(vector, mask);
+		MaskVectorOps.FilterX(vector, mask);
 
 	public static Mask operator >(Vector left, Vector right) =>
-		MaskVectorOps.Compare(left, right, VectorComparison.Greater);
+		MaskVectorOps.CompareX(left, right, VectorComparison.Greater);
 
 	public static Mask operator <(Vector left, Vector right) =>
-		MaskVectorOps.Compare(left, right, VectorComparison.Less);
+		MaskVectorOps.CompareX(left, right, VectorComparison.Less);
 
 	public static Mask operator >=(Vector left, Vector right) =>
-		MaskVectorOps.Compare(left, right, VectorComparison.GreaterOrEqual);
+		MaskVectorOps.CompareX(left, right, VectorComparison.GreaterOrEqual);
 
 	public static Mask operator <=(Vector left, Vector right) =>
-		MaskVectorOps.Compare(left, right, VectorComparison.LessOrEqual);
+		MaskVectorOps.CompareX(left, right, VectorComparison.LessOrEqual);
 
 	public static Mask operator >(Vector vector, float scalar) =>
-		MaskVectorOps.Compare(vector, scalar, VectorComparison.Greater);
+		MaskVectorOps.CompareX(vector, scalar, VectorComparison.Greater);
 
 	public static Mask operator <(Vector vector, float scalar) =>
-		MaskVectorOps.Compare(vector, scalar, VectorComparison.Less);
+		MaskVectorOps.CompareX(vector, scalar, VectorComparison.Less);
 
 	public static Mask operator >=(Vector vector, float scalar) =>
-		MaskVectorOps.Compare(vector, scalar, VectorComparison.GreaterOrEqual);
+		MaskVectorOps.CompareX(vector, scalar, VectorComparison.GreaterOrEqual);
 
 	public static Mask operator <=(Vector vector, float scalar) =>
-		MaskVectorOps.Compare(vector, scalar, VectorComparison.LessOrEqual);
+		MaskVectorOps.CompareX(vector, scalar, VectorComparison.LessOrEqual);
 
     #endregion
 }
