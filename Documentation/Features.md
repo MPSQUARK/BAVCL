@@ -1,6 +1,6 @@
 # BAVCL Features
 
-User-facing catalog of what BAVCL provides today. For full contracts and internals, see [BAVCLSpecification.md](BAVCLSpecification.md).
+User-facing catalog. **Contracts, policies, and internals:** [BAVCLSpecification.md](BAVCLSpecification.md). **Breaking changes:** [MigrationGuide.md](MigrationGuide.md).
 
 ## How features are organized
 
@@ -64,7 +64,9 @@ These names are **GPU-only** by design — no `X` suffix:
 
 - **CPU:** `Sum` (via Arithmetic), `Mean`, `Var`, `Std`, `Min`, `Max`, `Range`, `All`, `Percentile`, `Median`, `Quartile1`, `Quartile3`, `Iqr` on vectors and primitive arrays
 - **GPU:** `SumX`, `MinX`, `MaxX`, `MeanX`, `VarX`, `StdX`, `AllX`, `RangeX`, `PercentileX`, `MedianX`, `Quartile1X`, `Quartile3X`, `IqrX` on `Vector` / `VectorInt`; `ReduceOPX` — row reduction against a coefficient vector
-- `SumX` uses a grouped Kahan-compensated GPU reduce (matches Kahan `Sum()` at large `N`); `DotX` uses a grouped dot-reduce kernel; `RangeX` uses a single grouped min/max pass
+- `SumX` / `DotX` always use compensated grouped GPU reduce (Neumaier), matching CPU `Sum` / `Dot` at all lengths. `RangeX` / `MinMaxX` use a single grouped min/max pass; `AllX` uses a grouped non-zero scan (no full `Mask` materialization)
+- `MinMax` / `MinMaxX` return `MinMax<T>`. `Dot(scalar)` / `DotX(scalar)` use `scalar * Sum`
+- **Unchecked arithmetic:** all reductions use storage type (`int32`/`float32`); no silent widening — see spec §2.8
 
 ### Structural (`BAVCL.Modules.Structural`)
 
