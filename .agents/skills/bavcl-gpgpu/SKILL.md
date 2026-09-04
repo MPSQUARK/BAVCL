@@ -59,6 +59,11 @@ Quick reference: [references/principles.md](./references/principles.md)
 | Host dispatch | `BAVCL/Modules/<Domain>/Internal/` |
 | Broadcast addressing | `BAVCL/Types/BroadcastStrides.cs` |
 
+### Kernel naming (internal)
+
+- **Delegates** on `GPU`: no `X` suffix (`broadcast`, `broadcastIP`, `absIP`, …).
+- **Entry points**: `_Kern` (allocating) or `IP_Kern` (in-place), e.g. `Broadcast_Kern`, `BroadcastIP_Kern`.
+
 ## Host CPU/GPU coherence
 
 | Intent | API |
