@@ -5,19 +5,8 @@ namespace BAVCL.Modules.Statistics;
 
 internal static class ArrayStatistics
 {
-	internal static float Min(float[] array)
-	{
-		if (array.Length == 0) throw new Exception("Cannot Be Length 0");
-
-		float min = array[0];
-		for (int i = 1; i < array.Length; i++)
-		{
-			if (min > array[i])
-				min = array[i];
-		}
-
-		return min;
-	}
+	internal static float Min(float[] array) =>
+		CpuSimdReduce.MinFloat(array);
 
 	internal static float Min(float[] array, bool includeInfinity)
 	{
@@ -67,19 +56,8 @@ internal static class ArrayStatistics
 		return min;
 	}
 
-	internal static int Min(int[] array)
-	{
-		if (array.Length == 0) throw new Exception("Cannot Be Length 0");
-
-		int min = array[0];
-		for (int i = 1; i < array.Length; i++)
-		{
-			if (min > array[i])
-				min = array[i];
-		}
-
-		return min;
-	}
+	internal static int Min(int[] array) =>
+		CpuSimdReduce.MinInt(array);
 
 	internal static uint Min(uint[] array)
 	{
@@ -165,19 +143,8 @@ internal static class ArrayStatistics
 		return min;
 	}
 
-	internal static float Max(float[] array)
-	{
-		if (array.Length == 0) throw new Exception("Cannot Be Length 0");
-
-		float max = array[0];
-		for (int i = 1; i < array.Length; i++)
-		{
-			if (max < array[i])
-				max = array[i];
-		}
-
-		return max;
-	}
+	internal static float Max(float[] array) =>
+		CpuSimdReduce.MaxFloat(array);
 
 	internal static float Max(float[] array, bool ignoreInf)
 	{
@@ -227,19 +194,8 @@ internal static class ArrayStatistics
 		return max;
 	}
 
-	internal static int Max(int[] array)
-	{
-		if (array.Length == 0) throw new Exception("Cannot Be Length 0");
-
-		int max = array[0];
-		for (int i = 1; i < array.Length; i++)
-		{
-			if (max < array[i])
-				max = array[i];
-		}
-
-		return max;
-	}
+	internal static int Max(int[] array) =>
+		CpuSimdReduce.MaxInt(array);
 
 	internal static int Max(int[] array, bool ignoreInf)
 	{
