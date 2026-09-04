@@ -165,16 +165,16 @@ Consumers reference the BAVCL project directly. No NuGet packaging planned YET.
 |------|--------|
 | **Storage type = compute type** | `VectorInt` reductions accumulate in `int32`; element-wise `Vector` ops stay `float32`. CPU and GPU float **reductions** (`Sum`, `Dot`, `Var`) use float64 scratch accumulators where compensated summation applies (NumPy-style). |
 | **Wider results** | If the value range exceeds the storage type, use a wider type (`Vector` with float, or a future `VectorLong`) — BAVCL does not auto-promote element buffers. |
-| **Float error correction** | Float `Sum` / `Dot` / `SumX` / `DotX` always use **Neumaier** compensated summation ([`citations.md`](../citations.md), `neumaier74`). CPU widens SIMD chunks to float64 lanes; GPU uses float64 thread-local accumulators and host fold. `Var` / `VarX` use streaming Chan–Golub–LeVeque merge (`cgl79`). |
+| **Float error correction** | Float `Sum` / `Dot` / `SumX` / `DotX` always use **Neumaier** compensated summation ([`citations.md`](../citations.md) [9]). CPU widens SIMD chunks to float64 lanes; GPU uses float64 thread-local accumulators and host fold. `Var` / `VarX` use streaming Chan–Golub–LeVeque merge ([2]). |
 | **Algorithm design** | Prefer formulations that limit intermediate growth (e.g. `scalar * Sum(v)` for dot-with-scalar) without widening buffers. |
 
-Invalid fixed ranges (e.g. percentile outside [0, 100]) throw `FixedRangeException` via `FixedRangeGuard`. Division by zero length (`Mean` on empty) throws `DivideByZeroException` via `DivideByZeroGuard`. Empty sequences for `Min`/`Max` on integers throw `InvalidOperationException` via `EmptySequenceGuard`.
+Invalid fixed ranges (e.g. percentile outside [0, 100]) throw `FixedRangeException`. Division by zero length (`Mean` on empty) throws `DivideByZeroException`. Empty sequences for `Min`/`Max` on integers throw `InvalidOperationException`.
 
 ### 2.9 Numerical accuracy
 
 **Target:** `float32` results within **6 decimal places** on well-behaved inputs. Future `fp64` types will target proportionally tighter bounds.
 
-**Literature citations:** [`citations.md`](../citations.md) (MNRAS reference layout). Implementation keys: [`Documentation/NumericCitationKeys.md`](NumericCitationKeys.md).
+**Literature citations:** [`citations.md`](../citations.md) (MNRAS reference layout, numbered [1]–[11]).
 
 | Category | Operations | Method | Typical bound |
 |----------|------------|--------|---------------|
@@ -198,7 +198,7 @@ Invalid fixed ranges (e.g. percentile outside [0, 100]) throw `FixedRangeExcepti
 
 **Variance (CPU):** SIMD block moments + streaming Chan–Golub–LeVeque merge; Welford tail for remainders. Stable on large-mean-offset data.
 
-**Surveyed 2020–2026 (no change adopted):** see [`citations.md`](../citations.md) and [`NumericCitationKeys.md`](NumericCitationKeys.md). None beat production on scalar float32 speed **and** our accuracy target.
+**Surveyed 2020–2026 (no change adopted):** see [`citations.md`](../citations.md) entries [3], [4], [8], [10]. None beat production on scalar float32 speed **and** our accuracy target.
 
 Implementation: `Source/Core/Helpers/Numerics/`. Accuracy report: `dotnet run -c Release --project BAVCL.Benchmarks -- --sum-accuracy-report`.
 
