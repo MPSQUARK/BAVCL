@@ -179,7 +179,7 @@ Invalid fixed ranges (e.g. percentile outside [0, 100]) throw `FixedRangeExcepti
 | Category | Operations | Method | Typical bound |
 |----------|------------|--------|---------------|
 | EC reductions | `Sum`, `SumX`, `Dot`, `DotX` | Widened SIMD Neumaier | abs error &lt; 10⁻⁵ on 10⁶ × 0.1 stress |
-| Variance | `Var`, `Std`, `VarX`, `StdX` | Streaming CGL on SIMD blocks | &lt; 10⁻⁵; stable on large-mean-offset data |
+| Variance | `Var`, `SampleVar`, `Std`, `SampleStd`, `VarX`, `SampleVarX`, `StdX`, `SampleStdX` | Streaming CGL on SIMD blocks | &lt; 10⁻⁵; stable on large-mean-offset data. `Var`/`VarX` = population (÷N); `SampleVar`/`SampleVarX` = sample (÷N−1). |
 | Order-preserving | `Min`, `Max`, `Range`, `MinMax` | SIMD min/max | Exact (bit-identical) |
 | Order stats | `Percentile`, `Median`, quartiles | Sort + linear interpolation | &lt; 10⁻⁵ |
 | Integer | `VectorInt` sum, mean | Unchecked `int32` | Exact until overflow |
@@ -516,9 +516,12 @@ Implemented in `BAVCL.Modules.Statistics` (`StatisticsModule`, `VectorStatistics
 | `SumX()` | — | ✓ | Grouped Neumaier kernel (float64 thread accumulators + host fold); `VectorInt` accumulates in `int32` (unchecked) |
 | `Mean()` | ✓ | — | `Sum() / Length` |
 | `MeanX()` | — | ✓ | `SumX() / Length` |
-| `Var()` | ✓ | — | Streaming CGL on SIMD blocks + Welford tail — **always CPU** |
-| `VarX()` | — | ✓ | `MeanX` + GPU `differenceSquared` + `SumX`; needs **Statistics** + **Arithmetic** |
-| `Std()` / `StdX()` | ✓ | ✓ | `Sqrt(Var)` / `Sqrt(VarX)` after scalar sync |
+| `Var()` | ✓ | — | **Population** variance (σ², ÷N). Streaming CGL on SIMD blocks + Welford tail — **always CPU** |
+| `SampleVar()` | ✓ | — | **Sample** variance (s², ÷N−1). Same accumulator as `Var()`; requires length ≥ 2 |
+| `VarX()` | — | ✓ | **Population** variance on GPU; grouped CGL reduce |
+| `SampleVarX()` | — | ✓ | **Sample** variance on GPU; same kernel as `VarX()` |
+| `Std()` / `StdX()` | ✓ | ✓ | √`Var` / √`VarX` (population) |
+| `SampleStd()` / `SampleStdX()` | ✓ | ✓ | √`SampleVar` / √`SampleVarX` |
 | `Min()`, `Max()` | ✓ | — | CPU SIMD via `CpuSimdReduce` |
 | `MinX()`, `MaxX()` | — | ✓ | ILGPU `MinFloat`/`MaxFloat`/`MinInt32`/`MaxInt32` |
 | `Range()` | ✓ | — | `Max - Min` |

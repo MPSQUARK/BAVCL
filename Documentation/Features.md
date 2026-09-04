@@ -62,8 +62,9 @@ These names are **GPU-only** by design — no `X` suffix:
 
 ### Statistics (`BAVCL.Modules.Statistics`)
 
-- **CPU:** `Sum` (via Arithmetic), `Mean`, `Var`, `Std`, `Min`, `Max`, `Range`, `All`, `Percentile`, `Median`, `Quartile1`, `Quartile3`, `Iqr` on vectors and primitive arrays
-- **GPU:** `SumX`, `MinX`, `MaxX`, `MeanX`, `VarX`, `StdX`, `AllX`, `RangeX`, `PercentileX`, `MedianX`, `Quartile1X`, `Quartile3X`, `IqrX` on `Vector` / `VectorInt`; `ReduceOPX` — row reduction against a coefficient vector
+- **CPU:** `Sum` (via Arithmetic), `Mean`, `Var` / `SampleVar`, `Std` / `SampleStd`, `Min`, `Max`, `Range`, `All`, `Percentile`, `Median`, `Quartile1`, `Quartile3`, `Iqr` on vectors and primitive arrays
+- **GPU:** `SumX`, `MinX`, `MaxX`, `MeanX`, `VarX` / `SampleVarX`, `StdX` / `SampleStdX`, `AllX`, `RangeX`, `PercentileX`, `MedianX`, `Quartile1X`, `Quartile3X`, `IqrX` on `Vector` / `VectorInt`; `ReduceOPX` — row reduction against a coefficient vector
+- `Var` / `VarX` are **population** variance (divide by N). `SampleVar` / `SampleVarX` are unbiased **sample** variance (divide by N−1). `Mean` / `MeanX` are the arithmetic mean (no separate sample vs population formula).
 - `SumX` / `DotX` always use compensated grouped GPU reduce (Neumaier), matching CPU `Sum` / `Dot` at all lengths. `RangeX` / `MinMaxX` use a single grouped min/max pass; `AllX` uses a grouped non-zero scan (no full `Mask` materialization)
 - `MinMax` / `MinMaxX` return `MinMax<T>`. `Dot(scalar)` / `DotX(scalar)` use `scalar * Sum`
 - **Unchecked arithmetic:** all reductions use storage type (`int32`/`float32`); no silent widening — see spec §2.8
