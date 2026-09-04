@@ -22,12 +22,22 @@ internal static class GpuDescriptiveStatistics
 	internal static float VarX(Vector vector) =>
 		GlobalReduceAlgorithms.Var(vector);
 
+	internal static float SampleVarX(Vector vector) =>
+		GlobalReduceAlgorithms.SampleVar(vector);
+
 	internal static float VarX(VectorInt vector) =>
 		GlobalReduceAlgorithms.Var(vector);
 
+	internal static float SampleVarX(VectorInt vector) =>
+		GlobalReduceAlgorithms.SampleVar(vector);
+
 	internal static float StdX(Vector vector) => MathF.Sqrt(VarX(vector));
 
+	internal static float SampleStdX(Vector vector) => MathF.Sqrt(SampleVarX(vector));
+
 	internal static float StdX(VectorInt vector) => MathF.Sqrt(VarX(vector));
+
+	internal static float SampleStdX(VectorInt vector) => MathF.Sqrt(SampleVarX(vector));
 
 	internal static float MinX(Vector vector) => GlobalReduceAlgorithms.Min(vector);
 
