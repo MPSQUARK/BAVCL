@@ -174,9 +174,7 @@ public sealed class Mask : CacheableBase<int>
 
 		int expectedWordCount = MaskBitOps.WordCount(elementCount);
 		if (words.Length != expectedWordCount)
-			throw new ArgumentException(
-				$"Word array length {words.Length} does not match required word count {expectedWordCount} for element count {elementCount}.",
-				nameof(words));
+			throw new MaskPackedLayoutException(elementCount, words.Length, expectedWordCount);
 
 		int[] storage = (int[])words.Clone();
 		MaskBitOps.ClearPaddingBits(storage, elementCount);
