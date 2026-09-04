@@ -147,7 +147,7 @@ internal static class GlobalReduceAlgorithms
 		using BufferEntity<float> partial = BufferPools.For(gpu).Float.Rent(numGroups);
 		using (GpuScope.Begin(partial.PinTarget, vector))
 		{
-			gpu.sumSquaredDiffIntGroupedKernel(
+			gpu.sumSquaredDiffIntGrouped(
 				gpu.DefaultStream,
 				config,
 				vector.GetBuffer().View,
@@ -187,7 +187,7 @@ internal static class GlobalReduceAlgorithms
 		using BufferEntity<float> partial = BufferPools.For(gpu).Float.Rent(partialLength);
 		using (GpuScope.Begin(partial.PinTarget, vector))
 		{
-			gpu.minMaxReduceFloatGroupedKernel(
+			gpu.minMaxReduceFloatGrouped(
 				gpu.DefaultStream,
 				config,
 				vector.GetBuffer().View,
@@ -208,7 +208,7 @@ internal static class GlobalReduceAlgorithms
 		using BufferEntity<int> partial = BufferPools.For(gpu).Int.Rent(partialLength);
 		using (GpuScope.Begin(partial.PinTarget, vector))
 		{
-			gpu.minMaxReduceIntGroupedKernel(
+			gpu.minMaxReduceIntGrouped(
 				gpu.DefaultStream,
 				config,
 				vector.GetBuffer().View,
@@ -227,7 +227,7 @@ internal static class GlobalReduceAlgorithms
 		using BufferEntity<float> partial = BufferPools.For(gpu).Float.Rent(numGroups);
 		using (GpuScope.Begin(partial.PinTarget, vector))
 		{
-			gpu.sumReduceFloatGroupedCompensatedKernel(
+			gpu.sumReduceFloatGroupedCompensated(
 				gpu.DefaultStream,
 				config,
 				vector.GetBuffer().View,
@@ -246,7 +246,7 @@ internal static class GlobalReduceAlgorithms
 		using BufferEntity<int> partial = BufferPools.For(gpu).Int.Rent(numGroups);
 		using (GpuScope.Begin(partial.PinTarget, vector))
 		{
-			gpu.sumReduceIntGroupedKernel(
+			gpu.sumReduceIntGrouped(
 				gpu.DefaultStream,
 				config,
 				vector.GetBuffer().View,
@@ -265,7 +265,7 @@ internal static class GlobalReduceAlgorithms
 		using BufferEntity<float> partial = BufferPools.For(gpu).Float.Rent(numGroups);
 		using (GpuScope.Begin(partial.PinTarget, left, right))
 		{
-			gpu.dotReduceFloatGroupedCompensatedKernel(
+			gpu.dotReduceFloatGroupedCompensated(
 				gpu.DefaultStream,
 				config,
 				left.GetBuffer().View,
@@ -285,7 +285,7 @@ internal static class GlobalReduceAlgorithms
 		using BufferEntity<int> partial = BufferPools.For(gpu).Int.Rent(numGroups);
 		using (GpuScope.Begin(partial.PinTarget, left, right))
 		{
-			gpu.dotReduceIntGroupedKernel(
+			gpu.dotReduceIntGrouped(
 				gpu.DefaultStream,
 				config,
 				left.GetBuffer().View,
@@ -305,7 +305,7 @@ internal static class GlobalReduceAlgorithms
 		using BufferEntity<int> partial = BufferPools.For(gpu).Int.Rent(numGroups);
 		using (GpuScope.Begin(partial.PinTarget, vector))
 		{
-			gpu.allNonZeroFloatGroupedKernel(
+			gpu.allNonZeroFloatGrouped(
 				gpu.DefaultStream,
 				config,
 				vector.GetBuffer().View,
@@ -324,7 +324,7 @@ internal static class GlobalReduceAlgorithms
 		using BufferEntity<int> partial = BufferPools.For(gpu).Int.Rent(numGroups);
 		using (GpuScope.Begin(partial.PinTarget, vector))
 		{
-			gpu.allNonZeroIntGroupedKernel(
+			gpu.allNonZeroIntGrouped(
 				gpu.DefaultStream,
 				config,
 				vector.GetBuffer().View,
@@ -427,7 +427,7 @@ internal static class GlobalReduceAlgorithms
 		using BufferEntity<float> partial = BufferPools.For(gpu).Float.Rent(partialLength);
 		using (GpuScope.Begin(partial.PinTarget, vector))
 		{
-			gpu.varReduceFloatGroupedKernel(
+			gpu.varReduceFloatGrouped(
 				gpu.DefaultStream,
 				config,
 				vector.GetBuffer().View,
@@ -447,7 +447,7 @@ internal static class GlobalReduceAlgorithms
 		using BufferEntity<float> partial = BufferPools.For(gpu).Float.Rent(partialLength);
 		using (GpuScope.Begin(partial.PinTarget, vector))
 		{
-			gpu.varReduceIntGroupedKernel(
+			gpu.varReduceIntGrouped(
 				gpu.DefaultStream,
 				config,
 				vector.GetBuffer().View,

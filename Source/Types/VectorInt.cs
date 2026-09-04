@@ -285,7 +285,7 @@ public sealed partial class VectorInt : VectorBase<int>
 		using (GpuScope.Begin(vector))
 		{
 			MemoryBuffer1D<int, Stride1D.Dense> buffer = vector.GetBuffer();
-			vector.Gpu.negateIntKernel(vector.Gpu.DefaultStream, buffer.IntExtent, buffer.View);
+			vector.Gpu.negateIntIP(vector.Gpu.DefaultStream, buffer.IntExtent, buffer.View);
 			vector.Gpu.Synchronize();
 		}
 	}

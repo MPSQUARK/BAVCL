@@ -11,10 +11,10 @@ namespace BAVCL;
 public partial class GPU
 {
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int, SpecializedValue<int>>
-		reduceRowFusedKernel
-		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(reduceRowFusedKernel));
+		reduceRowFused
+		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(reduceRowFused));
 
-	static void ReduceRowFusedKernel(
+	static void ReduceRowFused_Kern(
 		ArrayView<int> coeffs,
 		ArrayView<int> matrix,
 		ArrayView<int> output,

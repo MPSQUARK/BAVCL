@@ -55,7 +55,7 @@ internal static class CrossCore
 				bufferA = matrixA.GetBuffer(),
 				bufferB = matrixB.GetBuffer();
 
-			gpu.matmulKernel(
+			gpu.matmul(
 				gpu.accelerator.DefaultStream,
 				rowsA,
 				buffer.View,
@@ -139,7 +139,7 @@ internal static class CrossCore
 				bufferA = matrixA.GetBuffer(),
 				bufferB = matrixB.GetBuffer();
 
-			gpu.matmulIntKernel(
+			gpu.matmulInt(
 				gpu.DefaultStream,
 				rowsA,
 				buffer.View,

@@ -11,7 +11,7 @@ internal static class Vector3Kernels
 		MemoryBuffer1D<float, Stride1D.Dense> input,
 		Operations operation)
 	{
-		gpu.simdVectorKernel(
+		gpu.simdVectorIP(
 			gpu.DefaultStream,
 			output.IntExtent,
 			output.View,
@@ -29,7 +29,7 @@ internal static class Vector3Kernels
 		MemoryBuffer1D<float, Stride1D.Dense> right,
 		Operations operation)
 	{
-		gpu.simdVectorKernel(
+		gpu.simdVectorIP(
 			gpu.DefaultStream,
 			output.IntExtent,
 			output.View,

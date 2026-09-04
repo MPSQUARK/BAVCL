@@ -17,7 +17,7 @@ internal static class VectorIntGpuOps
 				buffer = output.GetBuffer(),
 				buffer2 = vector.GetBuffer();
 
-			gpu.s_opIKernel(
+			gpu.sOpI(
 				gpu.DefaultStream,
 				buffer.IntExtent,
 				buffer.View,
@@ -36,7 +36,7 @@ internal static class VectorIntGpuOps
 		using (GpuScope.Begin(vector))
 		{
 			MemoryBuffer1D<int, Stride1D.Dense> buffer = vector.GetBuffer();
-			vector.Gpu.s_opIKernelIP(
+			vector.Gpu.sOpIIP(
 				vector.Gpu.DefaultStream,
 				buffer.IntExtent,
 				buffer.View,

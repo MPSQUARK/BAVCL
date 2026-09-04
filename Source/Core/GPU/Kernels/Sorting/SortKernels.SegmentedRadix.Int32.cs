@@ -12,39 +12,39 @@ public partial class GPU
 	internal const int SegmentedRadixPasses = 4;
 	internal const int SegmentedRadixGroupSize = 256;
 
-	public Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, int, int> segmentedSortIntAscKern
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortIntAscKern));
+	public Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, int, int> segmentedSortIntAscIP
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortIntAscIP));
 
-	public Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, int, int> segmentedSortIntDescKern
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortIntDescKern));
-
-	public Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>
-		segmentedSortIntPairsAscKern
-		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortIntPairsAscKern));
+	public Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, int, int> segmentedSortIntDescIP
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortIntDescIP));
 
 	public Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>
-		segmentedSortIntPairsDescKern
-		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortIntPairsDescKern));
+		segmentedSortIntPairsAscIP
+		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortIntPairsAscIP));
+
+	public Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>
+		segmentedSortIntPairsDescIP
+		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortIntPairsDescIP));
 
 	internal void LoadSortSegmentedRadixKernels()
 	{
-		segmentedSortIntAscKern = accelerator.LoadKernel<
-			ArrayView<int>, ArrayView<int>, int, int>(SegmentedSortIntRowKern<AscendingInt32>);
-		segmentedSortIntDescKern = accelerator.LoadKernel<
-			ArrayView<int>, ArrayView<int>, int, int>(SegmentedSortIntRowKern<DescendingInt32>);
-		segmentedSortIntPairsAscKern = accelerator.LoadKernel<
+		segmentedSortIntAscIP = accelerator.LoadKernel<
+			ArrayView<int>, ArrayView<int>, int, int>(SegmentedSortIntRowIP_Kern<AscendingInt32>);
+		segmentedSortIntDescIP = accelerator.LoadKernel<
+			ArrayView<int>, ArrayView<int>, int, int>(SegmentedSortIntRowIP_Kern<DescendingInt32>);
+		segmentedSortIntPairsAscIP = accelerator.LoadKernel<
 			ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>(
-			SegmentedSortIntPairsRowKern<AscendingInt32>);
-		segmentedSortIntPairsDescKern = accelerator.LoadKernel<
+			SegmentedSortIntPairsRowIP_Kern<AscendingInt32>);
+		segmentedSortIntPairsDescIP = accelerator.LoadKernel<
 			ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>(
-			SegmentedSortIntPairsRowKern<DescendingInt32>);
+			SegmentedSortIntPairsRowIP_Kern<DescendingInt32>);
 	}
 
 	/// <summary>
 	/// One grid group per matrix row; threads in the group cooperatively radix-sort that row's segment.
 	/// Host launches exactly <c>rowCount</c> groups and guards <c>cols &lt;= 1</c>, so no bounds check is needed here.
 	/// </summary>
-	static void SegmentedSortIntRowKern<TOperation>(
+	static void SegmentedSortIntRowIP_Kern<TOperation>(
 		ArrayView<int> input,
 		ArrayView<int> temp,
 		int cols,
@@ -121,7 +121,7 @@ public partial class GPU
 	/// kernel launch is needed before the sort. Host launches exactly <c>rowCount</c> groups and guards
 	/// <c>cols &lt;= 1</c>, so no bounds check is needed here.
 	/// </summary>
-	static void SegmentedSortIntPairsRowKern<TOperation>(
+	static void SegmentedSortIntPairsRowIP_Kern<TOperation>(
 		ArrayView<int> keys,
 		ArrayView<int> values,
 		ArrayView<int> tempKeys,

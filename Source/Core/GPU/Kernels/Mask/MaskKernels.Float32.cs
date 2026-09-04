@@ -8,24 +8,24 @@ namespace BAVCL;
 
 public partial class GPU
 {
-	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>> vectorCompareMaskKernel
-		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(vectorCompareMaskKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<float>, float, SpecializedValue<int>> vectorScalarCompareMaskKernel
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(vectorScalarCompareMaskKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>, float, int, BroadcastStrides, BroadcastStrides> vectorMaskFilterKernel
-		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(vectorMaskFilterKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>> vectorGatherKernel
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(vectorGatherKernel));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>> compareMask
+		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(compareMask));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<float>, float, SpecializedValue<int>> compareScalarMask
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(compareScalarMask));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>, float, int, BroadcastStrides, BroadcastStrides> maskFilter
+		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(maskFilter));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>> gather
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(gather));
 
 	internal void LoadMaskVectorKernels()
 	{
-		vectorCompareMaskKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>>(VectorCompareMaskKernel);
-		vectorScalarCompareMaskKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<float>, float, SpecializedValue<int>>(VectorScalarCompareMaskKernel);
-		vectorMaskFilterKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>, float, int, BroadcastStrides, BroadcastStrides>(VectorMaskFilterKernel);
-		vectorGatherKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>>(VectorGatherKernel);
+		compareMask = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>>(VectorCompareMask_Kern);
+		compareScalarMask = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<float>, float, SpecializedValue<int>>(VectorScalarCompareMask_Kern);
+		maskFilter = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>, float, int, BroadcastStrides, BroadcastStrides>(VectorMaskFilter_Kern);
+		gather = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>>(VectorGather_Kern);
 	}
 
-	static void VectorCompareMaskKernel(
+	static void VectorCompareMask_Kern(
 		Index1D element,
 		ArrayView<int> output,
 		ArrayView<float> left,
@@ -46,7 +46,7 @@ public partial class GPU
 		WriteMaskLane(output, element.X, lane);
 	}
 
-	static void VectorScalarCompareMaskKernel(
+	static void VectorScalarCompareMask_Kern(
 		Index1D element,
 		ArrayView<int> output,
 		ArrayView<float> input,
@@ -54,7 +54,7 @@ public partial class GPU
 		SpecializedValue<int> comparison) =>
 		WriteMaskLane(output, element.X, CompareLane(input[element], scalar, (VectorComparison)comparison.Value));
 
-	static void VectorMaskFilterKernel(
+	static void VectorMaskFilter_Kern(
 		Index1D element,
 		ArrayView<float> output,
 		ArrayView<float> input,
@@ -71,7 +71,7 @@ public partial class GPU
 		output[element] = Utilities.Select(lane == 1, input[inputStrides.IndexOf(row, column)], fill);
 	}
 
-	static void VectorGatherKernel(
+	static void VectorGather_Kern(
 		Index1D element,
 		ArrayView<float> output,
 		ArrayView<float> input,

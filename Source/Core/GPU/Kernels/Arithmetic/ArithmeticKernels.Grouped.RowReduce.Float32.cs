@@ -27,10 +27,10 @@ public partial class GPU
 	}
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int, SpecializedValue<int>>
-		reduceRowFusedCompensatedKernel
-		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(reduceRowFusedCompensatedKernel));
+		reduceRowFusedCompensated
+		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(reduceRowFusedCompensated));
 
-	static void ReduceRowFusedCompensatedKernel(
+	static void ReduceRowFusedCompensated_Kern(
 		ArrayView<float> coeffs,
 		ArrayView<float> matrix,
 		ArrayView<float> output,

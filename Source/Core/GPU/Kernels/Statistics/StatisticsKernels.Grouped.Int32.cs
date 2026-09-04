@@ -10,33 +10,33 @@ namespace BAVCL;
 
 public partial class GPU
 {	internal Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, ArrayView<int>, int>
-		dotReduceIntGroupedKernel
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(dotReduceIntGroupedKernel));
+		dotReduceIntGrouped
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(dotReduceIntGrouped));
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, int>
-		sumReduceIntGroupedKernel
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(sumReduceIntGroupedKernel));
+		sumReduceIntGrouped
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(sumReduceIntGrouped));
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, int>
-		minMaxReduceIntGroupedKernel
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(minMaxReduceIntGroupedKernel));
+		minMaxReduceIntGrouped
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(minMaxReduceIntGrouped));
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<float>, float, int>
-		sumSquaredDiffIntGroupedKernel
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(sumSquaredDiffIntGroupedKernel));
+		sumSquaredDiffIntGrouped
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(sumSquaredDiffIntGrouped));
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, int>
-		allNonZeroIntGroupedKernel
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(allNonZeroIntGroupedKernel));
+		allNonZeroIntGrouped
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(allNonZeroIntGrouped));
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<float>, int>
-		varReduceIntGroupedKernel
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(varReduceIntGroupedKernel));
+		varReduceIntGrouped
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(varReduceIntGrouped));
 
 	static void UpdateVarianceAccumInt(ref int count, ref float mean, ref float m2, int value) =>
 		UpdateVarianceAccum(ref count, ref mean, ref m2, value);
 
-	static void DotReduceIntGroupedKernel(
+	static void DotReduceIntGrouped_Kern(
 		ArrayView<int> left,
 		ArrayView<int> right,
 		ArrayView<int> output,
@@ -52,7 +52,7 @@ public partial class GPU
 			output[Grid.IdxX] = groupSum;
 	}
 
-	static void SumReduceIntGroupedKernel(
+	static void SumReduceIntGrouped_Kern(
 		ArrayView<int> input,
 		ArrayView<int> output,
 		int length)
@@ -67,7 +67,7 @@ public partial class GPU
 			output[Grid.IdxX] = groupSum;
 	}
 
-	static void MinMaxReduceIntGroupedKernel(
+	static void MinMaxReduceIntGrouped_Kern(
 		ArrayView<int> input,
 		ArrayView<int> partialMinMax,
 		int length)
@@ -96,7 +96,7 @@ public partial class GPU
 		partialMinMax[slot + 1] = groupMax;
 	}
 
-	static void SumSquaredDiffIntGroupedKernel(
+	static void SumSquaredDiffIntGrouped_Kern(
 		ArrayView<int> input,
 		ArrayView<float> output,
 		float mean,
@@ -117,7 +117,7 @@ public partial class GPU
 			output[Grid.IdxX] = groupSum;
 	}
 
-	static void AllNonZeroIntGroupedKernel(
+	static void AllNonZeroIntGrouped_Kern(
 		ArrayView<int> input,
 		ArrayView<int> output,
 		int length)
@@ -135,7 +135,7 @@ public partial class GPU
 			output[Grid.IdxX] = groupFlag;
 	}
 
-	internal static void VarReduceIntGroupedSharedKernel(
+	internal static void VarReduceIntGroupedShared_Kern(
 		ArrayView<int> input,
 		ArrayView<float> output,
 		int length)
@@ -167,7 +167,7 @@ public partial class GPU
 		WriteVarianceGroupOutput(output, accCount, accMean, accM2);
 	}
 
-	internal static void VarReduceIntGroupedWarpTreeKernel(
+	internal static void VarReduceIntGroupedWarpTree_Kern(
 		ArrayView<int> input,
 		ArrayView<float> output,
 		int length)
