@@ -1,10 +1,10 @@
 # BAVCL Specification
 
-Authoritative reference for BAVCL behavior and design intent. Documents **current implementation** where verified, plus **roadmap** items explicitly marked as future. When code and spec diverge, reconcile manually — update the spec, change the code, or record an open gap in [Section 19](#19-code-vs-vision-gaps). Neither side wins automatically.
+Authoritative reference for BAVCL behavior and design intent. Documents **current implementation** where verified, plus **roadmap** items explicitly marked as future. When code and spec diverge, reconcile manually — update the spec, change the code, or record an open gap in [Section 17](#17-code-vs-vision-gaps). Neither side wins automatically.
 
-**Version:** Discovery draft — July 2026
+**Version:** Living spec — last reviewed September 2026
 **Author:** Marcel Pawelczyk
-**Status:** PROGRAM STILL IN DEVELOPMENT
+**Status:** In active development
 
 Document Disclaimer: This document is intended for AI coding tools for reasoning and project alignment. While the contents may be beneficial for human use, the content may be verbose.
 
@@ -13,25 +13,23 @@ Document Disclaimer: This document is intended for AI coding tools for reasoning
 ## Table of Contents
 
 1. [Identity and Scope](#1-identity-and-scope)
-2. [Design Principles](#2-design-principles)
-3. [Architecture Overview](#3-architecture-overview)
-4. [Current Functionality (v0)](#4-current-functionality-v0)
-5. [Type System Roadmap](#5-type-system-roadmap)
+2. [Roadmap](#2-roadmap)
+3. [Design Principles](#3-design-principles)
+4. [Architecture Overview](#4-architecture-overview)
+5. [Current Functionality (v0)](#5-current-functionality-v0)
 6. [Mask Specification](#6-mask-specification)
 7. [Kernel Module System](#7-kernel-module-system)
 8. [GPU and Memory](#8-gpu-and-memory)
-9. [Code Organization Roadmap](#9-code-organization-roadmap)
+9. [Code Organization](#9-code-organization)
 10. [CPU Execution Path](#10-cpu-execution-path)
 11. [Geometry Module](#11-geometry-module)
 12. [Astrophysics Module](#12-astrophysics-module)
 13. [IO Module](#13-io-module)
-14. [Plotting](#14-plotting)
-15. [Experimental Math](#15-experimental-math)
-16. [Testing and Quality](#16-testing-and-quality)
-17. [Platform Support](#17-platform-support)
-18. [Deferred / Nice-to-Have](#18-deferred--nice-to-have)
-19. [Code vs Vision Gaps](#19-code-vs-vision-gaps)
-20. [Related Projects](#20-related-projects)
+14. [Experimental Math](#14-experimental-math)
+15. [Testing and Quality](#15-testing-and-quality)
+16. [Platform Support](#16-platform-support)
+17. [Code vs Vision Gaps](#17-code-vs-vision-gaps)
+18. [Related Projects](#18-related-projects)
 
 ---
 
@@ -46,6 +44,7 @@ Document Disclaimer: This document is intended for AI coding tools for reasoning
 | Language         | C# (.NET 10)                                           |
 | GPU runtime      | ILGPU 1.5.3 + ILGPU.Algorithms                         |
 | Distribution     | Source-only project reference                          |
+| Documentation    | [README.md](../README.md), [Documentation/](.)       |
 | License          | Source-available custom licence — see [License.txt](../License.txt) and [THIRD_PARTY_LICENSES.md](../THIRD_PARTY_LICENSES.md) |
 | Primary consumer | **FALCON** (astrophysics application)                  |
 
@@ -64,33 +63,157 @@ BAVCL accelerates large array operations on CUDA, OpenCL, or CPU backends while 
 
 ```
 BAVCL.sln
-├── BAVCL/                  # Core library (net10.0)
-└── Testing Console/        # Demo app + BenchmarkDotNet harness
+├── README.md               # Quick start, licence summary, doc links
+├── Documentation/          # Spec, Features, MigrationGuide, GPGPUKernelGuide
+├── BAVCL.csproj            # Core library (net10.0) — sources under Source/
+└── Testing Console/        # Manual smoke tests + benchmark entry (not canonical tests)
 
-BAVCL.Tests/                # Sibling repo — canonical test home
-└── (separate solution at C:\Users\marce\Repos\BAVCL.Tests)
+BAVCL.Tests/                # Sibling repo — canonical xUnit + BenchmarkDotNet home
+└── github.com/MPSQUARK/BAVCL.Tests
 ```
 
 ### 1.5 Out of Scope (v1) - Currently
 
-- Matrix linear algebra (deferred)
-- Table / dataframe structures (deferred)
-- Public NuGet packaging
+Deferred for v1 — see [§2.1](#21-deferred-and-out-of-scope-v1).
 
 ---
 
-## 2. Design Principles
+## 2. Roadmap
 
-### 2.1 C#-Idiomatic API
+Single index of planned work, deferred items, and targets not yet implemented. **Current behaviour** stays in later sections; **open reconciliation** is tracked in [Section 17](#17-code-vs-vision-gaps). Where a topic has implementation detail elsewhere, this section summarizes intent and links there.
+
+### 2.1 Deferred and out of scope (v1)
+
+| Item | Notes |
+| ---- | ----- |
+| **Matrix** type | Full linear algebra — deferred; 2D `Vector` (`Columns > 1`) covers current matrix-like needs |
+| **Table** / dataframe | Columnar named data — deferred |
+| **Public NuGet** | Source-only project reference for now |
+| **Multi-GPU auto-distribution** | Manual device selection first |
+
+### 2.2 Type system
+
+Broadening beyond fp32 is a priority. **`Mask`** and **`VectorInt` (int32)** are implemented (see [§5.10](#510-vectorint-int32), [§6](#6-mask-specification)).
+
+**Priority order:**
+
+1. **float64 / double** — `VectorDouble` or dedicated double type; proportionally tighter accuracy bounds than fp32
+2. ~~**int32** — `VectorInt`~~ **Implemented**
+3. **int64** — e.g. `VectorLong` for wider accumulators without auto-promoting element buffers
+4. **uint**
+5. **Complex** — ideally `System.Numerics.Complex` as unmanaged struct; may require custom `ComplexFloat` if constraints block it
+
+**Policy:** specialized type per element kind (`Vector`, `VectorInt`, `Vector3`, `Mask`, …). `VectorBase<T>` provides shared infrastructure — **no** public generic `Vector<T>` fallback.
+
+**Open design:** packed-bit mask word layout (benchmark-driven); `System.Numerics.Complex` as unmanaged (may need custom struct).
+
+### 2.3 Mask
+
+| Item | Detail |
+| ---- | ------ |
+| **Resize / replace** | Logical `ElementCount` fixed today; explicit `Resize` / `ReplaceFrom` API TBD — see [§6.7](#67-resize-planned-future) |
+| **CPU aggregates** | `CountTrue()`, `Any()`, `All()` via SIMD popcount — not GPU kernels in v1 — see [§6.8](#68-mask-aggregates-roadmap--cpu-simd) |
+| **Device-side compaction** | Prefix scan on mask words to size `Filter`/`Partition` outputs without host index collection (natural follow-on to aggregates) |
+
+### 2.4 GPU, memory, and multi-GPU
+
+| Item | Detail |
+| ---- | ------ |
+| **Actual GPU memory tracking** | Replace `sizeof(T) × length` estimates with device-reported usage where ILGPU/APIs allow — see [§8.5](#85-actual-gpu-memory-tracking-exploration) |
+| **LRU dirty-flag sync** | Skip unnecessary CPU sync on eviction/upload when buffer unchanged (TODO in `LRU.cs`) |
+| **`PrintMemoryUsage` formats** | Bytes / KB / GB display |
+| **Multi-GPU** | Enumerate/create additional `GPU` instances; cross-device transfer when operands differ — automatic workload distribution deferred — see [§4.6](#46-multi-gpu-data-flow-target---wip) |
+| **Shape caching** | Optional `Shape` field on `VectorBase` — low priority; closed as unnecessary post-`BroadcastStrides` unless hot-loop profiling says otherwise |
+
+### 2.5 ILGPU algorithm batches
+
+| Batch | Status | APIs |
+|-------|--------|------|
+| **1 Global reduce** | **Implemented** | `SumX`, `DotX`, `MinX`, `MaxX`, `MeanX`, `VarX`, `StdX`, `SampleVarX`, `SampleStdX`, `AllX`, `RangeX`, `MinMaxX`, `ReduceOPX` |
+| **2 Prefix scan** | Planned | `CumSumX`, `CumSumExclusiveX` |
+| **3 Histogram** | Planned | GPU histogram / binning |
+| **4 Segmented sort** | Partial | 2D row sort via `SortAscX` on matrices |
+
+Crossover benchmarks and measured `N` thresholds: `BAVCL.Benchmarks` (`ReduceBenchmark`, `MeanVarBenchmark`, `AllXBenchmark`).
+
+**`AllX` grouped scan vs legacy mask materialization** (`AllXBenchmark`, InProcess, RTX-class GPU, 2026-09-04):
+
+| N | Type | Grouped scan | Legacy mask | Speedup | Alloc ratio |
+|---|------|-------------|-------------|---------|-------------|
+| 10⁴ | float | 30.5 µs | 92.6 µs | ~3.0× | ~8.5× less |
+| 10⁴ | int | 124 µs | 169 µs | ~1.4× | ~11× less |
+| 10⁶ | float | 118 µs | 372 µs | ~3.2× | ~15× less |
+| 10⁶ | int | 58.5 µs | 432 µs | ~7.4× | ~15× less |
+
+Grouped non-zero scan is faster at all measured sizes and avoids allocating a full `Mask` buffer.
+
+### 2.6 Kernel domains (not yet)
+
+| Domain | Status | Notes |
+| ------ | ------ | ----- |
+| **LinearAlgebra** | Not yet | `matmul` lives in Arithmetic for now |
+| **Astrophysics** | Not yet | FALCON-driven integrals — see [§12](#12-astrophysics-module) |
+
+### 2.7 CPU execution
+
+**Target:** default operators should use CPU paths; GPU via `X` suffix or explicit `OPX` methods. **Current code diverges** — operators route through GPU kernels. See [§10.3](#103-operator-overloads-target).
+
+### 2.8 Geometry
+
+| Item | Detail |
+| ---- | ------ |
+| **Vector3 stats** | `Mean()`, `Range()`, `Sum()` use flat-buffer semantics — rework or remove for per-Vector3 semantics |
+| **Vector3 ↔ Vector conversion** | Reuse GPU buffer ID instead of `Pull()` + reallocate |
+| **Vertex ↔ Vector3** | Optimise implicit conversion GPU path |
+
+### 2.9 Astrophysics and FITS
+
+- **FALCON formulas:** cosmological integrals and model variants — expand when FALCON integration begins (details in FALCON spec)
+- **FITS I/O:** deferred until core IO formats are polished; later priority for astrophysics interchange
+
+### 2.10 IO and formats
+
+**v1 polish (implemented):** CSV, JSON, XML, TXT for `Vector`, `VectorInt`, `Vector3`, `Mask` — see [§13](#13-io-module).
+
+| Item | Status |
+| ---- | ------ |
+| **YAML** | Not implemented |
+| **FITS**, **NPY**, **HDF5** | Later |
+| **Packed mask TXT read** | Write only today — bool grid read works; parity with JSON/CSV/XML — [§17](#17-code-vs-vision-gaps) #32 |
+| **Streamed/chunked write** | Incremental collection envelopes for very large datasets |
+| **Mixed types per file** | e.g. `Vector` + `Vector3` + `Mask` in one collection |
+| **Forward-only reader** | `ReadNext` streaming deserialize |
+
+### 2.11 Plotting
+
+Prior `Plotter.cs` (Windows / `System.Drawing`) removed. **Target:** cross-platform plotting for debugging — **low priority**; portable library when undertaken.
+
+### 2.12 Experimental math
+
+`Source/Experimental/TestCls.cs` — trim to **one best implementation** per function (sqrt, cbrt, log), remove commented alternatives, add xUnit accuracy tests. Not promoted to production kernels unless explicitly chosen. See [§14](#14-experimental-math).
+
+### 2.13 Platform, tooling, and code organization
+
+| Item | Detail |
+| ---- | ------ |
+| **.NET 11 discriminated unions** | Evaluate for operation boilerplate reduction |
+| **CI** | Target: build + `dotnet test` + benchmark regression gate (CodeQL only today) |
+| **Modules layout** | Migration **complete** — see [§9](#9-code-organization) |
+
+---
+
+## 3. Design Principles
+
+### 3.1 C#-Idiomatic API
 
 Inspired by NumPy semantics but shaped for C# conventions: explicit types, properties, operator overloads, extension methods, and `IDisposable` patterns.
 
-### 2.2 Specialized Types
+### 3.2 Specialized Types
 
 - **Specialized types** where they add value: `Vector` (fp32), `VectorInt` (int32), `Vector3`, `Mask`, etc.
 - **`VectorBase<T>`** provides shared GPU/cache infrastructure; there is **no** public generic `Vector<T>` fallback — add a new specialized type when a new element type is needed.
 
-### 2.3 GPU-First / CPU-Explicit Pattern
+### 3.3 GPU-First / CPU-Explicit Pattern
 
 Most high-throughput paths (operators, `OP`/`IPOP`, broadcast, mask ops) use **GPU kernels** directly. CPU paths exist where explicitly documented (e.g. `Abs()`, `Sum()`, small-array statistics).
 
@@ -102,7 +225,7 @@ Most high-throughput paths (operators, `OP`/`IPOP`, broadcast, mask ops) use **G
 
 Examples: `Abs()` (CPU) vs `AbsX()` (GPU); `Sum()` (CPU) vs GPU `OP` for large element-wise work.
 
-### 2.4 Scope-Only GPU Pinning (IMPLEMENTED)
+### 3.4 Scope-Only GPU Pinning (IMPLEMENTED)
 
 `LiveCount` is managed by `GpuScope.Begin()`. Individual operations use scopes internally; callers wrapping custom kernels should use:
 
@@ -116,11 +239,11 @@ using (GpuScope.Begin(modified: output, readOnly: inputA, inputB))
 
 CPU edits: `CpuScope.Begin<T>(ICacheable<T>, bool syncToGpu)` or `.CpuScope()` / `.CpuScopeAndSync()`. Scope on `ICacheable`; `RetrieveReadOnlySpan` / explicit `EditCpu` on `ICacheable<T>`. See [MigrationGuide.md](MigrationGuide.md).
 
-### 2.5 Pluggable Memory Management
+### 3.5 Pluggable Memory Management
 
 `IMemoryManager` interface allows alternative strategies. Default: LRU auto-cache with configurable memory cap (80% of device memory).
 
-### 2.6 Extension-Method Organization (IMPLEMENTED)
+### 3.6 Extension-Method Organization (IMPLEMENTED)
 
 Data types stay thin (`Vector.cs`, `Vector3.cs` — constructors, operators, copy/equals, conversions, indexers). Operations live in `Modules/` as **namespace feature gates**: import only the modules you need and the corresponding extensions appear on `Vector`, `Vector3`, and primitive arrays.
 
@@ -153,11 +276,11 @@ vec.Sum();         // ndarray-style instance extension
 
 `VectorBase<T>.Gpu` is `internal` to enable module access without public exposure.
 
-### 2.7 Source-Only Distribution
+### 3.7 Source-Only Distribution
 
 Consumers reference the BAVCL project directly. No NuGet packaging planned YET.
 
-### 2.8 Unchecked arithmetic (policy)
+### 3.8 Unchecked arithmetic (policy)
 
 **All BAVCL numeric code is unchecked.** Integer and floating-point operations use the storage type end-to-end — there is no silent widening of accumulators (e.g. no `int` → `long` in sum/dot kernels or CPU SIMD paths). Overflow, underflow, and modular wrap are the caller's responsibility, same as NumPy's default integer reductions.
 
@@ -170,7 +293,7 @@ Consumers reference the BAVCL project directly. No NuGet packaging planned YET.
 
 Invalid fixed ranges (e.g. percentile outside [0, 100]) throw `FixedRangeException`. Division by zero length (`Mean` on empty) throws `DivideByZeroException`. Empty sequences for `Min`/`Max` on integers throw `InvalidOperationException`.
 
-### 2.9 Numerical accuracy
+### 3.9 Numerical accuracy
 
 **Target:** `float32` results within **6 decimal places** on well-behaved inputs. Future `fp64` types will target proportionally tighter bounds.
 
@@ -205,10 +328,9 @@ Implementation: `Source/Core/Helpers/Numerics/`. Accuracy report: `dotnet run -c
 CPU and GPU `*X` APIs are parity-tested to these bounds. See [MigrationGuide.md § Numerical accuracy](./MigrationGuide.md#numerical-accuracy-float32).
 
 ---
+## 4. Architecture Overview
 
-## 3. Architecture Overview
-
-### 3.1 High-Level Component Diagram
+### 4.1 High-Level Component Diagram
 
 ```mermaid
 flowchart TD
@@ -280,7 +402,7 @@ flowchart TD
 
 **Layout (repo):** types in `Source/Types/`; operations in `Source/Modules/*`; GPU core in `Source/Core/GPU/` and `Source/Core/Memory/`; kernels under `Source/Core/GPU/Kernels/{Arithmetic,Structural,Geometry,Mask}/` (each domain has a `.Float32.cs` file and, where implemented, an `.Int32.cs` counterpart).
 
-### 3.2 Type Hierarchy
+### 4.2 Type Hierarchy
 
 ```mermaid
 classDiagram
@@ -365,7 +487,7 @@ Operations (`Sum`, `Mean`, `Min`, `Max`, etc.) live in **`Modules/`** — not on
 
 It is **not** a "CPU mirror" — `CacheableBase` owns memory; `VectorBase` owns vector semantics shared by all vector kinds.
 
-### 3.3 GPU Lifecycle
+### 4.3 GPU Lifecycle
 
 ```mermaid
 sequenceDiagram
@@ -395,7 +517,7 @@ sequenceDiagram
     LRU->>LRU: Dispose buffer
 ```
 
-### 3.4 GpuScope Flow
+### 4.4 GpuScope Flow
 
 `GpuScope` (`Source/Core/Memory/Scopes/GpuScope.cs`) returns a `GpuPinScope` that pins `ICacheable` instances for the duration of a `using` block. Library GPU operations call `GpuScope.Begin` internally; custom kernels should do the same. **Prefer** `GpuScope.Begin(modified, readOnly…)` when all buffers exist — avoid stacking separate `BeginReadOnly` + `Begin(modified)` for the same launch.
 
@@ -424,7 +546,7 @@ flowchart TD
 
 Nested scopes are supported via `Interlocked` refcount on `LiveCount`. Pair with `CpuScope` / `.CpuScope()` for host-side edits (`Source/Core/Memory/Scopes/CpuScope.cs`).
 
-### 3.5 Kernel Module Registration (IMPLEMENTED)
+### 4.5 Kernel Module Registration (IMPLEMENTED)
 
 ```mermaid
 flowchart TD
@@ -446,11 +568,11 @@ flowchart TD
 
 GPU creation and kernel loading are **separate steps**. Each `GPU` instance is configured independently via `KernelModuleLoader.Load<T>(gpu, domains)`. There is no implicit domain — if no modules are loaded, kernel delegates throw `KernelNotCompiledException`.
 
-Registered fp32 domains today: **Arithmetic**, **Structural**, **Geometry**, **Mask** (`Source/Core/GPU/KernelModules/KernelModuleLoader.cs`).
+Registered domains in `KernelModuleLoader` today: **Arithmetic**, **Structural**, **Geometry**, **Mask**, **Sorting**, and **Statistics** (for `float` and/or `int` per pair). **LinearAlgebra** and **Astrophysics** are enum placeholders only.
 
-`GPUManager.Default` convenience: creates a GPU with LRU memory manager and loads `KernelWorkloads.Default` (fp32 Arithmetic + Structural + **Mask**). `KernelWorkloads.Geometry` adds Geometry on top of Default.
+`GPUManager.Default` loads `KernelWorkloads.Default` (Arithmetic + Structural + Mask). **Sorting** and **Statistics** are opt-in via `KernelWorkloads.Sorting` and `KernelWorkloads.Statistics`. `KernelWorkloads.Geometry` adds Geometry on top of Default.
 
-### 3.6 Multi-GPU Data Flow (Target - WIP)
+### 4.6 Multi-GPU Data Flow (Target - WIP)
 
 **Current:** `GPUManager.Default` is a single lazy GPU; `GetGPU()` can create additional instances, but cross-device transfer is not implemented.
 
@@ -472,12 +594,11 @@ flowchart LR
 ```
 
 ---
+## 5. Current Functionality (v0)
 
-## 4. Current Functionality (v0)
+This section documents **what exists in code today**. See [Section 17](#17-code-vs-vision-gaps) for open gaps and reconciliation status.
 
-This section documents **what exists in code today**. See [Section 19](#19-code-vs-vision-gaps) for open gaps and reconciliation status.
-
-### 4.1 Entry Points
+### 5.1 Entry Points
 
 | Entry                       | Location                            | Role                                        |
 | --------------------------- | ----------------------------------- | ------------------------------------------- |
@@ -486,15 +607,15 @@ This section documents **what exists in code today**. See [Section 19](#19-code-
 | `GPUManager.GetGPU<TMem>()` | same                                | GPU with custom `IMemoryManager`          |
 | `KernelModuleLoader.Load<T>()` | `Source/Core/GPU/KernelModules/`  | Compile selected domains for element type `T` onto a GPU |
 | `KernelModuleLoader.LoadAll<T>()` | same                          | Compile every registered domain for `T`   |
-| `KernelWorkloads.Default` / `.Geometry` | same                    | Named domain bundles (`Default` = Arithmetic + Structural + Mask) |
+| `KernelWorkloads.Default` / `.Geometry` / `.Sorting` / `.Statistics` | same | Named domain bundles — see [§7.4](#74-workloads) |
 
-### 4.2 Vector (float32)
+### 5.2 Vector (float32)
 
 **Type:** `BAVCL.Vector` — `sealed partial class : VectorBase<float>`
 **Type file:** `Source/Types/Vector.cs` (constructors, operators, mask/compare surface, copy/equals, conversions, indexers)
-**Operations:** extension modules — Arithmetic, Statistics, Structural, Generators, GpuOps, Masking (see §2.6)
+**Operations:** extension modules — Arithmetic, Statistics, Structural, Generators, GpuOps, Masking (see §3.6)
 
-#### 4.2.1 Construction and Properties
+#### 5.2.1 Construction and Properties
 
 | Method / Property                             | Description                                |
 | --------------------------------------------- | ------------------------------------------ |
@@ -506,7 +627,7 @@ This section documents **what exists in code today**. See [Section 19](#19-code-
 | `Flatten()`                                   | Set `Columns = 0` (1D row storage)         |
 | `ToVector3()`                                 | Convert when length % 3 == 0               |
 
-#### 4.2.2 Statistical Properties
+#### 5.2.2 Statistical Properties
 
 Implemented in `BAVCL.Modules.Statistics` (`StatisticsModule`, `VectorStatistics`). Arithmetic `Sum()` / `SumX()` live in `BAVCL.Modules.Arithmetic`.
 
@@ -535,7 +656,7 @@ Implemented in `BAVCL.Modules.Statistics` (`StatisticsModule`, `VectorStatistics
 
 Load Statistics: `KernelModuleLoader.Load<float>(gpu, KernelWorkloads.Statistics)` and `KernelModuleLoader.Load<int>(gpu, KernelWorkloads.Statistics)`.
 
-#### 4.2.3 Factory Methods
+#### 5.2.3 Factory Methods
 
 Implemented in `BAVCL.Modules.Structural` (`VectorStructural`) and `BAVCL.Modules.Generators` (`GeneratorsModule`).
 
@@ -548,7 +669,7 @@ Implemented in `BAVCL.Modules.Structural` (`VectorStructural`) and `BAVCL.Module
 | `Linspace(gpu, start, end, steps, columns)`  | Evenly spaced values |
 | `GeneratorsModule.Arange(...)` / `Linspace(...)` static | Return `float[]` only |
 
-#### 4.2.4 Element-wise and Unary Operations
+#### 5.2.4 Element-wise and Unary Operations
 
 | Operation  | CPU               | GPU | In-place (CPU) | In-place (GPU) |
 | ---------- | ----------------- | --- | -------------- | -------------- |
@@ -561,7 +682,7 @@ Implemented in `BAVCL.Modules.Structural` (`VectorStructural`) and `BAVCL.Module
 | Normalise  | —                 | `NormaliseX` | — | `NormaliseXIP` |
 | Log        | —                 | `LogX` (`GpuOpsModule`) | — | `LogXIP` |
 
-#### 4.2.5 Binary Operations and Operators
+#### 5.2.5 Binary Operations and Operators
 
 **Migration:** See [`MigrationGuide.md`](MigrationGuide.md) for naming (`_IP` → `IP`, GPU `X` alignment) and breaking changes to `Columns`, `OP`/`IPOP`, `ReduceOPX`, and `Matrix*X`.
 
@@ -602,9 +723,9 @@ Binary `+`, `-`, `*`, `/`, `^` operator overloads use **NumPy-style element-wise
 
 **Note:** `Vector3.CrossX` is a separate optimised 3D geometric kernel — not related to `Vector.CrossX` (matrix multiply).
 
-**Note:** Unary `+` operator currently calls `AbsX` (likely unintentional — see §19 #21).
+**Note:** Unary `+` operator currently calls `AbsX` (likely unintentional — see §17 #21).
 
-#### 4.2.5a Mask and comparison operators (on `Vector`)
+#### 5.2.5a Mask and comparison operators (on `Vector`)
 
 Defined on `Source/Types/Vector.cs`; GPU kernels in `BAVCL.Modules.Masking`. See [§6.5](#65-vector-comparisons--mask-gpu) for full semantics.
 
@@ -613,7 +734,7 @@ Defined on `Source/Types/Vector.cs`; GPU kernels in `BAVCL.Modules.Masking`. See
 | Compare → `Mask` | `CompareEqualsX`, `CompareNotEqualsX`, `CompareX`, `>`, `<`, `>=`, `<=` |
 | Filter / select | `vector & mask` → `MaskX`, `vector \| mask` → `FilterX`, `vector / mask` → `PartitionX`, `vector[mask]` → `FilterX` |
 
-#### 4.2.6 Structural Operations
+#### 5.2.6 Structural Operations
 
 | Method                                   | Description                                 |
 | ---------------------------------------- | ------------------------------------------- |
@@ -630,7 +751,7 @@ Defined on `Source/Types/Vector.cs`; GPU kernels in `BAVCL.Modules.Masking`. See
 | `TransferBuffer`                         | Copy GPU buffer reference to another vector |
 | `All()`                                  | True if no zero values                      |
 
-#### 4.2.7 Output
+#### 5.2.7 Output
 
 | Method                          | Description      |
 | ------------------------------- | ---------------- |
@@ -638,7 +759,7 @@ Defined on `Source/Types/Vector.cs`; GPU kernels in `BAVCL.Modules.Masking`. See
 | `ToStr(decimalplaces, syncCPU)` | Formatted string |
 | `ToCSV()` (via `VectorBase`)    | CSV string       |
 
-#### 4.2.8 Sorting (`BAVCL.Modules.Sorting`) — `Vector` and `VectorInt`
+#### 5.2.8 Sorting (`BAVCL.Modules.Sorting`) — `Vector` and `VectorInt`
 
 **Naming convention** (library-wide standard — see [Features.md](Features.md)):
 
@@ -666,16 +787,16 @@ Notes:
 - GPU `SortX` / `SortXIP` / `ArgsortX` / `ArgsortXIP` require the **Sorting** kernel domain on the target `GPU` before use. Load via `KernelModuleLoader.Load<float>(gpu, KernelWorkloads.Sorting)` and `KernelModuleLoader.Load<int>(gpu, KernelWorkloads.Sorting)` (or `KernelDomain.Sorting` directly). Unloaded delegates throw `KernelNotCompiledException` — same contract as other GPU modules (§7).
 - GPU float sort/argsort maps floats to sortable `int` keys (`floatToSortableIntKern` / `sortableIntToFloatKern`), then reuses the int radix path.
 
-### 4.3 Vector3 (GPU 3D)
+### 5.3 Vector3 (GPU 3D)
 
 **Type:** `BAVCL.Geometric.Vector3` — `sealed partial class : VectorBase<float>`, `Columns` fixed at 3
 **Type file:** `Source/Modules/Geometric/Types/Vector3.cs`
-**Operations:** Geometric, GpuOps, Structural, Statistics, Arithmetic modules (see §2.6)
+**Operations:** Geometric, GpuOps, Structural, Statistics, Arithmetic modules (see §3.6)
 
 | Category     | Methods                                                                            |
 | ------------ | ---------------------------------------------------------------------------------- |
 | Construction | `Vector3(gpu, float[])`, `Vector3(gpu, int length)` — length must be multiple of 3 |
-| Conversion   | `ToVector()`, `ToVector(columns)` — uses `Pull()` today (buffer reuse TBD — §19 #22) |
+| Conversion   | `ToVector()`, `ToVector(columns)` — uses `Pull()` today (buffer reuse TBD — §17 #22) |
 | Factory      | `VectorStructural.Zeros(gpu, length)`, `Fill(gpu, value, length)`                  |
 | Operators    | `+`, `-`, `*`, `/`, `^` with Vector3 and float (GPU via `GpuOpsModule`)            |
 | Geometry     | `Cross(vecA, vecB)`, `Dot(vecA, vecB)`, `Magnitude()`, `Magnitude(vecA, vecB)`, `Distance(vec)` — `LengthMismatchException` on size mismatch |
@@ -684,9 +805,9 @@ Notes:
 | Concat       | With `Vector3`, `Vertex`, arrays, lists                                            |
 | Access       | `AccessRow(vec, row)`                                                              |
 | Copy         | `Copy()`                                                                           |
-| Stats        | `Mean()`, `Min()`, `Max()`, `Range()` (Statistics); `Sum()` (Arithmetic) — **flat-buffer semantics** (treats storage as `float[]`, not per-Vector3 element); rework TBD (§19 #15) |
+| Stats        | `Mean()`, `Min()`, `Max()`, `Range()` (Statistics); `Sum()` (Arithmetic) — **flat-buffer semantics** (treats storage as `float[]`, not per-Vector3 element); rework TBD (§17 #15) |
 
-### 4.4 Vertex (CPU 3D)
+### 5.4 Vertex (CPU 3D)
 
 **Type:** `BAVCL.Geometric.Vertex` — `struct`, CPU-only, complementary to `Vector3`
 **File:** `Source/Modules/Geometric/Types/Vertex.cs`
@@ -701,13 +822,13 @@ Notes:
 | Component setters   | `SetX`, `SetY`, `SetZ`                                               |
 | Implicit conversion | From`Vector3` (pulls full array)                                     |
 
-### 4.5 GPU Infrastructure
+### 5.5 GPU Infrastructure
 
-#### 4.5.1 GPU Class
+#### 5.5.1 GPU Class
 
 `BAVCL.GPU` — wraps `Accelerator` + `IMemoryManager`. Provides allocation, buffer lookup, GC, kernel delegates, `Dispose()`.
 
-#### 4.5.2 Compiled Kernels
+#### 5.5.2 Compiled Kernels
 
 Kernels are loaded selectively via `KernelModuleLoader` (see §7). Each domain file under `Source/Core/GPU/Kernels/` holds its own `partial GPU` delegate fields, load method, and kernel bodies.
 
@@ -739,7 +860,7 @@ Kernels are loaded selectively via `KernelModuleLoader` (see §7). Each domain f
 
 **Never loaded:** `TestSQRTKernel`, `TestMYSQRTKernel` in `Kernels/Experimental/` — no module provides them, so they throw `KernelNotCompiledException` if called.
 
-#### 4.5.3 Pooled buffer entities (`BufferPool`)
+#### 5.5.3 Pooled buffer entities (`BufferPool`)
 
 `BufferPools.For(gpu)` returns a per-device **`BufferPool`** with **`Int`** and **`Float`** lanes. `pool.Int.Rent(length)` returns a disposable **`BufferEntity<int>`** (float via `pool.Float.Rent`) — a pooled GPU buffer spirit with an LRU ID on an internal slot. Buffers are bucketed by power-of-two capacity, returned to the pool on `Dispose`, and evicted by the LRU only when GPU memory is needed elsewhere.
 
@@ -771,7 +892,7 @@ using (var possession = entity.Possess(vessel))
 
 Sort/argsort uses the kernel path internally.
 
-#### 4.5.4 LRU Memory Manager
+#### 5.5.4 LRU Memory Manager
 
 `BAVCL.Core.LRU` (in `Source/Core/Memory/`) implements `IMemoryManager`:
 
@@ -784,9 +905,9 @@ Sort/argsort uses the kernel path internally.
 - **`GetBuffer`**: lock-free dictionary read
 - **`UpdateBuffer`**: `RetrieveReadOnlySpan()` / CPU sync **outside** `lock(this)`; dictionary lookup, `CopyFromCPU`, and allocation **inside** the lock
 
-**TODOs in code:** dirty-flag to skip unnecessary CPU sync; only sync if data changed.
+**Roadmap:** dirty-flag to skip unnecessary CPU sync when data unchanged — [§2.4](#24-gpu-memory-and-multi-gpu).
 
-### 4.6 IO
+### 5.6 IO
 
 `BAVCL.Modules.IO.IO` — typed persistence with formatter strategies. Every on-disk file is a
 **collection** (one canonical shape per format, used for both a single document and many):
@@ -851,7 +972,7 @@ include the attribute; the default exists for hand-crafted or legacy fragments o
 
 Out of scope for now: mixing different BAVCL types (e.g. `Vector` + `Mask`) in one file, a
 forward-only streaming reader, and streamed/chunked write for very large datasets — all are
-potential future roadmap items (see §13.4).
+potential future roadmap items (see [§2.10](#210-io-and-formats)).
 
 **Read/write matrix (current):**
 
@@ -861,36 +982,36 @@ potential future roadmap items (see §13.4).
 | `VectorInt` | R+W | R+W | R+W | R+W |
 | `Vector3` | R+W | R+W | R+W | R+W |
 | `Mask` (bool) | R+W | R+W | R+W | R+W |
-| `Mask` (packed) | R+W | R+W | R+W | W packed; **R bool grid only** (packed TXT read not yet implemented — §19 #32) |
+| `Mask` (packed) | R+W | R+W | R+W | W packed; **R bool grid only** (packed TXT read not yet implemented — §17 #32) |
 
 Formatters: `JsonFormatter`, `CsvFormatter`, `XmlFormatter`, `TxtFormatter` (singleton `Default` + `Extension`).
 
-### 4.7 Experimental Math
+### 5.7 Experimental Math
 
 `Source/Experimental/TestCls.cs` (~820 lines) — fast approximations for sqrt, cbrt, log2. Referenced from kernel experiments. Multiple commented-out alternate implementations. Not production-tested.
 
-### 4.8 Stubs
+### 5.8 Stubs
 
 | Type              | State                                                                    |
 | ----------------- | ------------------------------------------------------------------------ |
 | `Matrix`          | `Source/Types/Matrix.cs` — constructor throws `NotImplementedException`; only `MatrixLength()` works |
 | `Table`           | `Source/Types/Table.cs` — empty class                                    |
 | `Mask`            | **Implemented** — `Source/Types/Mask.cs`; helpers in `Source/Core/Helpers/MaskBitOps.cs`; GPU module in `Source/Modules/Mask/` (namespace `BAVCL.Modules.Masking`) |
-| `VectorInt`       | **Implemented** — `Source/Types/VectorInt.cs` (see §4.10); full module parity with `Vector` |
+| `VectorInt`       | **Implemented** — `Source/Types/VectorInt.cs` (see §5.10); full module parity with `Vector` |
 
-Plotting prototype removed from repo; see [§14 Plotting](#14-plotting) (roadmap only).
+Plotting prototype removed from repo; see [§2.11](#211-plotting).
 
-### 4.9 Utility
+### 5.9 Utility
 
 `Source/Core/Helpers/Util.cs` (`BAVCL.Core.Util`) — `IsClose()` for float comparison with NaN/Inf handling.
 
-### 4.10 VectorInt (int32)
+### 5.10 VectorInt (int32)
 
 **Type:** `BAVCL.VectorInt` — `sealed partial class : VectorBase<int>`
 **Type file:** `Source/Types/VectorInt.cs`
 **Kernels:** `Source/Core/GPU/Kernels/{Arithmetic,Structural,Mask}/*.Int32.cs` (or `MaskKernels.VectorInt.cs`), registered under `KernelDomain.Arithmetic` / `.Structural` / `.Mask` for `typeof(int)`
 
-`VectorInt` mirrors `Vector` across GpuOps, Structural, Masking, Statistics, Generators, and IO — same construction, copy/equals, shape, and module organization (§2.6), with `int` in place of `float` throughout. Callers must call `KernelModuleLoader.Load<int>(gpu, KernelWorkloads.Default)` (or equivalent domains) before using `VectorInt` GPU operators, exactly as `Load<float>` is required for `Vector`.
+`VectorInt` mirrors `Vector` across GpuOps, Structural, Masking, Statistics, Generators, and IO — same construction, copy/equals, shape, and module organization (§3.6), with `int` in place of `float` throughout. Callers must call `KernelModuleLoader.Load<int>(gpu, KernelWorkloads.Default)` (or equivalent domains) before using `VectorInt` GPU operators, exactly as `Load<float>` is required for `Vector`.
 
 #### Unchecked GPU arithmetic
 
@@ -932,32 +1053,6 @@ Extension methods: `Mask()`, `Filter()`, `Partition()` in `BAVCL.Modules.Masking
 **`Operations` enum additions for int:** `bitwiseXor`, `bitwiseAnd`, `flipModulo` (see `Source/Core/Enums/Operations.cs`).
 
 ---
-
-## 5. Type System Roadmap
-
-### 5.1 Priority Order
-
-Broadening beyond fp32 is a priority. **`Mask` is implemented** (see Section 6). **`VectorInt` (int32) is implemented** (see Section 4.10) with full module parity to `Vector`; resize and CPU aggregates remain roadmap.
-
-1. **float64 / double** — `VectorDouble` or dedicated double type
-2. ~~int32 — `VectorInt`~~ **Implemented** (§4.10)
-3. **int64**
-4. **uint**
-5. **Complex** — ideally `System.Numerics.Complex` as unmanaged struct; may require custom `ComplexFloat` if constraints block it
-
-### 5.2 Specialized Types
-
-```
-USE specialized type per element kind (Vector, VectorInt, Vector3, Mask, …)
-VectorBase<T> provides shared infrastructure — no public Vector<T> generic fallback
-```
-
-### 5.3 Matrix and Table
-
-Nice-to-have, **not** near-term. Vector 2D layout (`Columns > 1`) covers current matrix-like needs.
-
----
-
 ## 6. Mask Specification
 
 ### 6.1 Storage
@@ -1060,6 +1155,8 @@ Authoring rules and design principles: **[GPGPUKernelGuide.md](./GPGPUKernelGuid
 
 ### 6.7 Resize (planned future)
 
+*Roadmap overview: [§2.3](#23-mask).*
+
 **Current implementation:** logical size is fixed after construction. `ElementCount` is stored in a `readonly` field set only in constructors; inherited `CacheableBase.Length` is the packed **storage word count** (not boolean element count).
 
 **Planned:** resize support analogous to array resize — logical length is not fixed forever, but changes only through explicit resize/replace operations (not silent mutation of `Length` on the base type).
@@ -1091,6 +1188,8 @@ Logical element count **cannot** be derived from word count alone (e.g. 97 and 1
 
 ### 6.8 Mask aggregates (roadmap — CPU SIMD)
 
+*Roadmap overview: [§2.3](#23-mask).*
+
 Planned CPU-side helpers (not GPU kernels in v1):
 
 - `mask.CountTrue()` — popcount over logical bits (padding excluded)
@@ -1100,7 +1199,6 @@ Planned CPU-side helpers (not GPU kernels in v1):
 Implementation target: `System.Numerics.Vector<int>` / packed word scan via `RetrieveReadOnlySpan`.
 
 ---
-
 ## 7. Kernel Module System
 
 **Agent / implementer reference:** principles P1–P6 below (full elaboration in `.agents/skills/bavcl-gpgpu/`). Legacy standalone [GPGPUKernelGuide.md](./GPGPUKernelGuide.md) is a pointer to this section.
@@ -1168,7 +1266,7 @@ GPU gpu = GPUManager.Default;
 | `KernelWorkloads.Default`  | Arithmetic, Structural, **Mask**  | Standard numerics + mask kernels                    |
 | `KernelWorkloads.Geometry` | Default + Geometry                | Vector3 GPU ops (cross, magnitude/distance)         |
 | `KernelWorkloads.Sorting`  | Sorting                           | GPU sort/argsort (`SortX`, `SortXIP`, `ArgsortX`, `ArgsortXIP`) |
-| `KernelWorkloads.Statistics` | Statistics                      | GPU global reduce (`SumX`, `MinX`, `MaxX`, `MeanX`, `VarX`, `StdX`, `AllX`, `DotX` reduce leg) |
+| `KernelWorkloads.Statistics` | Statistics                      | GPU global reduce (`SumX`, `MinX`, `MaxX`, `MeanX`, `VarX`, `StdX`, `SampleVarX`, `SampleStdX`, `AllX`, `DotX` reduce leg) |
 
 For full parity with the old load-all behaviour, use `LoadAll<T>`.
 
@@ -1183,7 +1281,8 @@ For full parity with the old load-all behaviour, use `LoadAll<T>`.
 | Structural (int32) | appendInt, getSliceInt, reverseInt, transposeInt                  | Implemented |
 | Arithmetic (int32) | absInt, negateInt, diffInt, matmulInt, a/s opInt, broadcastInt, reduceRowInt, floatToInt, intToFloat | Implemented |
 | Mask (int32 vectors) | vectorIntCompareMask, vectorIntScalarCompareMask, vectorIntMaskFilter, vectorIntGather | Implemented |
-| Statistics    | `LoadStatisticsFloatKernels` / `LoadStatisticsIntKernels` (ILGPU reduce compile) | **Yes** — global reduce `*X` |
+| Statistics (fp32/int32) | ILGPU reduce compile (`SumX`, `VarX`, `SampleVarX`, `MinX`, `MaxX`, `MeanX`, `AllX`, `DotX`, …) | Implemented |
+| Sorting (fp32/int32) | GPU sort/argsort (`SortX`, `SortXIP`, `ArgsortX`, `ArgsortXIP`) | Implemented |
 | LinearAlgebra | — (`matmul` in Arithmetic for now)                                    | Not yet  |
 | Astrophysics  | —                                                                       | Not yet  |
 
@@ -1220,7 +1319,6 @@ Source/Core/GPU/
 Per-device load state (which `(domain, type)` pairs are compiled) lives on `GPU` itself.
 
 ---
-
 ## 8. GPU and Memory
 
 ### 8.1 Device Selection
@@ -1245,19 +1343,9 @@ Alternative implementations can replace LRU without changing vector types.
 
 `BAVCL/Core/Memory/Scopes/GpuScope.cs` — `GpuScope.Begin(modified, readOnly)` on `ICacheable`. Modified vectors get `ActiveGpu`; read-only vectors bump `LiveCount` only. Nested pins supported for late output allocation. Residence transitions use `ResidenceScopeHelper` (CAS with re-read/reconcile; no force writes).
 
-### 8.5 Actual GPU Memory Tracking (Exploration) - Planned future
+### 8.5 Actual GPU Memory Tracking (Exploration)
 
-**Goal:** Query or track real GPU memory consumption instead of relying solely on `sizeof(T) × length` estimates.
-
-Benefits:
-
-- More accurate `MemoryUsed` reporting
-- Faster allocation decisions (less estimation overhead in `GC()`)
-- Better eviction timing
-
-`IMemoryManager.PrintMemoryUsage` TODO: Bytes/KB/GB display formats.
-
-Feasibility depends on ILGPU and device APIs — document as investigation item.
+Planned — see [§2.4](#24-gpu-memory-and-multi-gpu).
 
 ### 8.6 Residence Flags and Coherence (IMPLEMENTED)
 
@@ -1274,18 +1362,14 @@ Feasibility depends on ILGPU and device APIs — document as investigation item.
 
 **Write API:** `CpuScope` + `EditableView<T>` or `SetAt` (opens `CpuScope` internally; not for tight loops). `IndexingMode` removed — use scoping instead.
 
-**Shape caching (future):** Cache a `Shape` field on `VectorBase`, invalidated when `Length` or `Columns` change. Marginal benefit today (`Shape()` is cheap); revisit if called in hot loops.
+**Shape caching:** low-priority optional optimization — [§2.4](#24-gpu-memory-and-multi-gpu).
 
 ### 8.7 Multi-GPU (Target)
 
-- `GPUManager.Default` for primary device
-- API to enumerate and create additional `GPU` instances
-- Cross-device data transfer when operands reside on different GPUs
-- Automatic workload distribution: **deferred**
+See [§2.4](#24-gpu-memory-and-multi-gpu) and [§4.6](#46-multi-gpu-data-flow-target---wip).
 
 ---
-
-## 9. Code Organization Roadmap
+## 9. Code Organization
 
 ### 9.1 Previous State (pre-refactor)
 
@@ -1340,10 +1424,9 @@ The former `BAVCL/Extensions/` folder has been merged into `Modules/`. Global us
 
 ### 9.4 .NET 11 Discriminated Unions
 
-Evaluate C# DUs (expected .NET 11) to reduce per-type operation boilerplate. Until then, multi-type methods live in shared operation files.
+See [§2.13](#213-platform-tooling-and-code-organization). Until then, multi-type methods live in shared operation files.
 
 ---
-
 ## 10. CPU Execution Path
 
 ### 10.1 Contract
@@ -1359,10 +1442,9 @@ Evaluate C# DUs (expected .NET 11) to reduce per-type operation boilerplate. Unt
 
 ### 10.3 Operator Overloads (Target)
 
-Default operators should use CPU paths. GPU variants via `X` suffix or explicit `OPX` methods. **Current code diverges:** all operators route through GPU kernels.
+See [§2.7](#27-cpu-execution). **Current code diverges:** all operators route through GPU kernels.
 
 ---
-
 ## 11. Geometry Module
 
 ### 11.1 Vector3 — Permanent Specialized Type
@@ -1371,7 +1453,7 @@ GPU-backed 3D vectors. Length always multiple of 3. `Columns` locked to 3.
 
 Long-term: stays as permanent specialized type (not replaced by generic `Vector<T>`).
 
-**Stats rework:** `Mean()`, `Range()`, `Sum()` on Vector3 need rework or removal — not meaningful as flat-array statistics.
+**Stats rework:** flat-buffer stats need rework or removal — [§2.8](#28-geometry).
 
 ### 11.2 Vertex — Complementary CPU Type
 
@@ -1379,10 +1461,9 @@ CPU-side `struct` for rendering and ray-tracing helpers: reflect, refract, tone 
 
 ### 11.3 Vector3 ↔ Vector Conversion
 
-Target: reuse GPU buffer ID on conversion instead of `Pull()` + reallocate. TODO in `Vector3.cs`.
+Target: reuse GPU buffer ID on conversion instead of `Pull()` + reallocate — [§2.8](#28-geometry).
 
 ---
-
 ## 12. Astrophysics Module
 
 ### 12.1 Scope
@@ -1399,10 +1480,9 @@ Specific integral definitions, cosmological parameters, and model variants belon
 
 ### 12.4 FITS I/O
 
-Deferred until core IO formats are polished. FITS is a later priority for astrophysics data interchange.
+Deferred — [§2.9](#29-astrophysics-and-fits) and [§2.10](#210-io-and-formats).
 
 ---
-
 ## 13. IO Module
 
 ### 13.1 v1 Priority — Polish Existing + Structured Formats
@@ -1410,7 +1490,7 @@ Deferred until core IO formats are polished. FITS is a later priority for astrop
 | Format | Status | Notes |
 | ------ | ------ | ----- |
 | CSV | **R+W** — `Vector`, `VectorInt`, `Vector3`, `Mask` (multi-document collections) | `CsvFormatter`; line endings use `Environment.NewLine` |
-| TXT | **R+W** — `Vector`, `VectorInt`, `Vector3`, `Mask` (bool); packed mask **write** only | `TxtFormatter`; packed TXT read gap — §19 #32 |
+| TXT | **R+W** — `Vector`, `VectorInt`, `Vector3`, `Mask` (bool); packed mask **write** only | `TxtFormatter`; packed TXT read gap — §17 #32 |
 | JSON | **R+W** — `Vector`, `VectorInt`, `Vector3`, `Mask` | `JsonFormatter` |
 | XML | **R+W** — `Vector`, `VectorInt`, `Vector3`, `Mask` | `XmlFormatter` |
 | YAML | Not implemented | Human-readable config + data |
@@ -1419,43 +1499,24 @@ Formatters: `JsonFormatter`, `CsvFormatter`, `XmlFormatter`, `TxtFormatter`. Lat
 
 ### 13.2 Later Formats
 
-- FITS (astrophysics)
-- NPY (NumPy binary)
-- HDF5 (large scientific datasets)
+See [§2.10](#210-io-and-formats).
 
 ### 13.3 Design Goals
 
 IO persists computed results via generic `FileSession<T, TFormatter>` writers/readers. **JSON and XML** are structured interchange formats for `Vector`, `VectorInt`, `Vector3`, and `Mask` (packed default + bool interop). `IIO` remains a display/CSV helper contract, not the persistence surface.
 
-### 13.4 Roadmap
+### 13.4 Future IO capabilities
 
-- **Streamed/chunked write for very large datasets** — avoid building the full serialized
-  string/XML tree/JSON document in memory; write collection envelopes and per-item fragments
-  incrementally to disk (complements today's `Append`/`Flush` session model).
-- Mixed BAVCL types in one file (e.g. `Vector` + `Vector3` + `Mask`).
-- Forward-only streaming reader (`ReadNext`).
+See [§2.10](#210-io-and-formats).
 
 ---
+## 14. Experimental Math
 
-## 14. Plotting
+### 14.1 Status
 
-### 14.1 Current State
+Stays in `Source/Experimental/`. Opt-in — consumers import explicitly.
 
-No in-repo plotting prototype. Prior `Plotter.cs` (Windows / `System.Drawing`) was removed.
-
-### 14.2 Target
-
-Cross-platform plotting for debugging and visualization. **Low priority.** Replace `System.Drawing` with a portable library when undertaken.
-
----
-
-## 15. Experimental Math
-
-### 15.1 Status
-
-Stays in `BAVCL/Experimental/`. Opt-in — consumers import explicitly.
-
-### 15.2 Target State
+### 14.2 Target State
 
 - Trim to **one best implementation** per function (sqrt, cbrt, log)
 - Remove hundreds of lines of commented alternatives
@@ -1463,45 +1524,43 @@ Stays in `BAVCL/Experimental/`. Opt-in — consumers import explicitly.
 - Not promoted to production kernels unless explicitly chosen
 
 ---
+## 15. Testing and Quality
 
-## 16. Testing and Quality
+### 15.1 Test Repository
 
-### 16.1 Test Repository
-
-**Canonical home:** `C:\Users\marce\Repos\BAVCL.Tests` (sibling repo, separate solution).
+**Canonical home:** sibling [BAVCL.Tests](https://github.com/MPSQUARK/BAVCL.Tests) repository (separate solution).
 
 | Aspect           | Current                          | Target                             |
 | ---------------- | -------------------------------- | ---------------------------------- |
 | Framework        | xUnit                            | xUnit                              |
-| Benchmarks       | BenchmarkDotNet in same project  | Keep BenchmarkDotNet               |
-| Target framework | net10.0 (library); tests may lag | **net10.0** aligned everywhere     |
+| Benchmarks       | BenchmarkDotNet in `BAVCL.Benchmarks` | Keep BenchmarkDotNet            |
+| Target framework | **net10.0** (library, tests, benchmarks) | Stay on current .NET LTS line |
 | Project type     | Test + benchmark in sibling repo | Separate test + benchmark concerns |
-| Coverage         | Extensive GPU/CPU suites (Vector, Mask, IO, …) | CI gate on `dotnet test` |
+| Coverage         | Extensive GPU/CPU suites (Vector, Mask, IO, Statistics, Sorting, …) | CI gate on `dotnet test` |
 
-### 16.2 Test Strategy
+### 15.2 Test Strategy
 
 1. **xUnit correctness** — every operation validated against CPU reference or known values
 2. **GPU vs CPU parity** — `AbsX()` results match `Abs()` within tolerance
 3. **BenchmarkDotNet regression** — performance tracked over time
 4. **Experimental math** — accuracy bounds tested
 
-### 16.3 Test Suites (BAVCL.Tests)
+### 15.3 Test Suites (BAVCL.Tests)
 
 Includes Vector broadcast, matrix ops, Mask, IO, GpuScope, and related suites. See sibling repo for current file list.
 
-### 16.4 CI (Target)
+### 15.4 CI (Target)
 
 Current: CodeQL security scan only. Target: build + `dotnet test` + benchmark regression gate.
 
-### 16.5 Library Repo Tests Folder
+### 15.5 Library Repo Tests Folder
 
 No test project in the library solution — all authoritative tests live in **BAVCL.Tests** (sibling repo).
 
 ---
+## 16. Platform Support
 
-## 17. Platform Support
-
-### 17.1 Targets
+### 16.1 Targets
 
 Fully cross-platform via ILGPU:
 
@@ -1513,94 +1572,53 @@ Fully cross-platform via ILGPU:
 
 ILGPU supports GPUs roughly GTX 750 era and newer. BAVCL should match ILGPU's device support.
 
-### 17.2 .NET Version
+### 16.2 .NET Version
 
-- **Now:** .NET 10
-- **Evaluate:** .NET 11 discriminated unions for operation boilerplate reduction
-
-### 17.3 Known Config Issues
-
-VS Code `launch.json` references `net6.0` but projects target `net10.0` — stale config to fix separately.
+- **Current:** .NET 10 (`net10.0`) — library, BAVCL.Tests, and BAVCL.Benchmarks
+- **Evaluate:** .NET 11 discriminated unions — [§2.13](#213-platform-tooling-and-code-organization)
 
 ---
-
-## 18. Deferred / Nice-to-Have
-
-| Item                        | Notes                             |
-| --------------------------- | --------------------------------- |
-| Matrix type                 | Full linear algebra — deferred    |
-| Table / dataframe           | Columnar named data — deferred    |
-| Multi-GPU auto-distribution | Manual device selection first     |
-| Public NuGet                | Not planned                       |
-| README                      | To be created after spec approval |
-
-### 18.1 ILGPU algorithm batches (roadmap)
-
-| Batch | Status | APIs |
-|-------|--------|------|
-| **1 Global reduce** | **Implemented** | `SumX`, `DotX`, `MinX`, `MaxX`, `MeanX`, `VarX`, `StdX`, `AllX`, `RangeX`, `MinMaxX`, `ReduceOPX` |
-| **2 Prefix scan** | Planned | `CumSumX`, `CumSumExclusiveX` |
-| **3 Histogram** | Planned | GPU histogram / binning |
-| **4 Segmented sort** | Partial | 2D row sort via `SortAscX` on matrices |
-
-Crossover benchmarks and measured `N` thresholds: `BAVCL.Benchmarks` (`ReduceBenchmark`, `MeanVarBenchmark`, `AllXBenchmark`).
-
-**`AllX` grouped scan vs legacy mask materialization** (`AllXBenchmark`, InProcess, RTX-class GPU, 2026-09-04):
-
-| N | Type | Grouped scan | Legacy mask | Speedup | Alloc ratio |
-|---|------|-------------|-------------|---------|-------------|
-| 10⁴ | float | 30.5 µs | 92.6 µs | ~3.0× | ~8.5× less |
-| 10⁴ | int | 124 µs | 169 µs | ~1.4× | ~11× less |
-| 10⁶ | float | 118 µs | 372 µs | ~3.2× | ~15× less |
-| 10⁶ | int | 58.5 µs | 432 µs | ~7.4× | ~15× less |
-
-Grouped non-zero scan is faster at all measured sizes and avoids allocating a full `Mask` buffer.
-
----
-
-## 19. Code vs Vision Gaps
+## 17. Code vs Vision Gaps
 
 Living reconciliation log. Rows are **open** until manually closed. When code and spec diverge, pick one: update spec, change code, or document intentional gap.
 
 | #   | Area                 | Status | Current code / gap | Target / notes | Key files |
 | --- | -------------------- | ------ | ------------------ | -------------- | --------- |
 | 1   | Type breadth         | **Open** | fp32 `Vector`, `Vector3`, **`Mask`**, **`VectorInt`** implemented | fp64, int64, uint, Complex | `Source/Types/` |
-| 3   | GPU-first API        | **Aligned** | Operators / `OP` use GPU kernels; explicit CPU methods where documented | Documented in §2.3 | `Source/Types/Vector.cs`, modules |
+| 3   | GPU-first API        | **Aligned** | Operators / `OP` use GPU kernels; explicit CPU methods where documented | Documented in §3.3 | `Source/Types/Vector.cs`, modules |
 | 6   | Kernel loading       | **Aligned** | Selective `KernelModuleLoader.Load<T>` | Per-domain modules | `Source/Core/GPU/KernelModules/` |
 | 7   | Multi-GPU            | **Open** | `GPUManager.Default` only | Create/enumerate GPUs; cross-device transfer | `GPUManager.cs` |
-| 8   | Mask                 | **Open** | GPU ops + type implemented; resize not yet | §6.7 resize; §6.8 CPU aggregates | `Source/Types/Mask.cs`, `Source/Modules/Mask/` |
+| 8   | Mask                 | **Open** | GPU ops + type implemented; resize not yet | [§2.3](#23-mask); §6.7 resize; §6.8 CPU aggregates | `Source/Types/Mask.cs`, `Source/Modules/Mask/` |
 | 9   | Matrix/Table         | **Open** | Stubs throw or empty | Deferred | `Source/Types/Matrix.cs`, `Table.cs` |
 | 10  | Astrophysics         | **Open** | Not in library repo | FALCON integrals (§12) | — |
 | 11  | IO formats           | **Open** | CSV/TXT/JSON/XML for Vector/VectorInt/Vector3/Mask | YAML; FITS/NPY/HDF5 later | `Source/Modules/IO/` |
-| 12  | Plotting             | **Aligned** | Removed from repo | Cross-platform plotting roadmap (§14) | — |
+| 12  | Plotting             | **Aligned** | Removed from repo | Cross-platform plotting roadmap ([§2.11](#211-plotting)) | — |
 | 13  | Experimental         | **Open** | Bloated, untested | One impl each, xUnit tested | `Source/Experimental/TestCls.cs` |
-| 14  | Tests                | **Open** | BAVCL.Tests extensive xUnit suites | net10.0 alignment; CI gate | `BAVCL.Tests/` |
+| 14  | Tests                | **Open** | BAVCL.Tests extensive xUnit suites on net10.0 | CI gate on `dotnet test` | `BAVCL.Tests/` |
 | 15  | Vector3 stats        | **Open** | Mean/Min/Max/Range/Sum on flat buffer | Rework for 3D semantics or remove | `Vector3` + Statistics/Arithmetic modules |
 | 18  | Memory accounting    | **Open** | `sizeof(T) × length` estimate | Explore actual GPU memory tracking | `LRU.cs` |
 | 21  | Unary `+` operator   | **Open** | Calls `AbsX` | Identity or documented intent | `Source/Types/Vector.cs` |
 | 22  | Vector3 buffer reuse | **Open** | `Pull()` on conversion | Pass buffer ID between types | `Vector3.cs` |
 | 23  | Vertex + Vector3     | **Open** | Implicit conversion pulls GPU data | Optimise GPU path | `Vertex.cs` |
-| 25  | .NET version         | **Open** | Library net10.0; tests may lag | Align all to net10.0 | `.csproj` |
 | 31  | Mask resize          | **Open** | `ElementCount` fixed (`readonly`) | Resize/replace API (§6.7) | `Source/Types/Mask.cs` |
 | 32  | TXT packed mask read | **Open** | `TxtFormatter` writes packed; reads bool grid only | Packed TXT deserialize (parity with JSON/CSV/XML) | `Source/Modules/IO/TxtFormatter.cs` |
 
 | 33  | ToStr empty vector   | **Open** | No guard on zero-length vectors | Empty-vector guard for all vector types | `VectorBase`, formatters |
 
-**Closed / aligned (removed from active tracking):** LiveCount + GpuScope (#4, #5, #26); memory sync Residence (#17); code organization / Modules migration (#19); print extensions merged into modules (#24); Vector3 error messages (#16); kernel modules + Mask in Default (#27); RsqrtX (#28); Shape type at `Source/Types/Shape.cs` (#29); shape caching on VectorBase not needed post-`BroadcastStrides` (#30); VectorInt int32 parity (#1 partial — `VectorInt` shipped); mask operator rework (`<< mask` removed, `&`/`\|`/` partition semantics). Generic `Vector<T>` fallback not planned (former #2).
+**Closed / aligned (removed from active tracking):** LiveCount + GpuScope (#4, #5, #26); memory sync Residence (#17); code organization / Modules migration (#19); print extensions merged into modules (#24); Vector3 error messages (#16); kernel modules + Mask in Default (#27); RsqrtX (#28); Shape type at `Source/Types/Shape.cs` (#29); shape caching on VectorBase not needed post-`BroadcastStrides` (#30); VectorInt int32 parity (#1 partial — `VectorInt` shipped); mask operator rework (`<< mask` removed, `&`/`\|`/` partition semantics); net10.0 alignment across library and BAVCL.Tests (#25). Generic `Vector<T>` fallback not planned (former #2).
 
 ---
+## 18. Related Projects
 
-## 20. Related Projects
-
-### 20.1 FALCON
+### 18.1 FALCON
 
 Primary consumer. Astrophysics calculations including age-from-redshift integrals (Astropy-equivalent models reverse-engineered in FALCON). BAVCL provides the GPU numerics foundation.
 
-### 20.2 BAVCL.Tests
+### 18.2 BAVCL.Tests
 
-Companion test repository at `C:\Users\marce\Repos\BAVCL.Tests`. Source-only sibling referencing BAVCL project. Canonical location for xUnit tests and BenchmarkDotNet benchmarks.
+Companion test repository at [github.com/MPSQUARK/BAVCL.Tests](https://github.com/MPSQUARK/BAVCL.Tests). Source-only sibling referencing BAVCL project. Canonical location for xUnit tests and BenchmarkDotNet benchmarks.
 
-### 20.3 Testing Console
+### 18.3 Testing Console
 
 `Testing Console/` in the BAVCL solution — manual smoke tests and benchmark entry point. Not a replacement for BAVCL.Tests.
 
@@ -1627,14 +1645,8 @@ Companion test repository at `C:\Users\marce\Repos\BAVCL.Tests`. Source-only sib
 
 ## Appendix C: Open Design Items
 
-| Item                                   | Status                                |
-| -------------------------------------- | ------------------------------------- |
-| Packed-bit mask word layout            | Benchmark-driven                      |
-| `System.Numerics.Complex` as unmanaged | May need custom struct                |
-| FALCON astrophysics formulas           | Scope defined; details in FALCON spec |
-| Actual GPU memory API feasibility      | Investigation                         |
-| .NET 11 DU impact on Operations/       | Evaluate when available               |
+Tracked in [§2](#2-roadmap) (type system, astrophysics, GPU memory, .NET 11 DUs).
 
 ---
 
-_End of specification. Reconcile against code via §19; update after intentional changes._
+_End of specification. Reconcile against code via §17; update after intentional changes._
