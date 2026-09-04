@@ -49,6 +49,9 @@ public partial class GPU
 		negateIntKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>>(NegateIntKernel);
 		floatToIntKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<float>>(FloatToIntKernel);
 		intToFloatKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<int>>(IntToFloatKernel);
+		reduceRowFusedKernel = accelerator.LoadKernel<
+			ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int, SpecializedValue<int>>(
+			ReduceRowFusedKernel);
 	}
 
 	static void A_IntOPKernel(Index1D index, ArrayView<int> OutPut, ArrayView<int> InputA, ArrayView<int> InputB, SpecializedValue<int> operation) =>
