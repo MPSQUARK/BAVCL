@@ -36,6 +36,9 @@ public sealed class BufferEntity<T> : IDisposable where T : unmanaged
 	/// <summary>Kernel subview over the rented length.</summary>
 	public ArrayView1D<T, Stride1D.Dense> View => _slot.GetBuffer().View.SubView(0, _length);
 
+	/// <summary>CPU read view over <see cref="Length"/> after a pinned kernel launch.</summary>
+	internal ReadOnlySpan<T> ReadRentedSpan() => _slot.RetrieveReadOnlySpan()[.._length];
+
 	internal BufferEntity(ElementBufferPool<T> pool, BufferSlot<T> slot, int length)
 	{
 		_pool = pool;
