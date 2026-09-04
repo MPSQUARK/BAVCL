@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using BAVCL.Core.Exceptions;
 
 namespace BAVCL.Core.Helpers;
 
@@ -104,6 +105,26 @@ internal static class MaskBitOps
 			return;
 
 		words[^1] &= TailMask(elementCount);
+	}
+
+	/// <summary>True when every logical bit is set in the packed mask words.</summary>
+	internal static bool AreAllLogicalBitsSet(int elementCount, ReadOnlySpan<int> words)
+	{
+		if (elementCount == 0)
+			return true;
+
+		int expectedWords = WordCount(elementCount);
+		if (words.Length != expectedWords)
+			throw new MaskPackedLayoutException(elementCount, words.Length, expectedWords);
+
+		int tail = TailMask(elementCount);
+		for (int wordIndex = 0; wordIndex < words.Length - 1; wordIndex++)
+		{
+			if (words[wordIndex] != -1)
+				return false;
+		}
+
+		return (words[^1] & tail) == tail;
 	}
 
 	/// <summary>Lane mask keeping only the logical bits of the final storage word.</summary>
