@@ -89,11 +89,20 @@ public static class VectorStatistics
 
 	extension(Vector)
 	{
+		/// <summary>Arithmetic mean μ = Σx/N.</summary>
 		public static float Mean(Vector vector) => DescriptiveStatistics.Mean(vector);
 
+		/// <summary>Population variance (σ²): Σ(x−μ)² / N.</summary>
 		public static float Var(Vector vector) => DescriptiveStatistics.Var(vector);
 
+		/// <summary>Unbiased sample variance (s²): Σ(x−x̄)² / (N−1). Requires length ≥ 2.</summary>
+		public static float SampleVar(Vector vector) => DescriptiveStatistics.SampleVar(vector);
+
+		/// <summary>Population standard deviation: √<see cref="Var"/>.</summary>
 		public static float Std(Vector vector) => DescriptiveStatistics.Std(vector);
+
+		/// <summary>Sample standard deviation: √<see cref="SampleVar"/>.</summary>
+		public static float SampleStd(Vector vector) => DescriptiveStatistics.SampleStd(vector);
 
 		public static float Min(Vector vector) => DescriptiveStatistics.Min(vector);
 
@@ -108,11 +117,21 @@ public static class VectorStatistics
 		public static float MeanX(Vector vector) =>
 			GpuDescriptiveStatistics.MeanX(vector);
 
+		/// <summary>Population variance (σ²) on GPU. See <see cref="Var"/>.</summary>
 		public static float VarX(Vector vector) =>
 			GpuDescriptiveStatistics.VarX(vector);
 
+		/// <summary>Sample variance (s²) on GPU. See <see cref="SampleVar"/>.</summary>
+		public static float SampleVarX(Vector vector) =>
+			GpuDescriptiveStatistics.SampleVarX(vector);
+
+		/// <summary>Population standard deviation on GPU. See <see cref="Std"/>.</summary>
 		public static float StdX(Vector vector) =>
 			GpuDescriptiveStatistics.StdX(vector);
+
+		/// <summary>Sample standard deviation on GPU. See <see cref="SampleStd"/>.</summary>
+		public static float SampleStdX(Vector vector) =>
+			GpuDescriptiveStatistics.SampleStdX(vector);
 
 		public static float MinX(Vector vector) => GpuDescriptiveStatistics.MinX(vector);
 
@@ -167,11 +186,20 @@ public static class VectorStatistics
 
 	extension(VectorInt)
 	{
+		/// <summary>Arithmetic mean μ = Σx/N. No separate sample mean — same formula for a fixed dataset.</summary>
 		public static float Mean(VectorInt vector) => DescriptiveStatistics.Mean(vector);
 
+		/// <summary>Population variance (σ²): Σ(x−μ)² / N.</summary>
 		public static float Var(VectorInt vector) => DescriptiveStatistics.Var(vector);
 
+		/// <summary>Unbiased sample variance (s²): Σ(x−x̄)² / (N−1). Requires length ≥ 2.</summary>
+		public static float SampleVar(VectorInt vector) => DescriptiveStatistics.SampleVar(vector);
+
+		/// <summary>Population standard deviation: √<see cref="Var"/>.</summary>
 		public static float Std(VectorInt vector) => DescriptiveStatistics.Std(vector);
+
+		/// <summary>Sample standard deviation: √<see cref="SampleVar"/>.</summary>
+		public static float SampleStd(VectorInt vector) => DescriptiveStatistics.SampleStd(vector);
 
 		public static int Min(VectorInt vector) => DescriptiveStatistics.Min(vector);
 
@@ -185,9 +213,17 @@ public static class VectorStatistics
 
 		public static float MeanX(VectorInt vector) => GpuDescriptiveStatistics.MeanX(vector);
 
+		/// <summary>Population variance (σ²) on GPU. See <see cref="Var"/>.</summary>
 		public static float VarX(VectorInt vector) => GpuDescriptiveStatistics.VarX(vector);
 
+		/// <summary>Sample variance (s²) on GPU. See <see cref="SampleVar"/>.</summary>
+		public static float SampleVarX(VectorInt vector) => GpuDescriptiveStatistics.SampleVarX(vector);
+
+		/// <summary>Population standard deviation on GPU. See <see cref="Std"/>.</summary>
 		public static float StdX(VectorInt vector) => GpuDescriptiveStatistics.StdX(vector);
+
+		/// <summary>Sample standard deviation on GPU. See <see cref="SampleStd"/>.</summary>
+		public static float SampleStdX(VectorInt vector) => GpuDescriptiveStatistics.SampleStdX(vector);
 
 		public static int MinX(VectorInt vector) => GpuDescriptiveStatistics.MinX(vector);
 
@@ -309,9 +345,17 @@ public static class StatisticsModule
 	{
 		public float Mean() => VectorStatistics.Mean(vector);
 
+		/// <summary>Population variance (σ²): Σ(x−μ)² / N.</summary>
 		public float Var() => VectorStatistics.Var(vector);
 
+		/// <summary>Unbiased sample variance (s²): Σ(x−x̄)² / (N−1). Requires length ≥ 2.</summary>
+		public float SampleVar() => VectorStatistics.SampleVar(vector);
+
+		/// <summary>Population standard deviation: √<see cref="Var"/>.</summary>
 		public float Std() => VectorStatistics.Std(vector);
+
+		/// <summary>Sample standard deviation: √<see cref="SampleVar"/>.</summary>
+		public float SampleStd() => VectorStatistics.SampleStd(vector);
 
 		public float Min() => VectorStatistics.Min(vector);
 
@@ -327,7 +371,11 @@ public static class StatisticsModule
 
 		public float VarX() => VectorStatistics.VarX(vector);
 
+		public float SampleVarX() => VectorStatistics.SampleVarX(vector);
+
 		public float StdX() => VectorStatistics.StdX(vector);
+
+		public float SampleStdX() => VectorStatistics.SampleStdX(vector);
 
 		public float MinX() => VectorStatistics.MinX(vector);
 
@@ -380,9 +428,17 @@ public static class StatisticsModule
 	{
 		public float Mean() => VectorStatistics.Mean(vector);
 
+		/// <summary>Population variance (σ²): Σ(x−μ)² / N.</summary>
 		public float Var() => VectorStatistics.Var(vector);
 
+		/// <summary>Unbiased sample variance (s²): Σ(x−x̄)² / (N−1). Requires length ≥ 2.</summary>
+		public float SampleVar() => VectorStatistics.SampleVar(vector);
+
+		/// <summary>Population standard deviation: √<see cref="Var"/>.</summary>
 		public float Std() => VectorStatistics.Std(vector);
+
+		/// <summary>Sample standard deviation: √<see cref="SampleVar"/>.</summary>
+		public float SampleStd() => VectorStatistics.SampleStd(vector);
 
 		public int Min() => VectorStatistics.Min(vector);
 
@@ -398,7 +454,11 @@ public static class StatisticsModule
 
 		public float VarX() => VectorStatistics.VarX(vector);
 
+		public float SampleVarX() => VectorStatistics.SampleVarX(vector);
+
 		public float StdX() => VectorStatistics.StdX(vector);
+
+		public float SampleStdX() => VectorStatistics.SampleStdX(vector);
 
 		public int MinX() => VectorStatistics.MinX(vector);
 
