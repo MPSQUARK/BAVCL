@@ -8,6 +8,25 @@ namespace BAVCL;
 
 public partial class GPU
 {
+	// Keep in sync with ReduceRowOps (host). ILGPU device bodies cannot share that module.
+	static float ReduceRowElementFloat(float coeff, float matrixValue, Operations operation) =>
+		operation switch
+		{
+			Operations.multiply => coeff * matrixValue,
+			Operations.add => coeff + matrixValue,
+			Operations.subtract => coeff - matrixValue,
+			Operations.flipSubtract => matrixValue - coeff,
+			Operations.divide => coeff / matrixValue,
+			Operations.flipDivide => matrixValue / coeff,
+			Operations.pow => XMath.Pow(coeff, matrixValue),
+			Operations.flipPow => XMath.Pow(matrixValue, coeff),
+			Operations.differenceSquared => XMath.Pow(coeff - matrixValue, 2f),
+			Operations.distance => XMath.Pow(coeff - matrixValue, 2f),
+			_ => 0f,
+		};
+
+	static bool ReduceRowUsesDistance(Operations operation) => operation == Operations.distance;
+
 	static float AccumulateReduceRow(
 		ArrayView<float> coeffs,
 		ArrayView<float> inputB,
@@ -15,81 +34,12 @@ public partial class GPU
 		int cols,
 		SpecializedValue<int> operation)
 	{
-		switch ((Operations)operation.Value)
-		{
-			case Operations.multiply:
-				{
-					float sum = 0f;
-					for (int i = 0; i < cols; i++)
-						sum += coeffs[i] * inputB[startidx + i];
-					return sum;
-				}
-			case Operations.add:
-				{
-					float sum = 0f;
-					for (int i = 0; i < cols; i++)
-						sum += coeffs[i] + inputB[startidx + i];
-					return sum;
-				}
-			case Operations.subtract:
-				{
-					float sum = 0f;
-					for (int i = 0; i < cols; i++)
-						sum += coeffs[i] - inputB[startidx + i];
-					return sum;
-				}
-			case Operations.flipSubtract:
-				{
-					float sum = 0f;
-					for (int i = 0; i < cols; i++)
-						sum += inputB[startidx + i] - coeffs[i];
-					return sum;
-				}
-			case Operations.divide:
-				{
-					float sum = 0f;
-					for (int i = 0; i < cols; i++)
-						sum += coeffs[i] / inputB[startidx + i];
-					return sum;
-				}
-			case Operations.flipDivide:
-				{
-					float sum = 0f;
-					for (int i = 0; i < cols; i++)
-						sum += inputB[startidx + i] / coeffs[i];
-					return sum;
-				}
-			case Operations.pow:
-				{
-					float sum = 0f;
-					for (int i = 0; i < cols; i++)
-						sum += XMath.Pow(coeffs[i], inputB[startidx + i]);
-					return sum;
-				}
-			case Operations.flipPow:
-				{
-					float sum = 0f;
-					for (int i = 0; i < cols; i++)
-						sum += XMath.Pow(inputB[startidx + i], coeffs[i]);
-					return sum;
-				}
-			case Operations.differenceSquared:
-				{
-					float sum = 0f;
-					for (int i = 0; i < cols; i++)
-						sum += XMath.Pow(coeffs[i] - inputB[startidx + i], 2f);
-					return sum;
-				}
-			case Operations.distance:
-				{
-					float sum = 0f;
-					for (int i = 0; i < cols; i++)
-						sum += XMath.Pow(coeffs[i] - inputB[startidx + i], 2f);
-					return XMath.Sqrt(sum);
-				}
-			default:
-				return 0f;
-		}
+		Operations op = (Operations)operation.Value;
+		float sum = 0f;
+		for (int i = 0; i < cols; i++)
+			sum += ReduceRowElementFloat(coeffs[i], inputB[startidx + i], op);
+
+		return ReduceRowUsesDistance(op) ? XMath.Sqrt(sum) : sum;
 	}
 
 	static void ApplyBroadcastOp(ref float target, float a, float b, SpecializedValue<int> operation)
@@ -169,6 +119,18 @@ public partial class GPU
 
 	static int AsLane(bool set) => Utilities.Select(set, 1, 0);
 
+	static int ReduceRowElementInt(int coeff, int matrixValue, Operations operation) =>
+		operation switch
+		{
+			Operations.multiply => coeff * matrixValue,
+			Operations.add => coeff + matrixValue,
+			Operations.subtract => coeff - matrixValue,
+			Operations.flipSubtract => matrixValue - coeff,
+			Operations.divide => coeff / matrixValue,
+			Operations.flipDivide => matrixValue / coeff,
+			_ => 0,
+		};
+
 	static int AccumulateReduceRowInt(
 		ArrayView<int> coeffs,
 		ArrayView<int> inputB,
@@ -176,53 +138,12 @@ public partial class GPU
 		int cols,
 		SpecializedValue<int> operation)
 	{
-		switch ((Operations)operation.Value)
-		{
-			case Operations.multiply:
-				{
-					int sum = 0;
-					for (int i = 0; i < cols; i++)
-						sum += coeffs[i] * inputB[startidx + i];
-					return sum;
-				}
-			case Operations.add:
-				{
-					int sum = 0;
-					for (int i = 0; i < cols; i++)
-						sum += coeffs[i] + inputB[startidx + i];
-					return sum;
-				}
-			case Operations.subtract:
-				{
-					int sum = 0;
-					for (int i = 0; i < cols; i++)
-						sum += coeffs[i] - inputB[startidx + i];
-					return sum;
-				}
-			case Operations.flipSubtract:
-				{
-					int sum = 0;
-					for (int i = 0; i < cols; i++)
-						sum += inputB[startidx + i] - coeffs[i];
-					return sum;
-				}
-			case Operations.divide:
-				{
-					int sum = 0;
-					for (int i = 0; i < cols; i++)
-						sum += coeffs[i] / inputB[startidx + i];
-					return sum;
-				}
-			case Operations.flipDivide:
-				{
-					int sum = 0;
-					for (int i = 0; i < cols; i++)
-						sum += inputB[startidx + i] / coeffs[i];
-					return sum;
-				}
-			default:
-				return 0;
-		}
+		Operations op = (Operations)operation.Value;
+		int sum = 0;
+		for (int i = 0; i < cols; i++)
+			sum += ReduceRowElementInt(coeffs[i], inputB[startidx + i], op);
+
+		return sum;
 	}
 
 	static void ApplyBroadcastOpInt(ref int target, int a, int b, SpecializedValue<int> operation)
