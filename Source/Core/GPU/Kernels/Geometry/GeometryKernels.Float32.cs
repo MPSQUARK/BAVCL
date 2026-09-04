@@ -8,21 +8,21 @@ namespace BAVCL;
 
 public partial class GPU
 {
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>> crossKernel
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(crossKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>> normaliseKernel
-		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(normaliseKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> simdVectorKernel
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(simdVectorKernel));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>> crossIP
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(crossIP));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>> normaliseIP
+		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(normaliseIP));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> simdVectorIP
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(simdVectorIP));
 
 	internal void LoadGeometryFloat32Kernels()
 	{
-		crossKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>>(CrossKernel);
-		normaliseKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>>(NormaliseKernel);
-		simdVectorKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(SIMDVectorKernel);
+		crossIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>>(CrossIP_Kern);
+		normaliseIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>>(NormaliseIP_Kern);
+		simdVectorIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(SIMDVectorKernel);
 	}
 
-	static void CrossKernel(Index1D index, ArrayView<float> Output, ArrayView<float> InputA, ArrayView<float> InputB)
+	static void CrossIP_Kern(Index1D index, ArrayView<float> Output, ArrayView<float> InputA, ArrayView<float> InputB)
 	{
 		Index1D startIdx = index + index + index;
 		Output[startIdx] = InputA[startIdx + 1] * InputB[startIdx + 2] - InputA[startIdx + 2] * InputB[startIdx + 1];
@@ -30,7 +30,7 @@ public partial class GPU
 		Output[startIdx + 2] = InputA[startIdx] * InputB[startIdx + 1] - InputA[startIdx + 1] * InputB[startIdx];
 	}
 
-	static void NormaliseKernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
+	static void NormaliseIP_Kern(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
 	{
 		Index1D startIdx = index + index + index;
 		float x = Input[startIdx];

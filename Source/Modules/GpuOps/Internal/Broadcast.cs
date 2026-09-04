@@ -123,7 +123,7 @@ internal static class Broadcast
 		SpecializedValue<int> operation)
 	{
 		var stream = gpu.accelerator.DefaultStream;
-		gpu.broadcastOpKernel(
+		gpu.broadcast(
 			stream,
 			outLength,
 			output,
@@ -146,7 +146,7 @@ internal static class Broadcast
 		SpecializedValue<int> operation)
 	{
 		var stream = gpu.accelerator.DefaultStream;
-		gpu.broadcastOpKernelIP(
+		gpu.broadcastIP(
 			stream,
 			outLength,
 			io,
@@ -211,7 +211,7 @@ internal static class Broadcast
 
 		using (GpuScope.Begin(output, vectorA, vectorB))
 		{
-			gpu.broadcastOpIntKernel(
+			gpu.broadcastInt(
 				gpu.DefaultStream,
 				outLength,
 				output.GetBuffer().View,
@@ -242,7 +242,7 @@ internal static class Broadcast
 
 		using (GpuScope.Begin(io, other))
 		{
-			gpu.broadcastOpIntKernelIP(
+			gpu.broadcastIntIP(
 				gpu.DefaultStream,
 				outLength,
 				io.GetBuffer().View,

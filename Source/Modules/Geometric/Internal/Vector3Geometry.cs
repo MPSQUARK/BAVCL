@@ -54,7 +54,7 @@ internal static class Vector3Geometry
 				buffer2 = left.GetBuffer(),
 				buffer3 = right.GetBuffer();
 
-			gpu.crossKernel(gpu.accelerator.DefaultStream, left.Length / 3, buffer.View, buffer2.View, buffer3.View);
+			gpu.crossIP(gpu.accelerator.DefaultStream, left.Length / 3, buffer.View, buffer2.View, buffer3.View);
 			gpu.accelerator.Synchronize();
 		}
 
@@ -72,7 +72,7 @@ internal static class Vector3Geometry
 				buffer = output.GetBuffer(),
 				buffer2 = vector.GetBuffer();
 
-			gpu.normaliseKernel(gpu.accelerator.DefaultStream, vector.Length / 3, buffer.View, buffer2.View);
+			gpu.normaliseIP(gpu.accelerator.DefaultStream, vector.Length / 3, buffer.View, buffer2.View);
 			gpu.accelerator.Synchronize();
 		}
 

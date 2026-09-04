@@ -32,7 +32,7 @@ internal static class CastCore
 			MemoryBuffer1D<int, Stride1D.Dense> buffer = output.GetBuffer();
 			MemoryBuffer1D<float, Stride1D.Dense> buffer2 = vector.GetBuffer();
 
-			gpu.floatToIntKernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View);
+			gpu.floatToInt(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View);
 			gpu.Synchronize();
 		}
 
@@ -50,7 +50,7 @@ internal static class CastCore
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = output.GetBuffer();
 			MemoryBuffer1D<int, Stride1D.Dense> buffer2 = vector.GetBuffer();
 
-			gpu.intToFloatKernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View);
+			gpu.intToFloat(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View);
 			gpu.Synchronize();
 		}
 

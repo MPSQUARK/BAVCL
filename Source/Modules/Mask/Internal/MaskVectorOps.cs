@@ -20,7 +20,7 @@ internal static class MaskVectorOps
 
 		using (GpuScope.Begin(output, left, right))
 		{
-			gpu.vectorCompareMaskKernel(
+			gpu.compareMask(
 				gpu.DefaultStream,
 				outputShape.ElementCount,
 				output.GetBuffer().View,
@@ -44,7 +44,7 @@ internal static class MaskVectorOps
 
 		using (GpuScope.Begin(output, vector))
 		{
-			gpu.vectorScalarCompareMaskKernel(
+			gpu.compareScalarMask(
 				gpu.DefaultStream,
 				vector.Length,
 				output.GetBuffer().View,
@@ -69,7 +69,7 @@ internal static class MaskVectorOps
 
 		using (GpuScope.Begin(output, vector, mask))
 		{
-			gpu.vectorMaskFilterKernel(
+			gpu.maskFilter(
 				gpu.DefaultStream,
 				outputShape.ElementCount,
 				output.GetBuffer().View,
@@ -119,7 +119,7 @@ internal static class MaskVectorOps
 		using (GpuScope.Begin(output, vector))
 		using (MemoryBuffer1D<int, Stride1D.Dense> indices = gpu.accelerator.Allocate1D(sourceIndices))
 		{
-			gpu.vectorGatherKernel(
+			gpu.gather(
 				gpu.DefaultStream,
 				sourceIndices.Length,
 				output.GetBuffer().View,

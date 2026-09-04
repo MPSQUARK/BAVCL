@@ -8,63 +8,63 @@ namespace BAVCL;
 
 public partial class GPU
 {
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, float> nanToNumKernel
-		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(nanToNumKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> a_opFKernel
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(a_opFKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>> s_opFKernel
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(s_opFKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> a_FloatOPKernelIP
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(a_FloatOPKernelIP));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, float, SpecializedValue<int>> s_FloatOPKernelIP
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(s_FloatOPKernelIP));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> reduceRowOpKernel
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(reduceRowOpKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int> matmulKernel
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(matmulKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>> broadcastOpKernel
-		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastOpKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, SpecializedValue<int>> broadcastOpKernelIP
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastOpKernelIP));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>> diffKernel
-		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(diffKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>> absKernel
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(absKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>> rcpKernel
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(rcpKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>> rsqrtKernel
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(rsqrtKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<float>, float> LogKernel
-		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(LogKernel));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, float> nanToNumIP
+		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(nanToNumIP));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> aOpF
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(aOpF));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>> sOpF
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(sOpF));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> aOpFIP
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(aOpFIP));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, float, SpecializedValue<int>> sOpFIP
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(sOpFIP));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> reduceRowOp
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(reduceRowOp));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int> matmul
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(matmul));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>> broadcast
+		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcast));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, SpecializedValue<int>> broadcastIP
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastIP));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>> diff
+		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(diff));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>> absIP
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(absIP));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>> rcpIP
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(rcpIP));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>> rsqrtIP
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(rsqrtIP));
+	public Action<AcceleratorStream, Index1D, ArrayView<float>, float> logIP
+		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(logIP));
 
 	internal void LoadArithmeticFloat32Kernels()
 	{
-		nanToNumKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float>(Nan_to_numKernel);
-		a_opFKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernel);
-		s_opFKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernel);
-		reduceRowOpKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(ReduceRowOpKernel);
-		matmulKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(MatMulKernel);
-		broadcastOpKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>>(BroadcastOpKernel);
-		broadcastOpKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, SpecializedValue<int>>(BroadcastOpKernelIP);
-		a_FloatOPKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(A_FloatOPKernelIP);
-		s_FloatOPKernelIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float, SpecializedValue<int>>(S_FloatOPKernelIP);
-		diffKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>>(DiffKernel);
-		absKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(AbsKernel);
-		rcpKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(ReciprocalKernel);
-		rsqrtKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(RsqrtKernel);
-		LogKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float>(LogKern);
-		reduceRowFusedCompensatedKernel = accelerator.LoadKernel<
+		nanToNumIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float>(NanToNumIP_Kern);
+		aOpF = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(AFloatOP_Kern);
+		sOpF = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>>(SFloatOP_Kern);
+		reduceRowOp = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>>(ReduceRowOp_Kern);
+		matmul = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int>(MatMul_Kern);
+		broadcast = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>>(Broadcast_Kern);
+		broadcastIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, SpecializedValue<int>>(BroadcastIP_Kern);
+		aOpFIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>>(AFloatOPIP_Kern);
+		sOpFIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float, SpecializedValue<int>>(SFloatOPIP_Kern);
+		diff = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>>(Diff_Kern);
+		absIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(AbsIP_Kern);
+		rcpIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(ReciprocalIP_Kern);
+		rsqrtIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(RsqrtIP_Kern);
+		logIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float>(LogIP_Kern);
+		reduceRowFusedCompensated = accelerator.LoadKernel<
 			ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int, SpecializedValue<int>>(
-			ReduceRowFusedCompensatedKernel);
+			ReduceRowFusedCompensated_Kern);
 	}
 
-	static void Nan_to_numKernel(Index1D index, ArrayView<float> IO, float num)
+	static void NanToNumIP_Kern(Index1D index, ArrayView<float> IO, float num)
 	{
 		if (float.IsNaN(IO[index]) || float.IsInfinity(IO[index]))
 			IO[index] = num;
 	}
 
-	static void A_FloatOPKernel(Index1D index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, SpecializedValue<int> operation)
+	static void AFloatOP_Kern(Index1D index, ArrayView<float> OutPut, ArrayView<float> InputA, ArrayView<float> InputB, SpecializedValue<int> operation)
 	{
 		switch ((Operations)operation.Value)
 		{
@@ -98,7 +98,7 @@ public partial class GPU
 		}
 	}
 
-	static void A_FloatOPKernelIP(Index1D index, ArrayView<float> IO, ArrayView<float> Input, SpecializedValue<int> operation)
+	static void AFloatOPIP_Kern(Index1D index, ArrayView<float> IO, ArrayView<float> Input, SpecializedValue<int> operation)
 	{
 		switch ((Operations)operation.Value)
 		{
@@ -132,7 +132,7 @@ public partial class GPU
 		}
 	}
 
-	static void S_FloatOPKernel(Index1D index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar, SpecializedValue<int> operation)
+	static void SFloatOP_Kern(Index1D index, ArrayView<float> OutPut, ArrayView<float> Input, float Scalar, SpecializedValue<int> operation)
 	{
 		switch ((Operations)operation.Value)
 		{
@@ -166,7 +166,7 @@ public partial class GPU
 		}
 	}
 
-	static void S_FloatOPKernelIP(Index1D index, ArrayView<float> IO, float Scalar, SpecializedValue<int> operation)
+	static void SFloatOPIP_Kern(Index1D index, ArrayView<float> IO, float Scalar, SpecializedValue<int> operation)
 	{
 		switch ((Operations)operation.Value)
 		{
@@ -200,13 +200,13 @@ public partial class GPU
 		}
 	}
 
-	static void ReduceRowOpKernel(Index1D index, ArrayView<float> output, ArrayView<float> inputA, ArrayView<float> inputB, int cols, SpecializedValue<int> operation)
+	static void ReduceRowOp_Kern(Index1D index, ArrayView<float> output, ArrayView<float> inputA, ArrayView<float> inputB, int cols, SpecializedValue<int> operation)
 	{
 		int startidx = index * cols;
 		output[index] = AccumulateReduceRow(inputA, inputB, startidx, cols, operation);
 	}
 
-	static void MatMulKernel(
+	static void MatMul_Kern(
 		Index1D row,
 		ArrayView<float> output,
 		ArrayView<float> inputA,
@@ -227,7 +227,7 @@ public partial class GPU
 		}
 	}
 
-	static void BroadcastOpKernel(
+	static void Broadcast_Kern(
 		Index1D flatOut,
 		ArrayView<float> output,
 		ArrayView<float> inputA,
@@ -246,7 +246,7 @@ public partial class GPU
 		output[flatOut] = result;
 	}
 
-	static void BroadcastOpKernelIP(
+	static void BroadcastIP_Kern(
 		Index1D flatOut,
 		ArrayView<float> io,
 		ArrayView<float> other,
@@ -262,27 +262,27 @@ public partial class GPU
 		io[flatOut] = result;
 	}
 
-	static void DiffKernel(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
+	static void Diff_Kern(Index1D index, ArrayView<float> Output, ArrayView<float> Input)
 	{
 		Output[index] = Input[index + 1] - Input[index];
 	}
 
-	static void AbsKernel(Index1D index, ArrayView<float> IO)
+	static void AbsIP_Kern(Index1D index, ArrayView<float> IO)
 	{
 		IO[index] = XMath.Abs(IO[index]);
 	}
 
-	static void ReciprocalKernel(Index1D index, ArrayView<float> IO)
+	static void ReciprocalIP_Kern(Index1D index, ArrayView<float> IO)
 	{
 		IO[index] = XMath.Rcp(IO[index]);
 	}
 
-	static void RsqrtKernel(Index1D index, ArrayView<float> IO)
+	static void RsqrtIP_Kern(Index1D index, ArrayView<float> IO)
 	{
 		IO[index] = XMath.Rsqrt(IO[index]);
 	}
 
-	public static void LogKern(Index1D index, ArrayView<float> IO, float @base)
+	public static void LogIP_Kern(Index1D index, ArrayView<float> IO, float @base)
 	{
 		IO[index] = XMath.Log(IO[index], @base);
 	}

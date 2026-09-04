@@ -8,24 +8,24 @@ namespace BAVCL;
 
 public partial class GPU
 {
-	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int> appendIntKernel
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(appendIntKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>> getSliceIntKernel
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(getSliceIntKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<int>> reverseIntKernel
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(reverseIntKernel));
-	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, int> transposeIntKernel
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(transposeIntKernel));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int> appendInt
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(appendInt));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>> getSliceInt
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(getSliceInt));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>> reverseIntIP
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(reverseIntIP));
+	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, int> transposeInt
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(transposeInt));
 
 	internal void LoadStructuralInt32Kernels()
 	{
-		appendIntKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>(AppendIntKernel);
-		getSliceIntKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>>(AccessSliceIntKernel);
-		reverseIntKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>>(ReverseIntKernel);
-		transposeIntKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, int>(TransposeIntKernel);
+		appendInt = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>(AppendInt_Kern);
+		getSliceInt = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>>(AccessSliceInt_Kern);
+		reverseIntIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>>(ReverseIntIP_Kern);
+		transposeInt = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, int>(TransposeInt_Kern);
 	}
 
-	static void AppendIntKernel(Index1D index, ArrayView<int> Output, ArrayView<int> vecA, ArrayView<int> vecB, int vecAcol, int vecBcol)
+	static void AppendInt_Kern(Index1D index, ArrayView<int> Output, ArrayView<int> vecA, ArrayView<int> vecB, int vecAcol, int vecBcol)
 	{
 		for (int i = 0, j = 0; j < vecBcol; i++)
 		{
@@ -40,20 +40,20 @@ public partial class GPU
 		}
 	}
 
-	static void AccessSliceIntKernel(Index1D index, ArrayView<int> OutPut, ArrayView<int> Input, ArrayView<int> ChangeSelectLength)
+	static void AccessSliceInt_Kern(Index1D index, ArrayView<int> OutPut, ArrayView<int> Input, ArrayView<int> ChangeSelectLength)
 	{
 		OutPut[index] = Input[
 			index * ChangeSelectLength[1] +
 			ChangeSelectLength[0]];
 	}
 
-	static void ReverseIntKernel(Index1D index, ArrayView<int> IO)
+	static void ReverseIntIP_Kern(Index1D index, ArrayView<int> IO)
 	{
 		int idx = IO.IntLength - 1 - index;
 		(IO[index], IO[idx]) = (IO[idx], IO[index]);
 	}
 
-	static void TransposeIntKernel(Index1D index, ArrayView<int> Output, ArrayView<int> Input, int columns)
+	static void TransposeInt_Kern(Index1D index, ArrayView<int> Output, ArrayView<int> Input, int columns)
 	{
 		int rows = Input.IntLength / columns;
 		int col = index % columns;

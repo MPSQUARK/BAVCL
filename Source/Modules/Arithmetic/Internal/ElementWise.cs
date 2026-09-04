@@ -41,7 +41,7 @@ internal static class ElementWiseCore
 		using (GpuScope.Begin(vector))
 		{
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = vector.GetBuffer();
-			vector.Gpu.absKernel(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
+			vector.Gpu.absIP(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
 			vector.Gpu.accelerator.Synchronize();
 		}
 	}
@@ -58,7 +58,7 @@ internal static class ElementWiseCore
 		using (GpuScope.Begin(vector))
 		{
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = vector.GetBuffer();
-			vector.Gpu.rcpKernel(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
+			vector.Gpu.rcpIP(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
 			vector.Gpu.accelerator.Synchronize();
 		}
 	}
@@ -92,7 +92,7 @@ internal static class ElementWiseCore
 		using (GpuScope.Begin(vector))
 		{
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = vector.GetBuffer();
-			vector.Gpu.rsqrtKernel(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
+			vector.Gpu.rsqrtIP(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View);
 			vector.Gpu.accelerator.Synchronize();
 		}
 	}
@@ -111,7 +111,7 @@ internal static class ElementWiseCore
 				buffer = output.GetBuffer(),
 				buffer2 = vector.GetBuffer();
 
-			gpu.diffKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View);
+			gpu.diff(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View);
 			gpu.accelerator.Synchronize();
 		}
 
@@ -130,7 +130,7 @@ internal static class ElementWiseCore
 		using (GpuScope.Begin(vector))
 		{
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = vector.GetBuffer();
-			vector.Gpu.nanToNumKernel(vector.Gpu.accelerator.DefaultStream, vector.Length, buffer.View, num);
+			vector.Gpu.nanToNumIP(vector.Gpu.accelerator.DefaultStream, vector.Length, buffer.View, num);
 			vector.Gpu.accelerator.Synchronize();
 		}
 	}
@@ -170,7 +170,7 @@ internal static class ElementWiseCore
 		using (GpuScope.Begin(vector))
 		{
 			MemoryBuffer1D<int, Stride1D.Dense> buffer = vector.GetBuffer();
-			vector.Gpu.absIntKernel(vector.Gpu.DefaultStream, buffer.IntExtent, buffer.View);
+			vector.Gpu.absIntIP(vector.Gpu.DefaultStream, buffer.IntExtent, buffer.View);
 			vector.Gpu.Synchronize();
 		}
 	}
@@ -189,7 +189,7 @@ internal static class ElementWiseCore
 				buffer = output.GetBuffer(),
 				buffer2 = vector.GetBuffer();
 
-			gpu.diffIntKernel(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View);
+			gpu.diffInt(gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View);
 			gpu.Synchronize();
 		}
 

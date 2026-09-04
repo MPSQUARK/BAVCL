@@ -54,7 +54,7 @@ internal static class Vector3GpuOps
 				buffer2 = left.GetBuffer(),
 				buffer3 = right.GetBuffer();
 
-			gpu.a_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
+			gpu.aOpF(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, buffer3.View, new SpecializedValue<int>((int)operation));
 			gpu.accelerator.Synchronize();
 		}
 
@@ -72,7 +72,7 @@ internal static class Vector3GpuOps
 				buffer = output.GetBuffer(),
 				buffer2 = vector.GetBuffer();
 
-			gpu.s_opFKernel(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
+			gpu.sOpF(gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, scalar, new SpecializedValue<int>((int)operation));
 			gpu.accelerator.Synchronize();
 		}
 
@@ -87,7 +87,7 @@ internal static class Vector3GpuOps
 				buffer = vector.GetBuffer(),
 				buffer2 = other.GetBuffer();
 
-			vector.Gpu.a_FloatOPKernelIP(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
+			vector.Gpu.aOpFIP(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, new SpecializedValue<int>((int)operation));
 			vector.Gpu.accelerator.Synchronize();
 		}
 
@@ -99,7 +99,7 @@ internal static class Vector3GpuOps
 		using (GpuScope.Begin(vector))
 		{
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = vector.GetBuffer();
-			vector.Gpu.s_FloatOPKernelIP(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
+			vector.Gpu.sOpFIP(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, scalar, new SpecializedValue<int>((int)operation));
 			vector.Gpu.accelerator.Synchronize();
 		}
 

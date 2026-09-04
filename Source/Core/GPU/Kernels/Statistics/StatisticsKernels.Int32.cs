@@ -20,27 +20,27 @@ public partial class GPU
 	{
 		ReduceMinInt32 = accelerator.CreateReduction<int, Stride1D.Dense, MinInt32>();
 		ReduceMaxInt32 = accelerator.CreateReduction<int, Stride1D.Dense, MaxInt32>();
-		dotReduceIntGroupedKernel = accelerator.LoadKernel<
-			ArrayView<int>, ArrayView<int>, ArrayView<int>, int>(DotReduceIntGroupedKernel);
-		minMaxReduceIntGroupedKernel = accelerator.LoadKernel<
-			ArrayView<int>, ArrayView<int>, int>(MinMaxReduceIntGroupedKernel);
-		sumReduceIntGroupedKernel = accelerator.LoadKernel<
-			ArrayView<int>, ArrayView<int>, int>(SumReduceIntGroupedKernel);
-		sumSquaredDiffIntGroupedKernel = accelerator.LoadKernel<
-			ArrayView<int>, ArrayView<float>, float, int>(SumSquaredDiffIntGroupedKernel);
-		allNonZeroIntGroupedKernel = accelerator.LoadKernel<
-			ArrayView<int>, ArrayView<int>, int>(AllNonZeroIntGroupedKernel);
+		dotReduceIntGrouped = accelerator.LoadKernel<
+			ArrayView<int>, ArrayView<int>, ArrayView<int>, int>(DotReduceIntGrouped_Kern);
+		minMaxReduceIntGrouped = accelerator.LoadKernel<
+			ArrayView<int>, ArrayView<int>, int>(MinMaxReduceIntGrouped_Kern);
+		sumReduceIntGrouped = accelerator.LoadKernel<
+			ArrayView<int>, ArrayView<int>, int>(SumReduceIntGrouped_Kern);
+		sumSquaredDiffIntGrouped = accelerator.LoadKernel<
+			ArrayView<int>, ArrayView<float>, float, int>(SumSquaredDiffIntGrouped_Kern);
+		allNonZeroIntGrouped = accelerator.LoadKernel<
+			ArrayView<int>, ArrayView<int>, int>(AllNonZeroIntGrouped_Kern);
 		LoadVarReduceIntGroupedKernel();
 	}
 
 	void LoadVarReduceIntGroupedKernel()
 	{
-        varReduceIntGroupedKernel = SelectVarianceReducePath(accelerator) switch
+        varReduceIntGrouped = SelectVarianceReducePath(accelerator) switch
         {
             VarianceReducePath.SharedScratch => accelerator.LoadKernel<
-                                ArrayView<int>, ArrayView<float>, int>(VarReduceIntGroupedSharedKernel),
+                                ArrayView<int>, ArrayView<float>, int>(VarReduceIntGroupedShared_Kern),
             VarianceReducePath.WarpTree => accelerator.LoadKernel<
-                                ArrayView<int>, ArrayView<float>, int>(VarReduceIntGroupedWarpTreeKernel),
+                                ArrayView<int>, ArrayView<float>, int>(VarReduceIntGroupedWarpTree_Kern),
             _ => throw new NotSupportedException("Unsupported variance reduce path."),
         };
     }

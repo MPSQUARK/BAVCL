@@ -284,9 +284,9 @@ internal static class SortAlgorithms
 		SortOrder order)
 	{
 		Index1D extent = GPU.SortLaunchExtent(segment.Length);
-		gpu.floatToSortableIntKern(gpu.DefaultStream, extent, segment, sortableView);
+		gpu.floatToSortableInt(gpu.DefaultStream, extent, segment, sortableView);
 		SortIntSegment(gpu, sortableView, order);
-		gpu.sortableIntToFloatKern(gpu.DefaultStream, extent, sortableView, segment);
+		gpu.sortableIntToFloat(gpu.DefaultStream, extent, sortableView, segment);
 	}
 
 	#endregion
@@ -340,7 +340,7 @@ internal static class SortAlgorithms
 		ArrayView1D<int, Stride1D.Dense> keysView,
 		SortOrder order)
 	{
-		gpu.floatToSortableIntKern(gpu.DefaultStream, GPU.SortLaunchExtent(inputView.Length), inputView, keysView);
+		gpu.floatToSortableInt(gpu.DefaultStream, GPU.SortLaunchExtent(inputView.Length), inputView, keysView);
 		gpu.accelerator.Sequence(gpu.DefaultStream, indexView, Int32Sequence);
 		ArgsortIntPairs(gpu, keysView, indexView, order);
 	}

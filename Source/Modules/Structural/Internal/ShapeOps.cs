@@ -91,7 +91,7 @@ internal static class ShapeOpsCore
 				buffer2 = vector.GetBuffer(),
 				buffer3 = other.GetBuffer();
 
-			vector.Gpu.appendKernel(vector.Gpu.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View, vector.Columns, other.Columns);
+			vector.Gpu.append(vector.Gpu.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View, vector.Columns, other.Columns);
 			vector.Gpu.Synchronize();
 		}
 
@@ -142,7 +142,7 @@ internal static class ShapeOpsCore
 		using (GpuScope.Begin(vector))
 		{
 			MemoryBuffer1D<float, Stride1D.Dense> buffer = vector.GetBuffer();
-			vector.Gpu.reverseKernel(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent >> 1, buffer.View);
+			vector.Gpu.reverseIP(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent >> 1, buffer.View);
 			vector.Gpu.accelerator.Synchronize();
 		}
 
@@ -161,7 +161,7 @@ internal static class ShapeOpsCore
 				buffer = output.GetBuffer(),
 				buffer2 = vector.GetBuffer();
 
-			vector.Gpu.transposekernel(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, vector.Columns);
+			vector.Gpu.transpose(vector.Gpu.accelerator.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, vector.Columns);
 			vector.Gpu.accelerator.Synchronize();
 		}
 
@@ -205,7 +205,7 @@ internal static class ShapeOpsCore
 
 			MemoryBuffer1D<int, Stride1D.Dense> buffer3 = vector.Gpu.accelerator.Allocate1D(select);
 
-			vector.Gpu.getSliceKernel(vector.Gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
+			vector.Gpu.getSlice(vector.Gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
 			vector.Gpu.accelerator.Synchronize();
 			buffer3.Dispose();
 		}
@@ -351,7 +351,7 @@ internal static class ShapeOpsCore
 				buffer2 = vector.GetBuffer(),
 				buffer3 = other.GetBuffer();
 
-			vector.Gpu.appendIntKernel(vector.Gpu.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View, vector.Columns, other.Columns);
+			vector.Gpu.appendInt(vector.Gpu.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View, vector.Columns, other.Columns);
 			vector.Gpu.Synchronize();
 		}
 
@@ -402,7 +402,7 @@ internal static class ShapeOpsCore
 		using (GpuScope.Begin(vector))
 		{
 			MemoryBuffer1D<int, Stride1D.Dense> buffer = vector.GetBuffer();
-			vector.Gpu.reverseIntKernel(vector.Gpu.DefaultStream, buffer.IntExtent >> 1, buffer.View);
+			vector.Gpu.reverseIntIP(vector.Gpu.DefaultStream, buffer.IntExtent >> 1, buffer.View);
 			vector.Gpu.Synchronize();
 		}
 
@@ -421,7 +421,7 @@ internal static class ShapeOpsCore
 				buffer = output.GetBuffer(),
 				buffer2 = vector.GetBuffer();
 
-			vector.Gpu.transposeIntKernel(vector.Gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, vector.Columns);
+			vector.Gpu.transposeInt(vector.Gpu.DefaultStream, buffer.IntExtent, buffer.View, buffer2.View, vector.Columns);
 			vector.Gpu.Synchronize();
 		}
 
@@ -465,7 +465,7 @@ internal static class ShapeOpsCore
 
 			MemoryBuffer1D<int, Stride1D.Dense> buffer3 = vector.Gpu.accelerator.Allocate1D(select);
 
-			vector.Gpu.getSliceIntKernel(vector.Gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
+			vector.Gpu.getSliceInt(vector.Gpu.accelerator.DefaultStream, vector.RowCount(), buffer.View, buffer2.View, buffer3.View);
 			vector.Gpu.accelerator.Synchronize();
 			buffer3.Dispose();
 		}

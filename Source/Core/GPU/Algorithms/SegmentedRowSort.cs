@@ -25,11 +25,11 @@ internal static class SegmentedRowSort
 
 		if (order == SortOrder.Descending)
 		{
-			gpu.segmentedSortIntDescKern(gpu.DefaultStream, config, view, tempKeys, cols, rowCount);
+			gpu.segmentedSortIntDescIP(gpu.DefaultStream, config, view, tempKeys, cols, rowCount);
 			return;
 		}
 
-		gpu.segmentedSortIntAscKern(gpu.DefaultStream, config, view, tempKeys, cols, rowCount);
+		gpu.segmentedSortIntAscIP(gpu.DefaultStream, config, view, tempKeys, cols, rowCount);
 	}
 
 	internal static void SortFloatRows(
@@ -47,11 +47,11 @@ internal static class SegmentedRowSort
 
 		if (order == SortOrder.Descending)
 		{
-			gpu.segmentedSortFloatDescKern(gpu.DefaultStream, config, view, tempKeys, cols, rowCount);
+			gpu.segmentedSortFloatDescIP(gpu.DefaultStream, config, view, tempKeys, cols, rowCount);
 			return;
 		}
 
-		gpu.segmentedSortFloatAscKern(gpu.DefaultStream, config, view, tempKeys, cols, rowCount);
+		gpu.segmentedSortFloatAscIP(gpu.DefaultStream, config, view, tempKeys, cols, rowCount);
 	}
 
 	internal static void ArgsortIntPairsRows(
@@ -71,12 +71,12 @@ internal static class SegmentedRowSort
 
 		if (order == SortOrder.Descending)
 		{
-			gpu.segmentedSortIntPairsDescKern(
+			gpu.segmentedSortIntPairsDescIP(
 				gpu.DefaultStream, config, keys, indices, tempKeys, tempValues, cols, rowCount);
 			return;
 		}
 
-		gpu.segmentedSortIntPairsAscKern(
+		gpu.segmentedSortIntPairsAscIP(
 			gpu.DefaultStream, config, keys, indices, tempKeys, tempValues, cols, rowCount);
 	}
 
@@ -98,12 +98,12 @@ internal static class SegmentedRowSort
 
 		if (order == SortOrder.Descending)
 		{
-			gpu.segmentedSortFloatPairsDescKern(
+			gpu.segmentedSortFloatPairsDescIP(
 				gpu.DefaultStream, config, floatInput, keys, indices, tempKeys, tempValues, cols, rowCount);
 			return;
 		}
 
-		gpu.segmentedSortFloatPairsAscKern(
+		gpu.segmentedSortFloatPairsAscIP(
 			gpu.DefaultStream, config, floatInput, keys, indices, tempKeys, tempValues, cols, rowCount);
 	}
 }

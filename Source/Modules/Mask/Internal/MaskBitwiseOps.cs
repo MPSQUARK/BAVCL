@@ -76,7 +76,7 @@ internal static class MaskBitwiseOps
 	{
 		GPU gpu = output.Gpu;
 
-		gpu.maskWordOpKernel(
+		gpu.maskWordOp(
 			gpu.DefaultStream,
 			output.WordCount,
 			output.GetBuffer().View,
@@ -105,7 +105,7 @@ internal static class MaskBitwiseOps
 	{
 		GPU gpu = output.Gpu;
 
-		gpu.maskWordConstOpKernel(
+		gpu.maskWordConstOp(
 			gpu.DefaultStream,
 			output.WordCount,
 			output.GetBuffer().View,
@@ -124,7 +124,7 @@ internal static class MaskBitwiseOps
 
 		using (GpuScope.Begin(output, left, right))
 		{
-			gpu.maskLaneOpKernel(
+			gpu.maskLaneOp(
 				gpu.DefaultStream,
 				outputShape.ElementCount,
 				output.GetBuffer().View,
@@ -145,7 +145,7 @@ internal static class MaskBitwiseOps
 
 		using (GpuScope.Begin(io, right))
 		{
-			gpu.maskLaneOpKernelIP(
+			gpu.maskLaneOpIP(
 				gpu.DefaultStream,
 				outputShape.ElementCount,
 				io.GetBuffer().View,

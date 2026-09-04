@@ -11,24 +11,24 @@ namespace BAVCL;
 public partial class GPU
 {
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<float>, ArrayView<float>, int>
-		dotReduceFloatGroupedCompensatedKernel
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(dotReduceFloatGroupedCompensatedKernel));
+		dotReduceFloatGroupedCompensated
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(dotReduceFloatGroupedCompensated));
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<float>, int>
-		minMaxReduceFloatGroupedKernel
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(minMaxReduceFloatGroupedKernel));
+		minMaxReduceFloatGrouped
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(minMaxReduceFloatGrouped));
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<float>, int>
-		sumReduceFloatGroupedCompensatedKernel
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(sumReduceFloatGroupedCompensatedKernel));
+		sumReduceFloatGroupedCompensated
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(sumReduceFloatGroupedCompensated));
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<int>, int>
-		allNonZeroFloatGroupedKernel
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(allNonZeroFloatGroupedKernel));
+		allNonZeroFloatGrouped
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(allNonZeroFloatGrouped));
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<float>, int>
-		varReduceFloatGroupedKernel
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(varReduceFloatGroupedKernel));
+		varReduceFloatGrouped
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(varReduceFloatGrouped));
 
 	// Neumaier EC; see citations.md [9].
 	static void NeumaierAdd(ref double sum, ref double compensation, float input)
@@ -72,7 +72,7 @@ public partial class GPU
 		countA = count;
 	}
 
-	static void DotReduceFloatGroupedCompensatedKernel(
+	static void DotReduceFloatGroupedCompensated_Kern(
 		ArrayView<float> left,
 		ArrayView<float> right,
 		ArrayView<float> output,
@@ -90,7 +90,7 @@ public partial class GPU
 			output[Grid.IdxX] = groupSum;
 	}
 
-	static void MinMaxReduceFloatGroupedKernel(
+	static void MinMaxReduceFloatGrouped_Kern(
 		ArrayView<float> input,
 		ArrayView<float> partialMinMax,
 		int length)
@@ -119,7 +119,7 @@ public partial class GPU
 		partialMinMax[slot + 1] = groupMax;
 	}
 
-	static void SumReduceFloatGroupedCompensatedKernel(
+	static void SumReduceFloatGroupedCompensated_Kern(
 		ArrayView<float> input,
 		ArrayView<float> output,
 		int length)
@@ -136,7 +136,7 @@ public partial class GPU
 			output[Grid.IdxX] = groupSum;
 	}
 
-	static void AllNonZeroFloatGroupedKernel(
+	static void AllNonZeroFloatGrouped_Kern(
 		ArrayView<float> input,
 		ArrayView<int> output,
 		int length)
@@ -177,7 +177,7 @@ public partial class GPU
 		output[slot + 2] = m2;
 	}
 
-	internal static void VarReduceFloatGroupedSharedKernel(
+	internal static void VarReduceFloatGroupedShared_Kern(
 		ArrayView<float> input,
 		ArrayView<float> output,
 		int length)
@@ -209,7 +209,7 @@ public partial class GPU
 		WriteVarianceGroupOutput(output, accCount, accMean, accM2);
 	}
 
-	internal static void VarReduceFloatGroupedWarpTreeKernel(
+	internal static void VarReduceFloatGroupedWarpTree_Kern(
 		ArrayView<float> input,
 		ArrayView<float> output,
 		int length)
