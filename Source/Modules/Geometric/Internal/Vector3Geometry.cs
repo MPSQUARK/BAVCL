@@ -108,9 +108,9 @@ internal static class Vector3Geometry
 	{
 		using (vector.CpuScopeAndSync())
 		{
-			ReadOnlySpan<float> left = vector.GetCpuReadOnlySpan();
-			vector.Value = left.ToArray().Append(vertA.X).Append(vertA.Y).Append(vertA.Z).ToArray();
-			vector.Length = vector.Value.Length;
+			ReadOnlySpan<float> left = vector.RetrieveReadOnlySpan();
+			vector.Value = [..left, vertA.X, vertA.Y, vertA.Z];
+            vector.Length = vector.Value.Length;
 		}
 
 		return vector;
@@ -120,9 +120,8 @@ internal static class Vector3Geometry
 	{
 		using (vector.CpuScopeAndSync())
 		{
-			ReadOnlySpan<float> left = vector.GetCpuReadOnlySpan();
-			vector.Value = vertices.Aggregate(left.ToArray(), (current, vert) =>
-				current.Append(vert.X).Append(vert.Y).Append(vert.Z).ToArray());
+            vector.Value = vertices.Aggregate(vector.RetrieveReadOnlySpan().ToArray(), (current, vert) =>
+				[.. current, vert.X, vert.Y, vert.Z]);
 			vector.Length = vector.Value.Length;
 		}
 
@@ -133,9 +132,9 @@ internal static class Vector3Geometry
 	{
 		using (vector.CpuScopeAndSync())
 		{
-			ReadOnlySpan<float> left = vector.GetCpuReadOnlySpan();
+			ReadOnlySpan<float> left = vector.RetrieveReadOnlySpan();
 			vector.Value = vertices.Aggregate(left.ToArray(), (current, vert) =>
-				current.Append(vert.X).Append(vert.Y).Append(vert.Z).ToArray());
+				[.. current, vert.X, vert.Y, vert.Z]);
 			vector.Length = vector.Value.Length;
 		}
 
@@ -146,7 +145,7 @@ internal static class Vector3Geometry
 	{
 		using (vector.CpuScopeAndSync())
 		{
-			ReadOnlySpan<float> left = vector.GetCpuReadOnlySpan();
+			ReadOnlySpan<float> left = vector.RetrieveReadOnlySpan();
 			ReadOnlySpan<float> right = other.RetrieveReadOnlySpan();
 			vector.Value = left.ToArray().Concat(right.ToArray()).ToArray();
 			vector.Length = vector.Value.Length;
@@ -159,7 +158,7 @@ internal static class Vector3Geometry
 	{
 		using (vector.CpuScopeAndSync())
 		{
-			float[] merged = vector.GetCpuReadOnlySpan().ToArray();
+			float[] merged = vector.RetrieveReadOnlySpan().ToArray();
 			for (int i = 0; i < vectors.Length; i++)
 				merged = merged.Concat(vectors[i].RetrieveReadOnlySpan().ToArray()).ToArray();
 
@@ -174,9 +173,9 @@ internal static class Vector3Geometry
 	{
 		using (vector.CpuScopeAndSync())
 		{
-			float[] merged = vector.GetCpuReadOnlySpan().ToArray();
+			float[] merged = vector.RetrieveReadOnlySpan().ToArray();
 			for (int i = 0; i < vectors.Count; i++)
-				merged = merged.Concat(vectors[i].RetrieveReadOnlySpan().ToArray()).ToArray();
+				merged = [.. merged, .. vectors[i].RetrieveReadOnlySpan().ToArray()];
 
 			vector.Value = merged;
 			vector.Length = vector.Value.Length;
