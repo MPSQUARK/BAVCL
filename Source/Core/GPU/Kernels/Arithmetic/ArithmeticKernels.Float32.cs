@@ -53,6 +53,9 @@ public partial class GPU
 		rcpKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(ReciprocalKernel);
 		rsqrtKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>>(RsqrtKernel);
 		LogKernel = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, float>(LogKern);
+		reduceRowFusedCompensatedKernel = accelerator.LoadKernel<
+			ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int, SpecializedValue<int>>(
+			ReduceRowFusedCompensatedKernel);
 	}
 
 	static void Nan_to_numKernel(Index1D index, ArrayView<float> IO, float num)
