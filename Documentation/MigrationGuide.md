@@ -26,7 +26,7 @@ Milestones below are **oldest → newest**. When upgrading, read the breaking-ch
 | [`af8dfac`](https://github.com/MPSQUARK/BAVCL/commit/af8dfac) | Statistics module (`MeanX`, `VarX`, order-stat `*X` foundation) |
 | [`40b8876`](https://github.com/MPSQUARK/BAVCL/commit/40b8876) | **HEAD** — current `main` at time of writing |
 
-> **Working tree:** global reduce (`SumX`, `DotX`, `MinX`, `MaxX`, `AllX`, …), numeric guards, and unchecked-arithmetic policy (spec §2.8) are documented in this guide but land **after** `40b8876` — pin to a later commit once merged, or match your local tree.
+> **Working tree:** global reduce (`SumX`, `DotX`, `MinX`, `MaxX`, `AllX`, …) and unchecked-arithmetic policy (spec §2.8) are documented in this guide but land **after** `40b8876` — pin to a later commit once merged, or match your local tree.
 
 When upgrading, read sections for your **from → to** commits in order.
 
@@ -450,20 +450,6 @@ GPU paths that previously had no `X` suffix now do:
 - Load **`KernelWorkloads.Statistics`** before `SumX`, `MinX`, `DotX`, etc. Details: [BAVCLSpecification.md §4](./BAVCLSpecification.md#4-current-functionality-v0), [Features.md](./Features.md#statistics-bavclmodulesstatistics).
 - Float `SumX` / `DotX`: always compensated grouped reduce (Neumaier). Int paths: unchecked `int32` accum (see spec §2.8).
 - Invalid percentile → `FixedRangeException`. Empty `Mean` → `DivideByZeroException`.
-
-### Numeric guards vs .NET `ArgumentException.ThrowIf*`
-
-.NET 6+ provides argument guards (`ArgumentNullException.ThrowIfNull`, `ArgumentOutOfRangeException.ThrowIfNegative`, `ArgumentException.ThrowIfZero`, etc.). These throw **`ArgumentOutOfRangeException`** or **`ArgumentNullException`** — appropriate when the caller passed an invalid API argument.
-
-BAVCL uses **domain guards** in `Source/Core/Helpers/Guards/` when the failure is a **mathematical precondition**, not a bad parameter:
-
-| Guard | When to use | Exception |
-|-------|-------------|-----------|
-| `DivideByZeroGuard.ThrowIfZeroLength` | Length is used as a divisor (`Mean`, `MeanX`) | `DivideByZeroException` |
-| `EmptySequenceGuard.ThrowIfEmpty` | Operation has no identity on empty input (`Min`, `Max` on int) | `InvalidOperationException` |
-| `FixedRangeGuard.ThrowIfOutOfRange` | Value must lie in a fixed inclusive range (percentile ∈ [0, 100]) | `FixedRangeException` |
-
-Do **not** substitute `ArgumentException.ThrowIfZero` for `DivideByZeroGuard` — the exception type communicates intent to callers.
 
 ### Numerical accuracy (`float32`)
 
