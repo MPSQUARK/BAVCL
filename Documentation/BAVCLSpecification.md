@@ -157,6 +157,53 @@ vec.Sum();         // ndarray-style instance extension
 
 Consumers reference the BAVCL project directly. No NuGet packaging planned YET.
 
+### 2.8 Unchecked arithmetic (policy)
+
+**All BAVCL numeric code is unchecked.** Integer and floating-point operations use the storage type end-to-end — there is no silent widening of accumulators (e.g. no `int` → `long` in sum/dot kernels or CPU SIMD paths). Overflow, underflow, and modular wrap are the caller's responsibility, same as NumPy's default integer reductions.
+
+| Rule | Detail |
+|------|--------|
+| **Storage type = compute type** | `VectorInt` reductions accumulate in `int32`; element-wise `Vector` ops stay `float32`. CPU and GPU float **reductions** (`Sum`, `Dot`, `Var`) use float64 scratch accumulators where compensated summation applies (NumPy-style). |
+| **Wider results** | If the value range exceeds the storage type, use a wider type (`Vector` with float, or a future `VectorLong`) — BAVCL does not auto-promote element buffers. |
+| **Float error correction** | Float `Sum` / `Dot` / `SumX` / `DotX` always use **Neumaier** compensated summation ([`citations.md`](../citations.md), `neumaier74`). CPU widens SIMD chunks to float64 lanes; GPU uses float64 thread-local accumulators and host fold. `Var` / `VarX` use streaming Chan–Golub–LeVeque merge (`cgl79`). |
+| **Algorithm design** | Prefer formulations that limit intermediate growth (e.g. `scalar * Sum(v)` for dot-with-scalar) without widening buffers. |
+
+Invalid fixed ranges (e.g. percentile outside [0, 100]) throw `FixedRangeException` via `FixedRangeGuard`. Division by zero length (`Mean` on empty) throws `DivideByZeroException` via `DivideByZeroGuard`. Empty sequences for `Min`/`Max` on integers throw `InvalidOperationException` via `EmptySequenceGuard`.
+
+### 2.9 Numerical accuracy
+
+**Target:** `float32` results within **6 decimal places** on well-behaved inputs. Future `fp64` types will target proportionally tighter bounds.
+
+**Literature citations:** [`citations.md`](../citations.md) (MNRAS reference layout). Implementation keys: [`Documentation/NumericCitationKeys.md`](NumericCitationKeys.md).
+
+| Category | Operations | Method | Typical bound |
+|----------|------------|--------|---------------|
+| EC reductions | `Sum`, `SumX`, `Dot`, `DotX` | Widened SIMD Neumaier | abs error &lt; 10⁻⁵ on 10⁶ × 0.1 stress |
+| Variance | `Var`, `Std`, `VarX`, `StdX` | Streaming CGL on SIMD blocks | &lt; 10⁻⁵; stable on large-mean-offset data |
+| Order-preserving | `Min`, `Max`, `Range`, `MinMax` | SIMD min/max | Exact (bit-identical) |
+| Order stats | `Percentile`, `Median`, quartiles | Sort + linear interpolation | &lt; 10⁻⁵ |
+| Integer | `VectorInt` sum, mean | Unchecked `int32` | Exact until overflow |
+
+#### fp32 precision limits (debugging aid)
+
+`float32` has ~7 significant decimal digits. If values differ only in digits beyond that magnitude, they **round to the same float** and variance/sum correctly returns 0 spread:
+
+- **Symptom:** `Var` ≈ 0 but you expected spread on values like `1e9+1`, `1e9+2`, …
+- **Cause:** At magnitude 10⁹, adjacent integers are not representable in `float32` (ULP ≫ 1).
+- **Fix:** Use a wider type when it exists (`fp64`), centre/scaling before stats, or subtract a baseline on CPU before upload.
+
+#### Production algorithms and literature survey
+
+**Sum / dot (CPU):** widened SIMD Neumaier with float64 lane accumulators. **~4×** naive SIMD at N = 10⁶; **0** abs error on 10M×0.1f stress.
+
+**Variance (CPU):** SIMD block moments + streaming Chan–Golub–LeVeque merge; Welford tail for remainders. Stable on large-mean-offset data.
+
+**Surveyed 2020–2026 (no change adopted):** see [`citations.md`](../citations.md) and [`NumericCitationKeys.md`](NumericCitationKeys.md). None beat production on scalar float32 speed **and** our accuracy target.
+
+Implementation: `Source/Core/Helpers/Numerics/`. Accuracy report: `dotnet run -c Release --project BAVCL.Benchmarks -- --sum-accuracy-report`.
+
+CPU and GPU `*X` APIs are parity-tested to these bounds. See [MigrationGuide.md § Numerical accuracy](./MigrationGuide.md#numerical-accuracy-float32).
+
 ---
 
 ## 3. Architecture Overview
@@ -465,11 +512,11 @@ Implemented in `BAVCL.Modules.Statistics` (`StatisticsModule`, `VectorStatistics
 
 | Method | CPU | GPU (`X`) | Implementation / notes |
 | ------ | --- | --------- | ---------------------- |
-| `Sum()` | ✓ | — | CPU SIMD (`System.Numerics.Vector<float>`); Kahan for ≥10⁴ |
-| `SumX()` | — | ✓ | Grouped grid-stride reduce with per-thread Kahan accumulation (`AddFloat` tree for `VectorInt`); matches Kahan `Sum()` at large `N` |
+| `Sum()` | ✓ | — | Widened SIMD Neumaier (float64 scratch); always EC |
+| `SumX()` | — | ✓ | Grouped Neumaier kernel (float64 thread accumulators + host fold); `VectorInt` accumulates in `int32` (unchecked) |
 | `Mean()` | ✓ | — | `Sum() / Length` |
 | `MeanX()` | — | ✓ | `SumX() / Length` |
-| `Var()` | ✓ | — | Two-pass `System.Numerics.Vector` SIMD — **always CPU** (no size threshold) |
+| `Var()` | ✓ | — | Streaming CGL on SIMD blocks + Welford tail — **always CPU** |
 | `VarX()` | — | ✓ | `MeanX` + GPU `differenceSquared` + `SumX`; needs **Statistics** + **Arithmetic** |
 | `Std()` / `StdX()` | ✓ | ✓ | `Sqrt(Var)` / `Sqrt(VarX)` after scalar sync |
 | `Min()`, `Max()` | ✓ | — | CPU SIMD via `CpuSimdReduce` |
@@ -477,9 +524,9 @@ Implemented in `BAVCL.Modules.Statistics` (`StatisticsModule`, `VectorStatistics
 | `Range()` | ✓ | — | `Max - Min` |
 | `RangeX()` | — | ✓ | Fused grouped min/max kernel (one launch) |
 | `All()` | ✓ | — | CPU SIMD zero-check |
-| `AllX()` | — | ✓ | GPU compare-not-equals + packed-mask verify |
-| `Dot()` | ✓ | — | CPU SIMD dot (`Arithmetic` module); Kahan at ≥10⁴ |
-| `DotX()` | — | ✓ | Grouped `dotReduce` kernel with shared-memory block reduce (Statistics domain) |
+| `AllX()` | — | ✓ | Grouped non-zero scan (scalar flags; no full `Mask` buffer) |
+| `Dot()` | ✓ | — | CPU SIMD dot (`Arithmetic` module); Neumaier EC; scalar form uses `scalar * Sum` |
+| `DotX()` | — | ✓ | Grouped compensated `dotReduce` kernel (Statistics domain) |
 | `Percentile()`, `Median()`, `Quartile1()`, `Quartile3()`, `Iqr()` | ✓ | — | CPU `SortAsc` + linear interpolation |
 | `PercentileX()`, `MedianX()`, `Quartile1X()`, `Quartile3X()`, `IqrX()` | — | ✓ | GPU `SortAscX` + CPU index read |
 
@@ -864,7 +911,7 @@ Host-side checks remain for **API misuse** only: `InvalidOperationOnTypeExceptio
 | **Bit shifts** | `<<` / `>>` / `<<=` / `>>=` with `int` or `VectorInt` RHS only (no `<< mask` overload). `>>` is arithmetic. Counts follow C# mod-32 masking. |
 | **Omitted** | Float-only ops (`LogX`, `Rsqrt`, `ReciprocalX`, `NanToNumX`, `NormaliseX`, `distance`, `magnitude`, `pow`) throw `InvalidOperationOnTypeException` if passed to GpuOps. |
 | **Reduce** | Unsupported `ReduceOPX` values throw `UnsupportedOperationException`. |
-| **Statistics** | `Sum()` via `long` internally; `Min()`/`Max()`/`Range()` return `int`. `All()` — true when no zero values. |
+| **Statistics** | `Sum()` / `SumX()` unchecked `int32` accum → `float` result; `Min()`/`Max()`/`Range()` return `int`. `All()` — true when no zero values. |
 | **Structural** | `Concat`/`ConcatColumnX`/`Merge`/`AppendIP`/`ReverseIP`/`GetRowAsArray` — parity with `Vector`. Row concat via `Concat`/`ConcatIP`; column via `ConcatColumnX`/`ConcatColumnXIP`. |
 
 #### Mask operators (same semantics as `Vector`)
@@ -1053,7 +1100,22 @@ Implementation target: `System.Numerics.Vector<int>` / packed word scan via `Ret
 
 ## 7. Kernel Module System
 
-**Agent / implementer reference:** see [GPGPUKernelGuide.md](./GPGPUKernelGuide.md) for GPU design principles, host/device boundaries, and patterns. Project skill: `.agents/skills/bavcl-gpgpu/`.
+**Agent / implementer reference:** principles P1–P6 below (full elaboration in `.agents/skills/bavcl-gpgpu/`). Legacy standalone [GPGPUKernelGuide.md](./GPGPUKernelGuide.md) is a pointer to this section.
+
+### 7.0 Device-side design principles (P1–P6)
+
+| | Principle |
+|---|-----------|
+| **P1** | Maximize parallelism — map threads to independent work |
+| **P2** | Match hardware (element / word / gather as layout dictates) |
+| **P3** | Host precomputes O(1) setup; device does the operation |
+| **P4** | Avoid **divergent** branching; uniform specialized `switch` is fine |
+| **P5** | Kernels simple; dispatch must not dwarf them |
+| **P6** | Tests in `BAVCL.Tests`; `Testing Console/` is manual only |
+
+**Host API:** one `GpuScope.Begin(modified, readOnly…)` when all buffers exist. Rent scratch from `BufferPools` only — no `accelerator.Allocate1D` in dispatch. Reads: `RetrieveReadOnlySpan()`; never `CpuScope` for read-only.
+
+**Pre-submit:** launch maximizes parallel work? parallel unit fits layout? host precompute used? branches uniform? kernel simpler than dispatch? follows domain pattern?
 
 ### 7.1 Module Dimensions
 
@@ -1290,7 +1352,7 @@ Evaluate C# DUs (expected .NET 11) to reduce per-type operation boilerplate. Unt
 
 ### 10.2 SIMD Usage (v0)
 
-`Vector.Sum()` uses `System.Numerics.Vector<float>` with Kahan summation for arrays ≥ 10⁴ elements. `Var()` uses SIMD for smaller arrays.
+`Vector.Sum()` and `Vector.Dot()` always use widened SIMD Neumaier (`System.Numerics.Vector<float>` chunks → float64 accumulators). `Var()` uses SIMD block moments + streaming CGL merge at all lengths.
 
 ### 10.3 Operator Overloads (Target)
 
@@ -1468,6 +1530,28 @@ VS Code `launch.json` references `net6.0` but projects target `net10.0` — stal
 | Multi-GPU auto-distribution | Manual device selection first     |
 | Public NuGet                | Not planned                       |
 | README                      | To be created after spec approval |
+
+### 18.1 ILGPU algorithm batches (roadmap)
+
+| Batch | Status | APIs |
+|-------|--------|------|
+| **1 Global reduce** | **Implemented** | `SumX`, `DotX`, `MinX`, `MaxX`, `MeanX`, `VarX`, `StdX`, `AllX`, `RangeX`, `MinMaxX`, `ReduceOPX` |
+| **2 Prefix scan** | Planned | `CumSumX`, `CumSumExclusiveX` |
+| **3 Histogram** | Planned | GPU histogram / binning |
+| **4 Segmented sort** | Partial | 2D row sort via `SortAscX` on matrices |
+
+Crossover benchmarks and measured `N` thresholds: `BAVCL.Benchmarks` (`ReduceBenchmark`, `MeanVarBenchmark`, `AllXBenchmark`).
+
+**`AllX` grouped scan vs legacy mask materialization** (`AllXBenchmark`, InProcess, RTX-class GPU, 2026-09-04):
+
+| N | Type | Grouped scan | Legacy mask | Speedup | Alloc ratio |
+|---|------|-------------|-------------|---------|-------------|
+| 10⁴ | float | 30.5 µs | 92.6 µs | ~3.0× | ~8.5× less |
+| 10⁴ | int | 124 µs | 169 µs | ~1.4× | ~11× less |
+| 10⁶ | float | 118 µs | 372 µs | ~3.2× | ~15× less |
+| 10⁶ | int | 58.5 µs | 432 µs | ~7.4× | ~15× less |
+
+Grouped non-zero scan is faster at all measured sizes and avoids allocating a full `Mask` buffer.
 
 ---
 
