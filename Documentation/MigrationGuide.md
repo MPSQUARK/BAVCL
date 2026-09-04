@@ -2,6 +2,34 @@
 
 This guide covers breaking API changes introduced with the `Shape` struct, CPU/GPU coherence (`Residence` flags), and scope-based pinning.
 
+## Change history
+
+BAVCL is source-referenced (no NuGet yet). Pin your consumer to a **git commit** — not a calendar date or informal version number.
+
+```bash
+git checkout <commit>   # e.g. 40b8876
+```
+
+Milestones below are **oldest → newest**. When upgrading, read the breaking-change sections for every commit you cross.
+
+| Commit | Summary |
+|--------|---------|
+| [`9d9b79c`](https://github.com/MPSQUARK/BAVCL/commit/9d9b79c) | `Residence` flags; public `Value` removed; `GetValues` retired from the public read path |
+| [`b8527f3`](https://github.com/MPSQUARK/BAVCL/commit/b8527f3) | `Shape` struct; residence model approved |
+| [`0a95062`](https://github.com/MPSQUARK/BAVCL/commit/0a95062) | Residence model integrated across cache/sync paths |
+| [`1d3b611`](https://github.com/MPSQUARK/BAVCL/commit/1d3b611) | `KernelModuleLoader` — selective kernel domain loading |
+| [`0bf7d4f`](https://github.com/MPSQUARK/BAVCL/commit/0bf7d4f) | `KernelWorkloads` bundles |
+| [`0539b03`](https://github.com/MPSQUARK/BAVCL/commit/0539b03) | `X` / `IP` suffix rename; GPU-first operator alignment |
+| [`3304046`](https://github.com/MPSQUARK/BAVCL/commit/3304046) | `RetrieveReadOnlySpan()` as the read entry point |
+| [`57e3bac`](https://github.com/MPSQUARK/BAVCL/commit/57e3bac) | Deprecated read/write APIs removed |
+| [`8c5644b`](https://github.com/MPSQUARK/BAVCL/commit/8c5644b) | `GpuScope` pinning conventions |
+| [`af8dfac`](https://github.com/MPSQUARK/BAVCL/commit/af8dfac) | Statistics module (`MeanX`, `VarX`, order-stat `*X` foundation) |
+| [`40b8876`](https://github.com/MPSQUARK/BAVCL/commit/40b8876) | **HEAD** — current `main` at time of writing |
+
+> **Working tree:** global reduce (`SumX`, `DotX`, `MinX`, `MaxX`, `AllX`, …), numeric guards, and unchecked-arithmetic policy (spec §2.8) are documented in this guide but land **after** `40b8876` — pin to a later commit once merged, or match your local tree.
+
+When upgrading, read sections for your **from → to** commits in order.
+
 ## Breaking changes
 
 ### Public `Value` field removed
@@ -416,12 +444,44 @@ GPU paths that previously had no `X` suffix now do:
 
 **Concat:** `Concat` / `ConcatIP` are **row-axis only** (CPU). Column-axis GPU concat uses `ConcatColumnX` / `ConcatColumnXIP`. Passing `ConcatAxis.Column` to `Concat` throws — use the column APIs instead.
 
-### Global reduce (`*X`) — Batch 1
+### Global reduce (`*X`)
 
-- **`Var()`** and **`Dot()`** are now **always CPU** (SIMD). They no longer silently route large inputs through GPU `OP` + `Sum()`.
-- For explicit GPU scalar reduces, use **`SumX`**, **`MinX`**, **`MaxX`**, **`MeanX`**, **`VarX`**, **`StdX`**, **`AllX`**, **`RangeX`**, **`DotX`** on `Vector` / `VectorInt`.
-- Load **`KernelWorkloads.Statistics`** before any `*X` reduce (`Load<float>` and `Load<int>`). `DotX` / `RangeX` use explicitly grouped Statistics kernels (`GroupExtensions.AllReduce`); `VarX` on `VectorInt` uses a native float-mean squared-diff kernel (no `Vector` cast).
-- Primitive-array `Min` / `Max` / `Average` remain CPU-only.
+- **`Var()`** and **`Dot()`** are **always CPU** (SIMD). Use explicit `*X` APIs for GPU.
+- Load **`KernelWorkloads.Statistics`** before `SumX`, `MinX`, `DotX`, etc. Details: [BAVCLSpecification.md §4](./BAVCLSpecification.md#4-current-functionality-v0), [Features.md](./Features.md#statistics-bavclmodulesstatistics).
+- Float `SumX` / `DotX`: always compensated grouped reduce (Neumaier). Int paths: unchecked `int32` accum (see spec §2.8).
+- Invalid percentile → `FixedRangeException`. Empty `Mean` → `DivideByZeroException`.
+
+### Numeric guards vs .NET `ArgumentException.ThrowIf*`
+
+.NET 6+ provides argument guards (`ArgumentNullException.ThrowIfNull`, `ArgumentOutOfRangeException.ThrowIfNegative`, `ArgumentException.ThrowIfZero`, etc.). These throw **`ArgumentOutOfRangeException`** or **`ArgumentNullException`** — appropriate when the caller passed an invalid API argument.
+
+BAVCL uses **domain guards** in `Source/Core/Helpers/Guards/` when the failure is a **mathematical precondition**, not a bad parameter:
+
+| Guard | When to use | Exception |
+|-------|-------------|-----------|
+| `DivideByZeroGuard.ThrowIfZeroLength` | Length is used as a divisor (`Mean`, `MeanX`) | `DivideByZeroException` |
+| `EmptySequenceGuard.ThrowIfEmpty` | Operation has no identity on empty input (`Min`, `Max` on int) | `InvalidOperationException` |
+| `FixedRangeGuard.ThrowIfOutOfRange` | Value must lie in a fixed inclusive range (percentile ∈ [0, 100]) | `FixedRangeException` |
+
+Do **not** substitute `ArgumentException.ThrowIfZero` for `DivideByZeroGuard` — the exception type communicates intent to callers.
+
+### Numerical accuracy (`float32`)
+
+Target: results within **6 significant decimal places** of the mathematically exact answer where EC accumulation applies. `fp64` is not implemented yet; when it is, expect tighter bounds (typically ≤ 12 dp).
+
+| Operation | CPU / GPU parity | Typical abs error (well-behaved data) | Notes |
+|-----------|------------------|---------------------------------------|-------|
+| `Sum` / `SumX` (all N) | ✓ | &lt; 10⁻⁵ on 10⁶-element stress (0.1 repeated) | Neumaier; float64 scratch (CPU and GPU) |
+| `Dot` / `DotX` | ✓ | Same as sum | Scalar dot uses `scalar * Sum(v)` |
+| `Min` / `Max` / `Range` | ✓ | Exact (bit-identical) | Except empty float GPU min → `NaN` |
+| `Mean` / `MeanX` | ✓ | Inherited from sum / N | |
+| `Var` / `Std` / `*X` | ✓ | &lt; 10⁻⁵ | Single-pass variance (Welford + Chan merge) |
+| Order stats (`Percentile`, `Median`, …) | ✓ | &lt; 10⁻⁵ | Sort + linear interpolation |
+| `VectorInt` sum / mean | ✓ | Exact until `int32` overflow | Unchecked wrap — see spec §2.8 |
+
+GPU `*X` paths are tested for parity with CPU within the tolerances above. Neumaier EC is always active on float sum/dot (see spec §2.9).
+
+**fp32 precision:** if `Var`/`Sum` look wrong on large-magnitude data, check spec §2.9 *fp32 precision limits* before chasing algorithm bugs.
 
 ## Benchmarks
 
