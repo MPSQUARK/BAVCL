@@ -20,7 +20,12 @@ internal static class DescriptiveStatistics
 	internal static float Var(Vector vector) =>
 		CpuSimdReduce.VarFloat(vector.RetrieveReadOnlySpan());
 
+	internal static float SampleVar(Vector vector) =>
+		CpuSimdReduce.SampleVarFloat(vector.RetrieveReadOnlySpan());
+
 	internal static float Std(Vector vector) => XMath.Sqrt(Var(vector));
+
+	internal static float SampleStd(Vector vector) => XMath.Sqrt(SampleVar(vector));
 
 	internal static float Min(Vector vector) =>
 		CpuSimdReduce.MinFloat(vector.RetrieveReadOnlySpan());
@@ -55,7 +60,12 @@ internal static class DescriptiveStatistics
 	internal static float Var(VectorInt vector) =>
 		CpuSimdReduce.VarInt(vector.RetrieveReadOnlySpan());
 
+	internal static float SampleVar(VectorInt vector) =>
+		CpuSimdReduce.SampleVarInt(vector.RetrieveReadOnlySpan());
+
 	internal static float Std(VectorInt vector) => XMath.Sqrt(Var(vector));
+
+	internal static float SampleStd(VectorInt vector) => XMath.Sqrt(SampleVar(vector));
 
 	internal static int Min(VectorInt vector) =>
 		CpuSimdReduce.MinInt(vector.RetrieveReadOnlySpan());
