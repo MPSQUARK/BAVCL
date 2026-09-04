@@ -1,5 +1,5 @@
 using BAVCL.Core.Exceptions;
-using BAVCL.Modules.GpuOps;
+using BAVCL.GpuAlgorithms;
 
 namespace BAVCL.Modules.Statistics;
 
@@ -8,13 +8,13 @@ internal static class ReduceCore
 	internal static Vector ReduceOPX(Vector vector, Vector matrix, Operations operation)
 	{
 		ValidateReduceOperands(vector, matrix, nameof(ReduceOPX));
-		return VectorVectorOp.RunReduceRowOp(vector, matrix, operation);
+		return RowReduceAlgorithms.Reduce(vector, matrix, operation);
 	}
 
 	internal static VectorInt ReduceOPX(VectorInt vector, VectorInt matrix, Operations operation)
 	{
 		ValidateReduceOperands(vector, matrix, nameof(ReduceOPX));
-		return VectorVectorOp.RunReduceRowOp(vector, matrix, operation);
+		return RowReduceAlgorithms.Reduce(vector, matrix, operation);
 	}
 
 	static void ValidateReduceOperands(Vector vector, Vector matrix, string operationName)
