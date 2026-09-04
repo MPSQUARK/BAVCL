@@ -24,6 +24,14 @@ Data-dependent per-thread branches → bad (divergence). `switch` on specialized
 
 Dispatch must not be more complex than the kernels it launches. Reuse domain patterns before inventing new abstractions.
 
+## GpuScope
+
+If every buffer for the launch already exists, one `GpuScope.Begin(modified, readOnly…)`. Nested `BeginReadOnly` + `Begin(modified)` is only valid when you must pin an existing object **before** a later allocate/rent (that allocation can run LRU.GC and evict an unpinned input). After the new buffer exists, pin it; do not keep stacking scopes that could have been one `Begin`.
+
+## Device memory (LRU only)
+
+Device storage is created only through the memory manager / `BufferPools` cacheables. Algorithm and kernel-host code must not call `accelerator.Allocate1D` (or equivalent). Need a new cached shape → new cacheable type, not a buffer field on `GPU`.
+
 ## P6 — Repo boundaries
 
 Automated tests → `BAVCL.Tests`. `Testing Console/` → manual scratch only.

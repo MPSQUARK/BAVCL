@@ -23,7 +23,9 @@ BAVCL is an HPC GPU math library on ILGPU 1.5.3. Device-side code must exploit G
 |----|-------|
 | `RetrieveReadOnlySpan()` for all reads | Open `CpuScope` for read-only |
 | `CpuScope` + `scope.View` for in-place edits | Call `SyncCPU()` in module/consumer code |
-| `GpuScope.Begin(modified, readOnly…)` when buffers exist | Stack `BeginReadOnly` + `Begin(modified)` for same launch |
+| `GpuScope.Begin(modified, readOnly…)` when **all** launch buffers already exist | Stack `BeginReadOnly` + `Begin(modified)` for the same launch |
+| Nested `GpuScope` only to pin, then allocate, then pin the new buffer (LRU must not evict an unpinned input) | Extra scopes after every buffer is already live |
+| Rent scratch from `BufferPools` / cacheable types (LRU) | `accelerator.Allocate1D` (or other device alloc) in algorithm or kernel-host code |
 | One `RetrieveReadOnlySpan()` per read loop | `GetAt` / `SetAt` in tight loops |
 | Pin via `GpuScope` only | Manual pinning outside `GpuScope` |
 
@@ -66,6 +68,8 @@ Quick reference: [references/principles.md](./references/principles.md)
 | Structural edit | `CpuScopeAndSync` + `RetrieveReadOnlySpan()` then assign `Value` |
 
 Do not open `CpuScope` for read-only access. Pin with `GpuScope` before kernels.
+
+When a kernel needs temporary device storage, rent a `BufferEntity` from `BufferPools.For(gpu)` (or another LRU cacheable). Do not store `MemoryBuffer` fields on `GPU` or allocate from the accelerator in dispatch code. New layouts that must stay cached get a new cacheable type, the same way pool slots do.
 
 ## Pre-submit (must justify any "no")
 
