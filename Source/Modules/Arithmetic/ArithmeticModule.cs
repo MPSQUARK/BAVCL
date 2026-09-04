@@ -1,4 +1,5 @@
 using BAVCL.Modules.Structural;
+using BAVCL.GpuAlgorithms;
 
 namespace BAVCL.Modules.Arithmetic;
 
@@ -18,6 +19,9 @@ public static class ArithmeticModule
 	{
 		public static float Sum(Vector vector) => SumCore.Sum(vector);
 
+		public static float SumX(Vector vector) =>
+			GlobalReduceAlgorithms.Sum(vector);
+
 		public static Vector Abs(Vector vector) => ElementWiseCore.Abs(vector);
 
 		public static Vector AbsX(Vector vector) => ElementWiseCore.AbsX(vector);
@@ -27,6 +31,12 @@ public static class ArithmeticModule
 		public static float Dot(Vector left, Vector right) => DotProductCore.Dot(left, right);
 
 		public static float Dot(Vector vector, float scalar) => DotProductCore.Dot(vector, scalar);
+
+		public static float DotX(Vector left, Vector right) =>
+			GpuDotCore.DotX(left, right);
+
+		public static float DotX(Vector vector, float scalar) =>
+			GpuDotCore.DotX(vector, scalar);
 
 		public static Vector DiffX(Vector vector) => ElementWiseCore.DiffX(vector);
 
@@ -70,6 +80,8 @@ public static class ArithmeticModule
 	{
 		public static float Sum(VectorInt vector) => SumCore.Sum(vector);
 
+		public static float SumX(VectorInt vector) => GlobalReduceAlgorithms.Sum(vector);
+
 		public static VectorInt Abs(VectorInt vector) => ElementWiseCore.Abs(vector);
 
 		public static VectorInt AbsX(VectorInt vector) => ElementWiseCore.AbsX(vector);
@@ -79,6 +91,10 @@ public static class ArithmeticModule
 		public static float Dot(VectorInt left, VectorInt right) => DotProductCore.Dot(left, right);
 
 		public static float Dot(VectorInt vector, int scalar) => DotProductCore.Dot(vector, scalar);
+
+		public static float DotX(VectorInt left, VectorInt right) => GpuDotCore.DotX(left, right);
+
+		public static float DotX(VectorInt vector, int scalar) => GpuDotCore.DotX(vector, scalar);
 
 		public static VectorInt DiffX(VectorInt vector) => ElementWiseCore.DiffX(vector);
 
@@ -123,6 +139,8 @@ public static class VectorArithmeticExtensions
 	{
 		public float Sum() => Vector.Sum(vector);
 
+		public float SumX() => Vector.SumX(vector);
+
 		public Vector Abs() => Vector.Abs(vector);
 
 		public Vector AbsIP()
@@ -144,6 +162,12 @@ public static class VectorArithmeticExtensions
 		public float Dot(Vector vectorB) => Vector.Dot(vector, vectorB);
 
 		public float Dot(float scalar) => Vector.Dot(vector, scalar);
+
+		public float DotX(Vector vectorB) =>
+			Vector.DotX(vector, vectorB);
+
+		public float DotX(float scalar) =>
+			Vector.DotX(vector, scalar);
 
 		public Vector DiffX() => Vector.DiffX(vector);
 
@@ -204,6 +228,8 @@ public static class VectorArithmeticExtensions
 	{
 		public float Sum() => VectorInt.Sum(vector);
 
+		public float SumX() => VectorInt.SumX(vector);
+
 		public VectorInt Abs() => VectorInt.Abs(vector);
 
 		public VectorInt AbsIP()
@@ -225,6 +251,10 @@ public static class VectorArithmeticExtensions
 		public float Dot(VectorInt vectorB) => VectorInt.Dot(vector, vectorB);
 
 		public float Dot(int scalar) => VectorInt.Dot(vector, scalar);
+
+		public float DotX(VectorInt vectorB) => VectorInt.DotX(vector, vectorB);
+
+		public float DotX(int scalar) => VectorInt.DotX(vector, scalar);
 
 		public VectorInt DiffX() => VectorInt.DiffX(vector);
 
