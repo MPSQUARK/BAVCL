@@ -26,7 +26,6 @@
   <!-- IDE0130: namespaces are rooted at Source/, not the repo directory that contains this csproj. -->
   <PropertyGroup>
     <ProjectDir>$(MSBuildProjectDirectory)\Source\</ProjectDir>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
