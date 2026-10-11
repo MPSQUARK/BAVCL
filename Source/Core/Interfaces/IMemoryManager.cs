@@ -1,6 +1,8 @@
 using ILGPU.Runtime;
 using System;
 using System.Collections.Generic;
+using BAVCL.Core.Enums;
+using BAVCL.Core.Helpers;
 
 namespace BAVCL.Core.Interfaces;
 
@@ -34,15 +36,14 @@ public interface IMemoryManager
     /// Checks whether the item with the given ID is stored in the memory manager.
     /// </summary>
     public virtual bool IsStored(uint id) => StoredIDs().Contains(id);
-    public virtual string PrintMemoryUsage(bool percentage, string format = "F2")
+    public virtual string PrintMemoryUsage(bool percentage, string format = "F2", MemoryUsageUnit unit = MemoryUsageUnit.Auto)
     {
         string usage;
 
         if (percentage)
             usage = $"{(((double)MemoryUsed / (double)AvailableMemory) * 100f).ToString(format)}%";
         else
-            usage = $"{(MemoryUsed >> 20).ToString(format)}/{(AvailableMemory >> 20).ToString(format)} MB";
-        // TODO: Add view in Bytes/KB/GB too
+            usage = MemoryUsageFormatting.FormatAbsolute(MemoryUsed, AvailableMemory, unit, format);
 
         Console.WriteLine(usage);
         return usage;
