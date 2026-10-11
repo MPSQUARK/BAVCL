@@ -63,7 +63,7 @@ public sealed class BufferEntity<T> : IDisposable where T : unmanaged
 		if (!vessel.IsVessel)
 			throw new VesselAlreadyInhabitedException(typeof(TCacheable));
 
-		GpuValidation.RequireSame(Gpu, vessel.Gpu);
+		GpuValidation.IsSameVesselContainer(Gpu, vessel.Gpu);
 		BufferIdTransfer.Possess(_slot, vessel.Target);
 		_possessed = true;
 	}
