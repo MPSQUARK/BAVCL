@@ -9,6 +9,7 @@ BAVCL uses **namespace feature gates** — import a module namespace and extensi
 ```csharp
 using BAVCL.Modules.Arithmetic;
 using BAVCL.Modules.Structural;
+using BAVCL.Modules.Scan;
 using BAVCL.Modules.Sorting;
 
 Vector v = new(gpu, [3f, 1f, 2f]);
@@ -64,6 +65,7 @@ These names are **GPU-only** by design — no `X` suffix:
 
 - **CPU:** `Sum` (via Arithmetic), `Mean`, `Var` / `SampleVar`, `Std` / `SampleStd`, `Min`, `Max`, `Range`, `All`, `Percentile`, `Median`, `Quartile1`, `Quartile3`, `Iqr` on vectors and primitive arrays
 - **GPU:** `SumX`, `MinX`, `MaxX`, `MeanX`, `VarX` / `SampleVarX`, `StdX` / `SampleStdX`, `AllX`, `RangeX`, `PercentileX`, `MedianX`, `Quartile1X`, `Quartile3X`, `IqrX` on `Vector` / `VectorInt`; `ReduceOPX` — row reduction against a coefficient vector
+- **Rolling (0.9.4):** `RollingSum` / `MovingAverage` + `*X` — any window `k`, 1D and per-row 2D (`Columns > 1`), NumPy `convolve(..., mode='same')` edge policy per row; built on `CumSum` + shift-subtract
 - `Var` / `VarX` are **population** variance (divide by N). `SampleVar` / `SampleVarX` are unbiased **sample** variance (divide by N−1). `Mean` / `MeanX` are the arithmetic mean (no separate sample vs population formula).
 - `SumX` / `DotX` always use compensated grouped GPU reduce (Neumaier), matching CPU `Sum` / `Dot` at all lengths. `RangeX` / `MinMaxX` use a single grouped min/max pass; `AllX` uses a grouped non-zero scan (no full `Mask` materialization)
 - `MinMax` / `MinMaxX` return `MinMax<T>`. `Dot(scalar)` / `DotX(scalar)` use `scalar * Sum`
@@ -89,8 +91,17 @@ These names are **GPU-only** by design — no `X` suffix:
 ### Masking (`BAVCL.Modules.Masking`)
 
 - **`OP` / `IPOP`** on `Mask` (bitwise)
-- **`MaskX`**, **`FilterX`**, **`PartitionX`** on `Vector` / `VectorInt`
+- **`MaskX`**, **`FilterX`**, **`PartitionX`** on `Vector` / `VectorInt` (GPU scan compaction in 0.9.3); **`&` / `|` / `/ mask` / `v[mask]`** operators call these accelerated paths (not CPU `Filter`/`Partition`)
+- **`Mask`**, **`Filter`**, **`Partition`** on `Vector` / `VectorInt` — explicit CPU `MaskCompactionReference` (operators still use accelerated **`MaskX`** / **`FilterX`** / **`PartitionX`**)
+- **`Where`** / **`WhereX`** on `Mask` — true source indices (`np.where(mask)[0]` / `flatnonzero`)
+- **`CountTrue`** / **`Any`** / **`All`** + **`*X`** on `Mask`
+- **`FirstTrueIndex`** / **`LastTrueIndex`** + **`*X`** on `Mask`
 - **`CompareEqualsX`**, **`CompareNotEqualsX`**, **`CompareX`** and comparison operators → `Mask`
+
+### Scan (`BAVCL.Modules.Scan`)
+
+- **`CumSum`**, **`CumSumExclusive`**, **`CumProd`**, **`CumProdExclusive`** + **`IP`** / **`X`** / **`XIP`** on `Vector` / `VectorInt`
+- 1D and per-row 2D (`Columns > 1`); int product is unchecked overflow
 
 ### Sorting (`BAVCL.Modules.Sorting`)
 
