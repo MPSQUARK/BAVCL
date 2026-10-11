@@ -4,9 +4,17 @@ namespace BAVCL.Core.Helpers;
 
 internal static class GpuValidation
 {
-	internal static void RequireSame(GPU expected, GPU actual)
+	internal static void IsSameGpu(GPU left, GPU right)
 	{
-		if (ReferenceEquals(expected, actual))
+		if (ReferenceEquals(left, right))
+			return;
+
+		throw new GpuMismatchException();
+	}
+
+	internal static void IsSameVesselContainer(GPU vesselGpu, GPU containerGpu)
+	{
+		if (ReferenceEquals(vesselGpu, containerGpu))
 			return;
 
 		throw new VesselGpuMismatchException();
