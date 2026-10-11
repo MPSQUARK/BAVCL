@@ -165,6 +165,18 @@ public static class VectorStatistics
 
 		public static float IqrX(Vector vector) => GpuOrderStatistics.IqrX(vector);
 
+		public static Vector RollingSum(Vector vector, int window, bool syncToGpu = true) =>
+			RollingStatsCore.RollingSum(vector, window, syncToGpu);
+
+		public static Vector MovingAverage(Vector vector, int window, bool syncToGpu = true) =>
+			RollingStatsCore.MovingAverage(vector, window, syncToGpu);
+
+		public static Vector RollingSumX(Vector vector, int window) =>
+			GpuRollingStatsCore.RollingSumX(vector, window);
+
+		public static Vector MovingAverageX(Vector vector, int window) =>
+			GpuRollingStatsCore.MovingAverageX(vector, window);
+
 		public static Vector ReduceOPX(Vector vector, Vector matrix, Operations operation) =>
 			ReduceCore.ReduceOPX(vector, matrix, operation);
 	}
@@ -256,6 +268,18 @@ public static class VectorStatistics
 		public static float Quartile3X(VectorInt vector) => GpuOrderStatistics.Quartile3X(vector);
 
 		public static float IqrX(VectorInt vector) => GpuOrderStatistics.IqrX(vector);
+
+		public static VectorInt RollingSum(VectorInt vector, int window, bool syncToGpu = true) =>
+			RollingStatsCore.RollingSum(vector, window, syncToGpu);
+
+		public static Vector MovingAverage(VectorInt vector, int window, bool syncToGpu = true) =>
+			RollingStatsCore.MovingAverage(vector, window, syncToGpu);
+
+		public static VectorInt RollingSumX(VectorInt vector, int window) =>
+			GpuRollingStatsCore.RollingSumX(vector, window);
+
+		public static Vector MovingAverageX(VectorInt vector, int window) =>
+			GpuRollingStatsCore.MovingAverageX(vector, window);
 
 		public static VectorInt ReduceOPX(VectorInt vector, VectorInt matrix, Operations operation) =>
 			ReduceCore.ReduceOPX(vector, matrix, operation);
@@ -409,6 +433,16 @@ public static class StatisticsModule
 
 		public float IqrX() => VectorStatistics.IqrX(vector);
 
+		public Vector RollingSum(int window, bool syncToGpu = true) =>
+			VectorStatistics.RollingSum(vector, window, syncToGpu);
+
+		public Vector MovingAverage(int window, bool syncToGpu = true) =>
+			VectorStatistics.MovingAverage(vector, window, syncToGpu);
+
+		public Vector RollingSumX(int window) => VectorStatistics.RollingSumX(vector, window);
+
+		public Vector MovingAverageX(int window) => VectorStatistics.MovingAverageX(vector, window);
+
 		public Vector ReduceOPX(Vector matrix, Operations operation) =>
 			VectorStatistics.ReduceOPX(vector, matrix, operation);
 	}
@@ -491,6 +525,16 @@ public static class StatisticsModule
 		public float Quartile3X() => VectorStatistics.Quartile3X(vector);
 
 		public float IqrX() => VectorStatistics.IqrX(vector);
+
+		public VectorInt RollingSum(int window, bool syncToGpu = true) =>
+			VectorStatistics.RollingSum(vector, window, syncToGpu);
+
+		public Vector MovingAverage(int window, bool syncToGpu = true) =>
+			VectorStatistics.MovingAverage(vector, window, syncToGpu);
+
+		public VectorInt RollingSumX(int window) => VectorStatistics.RollingSumX(vector, window);
+
+		public Vector MovingAverageX(int window) => VectorStatistics.MovingAverageX(vector, window);
 
 		public VectorInt ReduceOPX(VectorInt matrix, Operations operation) =>
 			VectorStatistics.ReduceOPX(vector, matrix, operation);
