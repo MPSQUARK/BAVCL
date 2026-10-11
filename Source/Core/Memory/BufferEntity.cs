@@ -39,6 +39,9 @@ public sealed class BufferEntity<T> : IDisposable where T : unmanaged
 	/// <summary>CPU read view over <see cref="Length"/> after a pinned kernel launch.</summary>
 	internal ReadOnlySpan<T> ReadRentedSpan() => _slot.RetrieveReadOnlySpan()[.._length];
 
+	/// <summary>First rented element after a single-lane reduction or scalar kernel output.</summary>
+	internal T ReadRentedFirst() => ReadRentedSpan()[0];
+
 	internal BufferEntity(ElementBufferPool<T> pool, BufferSlot<T> slot, int length)
 	{
 		_pool = pool;
