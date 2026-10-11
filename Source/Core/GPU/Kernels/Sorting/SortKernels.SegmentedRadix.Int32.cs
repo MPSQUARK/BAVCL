@@ -13,18 +13,18 @@ public partial class GPU
 	internal const int SegmentedRadixGroupSize = 256;
 
 	public Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, int, int> segmentedSortIntAscIP
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortIntAscIP));
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortIntAscIP), KernelDomain.Sorting);
 
 	public Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, int, int> segmentedSortIntDescIP
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortIntDescIP));
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortIntDescIP), KernelDomain.Sorting);
 
 	public Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>
 		segmentedSortIntPairsAscIP
-		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortIntPairsAscIP));
+		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortIntPairsAscIP), KernelDomain.Sorting);
 
 	public Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>
 		segmentedSortIntPairsDescIP
-		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortIntPairsDescIP));
+		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortIntPairsDescIP), KernelDomain.Sorting);
 
 	internal void LoadSortSegmentedRadixKernels()
 	{

@@ -10,18 +10,18 @@ namespace BAVCL;
 public partial class GPU
 {
 	public Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<int>, int, int> segmentedSortFloatAscIP
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortFloatAscIP));
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortFloatAscIP), KernelDomain.Sorting);
 
 	public Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<int>, int, int> segmentedSortFloatDescIP
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortFloatDescIP));
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortFloatDescIP), KernelDomain.Sorting);
 
 	public Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>
 		segmentedSortFloatPairsAscIP
-		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortFloatPairsAscIP));
+		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortFloatPairsAscIP), KernelDomain.Sorting);
 
 	public Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int>
 		segmentedSortFloatPairsDescIP
-		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortFloatPairsDescIP));
+		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(segmentedSortFloatPairsDescIP), KernelDomain.Sorting);
 
 	internal void LoadSortSegmentedFloatRadixKernels()
 	{

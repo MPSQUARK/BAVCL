@@ -11,27 +11,27 @@ namespace BAVCL;
 public partial class GPU
 {	internal Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, ArrayView<int>, int>
 		dotReduceIntGrouped
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(dotReduceIntGrouped));
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(dotReduceIntGrouped), KernelDomain.Statistics);
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, int>
 		sumReduceIntGrouped
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(sumReduceIntGrouped));
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(sumReduceIntGrouped), KernelDomain.Statistics);
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, int>
 		minMaxReduceIntGrouped
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(minMaxReduceIntGrouped));
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(minMaxReduceIntGrouped), KernelDomain.Statistics);
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<float>, float, int>
 		sumSquaredDiffIntGrouped
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(sumSquaredDiffIntGrouped));
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(sumSquaredDiffIntGrouped), KernelDomain.Statistics);
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, int>
 		allNonZeroIntGrouped
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(allNonZeroIntGrouped));
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(allNonZeroIntGrouped), KernelDomain.Statistics);
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<float>, int>
 		varReduceIntGrouped
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(varReduceIntGrouped));
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(varReduceIntGrouped), KernelDomain.Statistics);
 
 	static void UpdateVarianceAccumInt(ref int count, ref float mean, ref float m2, int value) =>
 		UpdateVarianceAccum(ref count, ref mean, ref m2, value);

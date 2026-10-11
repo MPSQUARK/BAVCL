@@ -9,33 +9,33 @@ namespace BAVCL;
 public partial class GPU
 {
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, float> nanToNumIP
-		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(nanToNumIP));
+		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(nanToNumIP), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> aOpF
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(aOpF));
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(aOpF), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, float, SpecializedValue<int>> sOpF
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(sOpF));
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(sOpF), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, SpecializedValue<int>> aOpFIP
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(aOpFIP));
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(aOpFIP), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, float, SpecializedValue<int>> sOpFIP
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(sOpFIP));
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(sOpFIP), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> reduceRowOp
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(reduceRowOp));
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(reduceRowOp), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int> matmul
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(matmul));
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(matmul), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>> broadcast
-		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcast));
+		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcast), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, int, BroadcastStrides, SpecializedValue<int>> broadcastIP
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastIP));
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastIP), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>> diff
-		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(diff));
+		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(diff), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>> absIP
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(absIP));
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(absIP), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>> rcpIP
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(rcpIP));
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(rcpIP), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>> rsqrtIP
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(rsqrtIP));
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(rsqrtIP), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, float> logIP
-		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(logIP));
+		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(logIP), KernelDomain.Arithmetic);
 
 	internal void LoadArithmeticFloat32Kernels()
 	{
