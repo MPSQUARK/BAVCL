@@ -95,6 +95,21 @@ internal static class GlobalReduceAlgorithms
 		return ReduceInt(vector, vector.Gpu.ReduceMaxInt32);
 	}
 
+	internal static int SumFlags(GPU gpu, ArrayView1D<int, Stride1D.Dense> flags)
+	{
+		if (flags.Length == 0)
+			return 0;
+
+		using BufferEntity<int> output = BufferPools.For(gpu).Int.Rent(1);
+		using (GpuScope.Begin(output.PinTarget))
+		{
+			gpu.ReduceAddInt32(gpu.DefaultStream, flags, output.View);
+			gpu.Synchronize();
+		}
+
+		return output.ReadRentedFirst();
+	}
+
 	internal static float RangeX(Vector vector)
 	{
 		MinMax<float> pair = MinMaxX(vector);
@@ -346,7 +361,7 @@ internal static class GlobalReduceAlgorithms
 			gpu.Synchronize();
 		}
 
-		return output.ReadRentedSpan()[0];
+		return output.ReadRentedFirst();
 	}
 
 	static int ReduceInt(VectorInt vector, Reduction<int, Stride1D.Dense> reduction)
@@ -359,7 +374,7 @@ internal static class GlobalReduceAlgorithms
 			gpu.Synchronize();
 		}
 
-		return output.ReadRentedSpan()[0];
+		return output.ReadRentedFirst();
 	}
 
 	static (KernelConfig config, int numGroups) ReduceLaunch(int length)
