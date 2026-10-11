@@ -12,7 +12,7 @@ public partial class GPU
 {
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int, SpecializedValue<int>>
 		reduceRowFused
-		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(reduceRowFused));
+		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(reduceRowFused), KernelDomain.Arithmetic);
 
 	static void ReduceRowFused_Kern(
 		ArrayView<int> coeffs,

@@ -12,23 +12,23 @@ public partial class GPU
 {
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<float>, ArrayView<float>, int>
 		dotReduceFloatGroupedCompensated
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(dotReduceFloatGroupedCompensated));
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(dotReduceFloatGroupedCompensated), KernelDomain.Statistics);
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<float>, int>
 		minMaxReduceFloatGrouped
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(minMaxReduceFloatGrouped));
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(minMaxReduceFloatGrouped), KernelDomain.Statistics);
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<float>, int>
 		sumReduceFloatGroupedCompensated
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(sumReduceFloatGroupedCompensated));
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(sumReduceFloatGroupedCompensated), KernelDomain.Statistics);
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<int>, int>
 		allNonZeroFloatGrouped
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(allNonZeroFloatGrouped));
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(allNonZeroFloatGrouped), KernelDomain.Statistics);
 
 	internal Action<AcceleratorStream, KernelConfig, ArrayView<float>, ArrayView<float>, int>
 		varReduceFloatGrouped
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(varReduceFloatGrouped));
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(varReduceFloatGrouped), KernelDomain.Statistics);
 
 	// Neumaier EC; see citations.md [9].
 	static void NeumaierAdd(ref double sum, ref double compensation, float input)

@@ -9,10 +9,10 @@ namespace BAVCL;
 public partial class GPU
 {
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<int>> floatToSortableInt
-		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(floatToSortableInt));
+		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(floatToSortableInt), KernelDomain.Sorting);
 
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<float>> sortableIntToFloat
-		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(sortableIntToFloat));
+		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(sortableIntToFloat), KernelDomain.Sorting);
 
 	internal void LoadSortFloatKernels()
 	{

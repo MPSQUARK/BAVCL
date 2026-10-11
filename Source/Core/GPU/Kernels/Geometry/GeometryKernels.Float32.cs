@@ -9,11 +9,11 @@ namespace BAVCL;
 public partial class GPU
 {
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>> crossIP
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(crossIP));
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(crossIP), KernelDomain.Geometry);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>> normaliseIP
-		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(normaliseIP));
+		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(normaliseIP), KernelDomain.Geometry);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, SpecializedValue<int>> simdVectorIP
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(simdVectorIP));
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(simdVectorIP), KernelDomain.Geometry);
 
 	internal void LoadGeometryFloat32Kernels()
 	{

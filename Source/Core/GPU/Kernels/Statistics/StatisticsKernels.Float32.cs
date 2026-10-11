@@ -11,13 +11,13 @@ namespace BAVCL;
 public partial class GPU
 {
 	internal Reduction<float, Stride1D.Dense> ReduceAddFloat
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(ReduceAddFloat));
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(ReduceAddFloat), KernelDomain.Statistics);
 
 	internal Reduction<float, Stride1D.Dense> ReduceMinFloat
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(ReduceMinFloat));
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(ReduceMinFloat), KernelDomain.Statistics);
 
 	internal Reduction<float, Stride1D.Dense> ReduceMaxFloat
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(ReduceMaxFloat));
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(ReduceMaxFloat), KernelDomain.Statistics);
 
 	internal void LoadStatisticsFloatKernels()
 	{

@@ -8,31 +8,31 @@ namespace BAVCL;
 public partial class GPU
 {
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, SpecializedValue<int>> aOpI
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(aOpI));
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(aOpI), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, int, SpecializedValue<int>> sOpI
-		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(sOpI));
+		= (_, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(sOpI), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, SpecializedValue<int>> aOpIIP
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(aOpIIP));
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(aOpIIP), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, int, SpecializedValue<int>> sOpIIP
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(sOpIIP));
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(sOpIIP), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, SpecializedValue<int>> reduceRowOpInt
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(reduceRowOpInt));
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(reduceRowOpInt), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int> matmulInt
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(matmulInt));
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(matmulInt), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>> broadcastInt
-		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastInt));
+		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastInt), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, int, BroadcastStrides, SpecializedValue<int>> broadcastIntIP
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastIntIP));
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(broadcastIntIP), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>> diffInt
-		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(diffInt));
+		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(diffInt), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<int>> absIntIP
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(absIntIP));
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(absIntIP), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<int>> negateIntIP
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(negateIntIP));
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(negateIntIP), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<float>> floatToInt
-		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(floatToInt));
+		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(floatToInt), KernelDomain.Arithmetic);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<int>> intToFloat
-		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(intToFloat));
+		= (_, _, _, _) => throw new KernelNotCompiledException(nameof(intToFloat), KernelDomain.Arithmetic);
 
 	internal void LoadArithmeticInt32Kernels()
 	{
