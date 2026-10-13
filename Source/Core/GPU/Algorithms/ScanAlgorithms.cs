@@ -60,10 +60,9 @@ internal static class ScanAlgorithms
 		if (vector.Length == 0)
 			return new Vector(vector.Gpu, 0, vector.Columns);
 
-		GPU gpu = vector.Gpu;
-		return vector.Is2D()
-			? RunScanAllocating2D(gpu, vector, scan)
-			: RunScanAllocating1D(gpu, vector, scan);
+		Vector output = vector.Copy();
+		RunScanInPlace(output, scan);
+		return output;
 	}
 
 	static VectorInt RunScanAllocating(VectorInt vector, Scan<int, Stride1D.Dense, Stride1D.Dense> scan)
@@ -71,106 +70,9 @@ internal static class ScanAlgorithms
 		if (vector.Length == 0)
 			return new VectorInt(vector.Gpu, 0, vector.Columns);
 
-		GPU gpu = vector.Gpu;
-		return vector.Is2D()
-			? RunScanAllocating2D(gpu, vector, scan)
-			: RunScanAllocating1D(gpu, vector, scan);
-	}
-
-	static Vector RunScanAllocating1D(GPU gpu, Vector vector, Scan<float, Stride1D.Dense, Stride1D.Dense> scan)
-	{
-		long tempElements = gpu.accelerator.ComputeScanTempStorageSize<float>(vector.Length);
-		using (GpuScope.BeginReadOnly(vector))
-		{
-			Vector output = new(gpu, vector.Length, vector.Columns);
-			using BufferEntity<int> temp = BufferPools.For(gpu).Int.Rent((int)tempElements);
-			using (GpuScope.Begin([output, temp.PinTarget]))
-			{
-				ArrayView1D<float, Stride1D.Dense> input = vector.GetBuffer().View;
-				ArrayView1D<float, Stride1D.Dense> outputView = output.GetBuffer().View;
-				scan(gpu.DefaultStream, input, outputView, temp.View);
-				gpu.Synchronize();
-			}
-
-			return output;
-		}
-	}
-
-	static VectorInt RunScanAllocating1D(GPU gpu, VectorInt vector, Scan<int, Stride1D.Dense, Stride1D.Dense> scan)
-	{
-		long tempElements = gpu.accelerator.ComputeScanTempStorageSize<int>(vector.Length);
-		using (GpuScope.BeginReadOnly(vector))
-		{
-			VectorInt output = new(gpu, vector.Length, vector.Columns);
-			using BufferEntity<int> temp = BufferPools.For(gpu).Int.Rent((int)tempElements);
-			using (GpuScope.Begin([output, temp.PinTarget]))
-			{
-				ArrayView1D<int, Stride1D.Dense> input = vector.GetBuffer().View;
-				ArrayView1D<int, Stride1D.Dense> outputView = output.GetBuffer().View;
-				scan(gpu.DefaultStream, input, outputView, temp.View);
-				gpu.Synchronize();
-			}
-
-			return output;
-		}
-	}
-
-	static Vector RunScanAllocating2D(GPU gpu, Vector vector, Scan<float, Stride1D.Dense, Stride1D.Dense> scan)
-	{
-		Shape shape = vector.Shape();
-		int cols = shape.Cols;
-		long tempElements = gpu.accelerator.ComputeScanTempStorageSize<float>(cols);
-		using (GpuScope.BeginReadOnly(vector))
-		{
-			using BufferEntity<int> temp = BufferPools.For(gpu).Int.Rent((int)tempElements);
-			Vector output = new(gpu, vector.Length, vector.Columns);
-			using (GpuScope.Begin([output, temp.PinTarget]))
-			{
-				ArrayView1D<float, Stride1D.Dense> input = vector.GetBuffer().View;
-				ArrayView1D<float, Stride1D.Dense> outputView = output.GetBuffer().View;
-				for (int row = 0; row < shape.Rows; row++)
-				{
-					scan(
-						gpu.DefaultStream,
-						input.SubView(row * cols, cols),
-						outputView.SubView(row * cols, cols),
-						temp.View);
-				}
-
-				gpu.Synchronize();
-			}
-
-			return output;
-		}
-	}
-
-	static VectorInt RunScanAllocating2D(GPU gpu, VectorInt vector, Scan<int, Stride1D.Dense, Stride1D.Dense> scan)
-	{
-		Shape shape = vector.Shape();
-		int cols = shape.Cols;
-		long tempElements = gpu.accelerator.ComputeScanTempStorageSize<int>(cols);
-		using (GpuScope.BeginReadOnly(vector))
-		{
-			VectorInt output = new(gpu, vector.Length, vector.Columns);
-			using BufferEntity<int> temp = BufferPools.For(gpu).Int.Rent((int)tempElements);
-			using (GpuScope.Begin([output, temp.PinTarget]))
-			{
-				ArrayView1D<int, Stride1D.Dense> input = vector.GetBuffer().View;
-				ArrayView1D<int, Stride1D.Dense> outputView = output.GetBuffer().View;
-				for (int row = 0; row < shape.Rows; row++)
-				{
-					scan(
-						gpu.DefaultStream,
-						input.SubView(row * cols, cols),
-						outputView.SubView(row * cols, cols),
-						temp.View);
-				}
-
-				gpu.Synchronize();
-			}
-
-			return output;
-		}
+		VectorInt output = vector.Copy();
+		RunScanInPlace(output, scan);
+		return output;
 	}
 
 	static void RunScanInPlace<T, TVector>(TVector vector, Scan<T, Stride1D.Dense, Stride1D.Dense> scan)
@@ -194,16 +96,17 @@ internal static class ScanAlgorithms
 		where T : unmanaged
 		where TVector : VectorBase<T>
 	{
-		long tempElements = gpu.accelerator.ComputeScanTempStorageSize<T>(vector.Length);
+		int tempElements = gpu.accelerator.ComputeScanTempStorageSize<T>(vector.Length).ToIntIndex();
 		using (GpuScope.Begin(vector))
 		{
-			using BufferEntity<int> temp = BufferPools.For(gpu).Int.Rent((int)tempElements);
+			using BufferEntity<int> temp = BufferPools.For(gpu).Int.Rent(tempElements);
 			using (GpuScope.Begin(temp.PinTarget))
 			{
-				ArrayView1D<T, Stride1D.Dense> view = vector.GetBuffer().View;
-				scan(gpu.DefaultStream, view, view, temp.View);
-				gpu.Synchronize();
+				MemoryBuffer1D<T, Stride1D.Dense> buffer = vector.GetBuffer();
+				scan(gpu.DefaultStream, buffer.View, buffer.View, temp.View);
 			}
+
+			gpu.Synchronize();
 		}
 	}
 
@@ -216,24 +119,18 @@ internal static class ScanAlgorithms
 	{
 		Shape shape = vector.Shape();
 		int cols = shape.Cols;
-		long tempElements = gpu.accelerator.ComputeScanTempStorageSize<T>(cols);
+		int tempElements = gpu.accelerator.ComputeScanTempStorageSize<T>(cols).ToIntIndex();
 		using (GpuScope.Begin(vector))
 		{
-			using BufferEntity<int> temp = BufferPools.For(gpu).Int.Rent((int)tempElements);
+			using BufferEntity<int> temp = BufferPools.For(gpu).Int.Rent(tempElements);
 			using (GpuScope.Begin(temp.PinTarget))
 			{
 				ArrayView1D<T, Stride1D.Dense> view = vector.GetBuffer().View;
-				for (int row = 0; row < shape.Rows; row++)
-				{
-					scan(
-						gpu.DefaultStream,
-						view.SubView(row * cols, cols),
-						view.SubView(row * cols, cols),
-						temp.View);
-				}
-
-				gpu.Synchronize();
+				for (int row = 0, offset = 0; row < shape.Rows; row++, offset += cols)
+					scan(gpu.DefaultStream, view.SubView(offset, cols), view.SubView(offset, cols), temp.View);
 			}
+
+			gpu.Synchronize();
 		}
 	}
 }
