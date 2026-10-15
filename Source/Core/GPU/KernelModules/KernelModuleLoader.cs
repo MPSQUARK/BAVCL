@@ -11,27 +11,29 @@ namespace BAVCL;
 /// </summary>
 public static class KernelModuleLoader
 {
-	private static readonly Dictionary<(KernelDomain Domain, Type ElementType), Action<GPU>> Modules = new()
+	private static readonly Dictionary<(int Domain, Type ElementType), Action<GPU>> Modules = new()
 	{
-		[(KernelDomain.Arithmetic, typeof(float))] = static gpu => gpu.LoadArithmeticFloat32Kernels(),
-		[(KernelDomain.Structural, typeof(float))] = static gpu => gpu.LoadStructuralFloat32Kernels(),
-		[(KernelDomain.Geometry, typeof(float))] = static gpu => gpu.LoadGeometryFloat32Kernels(),
-		[(KernelDomain.Mask, typeof(float))] = static gpu =>
+		[((int)KernelDomainSharedModule.MaskCore, typeof(float))] = static gpu => gpu.LoadMaskCoreKernels(),
+        [((int)KernelDomainSharedModule.MaskCore, typeof(int))] = static gpu => gpu.LoadMaskCoreKernels(),
+        [((int)KernelDomain.Arithmetic, typeof(float))] = static gpu => gpu.LoadArithmeticFloat32Kernels(),
+		[((int)KernelDomain.Structural, typeof(float))] = static gpu => gpu.LoadStructuralFloat32Kernels(),
+		[((int)KernelDomain.Geometry, typeof(float))] = static gpu => gpu.LoadGeometryFloat32Kernels(),
+		[((int)KernelDomain.Mask, typeof(float))] = static gpu =>
 		{
-			gpu.LoadMaskWordKernels();
+			gpu.LoadModuleOnce(KernelDomainSharedModule.MaskCore, typeof(float), Resolve(KernelDomainSharedModule.MaskCore, typeof(float)));
 			gpu.LoadMaskVectorKernels();
 		},
-		[(KernelDomain.Arithmetic, typeof(int))] = static gpu => gpu.LoadArithmeticInt32Kernels(),
-		[(KernelDomain.Structural, typeof(int))] = static gpu => gpu.LoadStructuralInt32Kernels(),
-		[(KernelDomain.Mask, typeof(int))] = static gpu =>
+		[((int)KernelDomain.Arithmetic, typeof(int))] = static gpu => gpu.LoadArithmeticInt32Kernels(),
+		[((int)KernelDomain.Structural, typeof(int))] = static gpu => gpu.LoadStructuralInt32Kernels(),
+		[((int)KernelDomain.Mask, typeof(int))] = static gpu =>
 		{
-			gpu.LoadMaskWordKernels();
+			gpu.LoadModuleOnce(KernelDomainSharedModule.MaskCore, typeof(int), Resolve(KernelDomainSharedModule.MaskCore, typeof(int)));
 			gpu.LoadMaskVectorIntKernels();
 		},
-		[(KernelDomain.Sorting, typeof(float))] = static gpu => gpu.LoadSortFloatKernels(),
-		[(KernelDomain.Sorting, typeof(int))] = static gpu => gpu.LoadSortSegmentedRadixKernels(),
-		[(KernelDomain.Statistics, typeof(float))] = static gpu => gpu.LoadStatisticsFloatKernels(),
-		[(KernelDomain.Statistics, typeof(int))] = static gpu => gpu.LoadStatisticsIntKernels(),
+		[((int)KernelDomain.Sorting, typeof(float))] = static gpu => gpu.LoadSortFloatKernels(),
+		[((int)KernelDomain.Sorting, typeof(int))] = static gpu => gpu.LoadSortSegmentedRadixKernels(),
+		[((int)KernelDomain.Statistics, typeof(float))] = static gpu => gpu.LoadStatisticsFloatKernels(),
+		[((int)KernelDomain.Statistics, typeof(int))] = static gpu => gpu.LoadStatisticsIntKernels(),
 	};
 
 	/// <summary>
@@ -57,12 +59,39 @@ public static class KernelModuleLoader
 		Console.WriteLine($"Compiled {compiled} kernel module(s) for {typeof(T).Name} in {timer.Elapsed.TotalMilliseconds:F2} ms");
 	}
 
-	/// <summary>Compiles every domain registered for element type <typeparamref name="T"/>.</summary>
+	internal static void Load<T>(GPU gpu, params KernelDomainSharedModule[] domains) where T : unmanaged
+    {
+        ArgumentNullException.ThrowIfNull(gpu);
+
+        var timer = Stopwatch.StartNew();
+        var compiled = 0;
+
+        foreach (var domain in domains)
+            if (gpu.LoadModuleOnce(domain, typeof(T), Resolve(domain, typeof(T))))
+                compiled++;
+
+        timer.Stop();
+
+        if (compiled == 0)
+            return;
+
+        Console.WriteLine($"Compiled {compiled} kernel [shared] module(s) for {typeof(T).Name} in {timer.Elapsed.TotalMilliseconds:F2} ms");
+    }
+
+
+    /// <summary>Compiles every domain registered for element type <typeparamref name="T"/>.</summary>
 	public static void LoadAll<T>(GPU gpu) where T : unmanaged =>
-		Load<T>(gpu, [.. Modules.Keys.Where(key => key.ElementType == typeof(T)).Select(key => key.Domain)]);
+		Load<T>(gpu, [.. Modules.Keys
+			.Where(key => key.ElementType == typeof(T) && Enum.IsDefined(typeof(KernelDomain), key.Domain))
+			.Select(key => (KernelDomain)key.Domain)]);
+
+	private static Action<GPU> Resolve(KernelDomainSharedModule domain, Type elementType) =>
+		Modules.TryGetValue(((int)domain, elementType), out Action<GPU>? load)
+			? load
+			: throw new KernelModuleNotAvailableException(domain, elementType);
 
 	private static Action<GPU> Resolve(KernelDomain domain, Type elementType) =>
-		Modules.TryGetValue((domain, elementType), out var load)
+		Modules.TryGetValue(((int)domain, elementType), out Action<GPU>? load)
 			? load
 			: throw new KernelModuleNotAvailableException(domain, elementType);
 }
