@@ -1,5 +1,3 @@
-using BAVCL.Types;
-
 namespace BAVCL.Modules.IO;
 
 public interface IFormatter<T>

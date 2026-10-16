@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
-using BAVCL.Core;
-using BAVCL.Core.Exceptions;
+using BAVCL.Core.Helpers;
 
 namespace BAVCL.Modules.Sorting;
 
@@ -93,11 +92,8 @@ internal static class ArgsortCore
 		}
 	}
 
-	static void ValidateArgsortShape<T>(VectorBase<T> vector, VectorInt indices) where T : unmanaged
-	{
-		if (!vector.Shape().MatchesDimensions(indices.Shape()))
-			throw new ShapeMismatchException("ArgsortIP", vector.Shape(), indices.Shape());
-	}
+	static void ValidateArgsortShape<T>(VectorBase<T> vector, VectorInt indices) where T : unmanaged =>
+		Guard.MatchingGpuPairIndices(vector, indices, "ArgsortIP");
 
 	static void BuildRow<T>(T[] values, int[] indices, int offset, int count, SortOrder order) where T : IComparable<T>
 	{

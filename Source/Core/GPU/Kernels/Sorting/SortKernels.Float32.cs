@@ -2,7 +2,6 @@ using System;
 using BAVCL.Core.Exceptions;
 using ILGPU;
 using ILGPU.Runtime;
-using ILGPU.Util;
 
 namespace BAVCL;
 

@@ -1,4 +1,3 @@
-using System;
 using BAVCL.Core.Exceptions;
 using BAVCL.Modules.Statistics;
 
