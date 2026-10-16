@@ -1,5 +1,3 @@
-using System;
-
 namespace BAVCL.Modules.IO.Internal;
 
 internal enum MaskWireFormat

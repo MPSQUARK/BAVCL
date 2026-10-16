@@ -3,7 +3,6 @@ using BAVCL.Core.Exceptions;
 using ILGPU;
 using ILGPU.Algorithms.RadixSortOperations;
 using ILGPU.Runtime;
-using ILGPU.Util;
 
 namespace BAVCL;
 

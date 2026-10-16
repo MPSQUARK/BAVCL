@@ -2,7 +2,6 @@ using ILGPU;
 using ILGPU.Algorithms;
 using ILGPU.Runtime;
 using ILGPU.Util;
-using BAVCL.Core;
 
 namespace BAVCL;
 
