@@ -1,5 +1,4 @@
 using System;
-using BAVCL.Core.Helpers;
 using ILGPU;
 using ILGPU.Runtime;
 using BAVCL.Core.Exceptions;
