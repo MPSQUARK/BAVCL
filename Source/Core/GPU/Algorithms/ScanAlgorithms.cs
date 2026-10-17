@@ -7,86 +7,324 @@ namespace BAVCL.GpuAlgorithms;
 
 internal static class ScanAlgorithms
 {
-	internal static Vector CumSumInclusiveX(Vector vector) =>
-		RunScanAllocating(vector, vector.Gpu.AlgorithmProviders.FloatSumInclusive);
-
-	internal static VectorInt CumSumInclusiveX(VectorInt vector) =>
-		RunScanAllocating(vector, vector.Gpu.AlgorithmProviders.IntSumInclusive);
-
-	internal static Vector CumSumExclusiveX(Vector vector) =>
-		RunScanAllocating(vector, vector.Gpu.AlgorithmProviders.FloatSumExclusive);
-
-	internal static VectorInt CumSumExclusiveX(VectorInt vector) =>
-		RunScanAllocating(vector, vector.Gpu.AlgorithmProviders.IntSumExclusive);
-
-	internal static Vector CumProdInclusiveX(Vector vector) =>
-		RunScanAllocating(vector, vector.Gpu.AlgorithmProviders.FloatProductInclusive);
-
-	internal static VectorInt CumProdInclusiveX(VectorInt vector) =>
-		RunScanAllocating(vector, vector.Gpu.AlgorithmProviders.IntProductInclusive);
-
-	internal static Vector CumProdExclusiveX(Vector vector) =>
-		RunScanAllocating(vector, vector.Gpu.AlgorithmProviders.FloatProductExclusive);
-
-	internal static VectorInt CumProdExclusiveX(VectorInt vector) =>
-		RunScanAllocating(vector, vector.Gpu.AlgorithmProviders.IntProductExclusive);
-
-	internal static void CumSumInclusiveXIP(Vector vector) =>
-		RunScanInPlace(vector, vector.Gpu.AlgorithmProviders.FloatSumInclusive);
-
-	internal static void CumSumInclusiveXIP(VectorInt vector) =>
-		RunScanInPlace(vector, vector.Gpu.AlgorithmProviders.IntSumInclusive);
-
-	internal static void CumSumExclusiveXIP(Vector vector) =>
-		RunScanInPlace(vector, vector.Gpu.AlgorithmProviders.FloatSumExclusive);
-
-	internal static void CumSumExclusiveXIP(VectorInt vector) =>
-		RunScanInPlace(vector, vector.Gpu.AlgorithmProviders.IntSumExclusive);
-
-	internal static void CumProdInclusiveXIP(Vector vector) =>
-		RunScanInPlace(vector, vector.Gpu.AlgorithmProviders.FloatProductInclusive);
-
-	internal static void CumProdInclusiveXIP(VectorInt vector) =>
-		RunScanInPlace(vector, vector.Gpu.AlgorithmProviders.IntProductInclusive);
-
-	internal static void CumProdExclusiveXIP(Vector vector) =>
-		RunScanInPlace(vector, vector.Gpu.AlgorithmProviders.FloatProductExclusive);
-
-	internal static void CumProdExclusiveXIP(VectorInt vector) =>
-		RunScanInPlace(vector, vector.Gpu.AlgorithmProviders.IntProductExclusive);
-
-	static Vector RunScanAllocating(Vector vector, Scan<float, Stride1D.Dense, Stride1D.Dense> scan)
+	internal static Vector CumSumInclusiveX1D(Vector vector)
 	{
 		if (vector.Length == 0)
 			return new Vector(vector.Gpu, 0, vector.Columns);
 
+		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatSumInclusive;
 		Vector output = vector.Copy();
-		RunScanInPlace(output, scan);
+		RunScanInPlace1D(vector.Gpu, output, scan);
 		return output;
 	}
 
-	static VectorInt RunScanAllocating(VectorInt vector, Scan<int, Stride1D.Dense, Stride1D.Dense> scan)
+	internal static Vector CumSumInclusiveX2D(Vector vector)
+	{
+		if (vector.Length == 0)
+			return new Vector(vector.Gpu, 0, vector.Columns);
+
+		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatSumInclusive;
+		Vector output = vector.Copy();
+		RunScanInPlace2D(vector.Gpu, output, scan);
+		return output;
+	}
+
+	internal static VectorInt CumSumInclusiveX1D(VectorInt vector)
 	{
 		if (vector.Length == 0)
 			return new VectorInt(vector.Gpu, 0, vector.Columns);
 
+		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntSumInclusive;
 		VectorInt output = vector.Copy();
-		RunScanInPlace(output, scan);
+		RunScanInPlace1D(vector.Gpu, output, scan);
 		return output;
 	}
 
-	static void RunScanInPlace<T, TVector>(TVector vector, Scan<T, Stride1D.Dense, Stride1D.Dense> scan)
-		where T : unmanaged
-		where TVector : VectorBase<T>
+	internal static VectorInt CumSumInclusiveX2D(VectorInt vector)
+	{
+		if (vector.Length == 0)
+			return new VectorInt(vector.Gpu, 0, vector.Columns);
+
+		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntSumInclusive;
+		VectorInt output = vector.Copy();
+		RunScanInPlace2D(vector.Gpu, output, scan);
+		return output;
+	}
+
+	internal static Vector CumSumExclusiveX1D(Vector vector)
+	{
+		if (vector.Length == 0)
+			return new Vector(vector.Gpu, 0, vector.Columns);
+
+		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatSumExclusive;
+		Vector output = vector.Copy();
+		RunScanInPlace1D(vector.Gpu, output, scan);
+		return output;
+	}
+
+	internal static Vector CumSumExclusiveX2D(Vector vector)
+	{
+		if (vector.Length == 0)
+			return new Vector(vector.Gpu, 0, vector.Columns);
+
+		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatSumExclusive;
+		Vector output = vector.Copy();
+		RunScanInPlace2D(vector.Gpu, output, scan);
+		return output;
+	}
+
+	internal static VectorInt CumSumExclusiveX1D(VectorInt vector)
+	{
+		if (vector.Length == 0)
+			return new VectorInt(vector.Gpu, 0, vector.Columns);
+
+		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntSumExclusive;
+		VectorInt output = vector.Copy();
+		RunScanInPlace1D(vector.Gpu, output, scan);
+		return output;
+	}
+
+	internal static VectorInt CumSumExclusiveX2D(VectorInt vector)
+	{
+		if (vector.Length == 0)
+			return new VectorInt(vector.Gpu, 0, vector.Columns);
+
+		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntSumExclusive;
+		VectorInt output = vector.Copy();
+		RunScanInPlace2D(vector.Gpu, output, scan);
+		return output;
+	}
+
+	internal static Vector CumProdInclusiveX1D(Vector vector)
+	{
+		if (vector.Length == 0)
+			return new Vector(vector.Gpu, 0, vector.Columns);
+
+		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatProductInclusive;
+		Vector output = vector.Copy();
+		RunScanInPlace1D(vector.Gpu, output, scan);
+		return output;
+	}
+
+	internal static Vector CumProdInclusiveX2D(Vector vector)
+	{
+		if (vector.Length == 0)
+			return new Vector(vector.Gpu, 0, vector.Columns);
+
+		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatProductInclusive;
+		Vector output = vector.Copy();
+		RunScanInPlace2D(vector.Gpu, output, scan);
+		return output;
+	}
+
+	internal static VectorInt CumProdInclusiveX1D(VectorInt vector)
+	{
+		if (vector.Length == 0)
+			return new VectorInt(vector.Gpu, 0, vector.Columns);
+
+		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntProductInclusive;
+		VectorInt output = vector.Copy();
+		RunScanInPlace1D(vector.Gpu, output, scan);
+		return output;
+	}
+
+	internal static VectorInt CumProdInclusiveX2D(VectorInt vector)
+	{
+		if (vector.Length == 0)
+			return new VectorInt(vector.Gpu, 0, vector.Columns);
+
+		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntProductInclusive;
+		VectorInt output = vector.Copy();
+		RunScanInPlace2D(vector.Gpu, output, scan);
+		return output;
+	}
+
+	internal static Vector CumProdExclusiveX1D(Vector vector)
+	{
+		if (vector.Length == 0)
+			return new Vector(vector.Gpu, 0, vector.Columns);
+
+		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatProductExclusive;
+		Vector output = vector.Copy();
+		RunScanInPlace1D(vector.Gpu, output, scan);
+		return output;
+	}
+
+	internal static Vector CumProdExclusiveX2D(Vector vector)
+	{
+		if (vector.Length == 0)
+			return new Vector(vector.Gpu, 0, vector.Columns);
+
+		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatProductExclusive;
+		Vector output = vector.Copy();
+		RunScanInPlace2D(vector.Gpu, output, scan);
+		return output;
+	}
+
+	internal static VectorInt CumProdExclusiveX1D(VectorInt vector)
+	{
+		if (vector.Length == 0)
+			return new VectorInt(vector.Gpu, 0, vector.Columns);
+
+		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntProductExclusive;
+		VectorInt output = vector.Copy();
+		RunScanInPlace1D(vector.Gpu, output, scan);
+		return output;
+	}
+
+	internal static VectorInt CumProdExclusiveX2D(VectorInt vector)
+	{
+		if (vector.Length == 0)
+			return new VectorInt(vector.Gpu, 0, vector.Columns);
+
+		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntProductExclusive;
+		VectorInt output = vector.Copy();
+		RunScanInPlace2D(vector.Gpu, output, scan);
+		return output;
+	}
+
+	internal static void CumSumInclusiveXIP1D(Vector vector)
 	{
 		if (vector.Length == 0)
 			return;
 
-		GPU gpu = vector.Gpu;
-		if (vector.Is2D())
-			RunScanInPlace2D(gpu, vector, scan);
-		else
-			RunScanInPlace1D(gpu, vector, scan);
+		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatSumInclusive;
+		RunScanInPlace1D(vector.Gpu, vector, scan);
+	}
+
+	internal static void CumSumInclusiveXIP2D(Vector vector)
+	{
+		if (vector.Length == 0)
+			return;
+
+		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatSumInclusive;
+		RunScanInPlace2D(vector.Gpu, vector, scan);
+	}
+
+	internal static void CumSumInclusiveXIP1D(VectorInt vector)
+	{
+		if (vector.Length == 0)
+			return;
+
+		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntSumInclusive;
+		RunScanInPlace1D(vector.Gpu, vector, scan);
+	}
+
+	internal static void CumSumInclusiveXIP2D(VectorInt vector)
+	{
+		if (vector.Length == 0)
+			return;
+
+		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntSumInclusive;
+		RunScanInPlace2D(vector.Gpu, vector, scan);
+	}
+
+	internal static void CumSumExclusiveXIP1D(Vector vector)
+	{
+		if (vector.Length == 0)
+			return;
+
+		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatSumExclusive;
+		RunScanInPlace1D(vector.Gpu, vector, scan);
+	}
+
+	internal static void CumSumExclusiveXIP2D(Vector vector)
+	{
+		if (vector.Length == 0)
+			return;
+
+		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatSumExclusive;
+		RunScanInPlace2D(vector.Gpu, vector, scan);
+	}
+
+	internal static void CumSumExclusiveXIP1D(VectorInt vector)
+	{
+		if (vector.Length == 0)
+			return;
+
+		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntSumExclusive;
+		RunScanInPlace1D(vector.Gpu, vector, scan);
+	}
+
+	internal static void CumSumExclusiveXIP2D(VectorInt vector)
+	{
+		if (vector.Length == 0)
+			return;
+
+		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntSumExclusive;
+		RunScanInPlace2D(vector.Gpu, vector, scan);
+	}
+
+	internal static void CumProdInclusiveXIP1D(Vector vector)
+	{
+		if (vector.Length == 0)
+			return;
+
+		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatProductInclusive;
+		RunScanInPlace1D(vector.Gpu, vector, scan);
+	}
+
+	internal static void CumProdInclusiveXIP2D(Vector vector)
+	{
+		if (vector.Length == 0)
+			return;
+
+		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatProductInclusive;
+		RunScanInPlace2D(vector.Gpu, vector, scan);
+	}
+
+	internal static void CumProdInclusiveXIP1D(VectorInt vector)
+	{
+		if (vector.Length == 0)
+			return;
+
+		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntProductInclusive;
+		RunScanInPlace1D(vector.Gpu, vector, scan);
+	}
+
+	internal static void CumProdInclusiveXIP2D(VectorInt vector)
+	{
+		if (vector.Length == 0)
+			return;
+
+		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntProductInclusive;
+		RunScanInPlace2D(vector.Gpu, vector, scan);
+	}
+
+	internal static void CumProdExclusiveXIP1D(Vector vector)
+	{
+		if (vector.Length == 0)
+			return;
+
+		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatProductExclusive;
+		RunScanInPlace1D(vector.Gpu, vector, scan);
+	}
+
+	internal static void CumProdExclusiveXIP2D(Vector vector)
+	{
+		if (vector.Length == 0)
+			return;
+
+		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatProductExclusive;
+		RunScanInPlace2D(vector.Gpu, vector, scan);
+	}
+
+	internal static void CumProdExclusiveXIP1D(VectorInt vector)
+	{
+		if (vector.Length == 0)
+			return;
+
+		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntProductExclusive;
+		RunScanInPlace1D(vector.Gpu, vector, scan);
+	}
+
+	internal static void CumProdExclusiveXIP2D(VectorInt vector)
+	{
+		if (vector.Length == 0)
+			return;
+
+		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntProductExclusive;
+		RunScanInPlace2D(vector.Gpu, vector, scan);
 	}
 
 	static void RunScanInPlace1D<T, TVector>(
