@@ -29,6 +29,24 @@ BAVCL is an HPC GPU math library on ILGPU 1.5.3. Device-side code must exploit G
 | One `RetrieveReadOnlySpan()` per read loop | `GetAt` / `SetAt` in tight loops |
 | Pin via `GpuScope` only | Manual pinning outside `GpuScope` |
 
+### Host dispatch (library-wide)
+
+Applies to all host code that launches GPU work (`GpuAlgorithms`, `Modules/*/Internal`, …). Older committed paths may lag until touched.
+
+**Own the buffer at the boundary.** Orchestration methods take cacheable containers (`Vector`, `Mask`, `BufferEntity`, …), not `ArrayView1D` or `Shape`.
+
+**Views stay local.** After `GpuScope.Begin`, get `.View` / `.Shape()` in that same method and use them only there. Do not pass views or shape into other methods.
+
+**ILGPU leaf only.** A **private** helper in the same file may rent scratch and call an ILGPU delegate or kernel. It may take views; it must **not** call `Synchronize()`. Only orchestration in that file calls it.
+
+**Sync with the scope.** Call `gpu.Synchronize()` only inside the `using (GpuScope…)` that pins the launch buffers—typically the last line before `}`. To batch work, omit here and sync in a later scope in the same operation (comment why). Never hide sync in a helper that only receives views.
+
+**Future tooling:** a Roslyn analyzer for sync placement is desirable; not implemented yet.
+
+**Legacy backlog (committed paths; align when touched):** `GlobalReduceAlgorithms.SumFlags`, `MaskBitwiseOps.LaunchLaneOp` (`Shape` parameters), and similar pre-existing dispatch.
+
+**GPU suffix convention:** `X` = allocating (typically `Copy()` then `XIP` on the result); `XIP` = in-place on the receiver. Module layer (`GpuSortingCore`, `ScanModule`) and `GpuAlgorithms` should follow the same split.
+
 ## Before coding
 
 1. Read [Documentation/GPGPUKernelGuide.md](../../Documentation/GPGPUKernelGuide.md) — principles (P1–P6) and pre-submit review questions.
