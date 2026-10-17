@@ -125,6 +125,7 @@ Planned work only. **Shipped behaviour** is documented in §3–§16; open code/
 | Item | APIs / scope |
 | ---- | ------------- |
 | **Prefix scan** | `CumSum` / `CumSumExclusive` / `CumProd` / `CumProdExclusive` + `*X` / `*IP` on `Vector` / `VectorInt` — `BAVCL.Modules.Scan` |
+| **2D prefix scan (ILGPU)** | Investigate `MultiPassScanKernel` and related APIs in ILGPU `ScanExtensions` for 2D `Vector` / `VectorInt` (row-wise scans today: one `RunSegmentScan` per row in `ScanAlgorithms`). Compare throughput, temp storage, and sync count vs the current loop. |
 | **Histogram** | GPU histogram / binning |
 | **Segmented sort** | Generalise beyond 2D row `SortAscX` |
 
@@ -147,6 +148,10 @@ From [FALCON `BAVCL_FEATURE_REQUESTS.md`](https://github.com/MPSQUARK/FALCON/blo
 | ------ | ----- |
 | **LinearAlgebra** | Dedicated domain beyond `matmul` in Arithmetic |
 | **Astrophysics** | FALCON cosmological integrals — [§12](#12-astrophysics-module) |
+
+| Item | Detail |
+| ---- | ------ |
+| **Kernel module identity** | Replace `(int, Type)` dedup keys (`KernelDomain`, internal `KernelDomainSharedModule`) with a **discriminated union** when the library targets .NET with first-class DUs (planned: .NET 11+). Implementation: `Source/Core/GPU/KernelModules/`. |
 
 ### 2.8 Statistics module ergonomics
 
