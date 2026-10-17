@@ -33,7 +33,7 @@ BAVCL is a C# GPU-accelerated numerics library on ILGPU. Authoritative spec: [Do
 
 Before writing or reviewing any device-side work:
 
-1. Load the **`bavcl-gpgpu`** project skill (`.agents/skills/bavcl-gpgpu/SKILL.md`)
+1. Load the **`bavcl-gpgpu`** project skill (`.agents/skills/bavcl-gpgpu/SKILL.md`) — including **Host dispatch**
 2. Read [Documentation/GPGPUKernelGuide.md](Documentation/GPGPUKernelGuide.md) — principles P1–P6 and pre-submit review
 
 ## General code quality
