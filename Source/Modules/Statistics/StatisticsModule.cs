@@ -166,16 +166,24 @@ public static class VectorStatistics
 		public static float IqrX(Vector vector) => GpuOrderStatistics.IqrX(vector);
 
 		public static Vector RollingSum(Vector vector, int window, bool syncToGpu = true) =>
-			RollingStatsCore.RollingSum(vector, window, syncToGpu);
+			vector.Is2D()
+				? RollingStatsCore.RollingSum2D(vector, window, syncToGpu)
+				: RollingStatsCore.RollingSum1D(vector, window, syncToGpu);
 
 		public static Vector MovingAverage(Vector vector, int window, bool syncToGpu = true) =>
-			RollingStatsCore.MovingAverage(vector, window, syncToGpu);
+			vector.Is2D()
+				? RollingStatsCore.MovingAverage2D(vector, window, syncToGpu)
+				: RollingStatsCore.MovingAverage1D(vector, window, syncToGpu);
 
 		public static Vector RollingSumX(Vector vector, int window) =>
-			GpuRollingStatsCore.RollingSumX(vector, window);
+			vector.Is2D()
+				? GpuRollingStatsCore.RollingSumX2D(vector, window)
+				: GpuRollingStatsCore.RollingSumX1D(vector, window);
 
 		public static Vector MovingAverageX(Vector vector, int window) =>
-			GpuRollingStatsCore.MovingAverageX(vector, window);
+			vector.Is2D()
+				? GpuRollingStatsCore.MovingAverageX2D(vector, window)
+				: GpuRollingStatsCore.MovingAverageX1D(vector, window);
 
 		public static Vector ReduceOPX(Vector vector, Vector matrix, Operations operation) =>
 			ReduceCore.ReduceOPX(vector, matrix, operation);
@@ -270,16 +278,24 @@ public static class VectorStatistics
 		public static float IqrX(VectorInt vector) => GpuOrderStatistics.IqrX(vector);
 
 		public static VectorInt RollingSum(VectorInt vector, int window, bool syncToGpu = true) =>
-			RollingStatsCore.RollingSum(vector, window, syncToGpu);
+			vector.Is2D()
+				? RollingStatsCore.RollingSum2D(vector, window, syncToGpu)
+				: RollingStatsCore.RollingSum1D(vector, window, syncToGpu);
 
 		public static Vector MovingAverage(VectorInt vector, int window, bool syncToGpu = true) =>
-			RollingStatsCore.MovingAverage(vector, window, syncToGpu);
+			vector.Is2D()
+				? RollingStatsCore.MovingAverage2D(vector, window, syncToGpu)
+				: RollingStatsCore.MovingAverage1D(vector, window, syncToGpu);
 
 		public static VectorInt RollingSumX(VectorInt vector, int window) =>
-			GpuRollingStatsCore.RollingSumX(vector, window);
+			vector.Is2D()
+				? GpuRollingStatsCore.RollingSumX2D(vector, window)
+				: GpuRollingStatsCore.RollingSumX1D(vector, window);
 
 		public static Vector MovingAverageX(VectorInt vector, int window) =>
-			GpuRollingStatsCore.MovingAverageX(vector, window);
+			vector.Is2D()
+				? GpuRollingStatsCore.MovingAverageX2D(vector, window)
+				: GpuRollingStatsCore.MovingAverageX1D(vector, window);
 
 		public static VectorInt ReduceOPX(VectorInt vector, VectorInt matrix, Operations operation) =>
 			ReduceCore.ReduceOPX(vector, matrix, operation);
