@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using SimdVector = System.Numerics.Vector;
 
 namespace BAVCL.Core.Helpers.Numerics;
 
@@ -11,7 +12,7 @@ internal static class NeumaierAccum
 		if (data.IsEmpty)
 			return 0f;
 
-		int lanes = SimdMath.FloatLanes;
+		int lanes = Vector<float>.Count;
 		SimdFloat64NeumaierState lower = SimdFloat64NeumaierState.Zero;
 		SimdFloat64NeumaierState upper = SimdFloat64NeumaierState.Zero;
 		Float64NeumaierState total = Float64NeumaierState.Zero;
@@ -20,7 +21,7 @@ internal static class NeumaierAccum
 		for (; index <= data.Length - lanes; index += lanes)
 		{
 			Vector<float> chunk = new(data.Slice(index, lanes));
-			SimdMath.WidenToDoubleHalves(chunk, out Vector<double> lowerInput, out Vector<double> upperInput);
+			SimdVector.Widen(chunk, out Vector<double> lowerInput, out Vector<double> upperInput);
 			lower.Add(lowerInput);
 			upper.Add(upperInput);
 		}
@@ -39,7 +40,7 @@ internal static class NeumaierAccum
 		if (left.IsEmpty)
 			return 0f;
 
-		int lanes = SimdMath.FloatLanes;
+		int lanes = Vector<float>.Count;
 		SimdFloat64NeumaierState lower = SimdFloat64NeumaierState.Zero;
 		SimdFloat64NeumaierState upper = SimdFloat64NeumaierState.Zero;
 		Float64NeumaierState total = Float64NeumaierState.Zero;
@@ -48,7 +49,7 @@ internal static class NeumaierAccum
 		for (; index <= left.Length - lanes; index += lanes)
 		{
 			Vector<float> product = new Vector<float>(left.Slice(index, lanes)) * new Vector<float>(right.Slice(index, lanes));
-			SimdMath.WidenToDoubleHalves(product, out Vector<double> lowerInput, out Vector<double> upperInput);
+			SimdVector.Widen(product, out Vector<double> lowerInput, out Vector<double> upperInput);
 			lower.Add(lowerInput);
 			upper.Add(upperInput);
 		}
