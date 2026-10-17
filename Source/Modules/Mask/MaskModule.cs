@@ -41,34 +41,34 @@ public static class MaskModuleExtensions
 
 	extension(Vector vector)
 	{
-		public Vector Mask(Mask mask, float fill = 0f) => MaskCompactionReference.Mask(vector, mask, fill);
+		public Vector Mask(Mask mask, float fill = 0f) => MaskCompactionCpu.Mask(vector, mask, fill);
 
-		public Vector MaskX(Mask mask, float fill = 0f) => MaskVectorOps.MaskX(vector, mask, fill);
+		public Vector MaskX(Mask mask, float fill = 0f) => MaskGpu.MaskX(vector, mask, fill);
 
-		public Vector Filter(Mask mask) => MaskCompactionReference.Filter(vector, mask);
+		public Vector Filter(Mask mask) => MaskCompactionCpu.Filter(vector, mask);
 
-		public Vector FilterX(Mask mask) => MaskVectorOps.FilterX(vector, mask);
+		public Vector FilterX(Mask mask) => MaskGpu.FilterX(vector, mask);
 
 		public (Vector TrueLanes, Vector FalseLanes) Partition(Mask mask) =>
-			MaskCompactionReference.Partition(vector, mask);
+			MaskCompactionCpu.Partition(vector, mask);
 
-		public (Vector TrueLanes, Vector FalseLanes) PartitionX(Mask mask) => MaskVectorOps.PartitionX(vector, mask);
+		public (Vector TrueLanes, Vector FalseLanes) PartitionX(Mask mask) => MaskGpu.PartitionX(vector, mask);
 	}
 
 	extension(VectorInt vector)
 	{
-		public VectorInt Mask(Mask mask, int fill = 0) => MaskCompactionReference.Mask(vector, mask, fill);
+		public VectorInt Mask(Mask mask, int fill = 0) => MaskCompactionCpu.Mask(vector, mask, fill);
 
-		public VectorInt MaskX(Mask mask, int fill = 0) => MaskVectorIntOps.MaskX(vector, mask, fill);
+		public VectorInt MaskX(Mask mask, int fill = 0) => MaskGpu.MaskX(vector, mask, fill);
 
-		public VectorInt Filter(Mask mask) => MaskCompactionReference.Filter(vector, mask);
+		public VectorInt Filter(Mask mask) => MaskCompactionCpu.Filter(vector, mask);
 
-		public VectorInt FilterX(Mask mask) => MaskVectorIntOps.FilterX(vector, mask);
+		public VectorInt FilterX(Mask mask) => MaskGpu.FilterX(vector, mask);
 
 		public (VectorInt TrueLanes, VectorInt FalseLanes) Partition(Mask mask) =>
-			MaskCompactionReference.Partition(vector, mask);
+			MaskCompactionCpu.Partition(vector, mask);
 
 		public (VectorInt TrueLanes, VectorInt FalseLanes) PartitionX(Mask mask) =>
-			MaskVectorIntOps.PartitionX(vector, mask);
+			MaskGpu.PartitionX(vector, mask);
 	}
 }
