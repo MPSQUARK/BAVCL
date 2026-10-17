@@ -2,7 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using BAVCL.Core.Exceptions;
 
-namespace BAVCL.Core.Helpers;
+namespace BAVCL.Modules.Validation;
 
 /// <summary>
 /// Argument validation in the style of
@@ -34,5 +34,20 @@ internal static class Guard
 	{
 		if (float.IsNaN(value) || value < min || value > max)
 			throw new FixedRangeException(name!, value, min, max);
+	}
+
+	internal static void MatchingDimensions(Shape left, Shape right, string operation)
+	{
+		if (left.MatchesDimensions(right))
+			return;
+
+		throw new ShapeMismatchException(operation, left, right);
+	}
+
+	internal static void MatchingGpuPairIndices<T>(VectorBase<T> values, VectorInt indices, string operation)
+		where T : unmanaged
+	{
+		GpuValidation.IsSameGpu(values.Gpu, indices.Gpu);
+		MatchingDimensions(values.Shape(), indices.Shape(), operation);
 	}
 }

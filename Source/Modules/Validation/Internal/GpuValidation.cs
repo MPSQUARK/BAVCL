@@ -1,6 +1,6 @@
 using BAVCL.Core.Exceptions;
 
-namespace BAVCL.Core.Helpers;
+namespace BAVCL.Modules.Validation;
 
 internal static class GpuValidation
 {
