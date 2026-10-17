@@ -1,78 +1,33 @@
-using System.Numerics;
+using System;
 
 namespace BAVCL.Core.Helpers.Numerics;
 
-/// <summary>Population-variance sufficient statistics. See citations.md [11], [2].</summary>
-internal struct VarianceMoments(int count, float mean, float m2)
+/// <summary>Welford / Chan–Golub–LeVeque variance state (count, mean, M2). See citations.md [2].</summary>
+internal struct VarianceMoments
 {
-	public int Count = count;
-	public float Mean = mean;
-	public float M2 = m2;
-	public float InvCount = 1f / count;
+	public int Count;
+	public float Mean;
+	public float M2;
 
-	/// <summary>Welford single-element update.</summary>
-	public void AddSample(float value)
+	public void Add(float value) => VarianceAccum.Update(ref Count, ref Mean, ref M2, value);
+
+	public void Merge(in VarianceMoments other) =>
+		VarianceAccum.Merge(ref Count, ref Mean, ref M2, other.Count, other.Mean, other.M2);
+
+	public static VarianceMoments MergeGroupedPartials(ReadOnlySpan<float> countMeanM2Triplets)
 	{
-		Count++;
-		InvCount = 1f / Count;
-		float delta = value - Mean;
-		Mean += delta * InvCount;
-		M2 += delta * (value - Mean);
-	}
-
-	/// <summary>
-	/// Chan–Golub–LeVeque merge. <paramref name="other"/> is typically a fixed-width SIMD block
-	/// merged into a growing running total.
-	/// </summary>
-	public void MergeWith(in VarianceMoments other)
-	{
-		if (other.Count == 0)
-			return;
-
-		if (Count == 0)
+		VarianceMoments total = default;
+		for (int i = 0; i + 2 < countMeanM2Triplets.Length; i += 3)
 		{
-			Count = other.Count;
-			Mean = other.Mean;
-			M2 = other.M2;
-			InvCount = other.InvCount;
-			return;
+			VarianceMoments block = new()
+			{
+				Count = (int)countMeanM2Triplets[i],
+				Mean = countMeanM2Triplets[i + 1],
+				M2 = countMeanM2Triplets[i + 2],
+			};
+			total.Merge(in block);
 		}
 
-		int mergedCount = Count + other.Count;
-		float invMergedCount = 1f / mergedCount;
-		float delta = other.Mean - Mean;
-		M2 = M2 + other.M2 + delta * delta * Count * other.Count * invMergedCount;
-		Mean += delta * other.Count * invMergedCount;
-		Count = mergedCount;
-		InvCount = invMergedCount;
-	}
-
-	public readonly float PopulationVariance()
-	{
-		if (Count == 0)
-			return 0f;
-
-		return M2 * InvCount;
-	}
-
-	/// <summary>Unbiased sample variance (s²): Σ(x−x̄)² / (N−1). Requires <see cref="Count"/> ≥ 2.</summary>
-	public readonly float SampleVariance()
-	{
-		if (Count == 0)
-			return 0f;
-
-		Guard.IsNotZero(Count - 1);
-		return M2 / (Count - 1);
-	}
-
-	/// <summary>Mean and M2 of one contiguous SIMD chunk (vectorized center + square).</summary>
-	public static VarianceMoments FromSimdBlock(Vector<float> values)
-	{
-		int blockCount = Vector<float>.Count;
-		float invBlockCount = 1f / blockCount;
-		float blockMean = SimdMath.HorizontalSum(values) * invBlockCount;
-		Vector<float> centered = values - new Vector<float>(blockMean);
-		float blockM2 = SimdMath.HorizontalSum(centered * centered);
-		return new VarianceMoments(blockCount, blockMean, blockM2);
+		return total;
 	}
 }
