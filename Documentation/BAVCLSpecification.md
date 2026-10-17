@@ -255,7 +255,7 @@ Data types stay thin (`Vector.cs`, `Vector3.cs` — constructors, operators, cop
 | `BAVCL.Modules.Generators` | `GeneratorsModule.cs` | `Internal/GeneratorsCore.cs` |
 | `BAVCL.Modules.Geometric` | `GeometricModule.cs` (`Vector3Geometric`, `Vector3GeometricExtensions`) | `Internal/Vector3Geometry.cs` |
 | `BAVCL.Modules.GpuOps` | `GpuOpsModule.cs` | `Internal/Broadcast.cs`, `VectorGpuOps.cs`, `Vector3GpuOps.cs`, `VectorVectorOp.cs`, … |
-| `BAVCL.Modules.Masking` | `MaskModule.cs` (`MaskModuleExtensions`) | `Internal/MaskBitwiseOps.cs`, `MaskVectorOps.cs` |
+| `BAVCL.Modules.Masking` | `MaskModule.cs` (`MaskModuleExtensions`) | `Internal/MaskBitwiseOps.cs`, `MaskCpu.cs`, `MaskGpu.cs`, `MaskCompaction*.cs` |
 | `BAVCL.Modules.Sorting` | `SortingModule.cs` (`VectorSorting`, `SortingModule`) | `Internal/SortCore.cs`, `ArgsortCore.cs`, `GpuSortingCore.cs`; GPU bridge in `BAVCL.GpuAlgorithms` |
 | `BAVCL.Modules.IO` | `IO.cs`, formatters (`JsonFormatter`, `CsvFormatter`, `XmlFormatter`, `TxtFormatter`) | `Internal/IoSchema.cs`, `StructuredCsv.cs`, … |
 
@@ -568,9 +568,9 @@ flowchart TD
 
 GPU creation and kernel loading are **separate steps**. Each `GPU` instance is configured independently via `KernelModuleLoader.Load<T>(gpu, domains)`. There is no implicit domain — if no modules are loaded, kernel delegates throw `KernelNotCompiledException`.
 
-Registered domains in `KernelModuleLoader` today: **Arithmetic**, **Structural**, **Geometry**, **Mask**, **Sorting**, and **Statistics** (for `float` and/or `int` per pair). **LinearAlgebra** and **Astrophysics** are enum placeholders only.
+Registered domains in `KernelModuleLoader` today: **Arithmetic**, **Structural**, **Geometry**, **Mask**, **Scan**, **Sorting**, and **Statistics** (for `float` and/or `int` per pair). **LinearAlgebra** and **Astrophysics** are enum placeholders only.
 
-`GPUManager.Default` loads `KernelWorkloads.Default` (Arithmetic + Structural + Mask). **Sorting** and **Statistics** are opt-in via `KernelWorkloads.Sorting` and `KernelWorkloads.Statistics`. `KernelWorkloads.Geometry` adds Geometry on top of Default.
+`GPUManager.Default` loads `KernelWorkloads.Default` (Arithmetic + Structural + Mask). **Scan**, **Sorting**, and **Statistics** are opt-in via `KernelWorkloads.Scan`, `KernelWorkloads.Sorting`, and `KernelWorkloads.Statistics`. `KernelWorkloads.Geometry` adds Geometry on top of Default.
 
 ### 4.6 Multi-GPU Data Flow (Target - WIP)
 
@@ -607,7 +607,7 @@ This section documents **what exists in code today**. See [Section 17](#17-code-
 | `GPUManager.GetGPU<TMem>()` | same                                | GPU with custom `IMemoryManager`          |
 | `KernelModuleLoader.Load<T>()` | `Source/Core/GPU/KernelModules/`  | Compile selected domains for element type `T` onto a GPU |
 | `KernelModuleLoader.LoadAll<T>()` | same                          | Compile every registered domain for `T`   |
-| `KernelWorkloads.Default` / `.Geometry` / `.Sorting` / `.Statistics` | same | Named domain bundles — see [§7.4](#74-workloads) |
+| `KernelWorkloads.Default` / `.Geometry` / `.Scan` / `.Sorting` / `.Statistics` | same | Named domain bundles — see [§7.4](#74-workloads) |
 
 ### 5.2 Vector (float32)
 
@@ -786,6 +786,7 @@ Notes:
 - `ArgsortIP` / `ArgsortXIP` require the caller-provided `indices` buffer to match the source's shape (`Length` and `Columns`); mismatches throw `ShapeMismatchException`.
 - GPU `SortX` / `SortXIP` / `ArgsortX` / `ArgsortXIP` require the **Sorting** kernel domain on the target `GPU` before use. Load via `KernelModuleLoader.Load<float>(gpu, KernelWorkloads.Sorting)` and `KernelModuleLoader.Load<int>(gpu, KernelWorkloads.Sorting)` (or `KernelDomain.Sorting` directly). Unloaded delegates throw `KernelNotCompiledException` — same contract as other GPU modules (§7).
 - GPU float sort/argsort maps floats to sortable `int` keys (`floatToSortableIntKern` / `sortableIntToFloatKern`), then reuses the int radix path.
+- GPU prefix scan (`CumSumX`, `CumProdX`, etc.) and GPU int radix sort/argsort use **ILGPU.Algorithms** delegates cached in `AlgorithmProviders` (one compiled delegate per variant per `GPU`; compilation on first use). Load **Scan** / **Sorting** via `KernelModuleLoader` where other kernels in those domains are required; scan/radix delegates do not depend on a separate enable step. These handles are **not** in `MemoryUsed`. **Temporary** storage is computed per call (`ComputeScanTempStorageSize`, `ComputeRadixSortTempStorageSize`, `ComputeRadixSortPairsTempStorageSize`) and rented from `BufferPools`.
 
 ### 5.3 Vector3 (GPU 3D)
 
@@ -1079,7 +1080,7 @@ Returns a **1D** `Vector` (`Columns = 0`) containing only elements where the mas
 var data = vector | mask;      // primary operator — accelerated (scan pipeline, same as FilterX)
 var data = vector[mask];       // indexer (aliases | mask)
 var data = vector.FilterX(mask); // explicit GPU scan compaction
-var data = vector.Filter(mask);  // explicit CPU host compaction (MaskCompactionReference)
+var data = vector.Filter(mask);  // explicit CPU host compaction (MaskCompactionCpu)
 ```
 
 **Operators vs extensions.** Mask-related operators (`& mask`, `| mask`, `/ mask`, `v[mask]`) and comparison operators always use the **accelerated** device path (`MaskX` / `FilterX` / `PartitionX` / `CompareX`), consistent with `+` `-` `*` `/` using `OP` on device buffers. Non-`X` extensions (`Filter`, `Partition`, `Where`, aggregates without `X`) are **explicit CPU** routes when you want host-side reference algorithms or sync-friendly behaviour.
@@ -1150,7 +1151,7 @@ Authoring rules and design principles: **[GPGPUKernelGuide.md](./GPGPUKernelGuid
 
 **Padding lanes.** Word kernels take a precomputed `(lastWord, tailMask)` pair and clear padding with a `Utilities.Select`. Lane kernels need no padding handling: mask storage is allocated zeroed and only logical lanes are launched.
 
-**Compaction (0.9.4).** GPU `FilterX` / `PartitionX` / `WhereX`: scan pipeline only (`maskBroadcastFlags` → exclusive prefix sum → scan-tail count → `compactGather` / `compactGatherFloatPartition` / `compactGatherIntPartition` / `compactWriteIndices`; one sync per op). `VectorInt` operators use the same scan path as `Vector`. CPU production `Where` and flat/full-matrix compaction: `MaskCompactionReference` (bit-walk / fused SIMD partition). Broadcast-row output Filter/Partition/`Where` on CPU use `MaskCompactionReference` via `MaskCompactionBroadcastCore` (column template + single-row mask indices). CPU `Mask` / `Filter` / `Partition` extensions mirror float and int32 on `Vector` / `VectorInt`; `MaskX` is fill on device, not compact.
+**Compaction (0.9.4).** GPU `FilterX` / `PartitionX` / `WhereX`: scan pipeline only (`MaskGpuSelection` → exclusive prefix sum → scan-tail count → gather kernels in `MaskCompaction`; one sync per op). `VectorInt` operators use the same scan path as `Vector`. CPU production `Where` and flat/full-matrix compaction: `MaskCompactionCpu` (bit-walk / fused SIMD partition). Broadcast-row output Filter/Partition/`Where` on CPU use `MaskCompactionCpu` via `MaskCompactionBroadcastCore` (column template + single-row mask indices). CPU `Mask` / `Filter` / `Partition` extensions mirror float and int32 on `Vector` / `VectorInt`; `MaskX` is fill on device, not compact.
 
 ### 6.7 Resize (planned future)
 
@@ -1268,6 +1269,7 @@ GPU gpu = GPUManager.Default;
 | -------------------------- | --------------------------------- | --------------------------------------------------- |
 | `KernelWorkloads.Default`  | Arithmetic, Structural, **Mask**  | Standard numerics + mask kernels                    |
 | `KernelWorkloads.Geometry` | Default + Geometry                | Vector3 GPU ops (cross, magnitude/distance)         |
+| `KernelWorkloads.Scan`     | Scan                              | GPU prefix scan (`CumSumX`, `CumProdX`, `*XIP` scan APIs) |
 | `KernelWorkloads.Sorting`  | Sorting                           | GPU sort/argsort (`SortX`, `SortXIP`, `ArgsortX`, `ArgsortXIP`) |
 | `KernelWorkloads.Statistics` | Statistics                      | GPU global reduce (`SumX`, `MinX`, `MaxX`, `MeanX`, `VarX`, `StdX`, `SampleVarX`, `SampleStdX`, `AllX`, `DotX` reduce leg) |
 
