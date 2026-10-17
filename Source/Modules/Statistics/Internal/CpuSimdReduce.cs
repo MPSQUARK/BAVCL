@@ -59,10 +59,10 @@ internal static class CpuSimdReduce
 		scalar * SumFloat(vector);
 
 	internal static float VarFloat(ReadOnlySpan<float> data) =>
-		VarianceAccumOps.PopulationVariance(data);
+		VarianceAccum.PopulationVariance(data);
 
 	internal static float SampleVarFloat(ReadOnlySpan<float> data) =>
-		VarianceAccumOps.SampleVariance(data);
+		VarianceAccum.SampleVariance(data);
 
 	internal static bool AllFloat(ReadOnlySpan<float> data)
 	{
@@ -202,10 +202,10 @@ internal static class CpuSimdReduce
 	}
 
 	internal static float VarInt(ReadOnlySpan<int> data) =>
-		VarianceAccumOps.PopulationVariance(data);
+		VarianceAccum.PopulationVariance(data);
 
 	internal static float SampleVarInt(ReadOnlySpan<int> data) =>
-		VarianceAccumOps.SampleVariance(data);
+		VarianceAccum.SampleVariance(data);
 
 	internal static float DotInt(ReadOnlySpan<int> left, ReadOnlySpan<int> right)
 	{
