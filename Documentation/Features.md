@@ -92,7 +92,7 @@ These names are **GPU-only** by design — no `X` suffix:
 
 - **`OP` / `IPOP`** on `Mask` (bitwise)
 - **`MaskX`**, **`FilterX`**, **`PartitionX`** on `Vector` / `VectorInt` (GPU scan compaction in 0.9.3); **`&` / `|` / `/ mask` / `v[mask]`** operators call these accelerated paths (not CPU `Filter`/`Partition`)
-- **`Mask`**, **`Filter`**, **`Partition`** on `Vector` / `VectorInt` — explicit CPU `MaskCompactionReference` (operators still use accelerated **`MaskX`** / **`FilterX`** / **`PartitionX`**)
+- **`Mask`**, **`Filter`**, **`Partition`** on `Vector` / `VectorInt` — explicit CPU `MaskCompactionCpu` (operators use accelerated **`MaskX`** / **`FilterX`** / **`PartitionX`**)
 - **`Where`** / **`WhereX`** on `Mask` — true source indices (`np.where(mask)[0]` / `flatnonzero`)
 - **`CountTrue`** / **`Any`** / **`All`** + **`*X`** on `Mask`
 - **`FirstTrueIndex`** / **`LastTrueIndex`** + **`*X`** on `Mask`
