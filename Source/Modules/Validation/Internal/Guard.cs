@@ -44,10 +44,30 @@ internal static class Guard
 		throw new ShapeMismatchException(operation, left, right);
 	}
 
+	internal static void MatchingGpu(GPU left, GPU right) =>
+		GpuValidation.IsSameGpu(left, right);
+
+	internal static void MatchingGpu<T>(VectorBase<T> left, VectorBase<T> right)
+		where T : unmanaged =>
+		MatchingGpu(left.Gpu, right.Gpu);
+
+	internal static void MatchingGpu<T>(VectorBase<T> vector, Mask mask)
+		where T : unmanaged =>
+		MatchingGpu(vector.Gpu, mask.Gpu);
+
+	internal static void RollingWindow(int window, int length, [CallerArgumentExpression(nameof(window))] string? windowName = null)
+	{
+		if (window <= 0)
+			throw new ArgumentOutOfRangeException(windowName ?? nameof(window), window, "Window size must be positive.");
+
+		if (length == 0)
+			return;
+	}
+
 	internal static void MatchingGpuPairIndices<T>(VectorBase<T> values, VectorInt indices, string operation)
 		where T : unmanaged
 	{
-		GpuValidation.IsSameGpu(values.Gpu, indices.Gpu);
+		MatchingGpu(values.Gpu, indices.Gpu);
 		MatchingDimensions(values.Shape(), indices.Shape(), operation);
 	}
 }
