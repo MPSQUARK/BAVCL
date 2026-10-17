@@ -2,8 +2,6 @@ using ILGPU.Runtime;
 using System;
 using System.Collections.Generic;
 using BAVCL.Core.Enums;
-using BAVCL.Core.Helpers;
-
 namespace BAVCL.Core.Interfaces;
 
 public interface IMemoryManager
