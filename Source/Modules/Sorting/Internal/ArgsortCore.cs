@@ -93,7 +93,7 @@ internal static class ArgsortCore
 	}
 
 	static void ValidateArgsortShape<T>(VectorBase<T> vector, VectorInt indices) where T : unmanaged =>
-		Guard.MatchingGpuPairIndices(vector, indices, "ArgsortIP");
+		Guard.MatchingGpuPairIndices(vector, indices, nameof(ArgsortIP));
 
 	static void BuildRow<T>(T[] values, int[] indices, int offset, int count, SortOrder order) where T : IComparable<T>
 	{
