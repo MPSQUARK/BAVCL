@@ -59,9 +59,5 @@ public sealed partial class GPU(Accelerator accelerator, IMemoryManager memoryMa
 		_memoryManager.PrintMemoryUsage(percentage, format, unit);
 	public string GetMemUsage() => _memoryManager.MemoryUsed.ToString();
 
-	public void Dispose()
-	{
-		AlgorithmProviders.Dispose();
-		accelerator.Dispose();
-	}
+	public void Dispose() => accelerator.Dispose();
 }
