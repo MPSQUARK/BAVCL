@@ -33,6 +33,7 @@ public partial class GPU
 		allNonZeroFloatGrouped = accelerator.LoadKernel<
 			ArrayView<float>, ArrayView<int>, int>(AllNonZeroFloatGrouped_Kern);
 		LoadVarReduceFloatGroupedKernel();
+		LoadStatisticsRollingKernels();
 	}
 
 	void LoadVarReduceFloatGroupedKernel()
