@@ -37,6 +37,26 @@ public static class MaskModuleExtensions
 		public VectorInt Where() => MaskCompaction.Where(mask);
 
 		public VectorInt WhereX() => MaskCompaction.WhereX(mask);
+
+		public int CountTrue() => MaskCpu.CountTrue(mask);
+
+		public int CountTrueX() => MaskGpu.CountTrueX(mask);
+
+		public bool Any() => MaskCpu.Any(mask);
+
+		public bool AnyX() => MaskGpu.AnyX(mask);
+
+		public bool All() => MaskCpu.All(mask);
+
+		public bool AllX() => MaskGpu.AllX(mask);
+
+		public int FirstTrueIndex() => MaskCpu.FirstTrueIndex(mask);
+
+		public int FirstTrueIndexX() => MaskGpu.FirstTrueIndexX(mask);
+
+		public int LastTrueIndex() => MaskCpu.LastTrueIndex(mask);
+
+		public int LastTrueIndexX() => MaskGpu.LastTrueIndexX(mask);
 	}
 
 	extension(Vector vector)
