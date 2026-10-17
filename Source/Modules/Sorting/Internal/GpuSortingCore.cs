@@ -6,61 +6,101 @@ internal static class GpuSortingCore
 {
 	internal static VectorInt SortX(VectorInt vector, SortOrder order)
 	{
-		VectorInt copy = vector.Copy();
-		SortXIP(copy, order);
-		return copy;
+		if (order == SortOrder.Ascending)
+			return SortAscX(vector);
+
+		return SortDescX(vector);
 	}
 
-	internal static VectorInt SortAscX(VectorInt vector) => SortX(vector, SortOrder.Ascending);
+	internal static VectorInt SortAscX(VectorInt vector) => SortAlgorithms.SortAscX(vector);
 
-	internal static VectorInt SortDescX(VectorInt vector) => SortX(vector, SortOrder.Descending);
+	internal static VectorInt SortDescX(VectorInt vector) => SortAlgorithms.SortDescX(vector);
 
 	internal static Vector SortX(Vector vector, SortOrder order)
 	{
-		Vector copy = vector.Copy();
-		SortXIP(copy, order);
-		return copy;
+		if (order == SortOrder.Ascending)
+			return SortAscX(vector);
+
+		return SortDescX(vector);
 	}
 
-	internal static Vector SortAscX(Vector vector) => SortX(vector, SortOrder.Ascending);
+	internal static Vector SortAscX(Vector vector) => SortAlgorithms.SortAscX(vector);
 
-	internal static Vector SortDescX(Vector vector) => SortX(vector, SortOrder.Descending);
+	internal static Vector SortDescX(Vector vector) => SortAlgorithms.SortDescX(vector);
 
-	internal static void SortXIP(VectorInt vector, SortOrder order) => SortAlgorithms.SortIntXIP(vector, order);
+	internal static void SortXIP(VectorInt vector, SortOrder order)
+	{
+		if (order == SortOrder.Ascending)
+			SortAscXIP(vector);
+		else
+			SortDescXIP(vector);
+	}
 
-	internal static void SortAscXIP(VectorInt vector) => SortXIP(vector, SortOrder.Ascending);
+	internal static void SortAscXIP(VectorInt vector) => SortAlgorithms.SortAscXIP(vector);
 
-	internal static void SortDescXIP(VectorInt vector) => SortXIP(vector, SortOrder.Descending);
+	internal static void SortDescXIP(VectorInt vector) => SortAlgorithms.SortDescXIP(vector);
 
-	internal static void SortXIP(Vector vector, SortOrder order) => SortAlgorithms.SortFloatXIP(vector, order);
+	internal static void SortXIP(Vector vector, SortOrder order)
+	{
+		if (order == SortOrder.Ascending)
+			SortAscXIP(vector);
+		else
+			SortDescXIP(vector);
+	}
 
-	internal static void SortAscXIP(Vector vector) => SortXIP(vector, SortOrder.Ascending);
+	internal static void SortAscXIP(Vector vector) => SortAlgorithms.SortAscXIP(vector);
 
-	internal static void SortDescXIP(Vector vector) => SortXIP(vector, SortOrder.Descending);
+	internal static void SortDescXIP(Vector vector) => SortAlgorithms.SortDescXIP(vector);
 
-	internal static VectorInt ArgsortX(VectorInt vector, SortOrder order) => SortAlgorithms.ArgsortIntX(vector, order);
+	internal static VectorInt ArgsortX(VectorInt vector, SortOrder order)
+	{
+		if (order == SortOrder.Ascending)
+			return ArgsortAscX(vector);
 
-	internal static VectorInt ArgsortAscX(VectorInt vector) => ArgsortX(vector, SortOrder.Ascending);
+		return ArgsortDescX(vector);
+	}
 
-	internal static VectorInt ArgsortDescX(VectorInt vector) => ArgsortX(vector, SortOrder.Descending);
+	internal static VectorInt ArgsortAscX(VectorInt vector) => SortAlgorithms.ArgsortAscX(vector);
 
-	internal static VectorInt ArgsortX(Vector vector, SortOrder order) => SortAlgorithms.ArgsortFloatX(vector, order);
+	internal static VectorInt ArgsortDescX(VectorInt vector) => SortAlgorithms.ArgsortDescX(vector);
 
-	internal static VectorInt ArgsortAscX(Vector vector) => ArgsortX(vector, SortOrder.Ascending);
+	internal static VectorInt ArgsortX(Vector vector, SortOrder order)
+	{
+		if (order == SortOrder.Ascending)
+			return ArgsortAscX(vector);
 
-	internal static VectorInt ArgsortDescX(Vector vector) => ArgsortX(vector, SortOrder.Descending);
+		return ArgsortDescX(vector);
+	}
 
-	internal static void ArgsortXIP(VectorInt vector, VectorInt indices, SortOrder order) =>
-		SortAlgorithms.ArgsortIntXIP(vector, indices, order);
+	internal static VectorInt ArgsortAscX(Vector vector) => SortAlgorithms.ArgsortAscX(vector);
 
-	internal static void ArgsortAscXIP(VectorInt vector, VectorInt indices) => ArgsortXIP(vector, indices, SortOrder.Ascending);
+	internal static VectorInt ArgsortDescX(Vector vector) => SortAlgorithms.ArgsortDescX(vector);
 
-	internal static void ArgsortDescXIP(VectorInt vector, VectorInt indices) => ArgsortXIP(vector, indices, SortOrder.Descending);
+	internal static void ArgsortXIP(VectorInt vector, VectorInt indices, SortOrder order)
+	{
+		if (order == SortOrder.Ascending)
+			ArgsortAscXIP(vector, indices);
+		else
+			ArgsortDescXIP(vector, indices);
+	}
 
-	internal static void ArgsortXIP(Vector vector, VectorInt indices, SortOrder order) =>
-		SortAlgorithms.ArgsortFloatXIP(vector, indices, order);
+	internal static void ArgsortAscXIP(VectorInt vector, VectorInt indices) =>
+		SortAlgorithms.ArgsortAscXIP(vector, indices);
 
-	internal static void ArgsortAscXIP(Vector vector, VectorInt indices) => ArgsortXIP(vector, indices, SortOrder.Ascending);
+	internal static void ArgsortDescXIP(VectorInt vector, VectorInt indices) =>
+		SortAlgorithms.ArgsortDescXIP(vector, indices);
 
-	internal static void ArgsortDescXIP(Vector vector, VectorInt indices) => ArgsortXIP(vector, indices, SortOrder.Descending);
+	internal static void ArgsortXIP(Vector vector, VectorInt indices, SortOrder order)
+	{
+		if (order == SortOrder.Ascending)
+			ArgsortAscXIP(vector, indices);
+		else
+			ArgsortDescXIP(vector, indices);
+	}
+
+	internal static void ArgsortAscXIP(Vector vector, VectorInt indices) =>
+		SortAlgorithms.ArgsortAscXIP(vector, indices);
+
+	internal static void ArgsortDescXIP(Vector vector, VectorInt indices) =>
+		SortAlgorithms.ArgsortDescXIP(vector, indices);
 }
