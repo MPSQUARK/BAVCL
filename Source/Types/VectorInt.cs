@@ -56,25 +56,25 @@ public sealed partial class VectorInt : VectorBase<int>
 	public override string ToString() => VectorStructuralExtensions.ToStr(this);
 
 	/// <summary>Compact true lanes (accelerated scan pipeline; same as <c>| mask</c>).</summary>
-	public VectorInt this[Mask mask] => MaskVectorIntOps.FilterX(this, mask);
+	public VectorInt this[Mask mask] => MaskGpu.FilterX(this, mask);
 
 	public Mask CompareEqualsX(VectorInt other) =>
-		MaskVectorIntOps.CompareX(this, other, VectorComparison.Equal);
+		MaskGpu.CompareX(this, other, VectorComparison.Equal);
 
 	public Mask CompareNotEqualsX(VectorInt other) =>
-		MaskVectorIntOps.CompareX(this, other, VectorComparison.NotEqual);
+		MaskGpu.CompareX(this, other, VectorComparison.NotEqual);
 
 	public Mask CompareX(VectorInt other, VectorComparison comparison) =>
-		MaskVectorIntOps.CompareX(this, other, comparison);
+		MaskGpu.CompareX(this, other, comparison);
 
 	public Mask CompareEqualsX(int scalar) =>
-		MaskVectorIntOps.CompareX(this, scalar, VectorComparison.Equal);
+		MaskGpu.CompareX(this, scalar, VectorComparison.Equal);
 
 	public Mask CompareNotEqualsX(int scalar) =>
-		MaskVectorIntOps.CompareX(this, scalar, VectorComparison.NotEqual);
+		MaskGpu.CompareX(this, scalar, VectorComparison.NotEqual);
 
 	public Mask CompareX(int scalar, VectorComparison comparison) =>
-		MaskVectorIntOps.CompareX(this, scalar, comparison);
+		MaskGpu.CompareX(this, scalar, comparison);
 
 	public static explicit operator VectorInt(Vector vector) => CastCore.ToVectorInt(vector);
 
@@ -151,7 +151,7 @@ public sealed partial class VectorInt : VectorBase<int>
 
 	/// <summary>Partition by mask (accelerated scan pipeline).</summary>
 	public static (VectorInt TrueLanes, VectorInt FalseLanes) operator /(VectorInt vector, Mask mask) =>
-		MaskVectorIntOps.PartitionX(vector, mask);
+		MaskGpu.PartitionX(vector, mask);
 
 	public void operator /=(VectorInt vectorB) =>
 		this.IPOP(vectorB, Operations.divide);
@@ -236,10 +236,10 @@ public sealed partial class VectorInt : VectorBase<int>
 
 	/// <summary>Mask fill false lanes (accelerated kernel).</summary>
 	public static VectorInt operator &(VectorInt vector, Mask mask) =>
-		MaskVectorIntOps.MaskX(vector, mask, 0);
+		MaskGpu.MaskX(vector, mask, 0);
 
 	public static VectorInt operator &(VectorInt vector, (Mask mask, int fill) masked) =>
-		MaskVectorIntOps.MaskX(vector, masked.mask, masked.fill);
+		MaskGpu.MaskX(vector, masked.mask, masked.fill);
 
 	public void operator &=(VectorInt vectorB) =>
 		this.IPOP(vectorB, Operations.bitwiseAnd);
@@ -249,31 +249,31 @@ public sealed partial class VectorInt : VectorBase<int>
 
 	/// <summary>Compact true lanes (accelerated scan pipeline).</summary>
 	public static VectorInt operator |(VectorInt vector, Mask mask) =>
-		MaskVectorIntOps.FilterX(vector, mask);
+		MaskGpu.FilterX(vector, mask);
 
 	public static Mask operator >(VectorInt left, VectorInt right) =>
-		MaskVectorIntOps.CompareX(left, right, VectorComparison.Greater);
+		MaskGpu.CompareX(left, right, VectorComparison.Greater);
 
 	public static Mask operator <(VectorInt left, VectorInt right) =>
-		MaskVectorIntOps.CompareX(left, right, VectorComparison.Less);
+		MaskGpu.CompareX(left, right, VectorComparison.Less);
 
 	public static Mask operator >=(VectorInt left, VectorInt right) =>
-		MaskVectorIntOps.CompareX(left, right, VectorComparison.GreaterOrEqual);
+		MaskGpu.CompareX(left, right, VectorComparison.GreaterOrEqual);
 
 	public static Mask operator <=(VectorInt left, VectorInt right) =>
-		MaskVectorIntOps.CompareX(left, right, VectorComparison.LessOrEqual);
+		MaskGpu.CompareX(left, right, VectorComparison.LessOrEqual);
 
 	public static Mask operator >(VectorInt vector, int scalar) =>
-		MaskVectorIntOps.CompareX(vector, scalar, VectorComparison.Greater);
+		MaskGpu.CompareX(vector, scalar, VectorComparison.Greater);
 
 	public static Mask operator <(VectorInt vector, int scalar) =>
-		MaskVectorIntOps.CompareX(vector, scalar, VectorComparison.Less);
+		MaskGpu.CompareX(vector, scalar, VectorComparison.Less);
 
 	public static Mask operator >=(VectorInt vector, int scalar) =>
-		MaskVectorIntOps.CompareX(vector, scalar, VectorComparison.GreaterOrEqual);
+		MaskGpu.CompareX(vector, scalar, VectorComparison.GreaterOrEqual);
 
 	public static Mask operator <=(VectorInt vector, int scalar) =>
-		MaskVectorIntOps.CompareX(vector, scalar, VectorComparison.LessOrEqual);
+		MaskGpu.CompareX(vector, scalar, VectorComparison.LessOrEqual);
 
 	#endregion
 
