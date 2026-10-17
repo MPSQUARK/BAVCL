@@ -34,14 +34,14 @@ public interface IMemoryManager
     /// Checks whether the item with the given ID is stored in the memory manager.
     /// </summary>
     public virtual bool IsStored(uint id) => StoredIDs().Contains(id);
-    public virtual string PrintMemoryUsage(bool percentage, string format = "F2", MemoryUsageUnit unit = MemoryUsageUnit.Auto)
+    public virtual string PrintMemoryUsage(bool percentage, string format = "F2", BinaryByteUnit unit = BinaryByteUnit.Auto)
     {
         string usage;
 
         if (percentage)
             usage = $"{(((double)MemoryUsed / (double)AvailableMemory) * 100f).ToString(format)}%";
         else
-            usage = MemoryUsageFormatting.FormatAbsolute(MemoryUsed, AvailableMemory, unit, format);
+            usage = BinarySizeFormat.FormatPair(MemoryUsed, AvailableMemory, unit, format);
 
         Console.WriteLine(usage);
         return usage;
