@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using BAVCL.Core.Exceptions;
+using BAVCL.Types;
 
 namespace BAVCL.Modules.Validation;
 
