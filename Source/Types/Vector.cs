@@ -66,7 +66,7 @@ public sealed partial class Vector : VectorBase<float>
 	public override string ToString() => VectorStructuralExtensions.ToStr(this);
 
 	/// <summary>Compact true lanes (accelerated scan pipeline; same as <c>| mask</c>).</summary>
-	public Vector this[Mask mask] => MaskGpu.FilterX(this, mask);
+	public Vector this[Mask mask] => MaskCompaction.FilterX(this, mask);
 
 	public Mask CompareEqualsX(Vector other) =>
 		MaskGpu.CompareX(this, other, VectorComparison.Equal);
@@ -142,7 +142,7 @@ public sealed partial class Vector : VectorBase<float>
 
 	/// <summary>Partition by mask (accelerated scan pipeline). Vector/vector <c>/</c> still uses element-wise divide.</summary>
 	public static (Vector TrueLanes, Vector FalseLanes) operator /(Vector vector, Mask mask) =>
-		MaskGpu.PartitionX(vector, mask);
+		MaskCompaction.PartitionX(vector, mask);
 
     // In-place operator optimization
     public void operator /=(Vector vectorB) =>
@@ -171,7 +171,7 @@ public sealed partial class Vector : VectorBase<float>
 
 	/// <summary>Compact true lanes (accelerated scan pipeline; CPU host path: <see cref="BAVCL.Modules.Masking.MaskModuleExtensions.Filter"/>).</summary>
 	public static Vector operator |(Vector vector, Mask mask) =>
-		MaskGpu.FilterX(vector, mask);
+		MaskCompaction.FilterX(vector, mask);
 
 	public static Mask operator >(Vector left, Vector right) =>
 		MaskGpu.CompareX(left, right, VectorComparison.Greater);
