@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using BAVCL.Core.Interfaces;
 using ILGPU;
 using ILGPU.Runtime;
@@ -9,7 +10,7 @@ namespace BAVCL;
 
 public static class GPUManager
 {
-    private static readonly object _lock = new();
+    private static readonly Lock _lock = new();
     private static readonly Lazy<Context> _context = new(
         () => Context.Create(builder => builder.Default().EnableAlgorithms())
     );
