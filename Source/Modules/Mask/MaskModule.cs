@@ -34,7 +34,7 @@ public static class MaskModuleExtensions
 
 		public Mask Xnor(Mask other) => MaskBitwiseOps.BinaryOp(mask, other, MaskOperation.Xnor);
 
-		public VectorInt Where() => MaskCompaction.Where(mask);
+		public VectorInt Where() => MaskCompactionCpu.Where(mask);
 
 		public VectorInt WhereX() => MaskCompaction.WhereX(mask);
 
@@ -67,12 +67,12 @@ public static class MaskModuleExtensions
 
 		public Vector Filter(Mask mask) => MaskCompactionCpu.Filter(vector, mask);
 
-		public Vector FilterX(Mask mask) => MaskGpu.FilterX(vector, mask);
+		public Vector FilterX(Mask mask) => MaskCompaction.FilterX(vector, mask);
 
 		public (Vector TrueLanes, Vector FalseLanes) Partition(Mask mask) =>
 			MaskCompactionCpu.Partition(vector, mask);
 
-		public (Vector TrueLanes, Vector FalseLanes) PartitionX(Mask mask) => MaskGpu.PartitionX(vector, mask);
+		public (Vector TrueLanes, Vector FalseLanes) PartitionX(Mask mask) => MaskCompaction.PartitionX(vector, mask);
 	}
 
 	extension(VectorInt vector)
@@ -83,12 +83,12 @@ public static class MaskModuleExtensions
 
 		public VectorInt Filter(Mask mask) => MaskCompactionCpu.Filter(vector, mask);
 
-		public VectorInt FilterX(Mask mask) => MaskGpu.FilterX(vector, mask);
+		public VectorInt FilterX(Mask mask) => MaskCompaction.FilterX(vector, mask);
 
 		public (VectorInt TrueLanes, VectorInt FalseLanes) Partition(Mask mask) =>
 			MaskCompactionCpu.Partition(vector, mask);
 
 		public (VectorInt TrueLanes, VectorInt FalseLanes) PartitionX(Mask mask) =>
-			MaskGpu.PartitionX(vector, mask);
+			MaskCompaction.PartitionX(vector, mask);
 	}
 }
