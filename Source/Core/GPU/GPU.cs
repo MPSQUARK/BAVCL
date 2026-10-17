@@ -1,10 +1,11 @@
-using ILGPU;
 using ILGPU.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using BAVCL.GpuAlgorithms;
+using BAVCL.Core.Enums;
 using BAVCL.Core.Interfaces;
+using BAVCL.Source.Core.Enums;
 
 namespace BAVCL;
 
@@ -13,7 +14,7 @@ public sealed partial class GPU(Accelerator accelerator, IMemoryManager memoryMa
 	private readonly IMemoryManager _memoryManager = memoryManager;
 	internal readonly AlgorithmProviders AlgorithmProviders = new(accelerator);
 	private readonly Lock _kernelLoadLock = new();
-	private readonly HashSet<(KernelDomain Domain, Type ElementType)> _loadedModules = [];
+	private readonly HashSet<(int ModuleKey, Type ElementType)> _loadedModules = [];
 	public Accelerator accelerator = accelerator;
 	internal AcceleratorStream DefaultStream => accelerator.DefaultStream;
 	internal void Synchronize() => accelerator.Synchronize();
@@ -22,10 +23,14 @@ public sealed partial class GPU(Accelerator accelerator, IMemoryManager memoryMa
 	/// Compiles a kernel module onto this device unless it is already loaded.
 	/// Returns whether compilation actually happened.
 	/// </summary>
-	internal bool LoadModuleOnce(KernelDomain domain, Type elementType, Action<GPU> load)
-	{
-		var module = (domain, elementType);
+	internal bool LoadModuleOnce(KernelDomain domain, Type elementType, Action<GPU> load) =>
+		LoadModuleOnce(((int)domain, elementType), load);
 
+	internal bool LoadModuleOnce(KernelDomainSharedModule shared, Type elementType, Action<GPU> load) =>
+		LoadModuleOnce(((int)shared, elementType), load);
+
+	bool LoadModuleOnce((int ModuleKey, Type ElementType) module, Action<GPU> load)
+	{
 		lock (_kernelLoadLock)
 		{
 			if (_loadedModules.Contains(module))
