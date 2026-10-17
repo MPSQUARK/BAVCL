@@ -24,6 +24,12 @@ public partial class GPU
 		maskLaneOpIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, int, BroadcastStrides, SpecializedValue<int>>(MaskLaneOpIP_Kern);
 	}
 
+	internal void LoadMaskCoreKernels()
+	{
+		LoadMaskWordKernels();
+		LoadMaskCompactionKernels();
+	}
+
 	// One thread per packed word: a single bitwise instruction resolves 32 mask lanes.
 	// Passing the same view as output and left performs the operation in place.
 	static void MaskWordOp_Kern(
