@@ -60,7 +60,7 @@ public sealed partial class GPU(Accelerator accelerator, IMemoryManager memoryMa
 	/// </summary>
 	public uint FreeBuffer(uint Id) => _memoryManager.FreeBuffer(Id);
 	public bool IsStored(uint id) => _memoryManager.IsStored(id);
-	public string PrintMemoryUsage(bool percentage, string format = "F2", MemoryUsageUnit unit = MemoryUsageUnit.Megabytes) =>
+	public string PrintMemoryUsage(bool percentage, string format = "F2", BinaryByteUnit unit = BinaryByteUnit.Megabytes) =>
 		_memoryManager.PrintMemoryUsage(percentage, format, unit);
 	public string GetMemUsage() => _memoryManager.MemoryUsed.ToString();
 
