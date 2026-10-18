@@ -40,11 +40,6 @@ kanban
     b27[CI and benchmark regression gate]
 
   inprogress[In Progress]
-    p1[Prefix scan implementation]@{ ticket: 54 }
-    p2[Investigate mask + scan]@{ ticket: 55 }
-    p3[Scan-based filtering]@{ ticket: 62 }
-    p4[Scan-based partition]@{ ticket: 63 }
-    p5[Scan-based masking]@{ ticket: 64 }
     p6[CPU compaction benchmark matrix]
 
   done[Done]
@@ -53,6 +48,11 @@ kanban
     d3[Statistics extension]@{ ticket: 52 }
     d4[ILGPU reduction wrapper]@{ ticket: 53 }
     d5[Mask aggregates and index search]
+    d6[Prefix scan implementation]@{ ticket: 54 }
+    d7[Mask + scan integration]@{ ticket: 55 }
+    d8[Scan-based filtering]@{ ticket: 62 }
+    d9[Scan-based partition]@{ ticket: 63 }
+    d10[Scan-based masking]@{ ticket: 64 }
 ```
 
 ## Roadmap item notes
@@ -122,17 +122,6 @@ motivation for each item.
 
 ### In Progress
 
-- **Prefix scan implementation** — Provide inclusive and exclusive cumulative sum/product
-  operations, including allocating, in-place, and GPU-synchronizing variants for `Vector`
-  and `VectorInt`. See issue #54.
-- **Investigate mask + scan** — Establish how packed mask flags and scan primitives should
-  work together for compaction and index generation. See issue #55.
-- **Scan-based filtering** — Use exclusive prefix scans over broadcast-compatible flags to
-  implement device-side `Filter` without serial host compaction. See issue #62.
-- **Scan-based partition** — Use scan-derived positions to split selected and unselected
-  values efficiently on the device. See issue #63.
-- **Scan-based masking** — Use scan-based compaction for mask application while preserving
-  broadcast and fill-value semantics. See issue #64.
 - **CPU compaction benchmark matrix** — Compare direct loops with the previous delegate-based
   implementations across flat and matrix layouts, row broadcasting, input sizes, and mask
   densities. Keep only changes that show a measured improvement.
@@ -149,3 +138,14 @@ motivation for each item.
   See issue #53.
 - **Mask aggregates and index search** — Mask `Any`, `All`, `CountTrue`, and first/last true
   index functionality.
+- **Prefix scan implementation** — Inclusive and exclusive cumulative sum/product operations
+  now exist for `Vector` and `VectorInt`, including allocating, in-place, and GPU variants.
+  See issue #54.
+- **Mask + scan integration** — Packed mask flags, exclusive scan positions, and true-count
+  computation now form the shared basis of GPU mask compaction. See issue #55.
+- **Scan-based filtering** — GPU `Filter` uses broadcast flags and exclusive scan positions
+  instead of serial host compaction. See issue #62.
+- **Scan-based partition** — GPU partition writes true and false lanes using scan-derived
+  positions. See issue #63.
+- **Scan-based masking** — GPU mask application and fill-value handling use the compaction
+  selection path. See issue #64.
