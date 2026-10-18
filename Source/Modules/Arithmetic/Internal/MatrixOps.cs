@@ -2,6 +2,7 @@ using BAVCL.Modules.GpuOps;
 
 namespace BAVCL.Modules.Arithmetic;
 
+// TODO: To be refactored further, Guards can be combined and Operations inlined.
 internal static class MatrixOpsCore
 {
 	internal static Vector BinaryX(Vector matrixA, Vector matrixB, Operations operation)
