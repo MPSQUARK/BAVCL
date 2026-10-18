@@ -1,4 +1,5 @@
 using System;
+using BAVCL.Core;
 using BAVCL.Core.Exceptions;
 using ILGPU;
 using ILGPU.Runtime;
@@ -15,24 +16,24 @@ internal static class Broadcast
 		return RunBroadcastOp(vectorA, vectorB, operation);
 	}
 
-    internal static Vector BroadcastIPOP(Vector vector, Vector vectorB, Operations operation)
-    {
-        if (SameAlignedElementwiseLayout(vector, vectorB))
-            return VectorVectorOp.VectorVectorOPIP(vector, vectorB, operation);
+	internal static Vector BroadcastIPOP(Vector vector, Vector vectorB, Operations operation)
+	{
+		if (SameAlignedElementwiseLayout(vector, vectorB))
+			return VectorVectorOp.VectorVectorOPIP(vector, vectorB, operation);
 
-        Shape leftShape = vector.Shape();
-        Shape outShape = leftShape.BroadcastWith(vectorB.Shape());
-        if (leftShape.Rows != outShape.Rows || leftShape.Cols != outShape.Cols)
-        {
-            throw new PerformanceException(
-                "Swap operand order OR use allocating overload 'OP'.");
-        }
+		Shape leftShape = vector.Shape();
+		Shape outShape = leftShape.BroadcastWith(vectorB.Shape());
+		if (leftShape.Rows != outShape.Rows || leftShape.Cols != outShape.Cols)
+		{
+			throw new PerformanceException(
+				"Swap operand order OR use allocating overload 'OP'.");
+		}
 
-        RunBroadcastOpIP(vector, vectorB, operation);
-        return vector;
-    }
+		RunBroadcastOpIP(vector, vectorB, operation);
+		return vector;
+	}
 
-    internal static VectorInt BroadcastOP(VectorInt vectorA, VectorInt vectorB, Operations operation)
+	internal static VectorInt BroadcastOP(VectorInt vectorA, VectorInt vectorB, Operations operation)
 	{
 		if (SameAlignedElementwiseLayout(vectorA, vectorB))
 			return VectorVectorOp.VectorVectorOP(vectorA, vectorB, operation);
@@ -46,7 +47,12 @@ internal static class Broadcast
 			return VectorVectorOp.VectorVectorOPIP(vector, vectorB, operation);
 
 		Shape leftShape = vector.Shape();
-		Guard.InPlaceOutputShape(leftShape, leftShape.BroadcastWith(vectorB.Shape()));
+		Shape outShape = leftShape.BroadcastWith(vectorB.Shape());
+		if (leftShape.Rows != outShape.Rows || leftShape.Cols != outShape.Cols)
+		{
+			throw new PerformanceException(
+				"Swap operand order OR use allocating overload 'OP'.");
+		}
 
 		RunBroadcastOpIP(vector, vectorB, operation);
 		return vector;
