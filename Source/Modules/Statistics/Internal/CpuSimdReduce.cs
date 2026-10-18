@@ -185,14 +185,17 @@ internal static class CpuSimdReduce
 	internal static float SumInt(ReadOnlySpan<int> data)
 	{
 		int total = 0;
-		int vectorSize = Vector<int>.Count;
 		int i = 0;
+		int vectorSize = Vector<int>.Count;
 
-		for (; i <= data.Length - vectorSize; i += vectorSize)
+		if (data.Length >= vectorSize)
 		{
-			Vector<int> input = new(data.Slice(i, vectorSize));
+			Vector<int> acc = Vector<int>.Zero;
+			for (; i <= data.Length - vectorSize; i += vectorSize)
+				acc += new Vector<int>(data.Slice(i, vectorSize));
+
 			for (int lane = 0; lane < vectorSize; lane++)
-				total += input[lane];
+				total += acc[lane];
 		}
 
 		for (; i < data.Length; i++)
