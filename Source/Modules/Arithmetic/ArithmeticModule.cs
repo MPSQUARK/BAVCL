@@ -50,15 +50,19 @@ public static class ArithmeticModule
 
 		public static Vector NormaliseX(Vector vector) => ElementWiseCore.NormaliseX(vector);
 
-		public static Vector MatrixAddX(Vector left, Vector right) => MatrixOpsCore.MatrixAddX(left, right);
+		public static Vector MatrixAddX(Vector left, Vector right) =>
+			MatrixOpsCore.BinaryX(left, right, Operations.add);
 
-		public static Vector MatrixSubtractX(Vector left, Vector right) => MatrixOpsCore.MatrixSubtractX(left, right);
+		public static Vector MatrixSubtractX(Vector left, Vector right) =>
+			MatrixOpsCore.BinaryX(left, right, Operations.subtract);
 
-		public static Vector MatrixDivideX(Vector left, Vector right) => MatrixOpsCore.MatrixDivideX(left, right);
+		public static Vector MatrixDivideX(Vector left, Vector right) =>
+			MatrixOpsCore.BinaryX(left, right, Operations.divide);
 
-		public static Vector MatrixPowX(Vector left, Vector right) => MatrixOpsCore.MatrixPowX(left, right);
+		public static Vector MatrixPowX(Vector left, Vector right) =>
+			MatrixOpsCore.BinaryX(left, right, Operations.pow);
 
-		public static Vector MatrixMultiplyX(Vector left, Vector right) => MatrixOpsCore.MatrixMultiplyX(left, right);
+		public static Vector MatrixMultiplyX(Vector left, Vector right) => CrossCore.CrossX(left, right);
 	}
 
 	extension(int[])
@@ -98,13 +102,16 @@ public static class ArithmeticModule
 
 		public static VectorInt DiffX(VectorInt vector) => ElementWiseCore.DiffX(vector);
 
-		public static VectorInt MatrixAddX(VectorInt left, VectorInt right) => MatrixOpsCore.MatrixAddX(left, right);
+		public static VectorInt MatrixAddX(VectorInt left, VectorInt right) =>
+			MatrixOpsCore.BinaryX(left, right, Operations.add);
 
-		public static VectorInt MatrixSubtractX(VectorInt left, VectorInt right) => MatrixOpsCore.MatrixSubtractX(left, right);
+		public static VectorInt MatrixSubtractX(VectorInt left, VectorInt right) =>
+			MatrixOpsCore.BinaryX(left, right, Operations.subtract);
 
-		public static VectorInt MatrixDivideX(VectorInt left, VectorInt right) => MatrixOpsCore.MatrixDivideX(left, right);
+		public static VectorInt MatrixDivideX(VectorInt left, VectorInt right) =>
+			MatrixOpsCore.BinaryX(left, right, Operations.divide);
 
-		public static VectorInt MatrixMultiplyX(VectorInt left, VectorInt right) => MatrixOpsCore.MatrixMultiplyX(left, right);
+		public static VectorInt MatrixMultiplyX(VectorInt left, VectorInt right) => CrossCore.CrossX(left, right);
 	}
 }
 
