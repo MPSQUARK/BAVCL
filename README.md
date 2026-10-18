@@ -48,6 +48,7 @@ Methods follow a consistent suffix scheme: no suffix = CPU, `X` = GPU, `IP` / `X
 
 - [Features](Documentation/Features.md) — module catalog and API suffix guide
 - [BAVCL Specification](Documentation/BAVCLSpecification.md)
+- [Roadmap board](Documentation/Roadmap.md) — Mermaid kanban-style project status
 - [GPGPU Kernel Guide](Documentation/GPGPUKernelGuide.md)
 - [Migration Guide](Documentation/MigrationGuide.md)
 
