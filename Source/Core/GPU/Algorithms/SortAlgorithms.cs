@@ -118,7 +118,7 @@ internal static class SortAlgorithms
 
 	internal static void ArgsortAscXIP(VectorInt input, VectorInt indices)
 	{
-		Guard.MatchingGpuPairIndices(input, indices, "ArgsortXIP");
+		Guard.MatchingGpuPairIndices(input, indices);
 		if (input.Length == 0)
 			return;
 
@@ -130,7 +130,7 @@ internal static class SortAlgorithms
 
 	internal static void ArgsortDescXIP(VectorInt input, VectorInt indices)
 	{
-		Guard.MatchingGpuPairIndices(input, indices, "ArgsortXIP");
+		Guard.MatchingGpuPairIndices(input, indices);
 		if (input.Length == 0)
 			return;
 
@@ -162,7 +162,7 @@ internal static class SortAlgorithms
 
 	internal static void ArgsortAscXIP(Vector input, VectorInt indices)
 	{
-		Guard.MatchingGpuPairIndices(input, indices, "ArgsortXIP");
+		Guard.MatchingGpuPairIndices(input, indices);
 		if (input.Length == 0)
 			return;
 
@@ -174,7 +174,7 @@ internal static class SortAlgorithms
 
 	internal static void ArgsortDescXIP(Vector input, VectorInt indices)
 	{
-		Guard.MatchingGpuPairIndices(input, indices, "ArgsortXIP");
+		Guard.MatchingGpuPairIndices(input, indices);
 		if (input.Length == 0)
 			return;
 
