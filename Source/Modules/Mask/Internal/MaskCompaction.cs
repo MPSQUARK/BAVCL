@@ -31,16 +31,11 @@ internal static class MaskCompaction
 		return output;
 	}
 
-	static (Shape VectorShape, Shape MaskShape, Shape OutputShape) ForFilterGpu(Vector vector, Mask mask)
-	{
+	static (Shape VectorShape, Shape MaskShape, Shape OutputShape) ForFilterGpu<T>(VectorBase<T> vector, Mask mask)
+		where T : unmanaged
+    {
 		Guard.MatchingGpu(vector, mask);
-		return MaskCompactionCpu.ForFilter(vector, mask);
-	}
-
-	static (Shape VectorShape, Shape MaskShape, Shape OutputShape) ForFilterGpu(VectorInt vector, Mask mask)
-	{
-		Guard.MatchingGpu(vector, mask);
-		return MaskCompactionCpu.ForFilter(vector, mask);
+		return MaskCompactionCpu.ForFilter(vector.Shape(), mask.Shape());
 	}
 
 	internal static Vector FilterX(Vector vector, Mask mask)
