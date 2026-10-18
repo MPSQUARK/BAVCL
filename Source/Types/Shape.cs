@@ -1,3 +1,4 @@
+using System;
 using BAVCL.Core.Exceptions;
 
 namespace BAVCL;
@@ -19,7 +20,7 @@ public readonly record struct Shape(int Rows, int Cols)
 			return new Shape(length, 1);
 
 		if (columns <= 0 || length % columns != 0)
-			throw new ShapeMismatchException("FromStorage", $"length={length}, columns={columns}", "(invalid storage layout)");
+			throw new ArgumentException($"Invalid storage layout: length={length}, columns={columns}.", nameof(columns));
 
 		return new Shape(length / columns, columns);
 	}
@@ -35,20 +36,36 @@ public readonly record struct Shape(int Rows, int Cols)
 		return Cols;
 	}
 
-	public Shape BroadcastWith(Shape other) =>
-		new(BroadcastDim(Rows, other.Rows), BroadcastDim(Cols, other.Cols));
+	public Shape BroadcastWith(Shape other)
+	{
+		if (!TryBroadcastDim(Rows, other.Rows, out int rows)
+			|| !TryBroadcastDim(Cols, other.Cols, out int cols))
+			throw new ShapeMismatchException(this, other);
 
-	static int BroadcastDim(int a, int b)
+		return new Shape(rows, cols);
+	}
+
+	static bool TryBroadcastDim(int a, int b, out int result)
 	{
 		if (a == b)
-			return a;
+		{
+			result = a;
+			return true;
+		}
 
 		if (a == 1)
-			return b;
+		{
+			result = b;
+			return true;
+		}
 
 		if (b == 1)
-			return a;
+		{
+			result = a;
+			return true;
+		}
 
-		throw new ShapeMismatchException("broadcast", $"({a})", $"({b})");
+		result = 0;
+		return false;
 	}
 }
