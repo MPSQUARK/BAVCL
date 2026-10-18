@@ -142,13 +142,10 @@ public sealed class Mask : CacheableBase<int>
 	public void ValidateShapeMatches(Shape shape, int elementCount)
 	{
 		if (_elementCount != elementCount)
-			throw new ShapeMismatchException(
-				"mask validation",
-				$"mask elementCount={_elementCount}",
-				$"elementCount={elementCount}");
+			throw new LengthMismatchException("mask validation", elementCount, _elementCount);
 
 		if (!Shape().MatchesDimensions(shape))
-			throw new ShapeMismatchException("mask validation", Shape(), shape);
+			throw new ShapeMismatchException(Shape(), shape);
 	}
 
 	private static ReadOnlySpan<bool> ValidateValues(ReadOnlySpan<bool> values)
@@ -190,10 +187,8 @@ public sealed class Mask : CacheableBase<int>
 	private void ValidateRectangularLayout()
 	{
 		if (!IsRectangular())
-			throw new ShapeMismatchException(
-				"mask construction",
-				$"elementCount={_elementCount}, columns={Columns}",
-				"(invalid storage layout)");
+			throw new ArgumentException(
+				$"Mask storage layout is not rectangular: elementCount={_elementCount}, columns={Columns}.");
 	}
 
 	public static Mask operator &(Mask left, Mask right) =>
