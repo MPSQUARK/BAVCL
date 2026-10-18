@@ -1,6 +1,5 @@
 using BAVCL.Core.Exceptions;
 using BAVCL.Core.Helpers;
-using BAVCL.Modules.GpuOps;
 using BAVCL.Types;
 using ILGPU.Runtime;
 
@@ -28,10 +27,10 @@ internal static class MaskBitwiseOps
 	{
 		Shape outputShape = OutputShape(left, right, operation);
 
-		if (!left.Shape().MatchesDimensions(outputShape))
-			throw new PerformanceException("Swap operand order OR use the allocating mask operator.");
+        if (!left.Shape().MatchesDimensions(outputShape))
+            throw new PerformanceException("Swap operand order OR use the allocating mask operator.");
 
-		if (SharesLayout(left, right))
+        if (SharesLayout(left, right))
 			LaunchWordOpInPlace(left, right, operation);
 		else
 			LaunchLaneOpInPlace(left, right, outputShape, operation);
@@ -162,7 +161,6 @@ internal static class MaskBitwiseOps
 	{
 		Shape leftShape = left.Shape();
 		Shape rightShape = right.Shape();
-		Broadcast.EnsureBroadcastable($"{nameof(Mask)}.{operation}", leftShape, rightShape);
 		return leftShape.BroadcastWith(rightShape);
 	}
 
