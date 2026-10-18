@@ -82,6 +82,10 @@ Deferred for v1 — see [§2.1](#21-deferred-and-out-of-scope-v1).
 
 Planned work only. **Shipped behaviour** is documented in §3–§16; open code/spec drift is tracked in [§17](#17-code-vs-vision-gaps). FALCON-driven priorities are tracked in [FALCON `docs/BAVCL_FEATURE_REQUESTS.md`](https://github.com/MPSQUARK/FALCON/blob/main/docs/BAVCL_FEATURE_REQUESTS.md).
 
+### 2.0 Roadmap board
+
+The visual status board is maintained in [Roadmap.md](Roadmap.md). It uses Mermaid’s native `kanban` syntax and is synchronized with the detailed roadmap below and the repository’s GitHub issues. Issue-backed cards link to their corresponding GitHub issues.
+
 ### 2.1 Deferred and out of scope (v1)
 
 | Item | Notes |
@@ -110,6 +114,7 @@ Planned work only. **Shipped behaviour** is documented in §3–§16; open code/
 | **Aggregates** | `CountTrue()` / `Any()` / `All()` + `*X` — [§6.8](#68-mask-aggregates) |
 | **Index search** | `Where()` / `WhereX()`, `FirstTrueIndex()` / `LastTrueIndex()` + `*X` |
 | **Device-side compaction** | Exclusive prefix scan on broadcast flags for `Filter` / `Partition` / `Where` — [§6.6](#66-kernel-strategy) |
+| **CPU compaction benchmark** | Compare direct-loop and prior delegate-based implementations across flat, matrix, row-broadcast, size, and mask-density cases; retain only measured improvements |
 
 ### 2.4 GPU and memory
 
@@ -905,7 +910,7 @@ Sort/argsort uses the kernel path internally.
 - `GC(memRequired)` evicts until space available
 - **`GetBuffer`**: lock-free dictionary read
 - **`UpdateBuffer`**: `RetrieveReadOnlySpan()` / CPU sync **outside** `lock(this)`; dictionary lookup, `CopyFromCPU`, and allocation **inside** the lock
-- **`PrintMemoryUsage`**: percentage mode or absolute `used/available` in `Bytes`, `Kilobytes`, `Megabytes`, `Gigabytes`, or `Auto` (`MemoryUsageUnit` on `IMemoryManager` / `GPU`)
+- **`PrintMemoryUsage`**: percentage mode or absolute `used/available` in `Bytes`, `Kilobytes`, `Megabytes`, `Gigabytes`, or `Auto` (`BinaryByteUnit` on `IMemoryManager` / `GPU`)
 
 ### 5.6 IO
 
@@ -1151,7 +1156,7 @@ Authoring rules and design principles: **[GPGPUKernelGuide.md](./GPGPUKernelGuid
 
 **Padding lanes.** Word kernels take a precomputed `(lastWord, tailMask)` pair and clear padding with a `Utilities.Select`. Lane kernels need no padding handling: mask storage is allocated zeroed and only logical lanes are launched.
 
-**Compaction (0.9.4).** GPU `FilterX` / `PartitionX` / `WhereX`: scan pipeline only (`MaskGpuSelection` → exclusive prefix sum → scan-tail count → gather kernels in `MaskCompaction`; one sync per op). `VectorInt` operators use the same scan path as `Vector`. CPU production `Where` and flat/full-matrix compaction: `MaskCompactionCpu` (bit-walk / fused SIMD partition). Broadcast-row output Filter/Partition/`Where` on CPU use `MaskCompactionCpu` via `MaskCompactionBroadcastCore` (column template + single-row mask indices). CPU `Mask` / `Filter` / `Partition` extensions mirror float and int32 on `Vector` / `VectorInt`; `MaskX` is fill on device, not compact.
+**Compaction (0.9.4).** GPU `FilterX` / `PartitionX` / `WhereX`: scan pipeline only (`MaskGpuSelection` → exclusive prefix sum → scan-tail count → gather kernels in `MaskCompaction`; one sync per op). `VectorInt` operators use the same scan path as `Vector`. CPU production `Where` and flat/full-matrix compaction: `MaskCompactionCpu` (bit-walk / fused SIMD partition). Broadcast-row output Filter/Partition/`Where` on CPU use `MaskCompactionCpu` (column template + single-row mask indices). CPU `Mask` / `Filter` / `Partition` extensions mirror float and int32 on `Vector` / `VectorInt`; `MaskX` is fill on device, not compact.
 
 ### 6.7 Resize (planned future)
 
@@ -1340,7 +1345,7 @@ Default: 80% of device memory (`memoryCap = 0.8f`). Configurable per `GetGPU()` 
 
 - `Allocate`, `AllocateEmpty`, `UpdateBuffer`
 - `GetBuffer`, `GC`, `GCItem` (evict with conditional sync), `FreeBuffer` (discard without sync)
-- `AvailableMemory`, `MemoryUsed`, `PrintMemoryUsage(percentage, format, unit)` — `MemoryUsageUnit`: `Bytes`, `Kilobytes`, `Megabytes`, `Gigabytes`, `Auto`
+- `AvailableMemory`, `MemoryUsed`, `PrintMemoryUsage(percentage, format, unit)` — `BinaryByteUnit`: `Bytes`, `Kilobytes`, `Megabytes`, `Gigabytes`, `Auto`
 
 Alternative implementations can replace LRU without changing vector types.
 
