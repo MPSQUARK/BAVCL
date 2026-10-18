@@ -9,13 +9,13 @@ internal static class MaskCompaction
 	{
 		GPU gpu = mask.Gpu;
 		Shape maskShape = mask.Shape();
-		using MaskGpuSelection.State selection = MaskGpuSelection.RunExclusiveScan(gpu, mask, maskShape, maskShape);
+		using SelectionLease selection = MaskGpuSelection.RunExclusiveScan(gpu, mask, maskShape, maskShape);
 		int outputCount = selection.TrueCount;
 		VectorInt output = new(gpu, outputCount, columns: 0);
 		if (outputCount == 0)
 			return output;
 
-		using (GpuScope.Begin(output))
+		using (GpuScope.Begin(output, [selection.FlagsPinTarget, selection.WritePosPinTarget]))
 		{
 			gpu.compactWriteIndices(
 				gpu.DefaultStream,
@@ -45,14 +45,14 @@ internal static class MaskCompaction
 			return new Vector(vector.Gpu, 0, columns: 0);
 
 		GPU gpu = vector.Gpu;
-		using MaskGpuSelection.State selection = MaskGpuSelection.RunExclusiveScan(gpu, mask, maskShape, outputShape);
+		using SelectionLease selection = MaskGpuSelection.RunExclusiveScan(gpu, mask, maskShape, outputShape);
 
 		int count = selection.TrueCount;
 		Vector output = new(gpu, count, columns: 0);
 		if (count == 0)
 			return output;
 
-		using (GpuScope.Begin(output, vector))
+		using (GpuScope.Begin(output, [vector, selection.FlagsPinTarget, selection.WritePosPinTarget]))
 		{
 			gpu.compactGatherFloat(
 				gpu.DefaultStream,
@@ -76,14 +76,14 @@ internal static class MaskCompaction
 			return new VectorInt(vector.Gpu, 0, columns: 0);
 
 		GPU gpu = vector.Gpu;
-		using MaskGpuSelection.State selection = MaskGpuSelection.RunExclusiveScan(gpu, mask, maskShape, outputShape);
+		using SelectionLease selection = MaskGpuSelection.RunExclusiveScan(gpu, mask, maskShape, outputShape);
 
 		int count = selection.TrueCount;
 		VectorInt output = new(gpu, count, columns: 0);
 		if (count == 0)
 			return output;
 
-		using (GpuScope.Begin(output, vector))
+		using (GpuScope.Begin(output, [vector, selection.FlagsPinTarget, selection.WritePosPinTarget]))
 		{
 			gpu.compactGatherInt(
 				gpu.DefaultStream,
@@ -107,13 +107,15 @@ internal static class MaskCompaction
 			return (new Vector(vector.Gpu, 0, columns: 0), new Vector(vector.Gpu, 0, columns: 0));
 
 		GPU gpu = vector.Gpu;
-		using MaskGpuSelection.State selection = MaskGpuSelection.RunExclusiveScan(gpu, mask, maskShape, outputShape);
+		using SelectionLease selection = MaskGpuSelection.RunExclusiveScan(gpu, mask, maskShape, outputShape);
 
 		Vector trueOutput = new(gpu, selection.TrueCount, columns: 0);
 		Vector falseOutput = new(gpu, selection.FalseCount, columns: 0);
 		BroadcastStrides vectorStrides = BroadcastStrides.For(vectorShape);
 
-		using (GpuScope.Begin([trueOutput, falseOutput], [vector]))
+		using (GpuScope.Begin(
+			[trueOutput, falseOutput],
+			[vector, selection.FlagsPinTarget, selection.WritePosPinTarget]))
 		{
 			gpu.compactGatherFloatPartition(
 				gpu.DefaultStream,
@@ -138,13 +140,15 @@ internal static class MaskCompaction
 			return (new VectorInt(vector.Gpu, 0, columns: 0), new VectorInt(vector.Gpu, 0, columns: 0));
 
 		GPU gpu = vector.Gpu;
-		using MaskGpuSelection.State selection = MaskGpuSelection.RunExclusiveScan(gpu, mask, maskShape, outputShape);
+		using SelectionLease selection = MaskGpuSelection.RunExclusiveScan(gpu, mask, maskShape, outputShape);
 
 		VectorInt trueOutput = new(gpu, selection.TrueCount, columns: 0);
 		VectorInt falseOutput = new(gpu, selection.FalseCount, columns: 0);
 		BroadcastStrides vectorStrides = BroadcastStrides.For(vectorShape);
 
-		using (GpuScope.Begin([trueOutput, falseOutput], [vector]))
+		using (GpuScope.Begin(
+			[trueOutput, falseOutput],
+			[vector, selection.FlagsPinTarget, selection.WritePosPinTarget]))
 		{
 			gpu.compactGatherIntPartition(
 				gpu.DefaultStream,
