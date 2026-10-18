@@ -37,12 +37,30 @@ internal static class Guard
 			throw new FixedRangeException(name!, value, min, max);
 	}
 
-	internal static void MatchingDimensions(Shape left, Shape right, string operation)
+	internal static void MatchingDimensions(Shape left, Shape right)
 	{
 		if (left.MatchesDimensions(right))
 			return;
 
-		throw new ShapeMismatchException(operation, left, right);
+		throw new ShapeMismatchException(left, right);
+	}
+
+	internal static void IsRowVector1D<T>(VectorBase<T> vector)
+		where T : unmanaged
+	{
+		if (vector.Is1DRowVector())
+			return;
+
+		throw new RowVectorLayoutException(vector.Shape());
+	}
+
+	internal static void IsVector2D<T>(VectorBase<T> vector)
+		where T : unmanaged
+	{
+		if (vector.Is2D())
+			return;
+
+		throw new MatrixLayoutException(vector.Shape());
 	}
 
 	internal static void MatchingGpu(GPU left, GPU right) =>
@@ -65,10 +83,10 @@ internal static class Guard
 			return;
 	}
 
-	internal static void MatchingGpuPairIndices<T>(VectorBase<T> values, VectorInt indices, string operation)
+	internal static void MatchingGpuPairIndices<T>(VectorBase<T> values, VectorInt indices)
 		where T : unmanaged
 	{
 		MatchingGpu(values.Gpu, indices.Gpu);
-		MatchingDimensions(values.Shape(), indices.Shape(), operation);
+		MatchingDimensions(values.Shape(), indices.Shape());
 	}
 }
