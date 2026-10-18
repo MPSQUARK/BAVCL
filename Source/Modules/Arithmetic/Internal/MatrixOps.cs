@@ -7,16 +7,16 @@ internal static class MatrixOpsCore
 {
 	internal static Vector BinaryX(Vector matrixA, Vector matrixB, Operations operation)
 	{
-		Guard.Matrix2D(matrixA);
-		Guard.Matrix2D(matrixB);
+		Guard.IsVector2D(matrixA);
+		Guard.IsVector2D(matrixB);
 		Guard.MatchingDimensions(matrixA.Shape(), matrixB.Shape());
 		return VectorVectorOp.VectorVectorOP(matrixA, matrixB, operation);
 	}
 
 	internal static VectorInt BinaryX(VectorInt matrixA, VectorInt matrixB, Operations operation)
 	{
-		Guard.Matrix2D(matrixA);
-		Guard.Matrix2D(matrixB);
+		Guard.IsVector2D(matrixA);
+		Guard.IsVector2D(matrixB);
 		Guard.MatchingDimensions(matrixA.Shape(), matrixB.Shape());
 		return VectorVectorOp.VectorVectorOP(matrixA, matrixB, operation);
 	}
