@@ -26,11 +26,38 @@
   <!-- IDE0130: namespaces are rooted at Source/, not the repo directory that contains this csproj. -->
   <PropertyGroup>
     <ProjectDir>$(MSBuildProjectDirectory)\Source\</ProjectDir>
+    <Authors>MPSQUARK</Authors>
+    <PackageLicenseFile>License.txt</PackageLicenseFile>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <Title>BAVCL</Title>
+    <Description>BAVCL (Badass Vector Compute Library) is a .NET numerics library for
+      GPU-accelerated vector compute, built on ILGPU with high-level APIs for GPGPU workloads. It
+      adds quality-of-life APIs and primitives aimed at data science, graphics/GPU processing, and
+      general GPGPU.</Description>
+    <PackageProjectUrl>https://github.com/MPSQUARK/BAVCL</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/MPSQUARK/BAVCL</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Copyright>Copyright © Marcel Pawelczyk 2026</Copyright>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>gpgpu;ilgpu;numerics;linear-algebra;gpu;hardware-acceleration</PackageTags>
+    <IncludeSymbols>True</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
     <CompilerVisibleProperty Include="RootNamespace" />
     <CompilerVisibleProperty Include="ProjectDir" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="License.txt">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
