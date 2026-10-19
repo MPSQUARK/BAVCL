@@ -16,7 +16,7 @@ BAVCL is a C# GPU-accelerated numerics library on ILGPU. Authoritative spec: [Do
 
 - **Read:** `RetrieveReadOnlySpan()` always — outside scope, inside `CpuScope`, after GPU ops
 - **Do not** open `CpuScope` for read-only; **do not** call `SyncCPU()` in consumer code
-- **GpuScope:** one `GpuScope.Begin(modified, readOnly…)` when buffers exist; nested scopes only for allocate-after-pin (see `SortAlgorithms.ArgsortIntX`)
+- **GpuScope:** one `GpuScope.Begin(modified, readOnly…)` when buffers exist; nested scopes only for allocate-after-pin (see `SortAlgorithms.Argsort1DAscX`)
 - **Edit in-place:** `CpuScope` + `scope.View` (`EditableView`)
 - **Structural edit:** `CpuScopeAndSync` + `RetrieveReadOnlySpan()` for inputs, then assign backing store (library-internal `Value` / `Length`)
 - **Loops:** one `RetrieveReadOnlySpan()` for read loops; one `CpuScope` + `View` for write loops — not `GetAt` / `SetAt`
