@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using BAVCL.Core;
-using BAVCL.Core.Exceptions;
 
 namespace BAVCL.Modules.Sorting;
 
@@ -66,9 +64,9 @@ internal static class ArgsortCore
 	static void BuildArgsortInto<T>(VectorBase<T> vector, VectorInt indices, T[] values, SortOrder order, bool syncToGpu)
 		where T : unmanaged, IComparable<T>
 	{
-		ValidateArgsortShape(vector, indices);
+        Guard.MatchingGpuPairIndices(vector, indices);
 
-		if (vector.Length == 0)
+        if (vector.Length == 0)
 			return;
 
 		// ArgsortIP always fully overwrites every element, so a stale/empty CPU-side buffer (e.g. a
@@ -91,12 +89,6 @@ internal static class ArgsortCore
 			SortCpuParallelRows.ForEachRow(vector.RowCount(), cols, row =>
 				BuildRow(values, target, row * cols, cols, order));
 		}
-	}
-
-	static void ValidateArgsortShape<T>(VectorBase<T> vector, VectorInt indices) where T : unmanaged
-	{
-		if (!vector.Shape().MatchesDimensions(indices.Shape()))
-			throw new ShapeMismatchException("ArgsortIP", vector.Shape(), indices.Shape());
 	}
 
 	static void BuildRow<T>(T[] values, int[] indices, int offset, int count, SortOrder order) where T : IComparable<T>

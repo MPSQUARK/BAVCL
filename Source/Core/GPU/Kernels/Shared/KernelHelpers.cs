@@ -1,8 +1,8 @@
+using System.Runtime.CompilerServices;
 using ILGPU;
 using ILGPU.Algorithms;
 using ILGPU.Runtime;
 using ILGPU.Util;
-using BAVCL.Core;
 
 namespace BAVCL;
 
@@ -105,19 +105,23 @@ public partial class GPU
 	// IEEE ordering is already false whenever an operand is NaN, so only equality needs a NaN rule.
 	static int CompareLane(float left, float right, VectorComparison comparison) => comparison switch
 	{
-		VectorComparison.Greater => AsLane(left > right),
-		VectorComparison.Less => AsLane(left < right),
-		VectorComparison.GreaterOrEqual => AsLane(left >= right),
-		VectorComparison.LessOrEqual => AsLane(left <= right),
-		VectorComparison.Equal => AsLane(NaNAwareEquals(left, right)),
-		VectorComparison.NotEqual => AsLane(!NaNAwareEquals(left, right)),
+		VectorComparison.Greater => BoolToInt(left > right),
+		VectorComparison.Less => BoolToInt(left < right),
+		VectorComparison.GreaterOrEqual => BoolToInt(left >= right),
+		VectorComparison.LessOrEqual => BoolToInt(left <= right),
+		VectorComparison.Equal => BoolToInt(NaNAwareEquals(left, right)),
+		VectorComparison.NotEqual => BoolToInt(!NaNAwareEquals(left, right)),
 		_ => 0,
 	};
 
 	static bool NaNAwareEquals(float left, float right) =>
 		(left == right) | (float.IsNaN(left) & float.IsNaN(right));
 
-	static int AsLane(bool set) => Utilities.Select(set, 1, 0);
+	/// <summary>
+	/// Maps <c>false</c>→0 and <c>true</c>→1 inside GPU kernels (same role as <see cref="QoL.Branchless.BoolToInt"/> on the host).
+	/// Implemented with <see cref="Utilities.Select"/>, which lowers to predicated ops (e.g. CUDA <c>setp</c> + <c>selp</c>), not divergent control flow.
+	/// </summary>
+	static int BoolToInt(bool set) => Utilities.Select(set, 1, 0);
 
 	static int ReduceRowElementInt(int coeff, int matrixValue, Operations operation) =>
 		operation switch
@@ -201,12 +205,12 @@ public partial class GPU
 
 	static int CompareLaneInt(int left, int right, VectorComparison comparison) => comparison switch
 	{
-		VectorComparison.Greater => AsLane(left > right),
-		VectorComparison.Less => AsLane(left < right),
-		VectorComparison.GreaterOrEqual => AsLane(left >= right),
-		VectorComparison.LessOrEqual => AsLane(left <= right),
-		VectorComparison.Equal => AsLane(left == right),
-		VectorComparison.NotEqual => AsLane(left != right),
+		VectorComparison.Greater => BoolToInt(left > right),
+		VectorComparison.Less => BoolToInt(left < right),
+		VectorComparison.GreaterOrEqual => BoolToInt(left >= right),
+		VectorComparison.LessOrEqual => BoolToInt(left <= right),
+		VectorComparison.Equal => BoolToInt(left == right),
+		VectorComparison.NotEqual => BoolToInt(left != right),
 		_ => 0,
 	};
 }

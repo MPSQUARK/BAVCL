@@ -9,13 +9,13 @@ namespace BAVCL;
 public partial class GPU
 {
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, int, int> append
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(append));
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(append), KernelDomain.Structural);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>> getSlice
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(getSlice));
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(getSlice), KernelDomain.Structural);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>> reverseIP
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(reverseIP));
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(reverseIP), KernelDomain.Structural);
 	public Action<AcceleratorStream, Index1D, ArrayView<float>, ArrayView<float>, int> transpose
-		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(transpose));
+		= (_, _, _, _, _) => throw new KernelNotCompiledException(nameof(transpose), KernelDomain.Structural);
 
 	internal void LoadStructuralFloat32Kernels()
 	{

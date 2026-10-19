@@ -10,4 +10,5 @@ public enum KernelDomain
 	Astrophysics,
 	Mask,
 	Sorting,
+	Experimental,
 }

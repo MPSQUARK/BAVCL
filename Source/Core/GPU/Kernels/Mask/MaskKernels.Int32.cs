@@ -8,13 +8,13 @@ namespace BAVCL;
 public partial class GPU
 {
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, int, SpecializedValue<int>> maskWordOp
-		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(maskWordOp));
+		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(maskWordOp), KernelDomain.Mask);
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, int, int, int, SpecializedValue<int>> maskWordConstOp
-		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(maskWordConstOp));
+		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(maskWordConstOp), KernelDomain.Mask);
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>> maskLaneOp
-		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(maskLaneOp));
+		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(maskLaneOp), KernelDomain.Mask);
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, int, BroadcastStrides, SpecializedValue<int>> maskLaneOpIP
-		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(maskLaneOpIP));
+		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(maskLaneOpIP), KernelDomain.Mask);
 
 	internal void LoadMaskWordKernels()
 	{
@@ -22,6 +22,12 @@ public partial class GPU
 		maskWordConstOp = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, int, int, int, SpecializedValue<int>>(MaskWordConstOp_Kern);
 		maskLaneOp = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides, BroadcastStrides, SpecializedValue<int>>(MaskLaneOp_Kern);
 		maskLaneOpIP = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, int, BroadcastStrides, SpecializedValue<int>>(MaskLaneOpIP_Kern);
+	}
+
+	internal void LoadMaskCoreKernels()
+	{
+		LoadMaskWordKernels();
+		LoadMaskCompactionKernels();
 	}
 
 	// One thread per packed word: a single bitwise instruction resolves 32 mask lanes.

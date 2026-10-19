@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using BAVCL.Modules.IO.Internal;
 
 namespace BAVCL.Modules.IO.Internal.Schema;
 

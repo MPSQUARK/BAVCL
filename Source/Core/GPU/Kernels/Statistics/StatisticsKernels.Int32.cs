@@ -11,10 +11,10 @@ namespace BAVCL;
 public partial class GPU
 {
 	internal Reduction<int, Stride1D.Dense> ReduceMinInt32
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(ReduceMinInt32));
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(ReduceMinInt32), KernelDomain.Statistics);
 
 	internal Reduction<int, Stride1D.Dense> ReduceMaxInt32
-		= (_, _, _) => throw new KernelNotCompiledException(nameof(ReduceMaxInt32));
+		= (_, _, _) => throw new KernelNotCompiledException(nameof(ReduceMaxInt32), KernelDomain.Statistics);
 
 	internal void LoadStatisticsIntKernels()
 	{

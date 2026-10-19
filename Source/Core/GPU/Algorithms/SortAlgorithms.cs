@@ -1,349 +1,682 @@
-using System;
 using ILGPU;
 using ILGPU.Algorithms;
+using ILGPU.Algorithms.RadixSortOperations;
 using ILGPU.Algorithms.Sequencers;
 using ILGPU.Runtime;
 using BAVCL.Core.Memory;
-using BAVCL.Core.Exceptions;
 
 namespace BAVCL.GpuAlgorithms;
 
 internal static class SortAlgorithms
 {
+	/// <summary>16 bytes expressed in <see cref="int"/> elements.</summary>
+	const int RadixTempAlignmentElements = 4;
+
 	static readonly Int32Sequencer Int32Sequence = new();
 
-	internal static void SortIntXIP(VectorInt vector, SortOrder order)
+	internal static void Sort1DAscXIP(VectorInt vector)
 	{
-		if (vector.Length <= 1)
-			return;
-
-		if (vector.Is2D())
-		{
-			SortIntSegmentedXIP(vector, order);
-			return;
-		}
-
 		GPU gpu = vector.Gpu;
+		int tempElements = RadixTempElements<AscendingInt32>(gpu, vector.Length);
 		using (GpuScope.Begin(vector))
 		{
-			SortIntSegment(gpu, vector.GetBuffer().View, order);
+			using BufferEntity<int> temp = BufferPools.For(gpu).Int.Rent(tempElements);
+			using (GpuScope.Begin(temp.PinTarget))
+			{
+				MemoryBuffer1D<int, Stride1D.Dense> buffer = vector.GetBuffer();
+				gpu.AlgorithmProviders.AscendingIntSort(gpu.DefaultStream, buffer.View, temp.View);
+			}
+
 			gpu.Synchronize();
 		}
 	}
 
-	internal static void SortFloatXIP(Vector vector, SortOrder order)
+	internal static void Sort1DDescXIP(VectorInt vector)
 	{
-		if (vector.Length <= 1)
-			return;
-
 		GPU gpu = vector.Gpu;
-
-		if (vector.Is2D())
-		{
-			SortFloatSegmentedXIP(vector, order);
-			return;
-		}
-
+		int tempElements = RadixTempElements<DescendingInt32>(gpu, vector.Length);
 		using (GpuScope.Begin(vector))
 		{
-			SortFloatSegment(gpu, vector.GetBuffer().View, order);
+			using BufferEntity<int> temp = BufferPools.For(gpu).Int.Rent(tempElements);
+			using (GpuScope.Begin(temp.PinTarget))
+			{
+				MemoryBuffer1D<int, Stride1D.Dense> buffer = vector.GetBuffer();
+				gpu.AlgorithmProviders.DescendingIntSort(gpu.DefaultStream, buffer.View, temp.View);
+			}
+
 			gpu.Synchronize();
 		}
 	}
 
-	internal static VectorInt ArgsortIntX(VectorInt input, SortOrder order)
-	{
-		if (input.Length == 0)
-			return new VectorInt(input.Gpu, 0, input.Columns);
-
-		GPU gpu = input.Gpu;
-		using (GpuScope.BeginReadOnly(input))
-		{
-			VectorInt indices = new(gpu, input.Length, input.Columns);
-			using (GpuScope.Begin(indices))
-				RunArgsortInt(gpu, input, indices, order);
-
-			return indices;
-		}
-	}
-
-	internal static void ArgsortIntXIP(VectorInt input, VectorInt indices, SortOrder order)
-	{
-		ValidateArgsortShape(input, indices);
-
-		if (input.Length == 0)
-			return;
-
-		GPU gpu = input.Gpu;
-		using (GpuScope.Begin(indices, input))
-			RunArgsortInt(gpu, input, indices, order);
-	}
-
-	internal static VectorInt ArgsortFloatX(Vector input, SortOrder order)
-	{
-		if (input.Length == 0)
-			return new VectorInt(input.Gpu, 0, input.Columns);
-
-		GPU gpu = input.Gpu;
-
-		// Pin input before allocating indices: `new VectorInt` allocates eagerly in its constructor,
-		// and that allocation's own LRU.GC pass could otherwise evict input while it still sits unpinned.
-		using (GpuScope.BeginReadOnly(input))
-		{
-			VectorInt indices = new(gpu, input.Length, input.Columns);
-			using (GpuScope.Begin(indices))
-				RunArgsortFloat(gpu, input, indices, order);
-
-			return indices;
-		}
-	}
-
-	internal static void ArgsortFloatXIP(Vector input, VectorInt indices, SortOrder order)
-	{
-		ValidateArgsortShape(input, indices);
-
-		if (input.Length == 0)
-			return;
-
-		GPU gpu = input.Gpu;
-
-		using (GpuScope.Begin(indices, input))
-			RunArgsortFloat(gpu, input, indices, order);
-	}
-
-	static void RunArgsortInt(GPU gpu, VectorInt input, VectorInt indices, SortOrder order)
-	{
-		if (input.Is2D())
-		{
-			RunArgsortIntSegmented(gpu, input, indices, order);
-			return;
-		}
-
-		using BufferEntity<int> keysEntity = BufferPools.For(gpu).Int.Rent(input.Length);
-		using (GpuScope.Begin(keysEntity.PinTarget))
-		{
-			ArgsortIntSegment(gpu, input.GetBuffer().View, indices.GetBuffer().View, keysEntity.View, order);
-			gpu.Synchronize();
-		}
-	}
-
-	static void RunArgsortFloat(GPU gpu, Vector input, VectorInt indices, SortOrder order)
-	{
-		if (input.Is2D())
-		{
-			RunArgsortFloatSegmented(gpu, input, indices, order);
-			return;
-		}
-
-		using BufferEntity<int> keysEntity = BufferPools.For(gpu).Int.Rent(input.Length);
-		using (GpuScope.Begin(keysEntity.PinTarget))
-		{
-			ArgsortFloatSegment(gpu, input.GetBuffer().View, indices.GetBuffer().View, keysEntity.View, order);
-			gpu.Synchronize();
-		}
-	}
-
-	static void SortIntSegmentedXIP(VectorInt vector, SortOrder order)
+	internal static void Sort1DAscXIP(Vector vector)
 	{
 		GPU gpu = vector.Gpu;
-		int rowCount = vector.RowCount(), cols = vector.Columns;
-		// Pin vector before renting temp: renting may allocate, and that allocation's own LRU.GC
-		// pass could otherwise evict vector while it still sits unpinned.
+		int length = vector.Length;
+		int radixTempOffset = RadixTempOffset(length);
+		int radixTempElements = RadixTempElements<AscendingInt32>(gpu, length);
+		using (GpuScope.Begin(vector))
+		{
+			using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
+			using (GpuScope.Begin(scratch.PinTarget))
+			{
+				ArrayView1D<int, Stride1D.Dense> 
+					scratchView = scratch.View,
+					sortable = scratchView.SubView(0, length),
+					radixTemp = scratchView.SubView(radixTempOffset, radixTempElements);
+
+				MemoryBuffer1D<float, Stride1D.Dense> buffer = vector.GetBuffer();
+				gpu.floatToSortableInt(gpu.DefaultStream, length, buffer.View, sortable);
+				gpu.AlgorithmProviders.AscendingIntSort(gpu.DefaultStream, sortable, radixTemp);
+				gpu.sortableIntToFloat(gpu.DefaultStream, length, sortable, buffer.View);
+			}
+
+			gpu.Synchronize();
+		}
+	}
+
+	internal static void Sort1DDescXIP(Vector vector)
+	{
+		GPU gpu = vector.Gpu;
+		int length = vector.Length;
+		int radixTempOffset = RadixTempOffset(length);
+		int radixTempElements = RadixTempElements<DescendingInt32>(gpu, length);
+		using (GpuScope.Begin(vector))
+		{
+			using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
+			using (GpuScope.Begin(scratch.PinTarget))
+			{
+				ArrayView1D<int, Stride1D.Dense> 
+					scratchView = scratch.View,
+					sortable = scratchView.SubView(0, length),
+					radixTemp = scratchView.SubView(radixTempOffset, radixTempElements);
+				MemoryBuffer1D<float, Stride1D.Dense> buffer = vector.GetBuffer();
+				gpu.floatToSortableInt(gpu.DefaultStream, length, buffer.View, sortable);
+				gpu.AlgorithmProviders.DescendingIntSort(gpu.DefaultStream, sortable, radixTemp);
+				gpu.sortableIntToFloat(gpu.DefaultStream, length, sortable, buffer.View);
+			}
+
+			gpu.Synchronize();
+		}
+	}
+
+	internal static void Sort2DAscXIP(VectorInt vector)
+	{
+		int cols = vector.Columns;
+		GPU gpu = vector.Gpu;
+		int rowCount = vector.RowCount();
+		var config = (rowCount, GPU.SegmentedRadixGroupSize);
 		using (GpuScope.Begin(vector))
 		{
 			using BufferEntity<int> tempEntity = BufferPools.For(gpu).Int.Rent(vector.Length);
 			using (GpuScope.Begin(tempEntity.PinTarget))
 			{
-				var (tempKeys, _) = GPU.SegmentedSortTempViews(tempEntity.Slot, vector.Length, SortTempLayout.KeysOnly);
-				SegmentedRowSort.SortIntRows(
-					gpu,
-					vector.GetBuffer().View,
-					tempKeys,
-					rowCount,
-					cols,
-					order);
-				gpu.Synchronize();
+				MemoryBuffer1D<int, Stride1D.Dense> buffer = vector.GetBuffer();
+				gpu.segmentedSortIntAscIP(gpu.DefaultStream, config, buffer.View, tempEntity.View, cols, rowCount);
 			}
+
+			gpu.Synchronize();
 		}
 	}
 
-	static void SortFloatSegmentedXIP(Vector vector, SortOrder order)
+	internal static void Sort2DDescXIP(VectorInt vector)
 	{
+		int cols = vector.Columns;
 		GPU gpu = vector.Gpu;
-		int rowCount = vector.RowCount(), cols = vector.Columns;
+		int rowCount = vector.RowCount();
+		var config = (rowCount, GPU.SegmentedRadixGroupSize);
 		using (GpuScope.Begin(vector))
 		{
 			using BufferEntity<int> tempEntity = BufferPools.For(gpu).Int.Rent(vector.Length);
 			using (GpuScope.Begin(tempEntity.PinTarget))
 			{
-				var (tempKeys, _) = GPU.SegmentedSortTempViews(tempEntity.Slot, vector.Length, SortTempLayout.KeysOnly);
-				SegmentedRowSort.SortFloatRows(
-					gpu,
-					vector.GetBuffer().View,
-					tempKeys,
-					rowCount,
-					cols,
-					order);
-				gpu.Synchronize();
+				MemoryBuffer1D<int, Stride1D.Dense> buffer = vector.GetBuffer();
+				gpu.segmentedSortIntDescIP(gpu.DefaultStream, config, buffer.View, tempEntity.View, cols, rowCount);
 			}
+
+			gpu.Synchronize();
 		}
 	}
 
-	static void RunArgsortIntSegmented(GPU gpu, VectorInt input, VectorInt indices, SortOrder order)
+	internal static void Sort2DAscXIP(Vector vector)
 	{
-		int rowCount = input.RowCount(), cols = input.Columns;
-		// Pin each newly-rented scratch object immediately after creation: renting may allocate, and
-		// that allocation's own LRU.GC pass could otherwise evict an earlier, still-unpinned object.
-		using BufferEntity<int> keysEntity = BufferPools.For(gpu).Int.Rent(input.Length);
-		using (GpuScope.Begin(keysEntity.PinTarget))
+		int cols = vector.Columns;
+		GPU gpu = vector.Gpu;
+		int rowCount = vector.RowCount();
+		var config = (rowCount, GPU.SegmentedRadixGroupSize);
+		using (GpuScope.Begin(vector))
 		{
-			using BufferEntity<int> tempEntity = BufferPools.For(gpu).Int.Rent(input.Length << 1);
+			using BufferEntity<int> tempEntity = BufferPools.For(gpu).Int.Rent(vector.Length);
 			using (GpuScope.Begin(tempEntity.PinTarget))
 			{
-				var keysView = keysEntity.View;
-				// Segmented radix sort mutates keys in place; copy so the caller's input is left untouched.
-				input.GetBuffer().View.CopyTo(gpu.DefaultStream, keysView);
-				var (tempKeys, tempValues) = GPU.SegmentedSortTempViews(tempEntity.Slot, input.Length, SortTempLayout.KeysAndValues);
-				SegmentedRowSort.ArgsortIntPairsRows(
-					gpu, keysView, indices.GetBuffer().View, tempKeys, tempValues, rowCount, cols, order);
-				gpu.Synchronize();
+				MemoryBuffer1D<float, Stride1D.Dense> buffer = vector.GetBuffer();
+				gpu.segmentedSortFloatAscIP(gpu.DefaultStream, config, buffer.View, tempEntity.View, cols, rowCount);
 			}
+
+			gpu.Synchronize();
 		}
 	}
 
-	static void RunArgsortFloatSegmented(GPU gpu, Vector input, VectorInt indices, SortOrder order)
+	internal static void Sort2DDescXIP(Vector vector)
 	{
-		int rowCount = input.RowCount(), cols = input.Columns;
-		// Pin each newly-rented scratch object immediately after creation: renting may allocate, and
-		// that allocation's own LRU.GC pass could otherwise evict an earlier, still-unpinned object.
-		using BufferEntity<int> keysEntity = BufferPools.For(gpu).Int.Rent(input.Length);
-		using (GpuScope.Begin(keysEntity.PinTarget))
+		int cols = vector.Columns;
+		GPU gpu = vector.Gpu;
+		int rowCount = vector.RowCount();
+		var config = (rowCount, GPU.SegmentedRadixGroupSize);
+		using (GpuScope.Begin(vector))
 		{
-			using BufferEntity<int> tempEntity = BufferPools.For(gpu).Int.Rent(input.Length << 1);
+			using BufferEntity<int> tempEntity = BufferPools.For(gpu).Int.Rent(vector.Length);
 			using (GpuScope.Begin(tempEntity.PinTarget))
 			{
-				var (tempKeys, tempValues) = GPU.SegmentedSortTempViews(tempEntity.Slot, input.Length, SortTempLayout.KeysAndValues);
-				SegmentedRowSort.ArgsortFloatPairsRows(
-					gpu,
-					input.GetBuffer().View,
-					keysEntity.View,
-					indices.GetBuffer().View,
-					tempKeys,
-					tempValues,
-					rowCount,
-					cols,
-					order);
+				MemoryBuffer1D<float, Stride1D.Dense> buffer = vector.GetBuffer();
+				gpu.segmentedSortFloatDescIP(gpu.DefaultStream, config, buffer.View, tempEntity.View, cols, rowCount);
+			}
+
+			gpu.Synchronize();
+		}
+	}
+
+	internal static VectorInt Argsort1DAscX(VectorInt input)
+	{
+		GPU gpu = input.Gpu;
+		int length = input.Length;
+		int radixTempOffset = RadixTempOffset(length);
+		int radixTempElements = RadixPairsTempElements<AscendingInt32>(gpu, length);
+
+		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
+		using (GpuScope.BeginReadOnly(input))
+		{
+			VectorInt indices = new(gpu, length, input.Columns);
+			using (GpuScope.Begin(indices))
+			{
+				using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
+				using (GpuScope.Begin(scratch.PinTarget))
+				{
+					ArrayView1D<int, Stride1D.Dense>
+						scratchView = scratch.View,
+						keys = scratchView.SubView(0, length),
+						radixTemp = scratchView.SubView(radixTempOffset, radixTempElements);
+
+					MemoryBuffer1D<int, Stride1D.Dense> inputBuffer = input.GetBuffer();
+					MemoryBuffer1D<int, Stride1D.Dense> indexBuffer = indices.GetBuffer();
+
+					inputBuffer.View.CopyTo(gpu.DefaultStream, keys);
+					gpu.accelerator.Sequence(gpu.DefaultStream, indexBuffer.View, Int32Sequence);
+					gpu.AlgorithmProviders.AscendingIntPairsSort(gpu.DefaultStream, keys, indexBuffer.View, radixTemp.AsContiguous());
+				}
+
 				gpu.Synchronize();
 			}
+
+			return indices;
 		}
 	}
 
-	static void ValidateArgsortShape<T>(VectorBase<T> input, VectorInt indices) where T : unmanaged
+	internal static void Argsort1DAscXIP(VectorInt input, VectorInt indices)
 	{
-		if (!input.Shape().MatchesDimensions(indices.Shape()))
-			throw new ShapeMismatchException("ArgsortXIP", input.Shape(), indices.Shape());
-	}
-
-	#region Sort — int
-
-	static void SortIntSegment(GPU gpu, ArrayView1D<int, Stride1D.Dense> segment, SortOrder order)
-	{
-		if (segment.Length <= 1)
-			return;
-
-		if (order == SortOrder.Ascending)
+		GPU gpu = input.Gpu;
+		int length = input.Length;
+		int radixTempOffset = RadixTempOffset(length);
+		int radixTempElements = RadixPairsTempElements<AscendingInt32>(gpu, length);
+		using (GpuScope.Begin(indices, input))
 		{
-			gpu.AlgorithmProviders.GetAscendingIntSort(segment.Length)(gpu.DefaultStream, segment);
-			return;
+			using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
+			using (GpuScope.Begin(scratch.PinTarget))
+			{
+				ArrayView1D<int, Stride1D.Dense>
+					scratchView = scratch.View,
+					keys = scratchView.SubView(0, length),
+					radixTemp = scratchView.SubView(radixTempOffset, radixTempElements);
+
+				MemoryBuffer1D<int, Stride1D.Dense> inputBuffer = input.GetBuffer();
+				MemoryBuffer1D<int, Stride1D.Dense> indexBuffer = indices.GetBuffer();
+
+				inputBuffer.View.CopyTo(gpu.DefaultStream, keys);
+				gpu.accelerator.Sequence(gpu.DefaultStream, indexBuffer.View, Int32Sequence);
+				gpu.AlgorithmProviders.AscendingIntPairsSort(gpu.DefaultStream, keys, indexBuffer.View, radixTemp.AsContiguous());
+			}
+
+			gpu.Synchronize();
 		}
-
-		gpu.AlgorithmProviders.GetDescendingIntSort(segment.Length)(gpu.DefaultStream, segment);
 	}
 
-	#endregion
-
-	#region Sort — float
-
-	static void SortFloatSegment(
-		GPU gpu,
-		ArrayView1D<float, Stride1D.Dense> segment,
-		SortOrder order)
+	internal static VectorInt Argsort1DDescX(VectorInt input)
 	{
-		if (segment.Length <= 1)
-			return;
+		GPU gpu = input.Gpu;
+		int length = input.Length;
+		int radixTempOffset = RadixTempOffset(length);
+		int radixTempElements = RadixPairsTempElements<DescendingInt32>(gpu, length);
 
-		using BufferEntity<int> sortableEntity = BufferPools.For(gpu).Int.Rent((int)segment.Length);
-		using (GpuScope.Begin(sortableEntity.PinTarget))
-			RunFloatSortViaSortable(gpu, segment, sortableEntity.View, order);
-	}
-
-	static void RunFloatSortViaSortable(
-		GPU gpu,
-		ArrayView1D<float, Stride1D.Dense> segment,
-		ArrayView1D<int, Stride1D.Dense> sortableView,
-		SortOrder order)
-	{
-		Index1D extent = GPU.SortLaunchExtent(segment.Length);
-		gpu.floatToSortableInt(gpu.DefaultStream, extent, segment, sortableView);
-		SortIntSegment(gpu, sortableView, order);
-		gpu.sortableIntToFloat(gpu.DefaultStream, extent, sortableView, segment);
-	}
-
-	#endregion
-
-	#region Argsort — int
-
-	static void ArgsortIntSegment(
-		GPU gpu,
-		ArrayView1D<int, Stride1D.Dense> inputView,
-		ArrayView1D<int, Stride1D.Dense> indexView,
-		ArrayView1D<int, Stride1D.Dense> keysView,
-		SortOrder order)
-	{
-		// ILGPU pairs radix sort mutates keys in place; copy so the caller's input is left untouched.
-		inputView.CopyTo(gpu.DefaultStream, keysView);
-		gpu.accelerator.Sequence(gpu.DefaultStream, indexView, Int32Sequence);
-		ArgsortIntPairs(gpu, keysView, indexView, order);
-	}
-
-	static void ArgsortIntPairs(
-		GPU gpu,
-		ArrayView1D<int, Stride1D.Dense> keys,
-		ArrayView1D<int, Stride1D.Dense> values,
-		SortOrder order)
-	{
-		if (order == SortOrder.Ascending)
+		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
+		using (GpuScope.BeginReadOnly(input))
 		{
-			gpu.AlgorithmProviders.GetAscendingIntPairsSort(keys.Length)(gpu.DefaultStream, keys, values);
-			return;
+			VectorInt indices = new(gpu, length, input.Columns);
+			using (GpuScope.Begin(indices))
+			{
+				using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
+				using (GpuScope.Begin(scratch.PinTarget))
+				{
+					ArrayView1D<int, Stride1D.Dense>
+						scratchView = scratch.View,
+						keys = scratchView.SubView(0, length),
+						radixTemp = scratchView.SubView(radixTempOffset, radixTempElements);
+
+					MemoryBuffer1D<int, Stride1D.Dense> inputBuffer = input.GetBuffer();
+					MemoryBuffer1D<int, Stride1D.Dense> indexBuffer = indices.GetBuffer();
+
+					inputBuffer.View.CopyTo(gpu.DefaultStream, keys);
+					gpu.accelerator.Sequence(gpu.DefaultStream, indexBuffer.View, Int32Sequence);
+					gpu.AlgorithmProviders.DescendingIntPairsSort(gpu.DefaultStream, keys, indexBuffer.View, radixTemp.AsContiguous());
+				}
+
+				gpu.Synchronize();
+			}
+
+			return indices;
 		}
-
-		gpu.AlgorithmProviders.GetDescendingIntPairsSort(keys.Length)(gpu.DefaultStream, keys, values);
 	}
 
-	#endregion
-
-	#region Argsort — float
-
-	static void ArgsortFloatSegment(
-		GPU gpu,
-		ArrayView1D<float, Stride1D.Dense> inputView,
-		ArrayView1D<int, Stride1D.Dense> indexView,
-		ArrayView1D<int, Stride1D.Dense> keysView,
-		SortOrder order) =>
-		RunArgsortFloatViaSortable(gpu, inputView, indexView, keysView, order);
-
-	static void RunArgsortFloatViaSortable(
-		GPU gpu,
-		ArrayView1D<float, Stride1D.Dense> inputView,
-		ArrayView1D<int, Stride1D.Dense> indexView,
-		ArrayView1D<int, Stride1D.Dense> keysView,
-		SortOrder order)
+	internal static void Argsort1DDescXIP(VectorInt input, VectorInt indices)
 	{
-		gpu.floatToSortableInt(gpu.DefaultStream, GPU.SortLaunchExtent(inputView.Length), inputView, keysView);
-		gpu.accelerator.Sequence(gpu.DefaultStream, indexView, Int32Sequence);
-		ArgsortIntPairs(gpu, keysView, indexView, order);
+		GPU gpu = input.Gpu;
+		int length = input.Length;
+		int radixTempOffset = RadixTempOffset(length);
+		int radixTempElements = RadixPairsTempElements<DescendingInt32>(gpu, length);
+		using (GpuScope.Begin(indices, input))
+		{
+			using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
+			using (GpuScope.Begin(scratch.PinTarget))
+			{
+				ArrayView1D<int, Stride1D.Dense>
+					scratchView = scratch.View,
+					keys = scratchView.SubView(0, length),
+					radixTemp = scratchView.SubView(radixTempOffset, radixTempElements);
+
+				MemoryBuffer1D<int, Stride1D.Dense> inputBuffer = input.GetBuffer();
+				MemoryBuffer1D<int, Stride1D.Dense> indexBuffer = indices.GetBuffer();
+
+				inputBuffer.View.CopyTo(gpu.DefaultStream, keys);
+				gpu.accelerator.Sequence(gpu.DefaultStream, indexBuffer.View, Int32Sequence);
+				gpu.AlgorithmProviders.DescendingIntPairsSort(gpu.DefaultStream, keys, indexBuffer.View, radixTemp.AsContiguous());
+			}
+
+			gpu.Synchronize();
+		}
 	}
 
-	#endregion
+	internal static VectorInt Argsort1DAscX(Vector input)
+	{
+		GPU gpu = input.Gpu;
+		int length = input.Length;
+		int radixTempOffset = RadixTempOffset(length);
+		int radixTempElements = RadixPairsTempElements<AscendingInt32>(gpu, length);
+
+		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
+		using (GpuScope.BeginReadOnly(input))
+		{
+			VectorInt indices = new(gpu, length, input.Columns);
+			using (GpuScope.Begin(indices))
+			{
+				using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
+				using (GpuScope.Begin(scratch.PinTarget))
+				{
+					ArrayView1D<int, Stride1D.Dense>
+						scratchView = scratch.View,
+						keys = scratchView.SubView(0, length),
+						radixTemp = scratchView.SubView(radixTempOffset, radixTempElements);
+
+					MemoryBuffer1D<float, Stride1D.Dense> inputBuffer = input.GetBuffer();
+					MemoryBuffer1D<int, Stride1D.Dense> indexBuffer = indices.GetBuffer();
+
+					gpu.floatToSortableInt(gpu.DefaultStream, length, inputBuffer.View, keys);
+					gpu.accelerator.Sequence(gpu.DefaultStream, indexBuffer.View, Int32Sequence);
+					gpu.AlgorithmProviders.AscendingIntPairsSort(gpu.DefaultStream, keys, indexBuffer.View, radixTemp.AsContiguous());
+				}
+
+				gpu.Synchronize();
+			}
+
+			return indices;
+		}
+	}
+
+	internal static void Argsort1DAscXIP(Vector input, VectorInt indices)
+	{
+		GPU gpu = input.Gpu;
+		int length = input.Length;
+		int radixTempOffset = RadixTempOffset(length);
+		int radixTempElements = RadixPairsTempElements<AscendingInt32>(gpu, length);
+		using (GpuScope.Begin(indices, input))
+		{
+			using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
+			using (GpuScope.Begin(scratch.PinTarget))
+			{
+				ArrayView1D<int, Stride1D.Dense>
+					scratchView = scratch.View,
+					keys = scratchView.SubView(0, length),
+					radixTemp = scratchView.SubView(radixTempOffset, radixTempElements);
+
+				MemoryBuffer1D<float, Stride1D.Dense> inputBuffer = input.GetBuffer();
+				MemoryBuffer1D<int, Stride1D.Dense> indexBuffer = indices.GetBuffer();
+
+				gpu.floatToSortableInt(gpu.DefaultStream, length, inputBuffer.View, keys);
+				gpu.accelerator.Sequence(gpu.DefaultStream, indexBuffer.View, Int32Sequence);
+				gpu.AlgorithmProviders.AscendingIntPairsSort(gpu.DefaultStream, keys, indexBuffer.View, radixTemp.AsContiguous());
+			}
+
+			gpu.Synchronize();
+		}
+	}
+
+	internal static VectorInt Argsort1DDescX(Vector input)
+	{
+		GPU gpu = input.Gpu;
+		int length = input.Length;
+		int radixTempOffset = RadixTempOffset(length);
+		int radixTempElements = RadixPairsTempElements<DescendingInt32>(gpu, length);
+
+		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
+		using (GpuScope.BeginReadOnly(input))
+		{
+			VectorInt indices = new(gpu, length, input.Columns);
+			using (GpuScope.Begin(indices))
+			{
+				using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
+				using (GpuScope.Begin(scratch.PinTarget))
+				{
+					ArrayView1D<int, Stride1D.Dense>
+						scratchView = scratch.View,
+						keys = scratchView.SubView(0, length),
+						radixTemp = scratchView.SubView(radixTempOffset, radixTempElements);
+
+					MemoryBuffer1D<float, Stride1D.Dense> inputBuffer = input.GetBuffer();
+					MemoryBuffer1D<int, Stride1D.Dense> indexBuffer = indices.GetBuffer();
+
+					gpu.floatToSortableInt(gpu.DefaultStream, length, inputBuffer.View, keys);
+					gpu.accelerator.Sequence(gpu.DefaultStream, indexBuffer.View, Int32Sequence);
+					gpu.AlgorithmProviders.DescendingIntPairsSort(gpu.DefaultStream, keys, indexBuffer.View, radixTemp.AsContiguous());
+				}
+
+				gpu.Synchronize();
+			}
+
+			return indices;
+		}
+	}
+
+	internal static void Argsort1DDescXIP(Vector input, VectorInt indices)
+	{
+		GPU gpu = input.Gpu;
+		int length = input.Length;
+		int radixTempOffset = RadixTempOffset(length);
+		int radixTempElements = RadixPairsTempElements<DescendingInt32>(gpu, length);
+		using (GpuScope.Begin(indices, input))
+		{
+			using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
+			using (GpuScope.Begin(scratch.PinTarget))
+			{
+				ArrayView1D<int, Stride1D.Dense>
+					scratchView = scratch.View,
+					keys = scratchView.SubView(0, length),
+					radixTemp = scratchView.SubView(radixTempOffset, radixTempElements);
+
+				MemoryBuffer1D<float, Stride1D.Dense> inputBuffer = input.GetBuffer();
+				MemoryBuffer1D<int, Stride1D.Dense> indexBuffer = indices.GetBuffer();
+
+				gpu.floatToSortableInt(gpu.DefaultStream, length, inputBuffer.View, keys);
+				gpu.accelerator.Sequence(gpu.DefaultStream, indexBuffer.View, Int32Sequence);
+				gpu.AlgorithmProviders.DescendingIntPairsSort(gpu.DefaultStream, keys, indexBuffer.View, radixTemp.AsContiguous());
+			}
+
+			gpu.Synchronize();
+		}
+	}
+
+	internal static VectorInt Argsort2DAscX(VectorInt input)
+	{
+		GPU gpu = input.Gpu;
+		int length = input.Length;
+		int cols = input.Columns;
+		int rowCount = input.RowCount();
+		var config = (rowCount, GPU.SegmentedRadixGroupSize);
+
+		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
+		using (GpuScope.BeginReadOnly(input))
+		{
+			VectorInt indices = new(gpu, length, input.Columns);
+			using (GpuScope.Begin(indices))
+			{
+				using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(Argsort2DScratchElements(length));
+				using (GpuScope.Begin(scratch.PinTarget))
+				{
+					SplitArgsort2DScratch(scratch.View, length, out ArrayView1D<int, Stride1D.Dense> keys, out ArrayView1D<int, Stride1D.Dense> tempKeys, out ArrayView1D<int, Stride1D.Dense> tempValues);
+					MemoryBuffer1D<int, Stride1D.Dense> inputBuffer = input.GetBuffer();
+					MemoryBuffer1D<int, Stride1D.Dense> indexBuffer = indices.GetBuffer();
+
+					inputBuffer.View.CopyTo(gpu.DefaultStream, keys);
+					gpu.segmentedSortIntPairsAscIP(gpu.DefaultStream, config, keys, indexBuffer.View, tempKeys, tempValues, cols, rowCount);
+				}
+
+				gpu.Synchronize();
+			}
+
+			return indices;
+		}
+	}
+
+	internal static void Argsort2DAscXIP(VectorInt input, VectorInt indices)
+	{
+		GPU gpu = input.Gpu;
+		int length = input.Length;
+		int cols = input.Columns;
+		int rowCount = input.RowCount();
+		var config = (rowCount, GPU.SegmentedRadixGroupSize);
+		using (GpuScope.Begin(indices, input))
+		{
+			using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(Argsort2DScratchElements(length));
+			using (GpuScope.Begin(scratch.PinTarget))
+			{
+				SplitArgsort2DScratch(scratch.View, length, out ArrayView1D<int, Stride1D.Dense> keys, out ArrayView1D<int, Stride1D.Dense> tempKeys, out ArrayView1D<int, Stride1D.Dense> tempValues);
+				MemoryBuffer1D<int, Stride1D.Dense> inputBuffer = input.GetBuffer();
+				MemoryBuffer1D<int, Stride1D.Dense> indexBuffer = indices.GetBuffer();
+
+				inputBuffer.View.CopyTo(gpu.DefaultStream, keys);
+				gpu.segmentedSortIntPairsAscIP(gpu.DefaultStream, config, keys, indexBuffer.View, tempKeys, tempValues, cols, rowCount);
+			}
+
+			gpu.Synchronize();
+		}
+	}
+
+	internal static VectorInt Argsort2DDescX(VectorInt input)
+	{
+		GPU gpu = input.Gpu;
+		int length = input.Length;
+		int cols = input.Columns;
+		int rowCount = input.RowCount();
+		var config = (rowCount, GPU.SegmentedRadixGroupSize);
+
+		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
+		using (GpuScope.BeginReadOnly(input))
+		{
+			VectorInt indices = new(gpu, length, input.Columns);
+			using (GpuScope.Begin(indices))
+			{
+				using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(Argsort2DScratchElements(length));
+				using (GpuScope.Begin(scratch.PinTarget))
+				{
+					SplitArgsort2DScratch(scratch.View, length, out ArrayView1D<int, Stride1D.Dense> keys, out ArrayView1D<int, Stride1D.Dense> tempKeys, out ArrayView1D<int, Stride1D.Dense> tempValues);
+					MemoryBuffer1D<int, Stride1D.Dense> inputBuffer = input.GetBuffer();
+					MemoryBuffer1D<int, Stride1D.Dense> indexBuffer = indices.GetBuffer();
+
+					inputBuffer.View.CopyTo(gpu.DefaultStream, keys);
+					gpu.segmentedSortIntPairsDescIP(gpu.DefaultStream, config, keys, indexBuffer.View, tempKeys, tempValues, cols, rowCount);
+				}
+
+				gpu.Synchronize();
+			}
+
+			return indices;
+		}
+	}
+
+	internal static void Argsort2DDescXIP(VectorInt input, VectorInt indices)
+	{
+		GPU gpu = input.Gpu;
+		int length = input.Length;
+		int cols = input.Columns;
+		int rowCount = input.RowCount();
+		var config = (rowCount, GPU.SegmentedRadixGroupSize);
+		using (GpuScope.Begin(indices, input))
+		{
+			using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(Argsort2DScratchElements(length));
+			using (GpuScope.Begin(scratch.PinTarget))
+			{
+				SplitArgsort2DScratch(scratch.View, length, out ArrayView1D<int, Stride1D.Dense> keys, out ArrayView1D<int, Stride1D.Dense> tempKeys, out ArrayView1D<int, Stride1D.Dense> tempValues);
+				MemoryBuffer1D<int, Stride1D.Dense> inputBuffer = input.GetBuffer();
+				MemoryBuffer1D<int, Stride1D.Dense> indexBuffer = indices.GetBuffer();
+
+				inputBuffer.View.CopyTo(gpu.DefaultStream, keys);
+				gpu.segmentedSortIntPairsDescIP(gpu.DefaultStream, config, keys, indexBuffer.View, tempKeys, tempValues, cols, rowCount);
+			}
+
+			gpu.Synchronize();
+		}
+	}
+
+	internal static VectorInt Argsort2DAscX(Vector input)
+	{
+		GPU gpu = input.Gpu;
+		int length = input.Length;
+		int cols = input.Columns;
+		int rowCount = input.RowCount();
+		var config = (rowCount, GPU.SegmentedRadixGroupSize);
+
+		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
+		using (GpuScope.BeginReadOnly(input))
+		{
+			VectorInt indices = new(gpu, length, input.Columns);
+			using (GpuScope.Begin(indices))
+			{
+				using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(Argsort2DScratchElements(length));
+				using (GpuScope.Begin(scratch.PinTarget))
+				{
+					SplitArgsort2DScratch(scratch.View, length, out ArrayView1D<int, Stride1D.Dense> keys, out ArrayView1D<int, Stride1D.Dense> tempKeys, out ArrayView1D<int, Stride1D.Dense> tempValues);
+					MemoryBuffer1D<float, Stride1D.Dense> inputBuffer = input.GetBuffer();
+					MemoryBuffer1D<int, Stride1D.Dense> indexBuffer = indices.GetBuffer();
+
+					gpu.segmentedSortFloatPairsAscIP(gpu.DefaultStream, config, inputBuffer.View, keys, indexBuffer.View, tempKeys, tempValues, cols, rowCount);
+				}
+
+				gpu.Synchronize();
+			}
+
+			return indices;
+		}
+	}
+
+	internal static void Argsort2DAscXIP(Vector input, VectorInt indices)
+	{
+		GPU gpu = input.Gpu;
+		int length = input.Length;
+		int cols = input.Columns;
+		int rowCount = input.RowCount();
+		var config = (rowCount, GPU.SegmentedRadixGroupSize);
+		using (GpuScope.Begin(indices, input))
+		{
+			using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(Argsort2DScratchElements(length));
+			using (GpuScope.Begin(scratch.PinTarget))
+			{
+				SplitArgsort2DScratch(scratch.View, length, out ArrayView1D<int, Stride1D.Dense> keys, out ArrayView1D<int, Stride1D.Dense> tempKeys, out ArrayView1D<int, Stride1D.Dense> tempValues);
+				MemoryBuffer1D<float, Stride1D.Dense> inputBuffer = input.GetBuffer();
+				MemoryBuffer1D<int, Stride1D.Dense> indexBuffer = indices.GetBuffer();
+
+				gpu.segmentedSortFloatPairsAscIP(gpu.DefaultStream, config, inputBuffer.View, keys, indexBuffer.View, tempKeys, tempValues, cols, rowCount);
+			}
+
+			gpu.Synchronize();
+		}
+	}
+
+	internal static VectorInt Argsort2DDescX(Vector input)
+	{
+		GPU gpu = input.Gpu;
+		int length = input.Length;
+		int cols = input.Columns;
+		int rowCount = input.RowCount();
+		var config = (rowCount, GPU.SegmentedRadixGroupSize);
+
+		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
+		using (GpuScope.BeginReadOnly(input))
+		{
+			VectorInt indices = new(gpu, length, input.Columns);
+			using (GpuScope.Begin(indices))
+			{
+				using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(Argsort2DScratchElements(length));
+				using (GpuScope.Begin(scratch.PinTarget))
+				{
+					SplitArgsort2DScratch(scratch.View, length, out ArrayView1D<int, Stride1D.Dense> keys, out ArrayView1D<int, Stride1D.Dense> tempKeys, out ArrayView1D<int, Stride1D.Dense> tempValues);
+					MemoryBuffer1D<float, Stride1D.Dense> inputBuffer = input.GetBuffer();
+					MemoryBuffer1D<int, Stride1D.Dense> indexBuffer = indices.GetBuffer();
+
+					gpu.segmentedSortFloatPairsDescIP(gpu.DefaultStream, config, inputBuffer.View, keys, indexBuffer.View, tempKeys, tempValues, cols, rowCount);
+				}
+
+				gpu.Synchronize();
+			}
+
+			return indices;
+		}
+	}
+
+	internal static void Argsort2DDescXIP(Vector input, VectorInt indices)
+	{
+		GPU gpu = input.Gpu;
+		int length = input.Length;
+		int cols = input.Columns;
+		int rowCount = input.RowCount();
+		var config = (rowCount, GPU.SegmentedRadixGroupSize);
+		using (GpuScope.Begin(indices, input))
+		{
+			using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(Argsort2DScratchElements(length));
+			using (GpuScope.Begin(scratch.PinTarget))
+			{
+				SplitArgsort2DScratch(scratch.View, length, out ArrayView1D<int, Stride1D.Dense> keys, out ArrayView1D<int, Stride1D.Dense> tempKeys, out ArrayView1D<int, Stride1D.Dense> tempValues);
+				MemoryBuffer1D<float, Stride1D.Dense> inputBuffer = input.GetBuffer();
+				MemoryBuffer1D<int, Stride1D.Dense> indexBuffer = indices.GetBuffer();
+
+				gpu.segmentedSortFloatPairsDescIP(gpu.DefaultStream, config, inputBuffer.View, keys, indexBuffer.View, tempKeys, tempValues, cols, rowCount);
+			}
+
+			gpu.Synchronize();
+		}
+	}
+
+	static int Argsort2DScratchElements(int length) => length + length + length;
+
+	static void SplitArgsort2DScratch(
+		ArrayView1D<int, Stride1D.Dense> scratch,
+		int length,
+		out ArrayView1D<int, Stride1D.Dense> keys,
+		out ArrayView1D<int, Stride1D.Dense> tempKeys,
+		out ArrayView1D<int, Stride1D.Dense> tempValues)
+	{
+		keys = scratch.SubView(0, length);
+		ArrayView1D<int, Stride1D.Dense> tail = scratch.SubView(length, length << 1);
+		tempKeys = tail.SubView(0, length);
+		tempValues = tail.SubView(length, length);
+	}
+
+	static int RadixTempElements<TSortOp>(GPU gpu, int length) where TSortOp : struct, IRadixSortOperation<int> =>
+		(int)gpu.accelerator.ComputeRadixSortTempStorageSize<int, TSortOp>(length);
+
+	static int RadixPairsTempElements<TSortOp>(GPU gpu, int length) where TSortOp : struct, IRadixSortOperation<int> =>
+		(int)gpu.accelerator.ComputeRadixSortPairsTempStorageSize<int, int, TSortOp>(length);
+
+	/// <summary>
+	/// ILGPU reinterprets radix temp storage as wider structs, so carving it out of a shared scratch
+	/// at an unaligned element offset corrupts the sort for lengths that are not a multiple of
+	/// <see cref="RadixTempAlignmentElements"/>. Applies to both the keys-only and key/value radix sorts.
+	/// </summary>
+	static int RadixTempOffset(int length) =>
+		(length + RadixTempAlignmentElements - 1) & ~(RadixTempAlignmentElements - 1);
 }

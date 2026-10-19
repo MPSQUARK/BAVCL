@@ -1,5 +1,3 @@
-using BAVCL.Core;
-
 namespace BAVCL.Modules.Sorting;
 
 internal static class SortCore
