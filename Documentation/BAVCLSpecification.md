@@ -140,7 +140,7 @@ From [FALCON `BAVCL_FEATURE_REQUESTS.md`](https://github.com/MPSQUARK/FALCON/blo
 
 | Priority | Item | FALCON driver |
 | -------- | ---- | ------------- |
-| High | **GPU FFT / IFFT** | HPF dust determination |
+| High | **GPU FFT / IFFT** | Real-input API shipped for HPF dust determination; public complex-vector input deferred |
 | High | **GPU convolution** (variable Gaussian kernel) | Spectral resolution downgrade |
 | Medium | **Sigma-clip reduction** on GPU | Iterative fitter residual clipping |
 | Medium | **GPU median / percentile** (order-stat without full sort where possible) | `NormaliseSpec` hot path |

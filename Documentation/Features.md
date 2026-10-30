@@ -11,6 +11,7 @@ using BAVCL.Modules.Arithmetic;
 using BAVCL.Modules.Structural;
 using BAVCL.Modules.Scan;
 using BAVCL.Modules.Sorting;
+using BAVCL.Modules.Fourier;
 
 Vector v = new(gpu, [3f, 1f, 2f]);
 v.SortAscIP();
@@ -114,6 +115,21 @@ Per `Vector` and `VectorInt`:
 
 - **1D:** global sort; **2D:** per-row sort when `Columns > 1`
 - Requires **Sorting** kernel domain loaded on the target `GPU`
+
+### Fourier (`BAVCL.Modules.Fourier`)
+
+Real-input FFTs return `FftResult`, which contains separate `Vector Real` and
+`Vector Imaginary` outputs with the input shape preserved. `Fft()` is the CPU
+mixed-radix/Bluestein path; `FftX()` is the GPU path and requires the
+`KernelDomain.Fourier` module for 1D inputs. `result.Ifft()` reconstructs the real signal
+using the inverse sign convention and `1/N` normalization (per transform axis);
+`IfftX()` currently uses the same mathematically equivalent CPU reconstruction.
+Lengths must be positive. `Columns > 1` performs separable row/column 2D
+transforms; `Columns == 0` or `1` performs a 1D transform. Input and output
+aliasing is not applicable to the allocating public API. A public
+complex-vector input type is deliberately deferred until `VectorComplex64`
+exists. The CPU path supports 2D; GPU 2D dispatch remains deferred while the
+parallel 1D kernel is validated.
 
 ### Geometric (`BAVCL.Modules.Geometric`)
 

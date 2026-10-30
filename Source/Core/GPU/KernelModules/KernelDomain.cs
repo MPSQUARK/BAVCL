@@ -11,4 +11,5 @@ public enum KernelDomain
 	Mask,
 	Sorting,
 	Experimental,
+	Fourier,
 }

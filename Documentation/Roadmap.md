@@ -22,7 +22,7 @@ kanban
     b9[2D prefix scan]
     b10[Histogram]
     b11[Segmented sort]
-    b12[GPU FFT / IFFT]
+    b12[GPU FFT / IFFT — real API shipped; complex input deferred]
     b13[GPU convolution]
     b14[Sigma-clip / median / optimisation]
     b15[Fused gather + reduce]
@@ -87,8 +87,11 @@ motivation for each item.
   bins, and accumulation.
 - **Segmented sort** — Generalize sorting beyond the current 2D row-oriented `SortAscX`
   implementation.
-- **GPU FFT / IFFT** — Provide GPU Fourier transforms for FALCON spectral processing,
-  particularly HPF dust determination.
+- **GPU FFT / IFFT** — Real-valued `Vector` and `VectorInt` inputs now expose
+  `Fft`/`FftX` and split real/imaginary `FftResult` outputs. CPU transforms use
+  mixed-radix or Bluestein for arbitrary lengths; the GPU domain provides a
+  parallel real-input transform. A public complex-vector input API remains
+  deferred until `VectorComplex64` establishes its storage and precision contract.
 - **GPU convolution** — Add convolution with variable Gaussian kernels for spectral
   resolution downgrade workflows.
 - **Sigma-clip / median / optimisation** — Add GPU sigma clipping, median/percentile
