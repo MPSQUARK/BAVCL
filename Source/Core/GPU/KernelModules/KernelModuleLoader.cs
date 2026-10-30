@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using BAVCL.Core.Exceptions;
 using BAVCL.Source.Core.Enums;
 
@@ -35,6 +36,9 @@ public static class KernelModuleLoader
 		[((int)KernelDomain.Sorting, typeof(int))] = static gpu => gpu.LoadSortSegmentedRadixKernels(),
 		[((int)KernelDomain.Statistics, typeof(float))] = static gpu => gpu.LoadStatisticsFloatKernels(),
 		[((int)KernelDomain.Statistics, typeof(int))] = static gpu => gpu.LoadStatisticsIntKernels(),
+		[((int)KernelDomain.Arithmetic, typeof(Complex))] = static gpu => gpu.LoadArithmeticComplex64Kernels(),
+		[((int)KernelDomain.Mask, typeof(Complex))] = static gpu => gpu.LoadMaskComplex64Kernels(),
+		[((int)KernelDomain.Sorting, typeof(Complex))] = static gpu => gpu.LoadSortComplex64Kernels(),
 	};
 
 	/// <summary>
@@ -95,4 +99,5 @@ public static class KernelModuleLoader
 		Modules.TryGetValue(((int)domain, elementType), out Action<GPU>? load)
 			? load
 			: throw new KernelModuleNotAvailableException(domain, elementType);
+
 }
