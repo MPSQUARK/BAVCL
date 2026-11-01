@@ -22,7 +22,7 @@ kanban
     b9[2D prefix scan]
     b10[Histogram]
     b11[Segmented sort]
-    b12[GPU FFT / IFFT — real API shipped; complex input deferred]
+    b12[GPU FFT / IFFT follow-up — complex input deferred]
     b13[GPU convolution]
     b14[Sigma-clip / median / optimisation]
     b15[Fused gather + reduce]
@@ -53,6 +53,7 @@ kanban
     d8[Scan-based filtering]@{ ticket: 62 }
     d9[Scan-based partition]@{ ticket: 63 }
     d10[Scan-based masking]@{ ticket: 64 }
+    d11[Real-input FFT API and GPU 1D dispatch]
 ```
 
 ## Roadmap item notes

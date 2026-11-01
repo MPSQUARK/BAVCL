@@ -6,8 +6,8 @@ namespace BAVCL.Modules.Fourier;
 
 internal static class FourierCore
 {
-	public static FftResult Forward(Vector input) => TransformCpu(input, inverse: false);
-	public static FftResult Forward(VectorInt input) => TransformCpu(input, inverse: false);
+	public static FftResult Forward(Vector input) => TransformCpu(input);
+	public static FftResult Forward(VectorInt input) => TransformCpu(input);
 
 	public static Vector Inverse(FftResult spectrum)
 	{
@@ -26,7 +26,7 @@ internal static class FourierCore
 		return Inverse(spectrum);
 	}
 
-	private static FftResult TransformCpu(Vector input, bool inverse)
+	private static FftResult TransformCpu(Vector input)
 	{
 		Validate(input);
 		float[] values = input.ToArray();
@@ -35,13 +35,13 @@ internal static class FourierCore
 			source[i] = new(values[i], 0f);
 		FftComplex[] transformed = new FftComplex[source.Length];
 		if (input.Is2D())
-			new FftPlan2D(input.RowCount(), input.Columns).Transform(source, transformed, inverse);
+			new FftPlan2D(input.RowCount(), input.Columns).Transform(source, transformed);
 		else
-			FftPlan.Create(source.Length).Transform(source, transformed, inverse);
+			FftPlan.Create(source.Length).Transform(source, transformed);
 		return CreateResult(input.Gpu, input.Columns, transformed);
 	}
 
-	private static FftResult TransformCpu(VectorInt input, bool inverse)
+	private static FftResult TransformCpu(VectorInt input)
 	{
 		Validate(input);
 		int[] values = input.ToArray();
@@ -50,20 +50,10 @@ internal static class FourierCore
 			source[i] = new(values[i], 0f);
 		FftComplex[] transformed = new FftComplex[source.Length];
 		if (input.Is2D())
-			new FftPlan2D(input.RowCount(), input.Columns).Transform(source, transformed, inverse);
+			new FftPlan2D(input.RowCount(), input.Columns).Transform(source, transformed);
 		else
-			FftPlan.Create(source.Length).Transform(source, transformed, inverse);
+			FftPlan.Create(source.Length).Transform(source, transformed);
 		return CreateResult(input.Gpu, input.Columns, transformed);
-	}
-
-	private static FftResult TransformCpu(Vector input, FftComplex[] source, bool inverse)
-	{
-		FftComplex[] transformed = new FftComplex[source.Length];
-		if (input.Is2D())
-			new FftPlan2D(input.RowCount(), input.Columns).Transform(source, transformed, inverse);
-		else
-			FftPlan.Create(source.Length).Transform(source, transformed, inverse);
-		return CreateResult(input, transformed);
 	}
 
 	private static Vector TransformCpuInverse(FftResult spectrum)
@@ -91,14 +81,14 @@ internal static class FourierCore
 	{
 		Validate(input);
 		if (input.Is2D())
-			return TransformCpu(input, inverse: false);
+			return TransformCpu(input);
 		Vector real = new(input.Gpu, input.Length, input.Columns);
 		Vector imaginary = new(input.Gpu, input.Length, input.Columns);
 		using (GpuScope.Begin([real, imaginary], [input]))
 		{
 			input.Gpu.fftRealFloat(
 				input.Gpu.DefaultStream, input.Length, real.GetBuffer().View,
-				imaginary.GetBuffer().View, input.GetBuffer().View, input.RowCount(),
+				imaginary.GetBuffer().View, input.GetBuffer().View, input.Length,
 				input.Is2D() ? input.Columns : 0, 0);
 			input.Gpu.Synchronize();
 		}
@@ -124,16 +114,11 @@ internal static class FourierCore
 		{
 			input.Gpu.fftRealInt(
 				input.Gpu.DefaultStream, input.Length, real.GetBuffer().View,
-				imaginary.GetBuffer().View, input.GetBuffer().View, input.RowCount(),
+				imaginary.GetBuffer().View, input.GetBuffer().View, input.Length,
 				input.Is2D() ? input.Columns : 0, 0);
 			input.Gpu.Synchronize();
 		}
 		return new FftResult(real, imaginary);
-	}
-
-	private static FftResult CreateResult(Vector input, FftComplex[] values)
-	{
-		return CreateResult(input.Gpu, input.Columns, values);
 	}
 
 	private static FftResult CreateResult(GPU gpu, int columns, FftComplex[] values)
