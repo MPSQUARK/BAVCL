@@ -47,6 +47,7 @@ public static class VectorComplexSorting
 
 	static VectorComplex64 SortCore(VectorComplex64 vector, ComplexSortMode mode, SortOrder order)
 	{
+		ValidateMode(mode);
 		Complex[] values = vector.RetrieveReadOnlySpan().ToArray();
 		SortRows(values, vector.Columns, mode, order);
 		return new VectorComplex64(vector.Gpu, values, vector.Columns);
@@ -54,6 +55,7 @@ public static class VectorComplexSorting
 
 	static void SortInPlace(VectorComplex64 vector, ComplexSortMode mode, SortOrder order)
 	{
+		ValidateMode(mode);
 		using (var scope = vector.CpuScope())
 		{
 			Complex[] values = vector.Value;
@@ -66,6 +68,7 @@ public static class VectorComplexSorting
 
 	static VectorInt ArgsortCore(VectorComplex64 vector, ComplexSortMode mode, SortOrder order)
 	{
+		ValidateMode(mode);
 		Complex[] values = vector.RetrieveReadOnlySpan().ToArray();
 		int[] indices = new int[values.Length];
 		for (int row = 0; row < RowCount(vector.Length, vector.Columns); row++)
@@ -134,12 +137,14 @@ public static class VectorComplexSorting
 
 	static VectorComplex64 SortGpu(VectorComplex64 vector, ComplexSortMode mode, SortOrder order)
 	{
+		ValidateMode(mode);
 		Complex[] values = RunGpuSort(vector, mode, order, withIndices: false, out _);
 		return new VectorComplex64(vector.Gpu, values, vector.Columns);
 	}
 
 	static void SortGpuInPlace(VectorComplex64 vector, ComplexSortMode mode, SortOrder order)
 	{
+		ValidateMode(mode);
 		Complex[] values = RunGpuSort(vector, mode, order, withIndices: false, out _);
 		using var scope = vector.CpuScope();
 		EditableView<Complex> view = scope.View;
@@ -149,12 +154,14 @@ public static class VectorComplexSorting
 
 	static VectorInt ArgsortGpu(VectorComplex64 vector, ComplexSortMode mode, SortOrder order)
 	{
+		ValidateMode(mode);
 		_ = RunGpuSort(vector, mode, order, withIndices: true, out int[] indices);
 		return new VectorInt(vector.Gpu, indices, vector.Columns);
 	}
 
 	static void ArgsortGpuInPlace(VectorComplex64 vector, VectorInt indices, ComplexSortMode mode, SortOrder order)
 	{
+		ValidateMode(mode);
 		if (indices.Length != vector.Length || indices.Columns != vector.Columns)
 			throw new ShapeMismatchException(vector.Shape(), indices.Shape());
 		_ = RunGpuSort(vector, mode, order, withIndices: true, out int[] values);
@@ -171,6 +178,12 @@ public static class VectorComplexSorting
 		bool withIndices,
 		out int[] indices)
 	{
+		ValidateMode(mode);
+		if (vector.Length == 0)
+		{
+			indices = [];
+			return [];
+		}
 		KernelModuleLoader.Load<Complex>(vector.Gpu, KernelDomain.Sorting);
 		Complex64Device[] source = ToDevice(vector.RetrieveReadOnlySpan());
 		indices = new int[source.Length];
@@ -229,5 +242,12 @@ public static class VectorComplexSorting
 		for (int i = 0; i < values.Length; i++)
 			result[i] = new Complex(values[i].Real, values[i].Imaginary);
 		return result;
+	}
+
+	static void ValidateMode(ComplexSortMode mode)
+	{
+		if (mode is not (ComplexSortMode.Magnitude or ComplexSortMode.Complex or
+			ComplexSortMode.Real or ComplexSortMode.Imaginary))
+			throw new ArgumentOutOfRangeException(nameof(mode));
 	}
 }

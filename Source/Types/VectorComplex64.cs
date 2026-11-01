@@ -20,7 +20,7 @@ namespace BAVCL;
 public sealed class VectorComplex64 : VectorBase<Complex>
 {
 	public VectorComplex64(GPU gpu, Complex[] values, int columns = 0, bool cache = true)
-		: base(gpu, values, columns, cache: false) { }
+		: base(gpu, values, columns, cache && values.Length > 0) { }
 
 	public VectorComplex64(GPU gpu, int length, int columns = 0)
 		: base(gpu, new Complex[length], columns, cache: false) { }
@@ -115,6 +115,8 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 	{
 		ArgumentNullException.ThrowIfNull(mask);
 		mask.ValidateShapeMatches(Shape(), Length);
+		if (Length == 0)
+			return new VectorComplex64(Gpu, [], Columns);
 		using BufferEntity<Complex64Device> input = BufferPools.For(Gpu).Complex64.Rent(Length);
 		using BufferEntity<Complex64Device> output = BufferPools.For(Gpu).Complex64.Rent(Length);
 		using BufferEntity<int> words = BufferPools.For(Gpu).Int.Rent(Math.Max(mask.Length, 1));
@@ -235,6 +237,8 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 	{
 		ArgumentNullException.ThrowIfNull(other);
 		Shape outputShape = Shape().BroadcastWith(other.Shape());
+		if (outputShape.ElementCount == 0)
+			return new VectorComplex64(Gpu, [], outputShape.ToStorageColumns());
 		KernelModuleLoader.Load<Complex>(Gpu, KernelDomain.Arithmetic);
 		using BufferEntity<Complex64Device> left = BufferPools.For(Gpu).Complex64.Rent(outputShape.ElementCount);
 		using BufferEntity<Complex64Device> right = BufferPools.For(Gpu).Complex64.Rent(outputShape.ElementCount);
@@ -253,6 +257,8 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 
 	VectorComplex64 ScalarX(Complex scalar, Operations operation)
 	{
+		if (Length == 0)
+			return new VectorComplex64(Gpu, [], Columns);
 		KernelModuleLoader.Load<Complex>(Gpu, KernelDomain.Arithmetic);
 		using BufferEntity<Complex64Device> input = BufferPools.For(Gpu).Complex64.Rent(Length);
 		using BufferEntity<Complex64Device> output = BufferPools.For(Gpu).Complex64.Rent(Length);
@@ -275,6 +281,8 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 		Shape outputShape = Shape().BroadcastWith(other.Shape());
 		if (!outputShape.MatchesDimensions(Shape()))
 			throw new PerformanceException("Swap operand order OR use allocating overload 'OPX'.");
+		if (Length == 0)
+			return;
 		KernelModuleLoader.Load<Complex>(Gpu, KernelDomain.Arithmetic);
 		using BufferEntity<Complex64Device> left = BufferPools.For(Gpu).Complex64.Rent(Length);
 		using BufferEntity<Complex64Device> right = BufferPools.For(Gpu).Complex64.Rent(Length);
@@ -292,6 +300,8 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 
 	void ScalarXIP(Complex scalar, Operations operation)
 	{
+		if (Length == 0)
+			return;
 		KernelModuleLoader.Load<Complex>(Gpu, KernelDomain.Arithmetic);
 		using BufferEntity<Complex64Device> input = BufferPools.For(Gpu).Complex64.Rent(Length);
 		Upload(input, ToDevice(RetrieveReadOnlySpan()));
@@ -311,6 +321,8 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 	{
 		ArgumentNullException.ThrowIfNull(other);
 		Shape outputShape = Shape().BroadcastWith(other.Shape());
+		if (outputShape.ElementCount == 0)
+			throw new ArgumentException("A comparison cannot produce an empty mask.", nameof(other));
 		KernelModuleLoader.Load<Complex>(Gpu, KernelDomain.Mask);
 		int[] flags = new int[outputShape.ElementCount];
 		using BufferEntity<Complex64Device> leftBuffer = BufferPools.For(Gpu).Complex64.Rent(flags.Length);
@@ -330,6 +342,8 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 
 	Mask CompareScalarX(Complex scalar, bool equal)
 	{
+		if (Length == 0)
+			throw new ArgumentException("A comparison cannot produce an empty mask.", nameof(scalar));
 		KernelModuleLoader.Load<Complex>(Gpu, KernelDomain.Mask);
 		int[] flags = new int[Length];
 		using BufferEntity<Complex64Device> inputBuffer = BufferPools.For(Gpu).Complex64.Rent(Length);
@@ -350,6 +364,8 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 	{
 		ArgumentNullException.ThrowIfNull(mask);
 		mask.ValidateShapeMatches(Shape(), Length);
+		if (Length == 0)
+			return (new VectorComplex64(Gpu, []), new VectorComplex64(Gpu, []));
 		KernelModuleLoader.Load<Complex>(Gpu, KernelDomain.Mask);
 		Complex64Device[] input = ToDevice(RetrieveReadOnlySpan());
 		bool[] bits = mask.ToBoolArray();

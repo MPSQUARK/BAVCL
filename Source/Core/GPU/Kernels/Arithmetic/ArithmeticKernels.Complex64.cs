@@ -222,28 +222,37 @@ public partial class GPU
 
 	static int Compare(Complex64Device left, Complex64Device right, int mode)
 	{
+		int result;
+		if (mode == (int)ComplexSortMode.Complex)
+			return CompareComponents(left, right);
+
 		double leftKey = mode == (int)ComplexSortMode.Real ? left.Real :
 			mode == (int)ComplexSortMode.Imaginary ? left.Imaginary :
-			mode == (int)ComplexSortMode.Magnitude ? left.Real * left.Real + left.Imaginary * left.Imaginary :
-			left.Real;
+			left.Real * left.Real + left.Imaginary * left.Imaginary;
 		double rightKey = mode == (int)ComplexSortMode.Real ? right.Real :
 			mode == (int)ComplexSortMode.Imaginary ? right.Imaginary :
-			mode == (int)ComplexSortMode.Magnitude ? right.Real * right.Real + right.Imaginary * right.Imaginary :
-			right.Real;
-		if (double.IsNaN(leftKey))
-			return double.IsNaN(rightKey) ? CompareComponents(left, right) : 1;
-		if (double.IsNaN(rightKey))
-			return -1;
-		if (leftKey < rightKey) return -1;
-		if (leftKey > rightKey) return 1;
-		return CompareComponents(left, right);
+			right.Real * right.Real + right.Imaginary * right.Imaginary;
+		result = CompareDouble(leftKey, rightKey);
+		if (result != 0)
+			return result;
+		return mode == (int)ComplexSortMode.Imaginary
+			? CompareDouble(left.Real, right.Real)
+			: CompareDouble(left.Imaginary, right.Imaginary);
 	}
 
 	static int CompareComponents(Complex64Device left, Complex64Device right) =>
-		left.Real < right.Real ? -1 :
-		left.Real > right.Real ? 1 :
-		left.Imaginary < right.Imaginary ? -1 :
-		left.Imaginary > right.Imaginary ? 1 : 0;
+		CompareDouble(left.Real, right.Real) != 0
+			? CompareDouble(left.Real, right.Real)
+			: CompareDouble(left.Imaginary, right.Imaginary);
+
+	static int CompareDouble(double left, double right)
+	{
+		if (double.IsNaN(left))
+			return double.IsNaN(right) ? 0 : 1;
+		if (double.IsNaN(right))
+			return -1;
+		return left < right ? -1 : left > right ? 1 : 0;
+	}
 
 	static Complex64Device Apply(Complex64Device left, Complex64Device right, Operations operation)
 	{
