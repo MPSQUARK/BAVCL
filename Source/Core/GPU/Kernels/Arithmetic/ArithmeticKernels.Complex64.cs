@@ -235,6 +235,8 @@ public partial class GPU
 		result = CompareDouble(leftKey, rightKey);
 		if (result != 0)
 			return result;
+		if (mode == (int)ComplexSortMode.Magnitude)
+			return CompareComponents(left, right);
 		return mode == (int)ComplexSortMode.Imaginary
 			? CompareDouble(left.Real, right.Real)
 			: CompareDouble(left.Imaginary, right.Imaginary);
