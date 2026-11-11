@@ -61,15 +61,19 @@ BAVCL accelerates large array operations on CUDA, OpenCL, or CPU backends while 
 
 ### 1.4 Solution Structure
 
-```
-BAVCL.sln
-├── README.md               # Quick start, licence summary, doc links
-├── Documentation/          # Spec, Features, MigrationGuide, GPGPUKernelGuide
-├── BAVCL.csproj            # Core library (net10.0) — sources under Source/
-└── Testing Console/        # Manual smoke tests + benchmark entry (not canonical tests)
+Local workspace folder. It is not a git repository. `BAVCL.slnx` sits beside the two clones and is not committed to either repository. A GitHub clone of either repository does not include that file.
 
-BAVCL.Tests/                # Sibling repo — canonical xUnit + BenchmarkDotNet home
-└── github.com/MPSQUARK/BAVCL.Tests
+```
+BAVCL/                          # solution folder
+├── BAVCL.slnx                  # local: library, Testing Console, tests, benchmarks, viewer, samples
+├── NuGet.config                # local: adds the ILGPU preview feed used by BAVCL.Samples
+├── BAVCL/                      # library git repository
+│   ├── README.md               # Quick start, licence summary, doc links
+│   ├── Documentation/          # Spec, Features, MigrationGuide, GPGPUKernelGuide
+│   ├── BAVCL.csproj            # Core library (net10.0) — sources under Source/
+│   └── Testing Console/        # Manual smoke tests + benchmark entry (not canonical tests)
+└── BAVCL.Tests/                # separate git repository — canonical xUnit + BenchmarkDotNet home
+    └── github.com/MPSQUARK/BAVCL.Tests
 ```
 
 ### 1.5 Out of Scope (v1) - Currently
@@ -1540,7 +1544,7 @@ Stays in `Source/Experimental/`. Opt-in — consumers import explicitly.
 
 ### 15.1 Test Repository
 
-**Canonical home:** sibling [BAVCL.Tests](https://github.com/MPSQUARK/BAVCL.Tests) repository (separate solution).
+**Canonical home:** separate [BAVCL.Tests](https://github.com/MPSQUARK/BAVCL.Tests) repository. Locally that clone sits beside the library under the workspace `BAVCL.slnx`.
 
 | Aspect           | Current                          | Target                             |
 | ---------------- | -------------------------------- | ---------------------------------- |
@@ -1567,7 +1571,7 @@ Current: CodeQL security scan only. Target: build + `dotnet test` + benchmark re
 
 ### 15.5 Library Repo Tests Folder
 
-No test project in the library solution — all authoritative tests live in **BAVCL.Tests** (sibling repo).
+No test project in the library repository — all authoritative tests live in **BAVCL.Tests**.
 
 ---
 ## 16. Platform Support
@@ -1628,11 +1632,11 @@ Primary consumer. Astrophysics calculations including age-from-redshift integral
 
 ### 18.2 BAVCL.Tests
 
-Companion test repository at [github.com/MPSQUARK/BAVCL.Tests](https://github.com/MPSQUARK/BAVCL.Tests). Source-only sibling referencing BAVCL project. Canonical location for xUnit tests and BenchmarkDotNet benchmarks.
+Companion test repository at [github.com/MPSQUARK/BAVCL.Tests](https://github.com/MPSQUARK/BAVCL.Tests). Separate git repository referencing the BAVCL project. Canonical location for xUnit tests and BenchmarkDotNet benchmarks.
 
 ### 18.3 Testing Console
 
-`Testing Console/` in the BAVCL solution — manual smoke tests and benchmark entry point. Not a replacement for BAVCL.Tests.
+`Testing Console/` in the library repository — manual smoke tests and benchmark entry point. Not a replacement for BAVCL.Tests.
 
 ---
 
