@@ -17,6 +17,7 @@ public static class KernelModuleLoader
 	{
 		[((int)KernelDomainSharedModule.MaskCore, typeof(float))] = static gpu => gpu.LoadMaskCoreKernels(),
         [((int)KernelDomainSharedModule.MaskCore, typeof(int))] = static gpu => gpu.LoadMaskCoreKernels(),
+        [((int)KernelDomainSharedModule.MaskCore, typeof(Complex))] = static gpu => gpu.LoadMaskCoreKernels(),
         [((int)KernelDomain.Arithmetic, typeof(float))] = static gpu => gpu.LoadArithmeticFloat32Kernels(),
 		[((int)KernelDomain.Structural, typeof(float))] = static gpu => gpu.LoadStructuralFloat32Kernels(),
 		[((int)KernelDomain.Geometry, typeof(float))] = static gpu => gpu.LoadGeometryFloat32Kernels(),
@@ -37,8 +38,12 @@ public static class KernelModuleLoader
 		[((int)KernelDomain.Statistics, typeof(float))] = static gpu => gpu.LoadStatisticsFloatKernels(),
 		[((int)KernelDomain.Statistics, typeof(int))] = static gpu => gpu.LoadStatisticsIntKernels(),
 		[((int)KernelDomain.Arithmetic, typeof(Complex))] = static gpu => gpu.LoadArithmeticComplex64Kernels(),
-		[((int)KernelDomain.Mask, typeof(Complex))] = static gpu => gpu.LoadMaskComplex64Kernels(),
-		[((int)KernelDomain.Sorting, typeof(Complex))] = static gpu => gpu.LoadSortComplex64Kernels(),
+		[((int)KernelDomain.Mask, typeof(Complex))] = static gpu =>
+		{
+			gpu.LoadModuleOnce(KernelDomainSharedModule.MaskCore, typeof(Complex), Resolve(KernelDomainSharedModule.MaskCore, typeof(Complex)));
+			gpu.LoadMaskComplex64Kernels();
+		},
+		[((int)KernelDomain.Sorting, typeof(Complex))] = static gpu => gpu.LoadSortComplexKernels(),
 	};
 
 	/// <summary>
