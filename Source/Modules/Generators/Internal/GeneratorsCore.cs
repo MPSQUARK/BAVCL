@@ -29,8 +29,10 @@ internal static class GeneratorsCore
 
 	internal static IEnumerable<T> LinspaceEnumerable<T>(T startValue, T endValue, int num) where T : INumber<T>
 	{
-		if (num <= 0)
-			throw new ArgumentOutOfRangeException(nameof(num), "Number of steps must be positive.");
+		Guard.ArgumentIsNonNegative(num);
+
+		if (num == 0)
+			yield break;
 
 		if (num == 1)
 		{
@@ -67,7 +69,12 @@ internal static class GeneratorsCore
 
 	internal static float[] Linspace(float startval, float endval, int steps)
 	{
-		if (steps <= 1) throw new Exception("Cannot make linspace with less than 1 steps");
+		Guard.ArgumentIsNonNegative(steps);
+		if (steps == 0)
+			return [];
+		if (steps == 1)
+			return [startval];
+
 		float interval = (endval - startval) / (steps - 1);
 
 		float[] arr = new float[steps];
