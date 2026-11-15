@@ -1,5 +1,4 @@
 using System;
-using BAVCL.Core.Helpers;
 using BAVCL.GpuAlgorithms;
 using BAVCL.Types;
 
@@ -9,13 +8,13 @@ internal static class GpuDescriptiveStatistics
 {
 	internal static float MeanX(Vector vector)
 	{
-		Guard.IsNotZero(vector.Length);
+		Guard.DivisorIsNotZero(vector.Length);
 		return GlobalReduceAlgorithms.Sum(vector) / vector.Length;
 	}
 
 	internal static float MeanX(VectorInt vector)
 	{
-		Guard.IsNotZero(vector.Length);
+		Guard.DivisorIsNotZero(vector.Length);
 		return GlobalReduceAlgorithms.Sum(vector) / vector.Length;
 	}
 
