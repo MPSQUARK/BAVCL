@@ -15,10 +15,22 @@ internal static class Guard
 	internal const float PercentileMin = 0f;
 	internal const float PercentileMax = 100f;
 
-	internal static void IsNotZero(int value, [CallerArgumentExpression(nameof(value))] string? name = null)
+	internal static void DivisorIsNotZero(int value, [CallerArgumentExpression(nameof(value))] string? name = null)
 	{
 		if (value == 0)
 			throw new DivideByZeroException($"Cannot divide by zero ({name ?? "value"}).");
+	}
+
+	internal static void ArgumentIsNotZero(float value, [CallerArgumentExpression(nameof(value))] string? name = null)
+	{
+		if (value == 0f)
+			throw new ArgumentOutOfRangeException(name ?? nameof(value), value, "Value must be non-zero.");
+	}
+
+	internal static void ArgumentIsNonNegative(int value, [CallerArgumentExpression(nameof(value))] string? name = null)
+	{
+		if (value < 0)
+			throw new ArgumentOutOfRangeException(name ?? nameof(value), value, "Value must be non-negative.");
 	}
 
 	internal static void IsNotEmpty(int length, [CallerArgumentExpression(nameof(length))] string? name = null)
