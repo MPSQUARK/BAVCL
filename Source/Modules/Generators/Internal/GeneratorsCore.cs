@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using ILGPU.Algorithms;
 
 namespace BAVCL.Modules.Generators;
 
