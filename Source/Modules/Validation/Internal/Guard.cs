@@ -33,6 +33,13 @@ internal static class Guard
 			throw new ArgumentOutOfRangeException(name ?? nameof(value), value, "Value must be non-negative.");
 	}
 
+	internal static void ArgumentIsLessThan<T>(T value, T upperBound)
+		where T : IComparable<T>
+	{
+		if (value.CompareTo(upperBound) >= 0)
+			throw new ArgumentOutOfRangeException(nameof(value), value, "Value must be less than the upper bound.");
+	}
+
 	internal static void IsNotEmpty(int length, [CallerArgumentExpression(nameof(length))] string? name = null)
 	{
 		if (length == 0)
