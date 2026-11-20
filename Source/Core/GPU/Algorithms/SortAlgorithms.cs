@@ -1,3 +1,5 @@
+using System;
+using System.Numerics;
 using ILGPU;
 using ILGPU.Algorithms;
 using ILGPU.Algorithms.RadixSortOperations;
