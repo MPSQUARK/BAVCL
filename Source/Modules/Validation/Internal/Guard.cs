@@ -29,20 +29,39 @@ internal static class Guard
 			throw new ArgumentOutOfRangeException(name ?? nameof(value), value, "Value must be non-zero.");
 	}
 
-	internal static void ArgumentIsNonNegative(int value, [CallerArgumentExpression(nameof(value))] string? name = null)
+	/// <summary>
+	/// Throws unless <paramref name="value"/> is non-negative. The check is written as <c>!(value &gt;= 0)</c>
+	/// rather than <c>value &lt; 0</c> so that NaN, for which every comparison is false, is rejected too.
+	/// </summary>
+	internal static void ArgumentIsNonNegative<T>(T value, [CallerArgumentExpression(nameof(value))] string? name = null)
+		where T : INumber<T>
 	{
-		if (value < 0)
+		if (!(value >= T.Zero))
 			throw new ArgumentOutOfRangeException(name ?? nameof(value), value, "Value must be non-negative.");
 	}
 
+	/// <summary>
+	/// Throws unless <paramref name="value"/> is finite, so NaN and infinities are rejected.
+	/// </summary>
+	internal static void ArgumentIsFinite<T>(T value, [CallerArgumentExpression(nameof(value))] string? name = null)
+		where T : INumberBase<T>
+	{
+		if (!T.IsFinite(value))
+			throw new ArgumentOutOfRangeException(name ?? nameof(value), value, "Value must be finite.");
+	}
+
+	/// <summary>
+	/// Throws unless <paramref name="value"/> is less than <paramref name="upperBound"/>. The check is written
+	/// as <c>!(value &lt; upperBound)</c> so that NaN, for which every comparison is false, is rejected too.
+	/// </summary>
 	internal static void ArgumentIsLessThan<T>(
 		T value,
 		T upperBound,
 		[CallerArgumentExpression(nameof(value))] string? name = null,
 		[CallerArgumentExpression(nameof(upperBound))] string? upperName = null)
-		where T : IComparable<T>
+		where T : INumber<T>
 	{
-		if (value.CompareTo(upperBound) >= 0)
+		if (!(value < upperBound))
 			throw new ArgumentOutOfRangeException(
 				name ?? nameof(value), value, $"{name} must be less than {upperName}.");
 	}
