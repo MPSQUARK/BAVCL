@@ -115,80 +115,44 @@ public static class GeneratorsModuleExtensions
 
 	extension(Vector vector)
 	{
-		public Vector ZerosIP(int length, int columns = 0)
-		{
-			FactoriesCore.ZerosInPlace(vector, length, columns);
-			return vector;
-		}
+		public Vector ZerosIP() => 
+			FactoriesCore.ZerosInPlace(vector);
 
-		public Vector ZerosIPX(int length, int columns = 0)
-		{
-			GpuFactoriesCore.ZerosInPlaceX(vector, length, columns);
-			return vector;
-		}
+		public Vector ZerosIPX() => 
+			GpuFactoriesCore.ZerosInPlaceX(vector);
 
-		public Vector OnesIP(int length, int columns = 0)
-		{
-			FactoriesCore.OnesInPlace(vector, length, columns);
-			return vector;
-		}
+		public Vector OnesIP() => 
+			FactoriesCore.OnesInPlace(vector);
 
-		public Vector OnesIPX(int length, int columns = 0)
-		{
-			GpuFactoriesCore.OnesInPlaceX(vector, length, columns);
-			return vector;
-		}
+		public Vector OnesIPX() => 
+			GpuFactoriesCore.OnesInPlaceX(vector);
 
-		public Vector FillIP(float value, int length, int columns = 0)
-		{
-			FactoriesCore.FillInPlace(vector, value, length, columns);
-			return vector;
-		}
+		public Vector FillIP(float value) => 
+			FactoriesCore.FillInPlace(vector, value);
 
-		public Vector FillIPX(float value, int length, int columns = 0)
-		{
-			GpuFactoriesCore.FillInPlaceX(vector, value, length, columns);
-			return vector;
-		}
+		public Vector FillIPX(float value) => 
+			GpuFactoriesCore.FillInPlaceX(vector, value);
 	}
 
 	extension(VectorInt vector)
 	{
-		public VectorInt ZerosIP(int length, int columns = 0)
-		{
-			FactoriesCore.ZerosInPlace(vector, length, columns);
-			return vector;
-		}
+		public VectorInt ZerosIP() => 
+			FactoriesCore.ZerosInPlace(vector);
 
-		public VectorInt ZerosIPX(int length, int columns = 0)
-		{
-			GpuFactoriesCore.ZerosInPlaceX(vector, length, columns);
-			return vector;
-		}
+		public VectorInt ZerosIPX() => 
+			GpuFactoriesCore.ZerosInPlaceX(vector);
 
-		public VectorInt OnesIP(int length, int columns = 0)
-		{
-			FactoriesCore.OnesInPlace(vector, length, columns);
-			return vector;
-		}
+		public VectorInt OnesIP() => 
+			FactoriesCore.OnesInPlace(vector);
 
-		public VectorInt OnesIPX(int length, int columns = 0)
-		{
-			GpuFactoriesCore.OnesInPlaceX(vector, length, columns);
-			return vector;
-		}
+		public VectorInt OnesIPX() => 
+			GpuFactoriesCore.OnesInPlaceX(vector);
 
-		public VectorInt FillIP(int value, int length, int columns = 0)
-		{
-			FactoriesCore.FillInPlace(vector, value, length, columns);
-			return vector;
-		}
+		public VectorInt FillIP(int value) => 
+			FactoriesCore.FillInPlace(vector, value);
 
-		public VectorInt FillIPX(int value, int length, int columns = 0)
-		{
-			GpuFactoriesCore.FillInPlaceX(vector, value, length, columns);
-			return vector;
-		}
+		public VectorInt FillIPX(int value) => 
+			GpuFactoriesCore.FillInPlaceX(vector, value);
 	}
 }
 
