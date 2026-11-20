@@ -29,6 +29,24 @@ internal static class Guard
 			throw new ArgumentOutOfRangeException(name ?? nameof(value), value, "Value must be non-zero.");
 	}
 
+	/// <summary>Throws unless <paramref name="value"/> is greater than zero.</summary>
+	internal static void ArgumentIsPositive<T>(T value, [CallerArgumentExpression(nameof(value))] string? name = null)
+		where T : INumber<T>
+	{
+		if (value <= T.Zero)
+			throw new ArgumentOutOfRangeException(name ?? nameof(value), value, "Value must be positive.");
+	}
+
+	/// <summary>
+	/// Throws when a range yields no samples. Vectors must hold at least one element, so a factory cannot
+	/// return an empty range.
+	/// </summary>
+	internal static void RangeIsNotEmpty(int sampleCount)
+	{
+		if (sampleCount == 0)
+			throw new ArgumentException("The range produces no samples. Vectors must hold at least one element.");
+	}
+
 	/// <summary>
 	/// Throws unless <paramref name="value"/> is non-negative. The check is written as <c>!(value &gt;= 0)</c>
 	/// rather than <c>value &lt; 0</c> so that NaN, for which every comparison is false, is rejected too.
