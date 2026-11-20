@@ -70,11 +70,25 @@ public static class GeneratorsModuleExtensions
 		public static Vector Linspace(GPU gpu, float startval, float endval, int steps, int columns = 0, bool cache = true) =>
 			FactoriesCore.Linspace(gpu, startval, endval, steps, columns, cache);
 
-		public static Vector UniformRandom(GPU gpu, int length, float minimum, float maximum, int seed, int columns = 0) =>
-			FactoriesCore.UniformRandom(gpu, length, minimum, maximum, seed, columns);
+		/// <summary>
+		/// Uniform floats in [0, 1). A null seed draws a fresh seed on the host; a fixed seed reproduces the
+		/// values. CPU and GPU variants use different generators, so one seed gives different values on each.
+		/// </summary>
+		public static Vector Random(GPU gpu, int length, int? seed = null, int columns = 0) =>
+			FactoriesCore.Random(gpu, length, seed, columns);
 
-		public static Vector UniformRandom(GPU gpu, int length, float minimum, float maximum, int columns = 0) =>
-			FactoriesCore.UniformRandom(gpu, length, minimum, maximum, columns);
+		/// <summary>
+		/// Uniform floats in [low, high). Throws unless both bounds are finite and low is less than high.
+		/// </summary>
+		public static Vector Uniform(GPU gpu, int length, float low, float high, int? seed = null, int columns = 0) =>
+			FactoriesCore.Uniform(gpu, length, low, high, seed, columns);
+
+		/// <summary>
+		/// Normal values with the given mean and standard deviation. Throws unless mean and stdDev are finite
+		/// and stdDev is non-negative.
+		/// </summary>
+		public static Vector Normal(GPU gpu, int length, float mean = 0f, float stdDev = 1f, int? seed = null, int columns = 0) =>
+			FactoriesCore.Normal(gpu, length, mean, stdDev, seed, columns);
 
 		public static Vector ZerosX(GPU gpu, int length, int columns = 0) =>
 			GpuFactoriesCore.Zeros(gpu, length, columns);
@@ -91,11 +105,14 @@ public static class GeneratorsModuleExtensions
 		public static Vector LinspaceX(GPU gpu, float startval, float endval, int steps, int columns = 0) =>
 			GpuFactoriesCore.Linspace(gpu, startval, endval, steps, columns);
 
-		public static Vector UniformRandomX(GPU gpu, int length, float minimum, float maximum, int seed, int columns = 0) =>
-			GpuFactoriesCore.UniformRandom(gpu, length, minimum, maximum, seed, columns);
+		public static Vector RandomX(GPU gpu, int length, int? seed = null, int columns = 0) =>
+			GpuFactoriesCore.Random(gpu, length, seed, columns);
 
-		public static Vector UniformRandomX(GPU gpu, int length, float minimum, float maximum, int columns = 0) =>
-			GpuFactoriesCore.UniformRandom(gpu, length, minimum, maximum, columns);
+		public static Vector UniformX(GPU gpu, int length, float low, float high, int? seed = null, int columns = 0) =>
+			GpuFactoriesCore.Uniform(gpu, length, low, high, seed, columns);
+
+		public static Vector NormalX(GPU gpu, int length, float mean = 0f, float stdDev = 1f, int? seed = null, int columns = 0) =>
+			GpuFactoriesCore.Normal(gpu, length, mean, stdDev, seed, columns);
 	}
 
 	extension(BAVCL.Geometric.Vector3)
@@ -115,43 +132,43 @@ public static class GeneratorsModuleExtensions
 
 	extension(Vector vector)
 	{
-		public Vector ZerosIP() => 
+		public Vector ZerosIP() =>
 			FactoriesCore.ZerosInPlace(vector);
 
-		public Vector ZerosIPX() => 
+		public Vector ZerosIPX() =>
 			GpuFactoriesCore.ZerosInPlaceX(vector);
 
-		public Vector OnesIP() => 
+		public Vector OnesIP() =>
 			FactoriesCore.OnesInPlace(vector);
 
-		public Vector OnesIPX() => 
+		public Vector OnesIPX() =>
 			GpuFactoriesCore.OnesInPlaceX(vector);
 
-		public Vector FillIP(float value) => 
+		public Vector FillIP(float value) =>
 			FactoriesCore.FillInPlace(vector, value);
 
-		public Vector FillIPX(float value) => 
+		public Vector FillIPX(float value) =>
 			GpuFactoriesCore.FillInPlaceX(vector, value);
 	}
 
 	extension(VectorInt vector)
 	{
-		public VectorInt ZerosIP() => 
+		public VectorInt ZerosIP() =>
 			FactoriesCore.ZerosInPlace(vector);
 
-		public VectorInt ZerosIPX() => 
+		public VectorInt ZerosIPX() =>
 			GpuFactoriesCore.ZerosInPlaceX(vector);
 
-		public VectorInt OnesIP() => 
+		public VectorInt OnesIP() =>
 			FactoriesCore.OnesInPlace(vector);
 
-		public VectorInt OnesIPX() => 
+		public VectorInt OnesIPX() =>
 			GpuFactoriesCore.OnesInPlaceX(vector);
 
-		public VectorInt FillIP(int value) => 
+		public VectorInt FillIP(int value) =>
 			FactoriesCore.FillInPlace(vector, value);
 
-		public VectorInt FillIPX(int value) => 
+		public VectorInt FillIPX(int value) =>
 			GpuFactoriesCore.FillInPlaceX(vector, value);
 	}
 }
@@ -175,11 +192,8 @@ public static class VectorIntGeneratorsModuleExtensions
 		public static VectorInt Linspace(GPU gpu, int startval, int endval, int steps, int columns = 0, bool cache = true) =>
 			FactoriesCore.Linspace(gpu, startval, endval, steps, columns, cache);
 
-		public static VectorInt UniformRandom(GPU gpu, int length, int minimum, int maximum, int seed, int columns = 0) =>
-			FactoriesCore.UniformRandom(gpu, length, minimum, maximum, seed, columns);
-
-		public static VectorInt UniformRandom(GPU gpu, int length, int minimum, int maximum, int columns = 0) =>
-			FactoriesCore.UniformRandom(gpu, length, minimum, maximum, columns);
+		public static VectorInt Uniform(GPU gpu, int length, int low, int high, int? seed = null, int columns = 0) =>
+			FactoriesCore.Uniform(gpu, length, low, high, seed, columns);
 
 		public static VectorInt ZerosX(GPU gpu, int length, int columns = 0) =>
 			GpuFactoriesCore.ZerosInt(gpu, length, columns);
@@ -190,10 +204,7 @@ public static class VectorIntGeneratorsModuleExtensions
 		public static VectorInt FillX(GPU gpu, int value, int length, int columns = 0) =>
 			GpuFactoriesCore.Fill(gpu, value, length, columns);
 
-		public static VectorInt UniformRandomX(GPU gpu, int length, int minimum, int maximum, int seed, int columns = 0) =>
-			GpuFactoriesCore.UniformRandom(gpu, length, minimum, maximum, seed, columns);
-
-		public static VectorInt UniformRandomX(GPU gpu, int length, int minimum, int maximum, int columns = 0) =>
-			GpuFactoriesCore.UniformRandom(gpu, length, minimum, maximum, columns);
+		public static VectorInt UniformX(GPU gpu, int length, int low, int high, int? seed = null, int columns = 0) =>
+			GpuFactoriesCore.Uniform(gpu, length, low, high, seed, columns);
 	}
 }
