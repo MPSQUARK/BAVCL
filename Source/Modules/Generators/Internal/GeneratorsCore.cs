@@ -54,15 +54,14 @@ internal static class GeneratorsCore
 
 	internal static float[] Arange(float startval, float endval, float interval)
 	{
-		int steps = (int)((endval - startval) / interval);
-		if (endval < startval && interval > 0) { steps = XMath.Abs(steps); interval = -interval; }
-		if (endval % interval != 0) { steps++; }
+		if (endval < startval && interval > 0f)
+			interval = -interval;
+
+		int steps = ArangeLength(startval, endval, interval);
 
 		float[] values = new float[steps];
-
 		for (int i = 0; i < steps; i++)
 			values[i] = startval + (i * interval);
-
 		return values;
 	}
 
@@ -82,5 +81,13 @@ internal static class GeneratorsCore
 			arr[i] = startval + (i * interval);
 
 		return arr;
+	}
+
+	internal static int ArangeLength(float startValue, float endValue, float interval)
+	{
+		Guard.ArgumentIsNotZero(interval);
+
+		float steps = (endValue - startValue) / interval;
+		return steps > 0f ? (int)MathF.Ceiling(steps) : 0;
 	}
 }
