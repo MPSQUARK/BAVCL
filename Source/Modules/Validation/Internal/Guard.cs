@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using BAVCL.Core.Exceptions;
 using BAVCL.Types;
@@ -34,11 +35,16 @@ internal static class Guard
 			throw new ArgumentOutOfRangeException(name ?? nameof(value), value, "Value must be non-negative.");
 	}
 
-	internal static void ArgumentIsLessThan<T>(T value, T upperBound)
+	internal static void ArgumentIsLessThan<T>(
+		T value,
+		T upperBound,
+		[CallerArgumentExpression(nameof(value))] string? name = null,
+		[CallerArgumentExpression(nameof(upperBound))] string? upperName = null)
 		where T : IComparable<T>
 	{
 		if (value.CompareTo(upperBound) >= 0)
-			throw new ArgumentOutOfRangeException(nameof(value), value, "Value must be less than the upper bound.");
+			throw new ArgumentOutOfRangeException(
+				name ?? nameof(value), value, $"{name} must be less than {upperName}.");
 	}
 
 	internal static void IsNotEmpty(int length, [CallerArgumentExpression(nameof(length))] string? name = null)
