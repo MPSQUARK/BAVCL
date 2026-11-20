@@ -10,72 +10,79 @@ internal static class GpuFactoriesCore
 {
 	internal static Vector Zeros(GPU gpu, int length, int columns = 0)
 	{
+		Guard.ArgumentIsPositive(length);
 		var output = new Vector(gpu, length, columns);
-		ZeroBuffer(output);
+		DeviceFill.Zero(output);
 		return output;
 	}
 
 	internal static Vector ZerosInPlaceX(Vector vector)
 	{
-		ZeroBuffer(vector);
+		Guard.ArgumentIsPositive(vector.Length);
+		DeviceFill.Zero(vector);
 		return vector;
 	}
 
 	internal static Vector3 Zeros(GPU gpu, int length)
 	{
+		Guard.ArgumentIsPositive(length);
 		var output = new Vector3(gpu, length);
-		ZeroBuffer(output);
+		DeviceFill.Zero(output);
 		return output;
 	}
 
 	internal static Vector Ones(GPU gpu, int length, int columns = 0)
 	{
+		Guard.ArgumentIsPositive(length);
 		var output = new Vector(gpu, length, columns);
-		Initialize(output, 1f);
+		DeviceFill.Fill(output, 1f);
 		return output;
 	}
 
 	internal static Vector OnesInPlaceX(Vector vector)
 	{
-		Initialize(vector, 1f);
+		Guard.ArgumentIsPositive(vector.Length);
+		DeviceFill.Fill(vector, 1f);
 		return vector;
 	}
 
 	internal static Vector Fill(GPU gpu, float value, int length, int columns = 0)
 	{
+		Guard.ArgumentIsPositive(length);
 		var output = new Vector(gpu, length, columns);
-		Initialize(output, value);
+		DeviceFill.Fill(output, value);
 		return output;
 	}
 
 	internal static Vector FillInPlaceX(Vector vector, float value)
 	{
-		Initialize(vector, value);
+		Guard.ArgumentIsPositive(vector.Length);
+		DeviceFill.Fill(vector, value);
 		return vector;
 	}
 
-	internal static Vector3 Fill(GPU gpu, float value, int length) =>
-		InitializeVector3(gpu, length, value);
+	internal static Vector3 Fill(GPU gpu, float value, int length)
+	{
+		Guard.ArgumentIsPositive(length);
+		var output = new Vector3(gpu, length);
+		DeviceFill.Fill(output, value);
+		return output;
+	}
 
 	internal static Vector Arange(GPU gpu, float startval, float endval, float interval, int columns = 0)
 	{
-        Guard.ArgumentIsFinite(startval);
-        Guard.ArgumentIsFinite(endval);
-
-        if (endval < startval && interval > 0f)
+		if (endval < startval && interval > 0f)
 			interval = -interval;
 
 		int length = GeneratorsCore.ArangeLength(startval, endval, interval);
+		Guard.RangeIsNotEmpty(length);
 		if (length == 1)
 			return new Vector(gpu, [startval], columns);
 
 		var output = new Vector(gpu, length, columns);
-		if (output.Length == 0)
-			return output;
-
 		using (GpuScope.Begin(output))
 		{
-			gpu.fillSequence(gpu.accelerator.DefaultStream, output.Length, output.GetBuffer().View, startval, interval);
+			gpu.fillSequence(gpu.accelerator.DefaultStream, length, output.GetBuffer().View, startval, interval);
 			gpu.accelerator.Synchronize();
 		}
 		return output;
@@ -85,18 +92,15 @@ internal static class GpuFactoriesCore
 	{
 		Guard.ArgumentIsFinite(startval);
 		Guard.ArgumentIsFinite(endval);
-		Guard.ArgumentIsNonNegative(steps);
+		Guard.ArgumentIsPositive(steps);
 		if (steps == 1)
 			return new Vector(gpu, [startval], columns);
 
 		var output = new Vector(gpu, steps, columns);
-		if (output.Length == 0)
-			return output;
-
 		float step = (endval - startval) / (steps - 1);
 		using (GpuScope.Begin(output))
 		{
-			gpu.fillSequence(gpu.accelerator.DefaultStream, output.Length, output.GetBuffer().View, startval, step);
+			gpu.fillSequence(gpu.accelerator.DefaultStream, steps, output.GetBuffer().View, startval, step);
 			gpu.accelerator.Synchronize();
 		}
 		return output;
@@ -104,56 +108,50 @@ internal static class GpuFactoriesCore
 
 	internal static Vector Random(GPU gpu, int length, int? seed, int columns)
 	{
+		Guard.ArgumentIsPositive(length);
 		var output = new Vector(gpu, length, columns);
-		if (output.Length == 0)
-			return output;
-
 		using var rng = CreateRng(gpu, seed);
 		using (GpuScope.Begin(output))
 		{
-			rng.FillUniform(gpu.accelerator.DefaultStream, output.GetBuffer().AsArrayView<float>(0, output.Length));
+			rng.FillUniform(gpu.accelerator.DefaultStream, output.GetBuffer().AsArrayView<float>(0, length));
 			gpu.accelerator.Synchronize();
 		}
 		return output;
 	}
 
-	internal static Vector Uniform(GPU gpu, int length, float low, float high, int? seed, int columns)
+	internal static Vector RandomUniform(GPU gpu, int length, float low, float high, int? seed, int columns)
 	{
+		Guard.ArgumentIsPositive(length);
 		Guard.ArgumentIsFinite(low);
 		Guard.ArgumentIsFinite(high);
 		Guard.ArgumentIsLessThan(low, high);
 		var output = new Vector(gpu, length, columns);
-		if (output.Length == 0)
-			return output;
-
 		using var rng = CreateRng(gpu, seed);
 		using (GpuScope.Begin(output))
 		{
 			var stream = gpu.accelerator.DefaultStream;
-			var view = output.GetBuffer().AsArrayView<float>(0, output.Length);
+			var view = output.GetBuffer().AsArrayView<float>(0, length);
 			rng.FillUniform(stream, view);
-			gpu.scaleUniform(stream, output.Length, view, low, high, MathF.BitDecrement(high));
+			gpu.scaleUniform(stream, length, view, low, high, MathF.BitDecrement(high));
 			gpu.accelerator.Synchronize();
 		}
 		return output;
 	}
 
-	internal static Vector Normal(GPU gpu, int length, float mean, float stdDev, int? seed, int columns)
+	internal static Vector RandomNormal(GPU gpu, int length, float mean, float stdDev, int? seed, int columns)
 	{
+		Guard.ArgumentIsPositive(length);
 		Guard.ArgumentIsFinite(mean);
 		Guard.ArgumentIsFinite(stdDev);
 		Guard.ArgumentIsNonNegative(stdDev);
 		var output = new Vector(gpu, length, columns);
-		if (output.Length == 0)
-			return output;
-
 		using var rng = CreateRng(gpu, seed);
 		using (GpuScope.Begin(output))
 		{
 			var stream = gpu.accelerator.DefaultStream;
-			var view = output.GetBuffer().AsArrayView<float>(0, output.Length);
+			var view = output.GetBuffer().AsArrayView<float>(0, length);
 			rng.FillUniform(stream, view);
-			gpu.normalScale(stream, output.Length, view, mean, stdDev);
+			gpu.normalScale(stream, length, view, mean, stdDev);
 			gpu.accelerator.Synchronize();
 		}
 		return output;
@@ -161,57 +159,61 @@ internal static class GpuFactoriesCore
 
 	internal static VectorInt ZerosInt(GPU gpu, int length, int columns = 0)
 	{
+		Guard.ArgumentIsPositive(length);
 		var output = new VectorInt(gpu, length, columns);
-		ZeroBuffer(output);
+		DeviceFill.Zero(output);
 		return output;
 	}
 
 	internal static VectorInt ZerosInPlaceX(VectorInt vector)
 	{
-		ZeroBuffer(vector);
+		Guard.ArgumentIsPositive(vector.Length);
+		DeviceFill.Zero(vector);
 		return vector;
 	}
 
 	internal static VectorInt OnesInt(GPU gpu, int length, int columns = 0)
 	{
+		Guard.ArgumentIsPositive(length);
 		var output = new VectorInt(gpu, length, columns);
-		Initialize(output, 1);
+		DeviceFill.Fill(output, 1);
 		return output;
 	}
 
 	internal static VectorInt OnesInPlaceX(VectorInt vector)
 	{
-		Initialize(vector, 1);
+		Guard.ArgumentIsPositive(vector.Length);
+		DeviceFill.Fill(vector, 1);
 		return vector;
 	}
 
 	internal static VectorInt Fill(GPU gpu, int value, int length, int columns = 0)
 	{
+		Guard.ArgumentIsPositive(length);
 		var output = new VectorInt(gpu, length, columns);
-		Initialize(output, value);
+		DeviceFill.Fill(output, value);
 		return output;
 	}
 
 	internal static VectorInt FillInPlaceX(VectorInt vector, int value)
 	{
-		Initialize(vector, value);
+		Guard.ArgumentIsPositive(vector.Length);
+		DeviceFill.Fill(vector, value);
 		return vector;
 	}
 
-	internal static VectorInt Uniform(GPU gpu, int length, int low, int high, int? seed, int columns)
+	internal static VectorInt RandomUniform(GPU gpu, int length, int low, int high, int? seed, int columns)
 	{
+		Guard.ArgumentIsPositive(length);
 		Guard.ArgumentIsLessThan(low, high);
 		var output = new VectorInt(gpu, length, columns);
-		if (output.Length == 0)
-			return output;
-
 		using var rng = CreateRng(gpu, seed);
 		using (GpuScope.Begin(output))
 		{
 			var stream = gpu.accelerator.DefaultStream;
-			var view = output.GetBuffer().AsArrayView<int>(0, output.Length);
+			var view = output.GetBuffer().AsArrayView<int>(0, length);
 			rng.FillUniform(stream, view);
-			gpu.scaleUniformInt(stream, output.Length, view, low, (long)high - low);
+			gpu.scaleUniformInt(stream, length, view, low, (long)high - low);
 			gpu.accelerator.Synchronize();
 		}
 		return output;
@@ -225,41 +227,4 @@ internal static class GpuFactoriesCore
 	static RNG<XorShift128Plus> CreateRng(GPU gpu, int? seed) =>
 		gpu.accelerator.CreateRNG<XorShift128Plus>(FactoriesCore.CreateRandom(seed));
 
-	/// <summary>Clears the buffer on the device. Empty vectors have nothing to clear.</summary>
-	static void ZeroBuffer<T>(CacheableBase<T> output)
-		where T : unmanaged
-	{
-		if (output.Length == 0)
-			return;
-
-		using (GpuScope.Begin(output))
-		{
-			output.GetBuffer().MemSetToZero(output.Gpu.accelerator.DefaultStream);
-			output.Gpu.accelerator.Synchronize();
-		}
-	}
-
-	/// <summary>Fills the buffer on the device with <paramref name="value"/>. Empty vectors have nothing to fill.</summary>
-	static void Initialize<T>(CacheableBase<T> output, T value)
-		where T : unmanaged
-	{
-		if (output.Length == 0)
-			return;
-
-		using (GpuScope.Begin(output))
-		{
-			output.Gpu.accelerator.Initialize(
-				output.Gpu.accelerator.DefaultStream,
-				output.GetBuffer().View,
-				value);
-			output.Gpu.accelerator.Synchronize();
-		}
-	}
-
-	static Vector3 InitializeVector3(GPU gpu, int length, float value)
-	{
-		var output = new Vector3(gpu, length);
-		Initialize(output, value);
-		return output;
-	}
 }
