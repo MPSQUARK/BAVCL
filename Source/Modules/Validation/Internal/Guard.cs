@@ -21,9 +21,10 @@ internal static class Guard
 			throw new DivideByZeroException($"Cannot divide by zero ({name ?? "value"}).");
 	}
 
-	internal static void ArgumentIsNotZero(float value, [CallerArgumentExpression(nameof(value))] string? name = null)
+	internal static void ArgumentIsNotZero<T>(T value, [CallerArgumentExpression(nameof(value))] string? name = null)
+		where T : INumberBase<T>
 	{
-		if (value == 0f)
+		if (T.IsZero(value))
 			throw new ArgumentOutOfRangeException(name ?? nameof(value), value, "Value must be non-zero.");
 	}
 
