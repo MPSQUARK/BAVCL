@@ -178,6 +178,7 @@ public static class VectorArithmeticExtensions
 
 		public Vector DiffX() => Vector.DiffX(vector);
 
+		// TODO: Review TransferBuffer usage for DiffXIP.
 		public Vector DiffXIP() => vector.TransferBuffer(Vector.DiffX(vector));
 
 		public Vector ReciprocalX() => Vector.ReciprocalX(vector);
@@ -265,7 +266,8 @@ public static class VectorArithmeticExtensions
 
 		public VectorInt DiffX() => VectorInt.DiffX(vector);
 
-		public VectorInt DiffXIP() => vector.TransferBuffer(VectorInt.DiffX(vector));
+        // TODO: Review TransferBuffer usage for DiffXIP.
+        public VectorInt DiffXIP() => vector.TransferBuffer(VectorInt.DiffX(vector));
 
 		public VectorInt MatrixAddX(VectorInt matrixB) => VectorInt.MatrixAddX(vector, matrixB);
 
