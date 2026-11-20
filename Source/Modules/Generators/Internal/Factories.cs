@@ -35,7 +35,7 @@ internal static class FactoriesCore
 	}
 
 	internal static void OnesInPlace(Vector vector, bool sync = true)
-		{
+	{
 		using (vector.CpuScope(sync))
 			vector.Value = Enumerable.Repeat(1f, vector.Length).ToArray();
 	}
@@ -72,19 +72,19 @@ internal static class FactoriesCore
 		new(gpu, GeneratorsCore.Linspace(startval, endval, steps), columns, cache);
 
 	internal static void ZerosInPlace(VectorInt vector, bool sync = true)
-		{
+	{
 		using (vector.CpuScope(sync))
 			vector.Value = new int[vector.Length];
 	}
 
 	internal static void OnesInPlace(VectorInt vector, bool sync = true)
-		{
+	{
 		using (vector.CpuScope(sync))
 			vector.Value = Enumerable.Repeat(1, vector.Length).ToArray();
 	}
 
 	internal static void FillInPlace(VectorInt vector, int value, bool sync = true)
-		{
+	{
 		using (vector.CpuScope(sync))
 			vector.Value = Enumerable.Repeat(value, vector.Length).ToArray();
 	}
