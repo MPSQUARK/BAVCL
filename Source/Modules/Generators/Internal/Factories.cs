@@ -28,22 +28,25 @@ internal static class FactoriesCore
 		GPU gpu, float startval, float endval, int steps, int columns = 0, bool cache = true) =>
 		new(gpu, GeneratorsCore.Linspace(startval, endval, steps), columns, cache);
 
-	internal static void ZerosInPlace(Vector vector, bool sync = true)
+	internal static Vector ZerosInPlace(Vector vector, bool sync = true)
 	{
 		using (vector.CpuScope(sync))
 			vector.Value = new float[vector.Length];
+		return vector;
 	}
 
-	internal static void OnesInPlace(Vector vector, bool sync = true)
+	internal static Vector OnesInPlace(Vector vector, bool sync = true)
 	{
 		using (vector.CpuScope(sync))
 			vector.Value = Enumerable.Repeat(1f, vector.Length).ToArray();
+		return vector;
 	}
 
-	internal static void FillInPlace(Vector vector, float value, bool sync = true)
+	internal static Vector FillInPlace(Vector vector, float value, bool sync = true)
 	{
 		using (vector.CpuScope(sync))
 			vector.Value = Enumerable.Repeat(value, vector.Length).ToArray();
+		return vector;
 	}
 
 	internal static Vector UniformRandom(
@@ -71,22 +74,25 @@ internal static class FactoriesCore
 		GPU gpu, int startval, int endval, int steps, int columns = 0, bool cache = true) =>
 		new(gpu, GeneratorsCore.Linspace(startval, endval, steps), columns, cache);
 
-	internal static void ZerosInPlace(VectorInt vector, bool sync = true)
+	internal static VectorInt ZerosInPlace(VectorInt vector, bool sync = true)
 	{
 		using (vector.CpuScope(sync))
 			vector.Value = new int[vector.Length];
+		return vector;
 	}
 
-	internal static void OnesInPlace(VectorInt vector, bool sync = true)
+	internal static VectorInt OnesInPlace(VectorInt vector, bool sync = true)
 	{
 		using (vector.CpuScope(sync))
 			vector.Value = Enumerable.Repeat(1, vector.Length).ToArray();
+		return vector;
 	}
 
-	internal static void FillInPlace(VectorInt vector, int value, bool sync = true)
+	internal static VectorInt FillInPlace(VectorInt vector, int value, bool sync = true)
 	{
 		using (vector.CpuScope(sync))
 			vector.Value = Enumerable.Repeat(value, vector.Length).ToArray();
+		return vector;
 	}
 
 	internal static VectorInt UniformRandom(
