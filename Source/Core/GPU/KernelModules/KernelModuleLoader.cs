@@ -35,6 +35,8 @@ public static class KernelModuleLoader
 		[((int)KernelDomain.Sorting, typeof(int))] = static gpu => gpu.LoadSortSegmentedRadixKernels(),
 		[((int)KernelDomain.Statistics, typeof(float))] = static gpu => gpu.LoadStatisticsFloatKernels(),
 		[((int)KernelDomain.Statistics, typeof(int))] = static gpu => gpu.LoadStatisticsIntKernels(),
+		[((int)KernelDomain.Generators, typeof(float))] = static gpu => gpu.LoadGeneratorsFloat32Kernels(),
+		[((int)KernelDomain.Generators, typeof(int))] = static gpu => gpu.LoadGeneratorsInt32Kernels(),
 	};
 
 	/// <summary>
