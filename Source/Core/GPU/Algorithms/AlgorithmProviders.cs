@@ -64,6 +64,14 @@ internal sealed class AlgorithmProviders
 	internal RadixSortPairs<int, Stride1D.Dense, int, Stride1D.Dense> DescendingIntPairsSort =>
 		GetCompiledRadixSortPairs<DescendingInt32>(ref field, _syncDescendingIntPairsSort);
 
+	readonly Lock _syncAscendingLongPairsSort = new();
+	internal RadixSortPairs<long, Stride1D.Dense, int, Stride1D.Dense> AscendingLongPairsSort =>
+		GetCompiledLongPairsSort<AscendingInt64>(ref field, _syncAscendingLongPairsSort);
+
+	readonly Lock _syncDescendingLongPairsSort = new();
+	internal RadixSortPairs<long, Stride1D.Dense, int, Stride1D.Dense> DescendingLongPairsSort =>
+		GetCompiledLongPairsSort<DescendingInt64>(ref field, _syncDescendingLongPairsSort);
+
 	internal AlgorithmProviders(Accelerator accelerator) => _accelerator = accelerator;
 
 	Scan<T, Stride1D.Dense, Stride1D.Dense> GetCompiledScan<T, TScanOp>(
@@ -110,6 +118,22 @@ internal sealed class AlgorithmProviders
 		{
 			registration ??=
 				_accelerator.CreateRadixSortPairs<int, Stride1D.Dense, int, Stride1D.Dense, TOperation>();
+			return registration!;
+		}
+	}
+
+	RadixSortPairs<long, Stride1D.Dense, int, Stride1D.Dense> GetCompiledLongPairsSort<TOperation>(
+		ref RadixSortPairs<long, Stride1D.Dense, int, Stride1D.Dense>? registration,
+		Lock sync)
+		where TOperation : struct, IRadixSortOperation<long>
+	{
+		if (Volatile.Read(ref registration) is not null)
+			return registration!;
+
+		lock (sync)
+		{
+			registration ??=
+				_accelerator.CreateRadixSortPairs<long, Stride1D.Dense, int, Stride1D.Dense, TOperation>();
 			return registration!;
 		}
 	}
