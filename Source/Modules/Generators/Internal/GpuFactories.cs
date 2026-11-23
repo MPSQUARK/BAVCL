@@ -71,10 +71,13 @@ internal static class GpuFactoriesCore
 
 	internal static Vector Arange(GPU gpu, float startval, float endval, float interval, int columns = 0)
 	{
-		if (endval < startval && interval > 0f)
-			interval = -interval;
+		Guard.ArgumentIsFinite(startval);
+		Guard.ArgumentIsFinite(endval);
+		Guard.ArgumentIsFinite(interval);
+		Guard.ArgumentIsNotZero(interval);
+		if (endval < startval && interval > 0) interval = -interval;
 
-		int length = GeneratorsCore.ArangeLength(startval, endval, interval);
+		int length = GeneratorsCore.CountSamples(endval - startval, interval);
 		Guard.RangeIsNotEmpty(length);
 		if (length == 1)
 			return new Vector(gpu, [startval], columns);
