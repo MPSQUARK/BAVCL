@@ -64,7 +64,7 @@ BAVCL accelerates large array operations on CUDA, OpenCL, or CPU backends while 
 ```
 BAVCL.sln
 ├── README.md               # Quick start, licence summary, doc links
-├── Documentation/          # Spec, Features, MigrationGuide, GPGPUKernelGuide
+├── Documentation/          # Spec, Features, Migrations, GPGPUKernelGuide
 ├── BAVCL.csproj            # Core library (net10.0) — sources under Source/
 └── Testing Console/        # Manual smoke tests + benchmark entry (not canonical tests)
 
@@ -84,7 +84,7 @@ Planned work only. **Shipped behaviour** is documented in §3–§16; open code/
 
 ### 2.0 Roadmap board
 
-The visual status board is maintained in [Roadmap.md](Roadmap.md). It uses Mermaid’s native `kanban` syntax and is synchronized with the detailed roadmap below and the repository’s GitHub issues. Issue-backed cards link to their corresponding GitHub issues.
+The status board is the GitHub project on this repository. This section is the written list. `Documentation/Roadmap.md` has been removed.
 
 ### 2.1 Deferred and out of scope (v1)
 
@@ -242,7 +242,7 @@ using (GpuScope.Begin(modified: output, readOnly: inputA, inputB))
 }
 ```
 
-CPU edits: `CpuScope.Begin<T>(ICacheable<T>, bool syncToGpu)` or `.CpuScope()` / `.CpuScopeAndSync()`. Scope on `ICacheable`; `RetrieveReadOnlySpan` / explicit `EditCpu` on `ICacheable<T>`. See [MigrationGuide.md](MigrationGuide.md).
+CPU edits: `CpuScope.Begin<T>(ICacheable<T>, bool syncToGpu)` or `.CpuScope()` / `.CpuScopeAndSync()`. Scope on `ICacheable`; `RetrieveReadOnlySpan` / explicit `EditCpu` on `ICacheable<T>`. See [§8.6](#86-residence-flags-and-coherence-implemented). Breaking steps: [Migrations](Migrations/README.md).
 
 ### 3.5 Pluggable Memory Management
 
@@ -330,7 +330,7 @@ Invalid fixed ranges (e.g. percentile outside [0, 100]) throw `FixedRangeExcepti
 
 Implementation: `Source/Core/Helpers/Numerics/`. Accuracy report: `dotnet run -c Release --project BAVCL.Benchmarks -- --sum-accuracy-report`.
 
-CPU and GPU `*X` APIs are parity-tested to these bounds. See [MigrationGuide.md § Numerical accuracy](./MigrationGuide.md#numerical-accuracy-float32).
+CPU and GPU `*X` APIs are parity-tested to these bounds. The per-release notes are [0.9.3 → 0.9.4](Migrations/0.9.3-to-0.9.4.md).
 
 ---
 ## 4. Architecture Overview
@@ -695,7 +695,7 @@ Implemented in `BAVCL.Modules.Structural` (`VectorStructural`) and `BAVCL.Module
 
 #### 5.2.5 Binary Operations and Operators
 
-**Migration:** See [`MigrationGuide.md`](MigrationGuide.md) for naming (`_IP` → `IP`, GPU `X` alignment) and breaking changes to `Columns`, `OP`/`IPOP`, `ReduceOPX`, and `Matrix*X`.
+**Migration:** [0.9.1 → 0.9.2](Migrations/0.9.1-to-0.9.2.md) for `_IP` → `IP` and the GPU `X` alignment. Later steps are in [Migrations](Migrations/README.md).
 
 Binary `+`, `-`, `*`, `/`, `^` operator overloads use **NumPy-style element-wise broadcast** via `OP()` / `IPOP()`. Three separate API families exist for different semantics:
 
@@ -1027,7 +1027,7 @@ Plotting prototype removed from repo; see [§2.12](#212-plotting).
 **Type file:** `Source/Types/VectorInt.cs`
 **Kernels:** `Source/Core/GPU/Kernels/{Arithmetic,Structural,Mask}/*.Int32.cs` (or `MaskKernels.VectorInt.cs`), registered under `KernelDomain.Arithmetic` / `.Structural` / `.Mask` for `typeof(int)`
 
-`VectorInt` mirrors `Vector` across GpuOps, Structural, Masking, Statistics, and IO — same construction, copy/equals, shape, and module organization (§3.6), with `int` in place of `float` throughout. Host-side integer sequences remain available through generic `GeneratorsModule` methods; GPU `VectorInt` sequence factories are not part of the current factory surface. Callers must call `KernelModuleLoader.Load<int>(gpu, KernelWorkloads.Default)` (or equivalent domains) before using `VectorInt` GPU operators, exactly as `Load<float>` is required for `Vector`.
+`VectorInt` mirrors `Vector` across GpuOps, Structural, Masking, Statistics, and IO — same construction, copy/equals, shape, and module organization (§3.6), with `int` in place of `float` throughout. Host sequences are `GeneratorsModule.Arange` / `Linspace` for `int`. `VectorInt.Arange`, `Linspace`, and `RandomUniform` build vectors, and the `X` forms are the GPU paths. Callers must call `KernelModuleLoader.Load<int>(gpu, KernelWorkloads.Default)` before `VectorInt` GPU operators, and `KernelWorkloads.Generators` before `RandomUniformX`. The contract change from the generic host sequences is [0.9.4 → 0.9.5](Migrations/0.9.4-to-0.9.5.md).
 
 #### Unchecked GPU arithmetic
 

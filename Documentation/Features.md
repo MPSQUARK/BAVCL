@@ -1,6 +1,6 @@
 # BAVCL Features
 
-User-facing catalog. **Contracts, policies, and internals:** [BAVCLSpecification.md](BAVCLSpecification.md). **Breaking changes:** [MigrationGuide.md](MigrationGuide.md).
+User-facing catalog. **Contracts, policies, and internals:** [BAVCLSpecification.md](BAVCLSpecification.md). **Breaking changes:** [Migrations](Migrations/README.md).
 
 ## How features are organized
 
@@ -186,7 +186,7 @@ using (GpuScope.Begin(output, input))
 - **Sorting `SortAscXIP`** — pins internally; requires `KernelWorkloads.Sorting`
 - **GpuOps `OPX`** — pins operands internally; requires `KernelWorkloads.Default`
 
-Host API rules (loops, anti-patterns, nested GpuScope): [Migration Guide](MigrationGuide.md#host-api-and-scopes).
+Host API rules (loops, anti-patterns, nested GpuScope): spec [§3.4](BAVCLSpecification.md#34-scope-only-gpu-pinning-implemented) and [§8.6](BAVCLSpecification.md#86-residence-flags-and-coherence-implemented). Breaking steps: [Migrations](Migrations/README.md).
 
 Load kernels before GPU methods:
 
@@ -202,5 +202,5 @@ See [BAVCLSpecification.md §4.7–4.8](BAVCLSpecification.md#47-experimental-ma
 ## See also
 
 - [BAVCL Specification](BAVCLSpecification.md) — authoritative contracts
-- [Migration Guide](MigrationGuide.md) — breaking API changes, **host API and scopes**
+- [Migrations](Migrations/README.md) — one file per tagged breaking-change step
 - [GPGPU Kernel Guide](GPGPUKernelGuide.md) — kernel authoring
