@@ -14,7 +14,7 @@ BAVCL is an HPC GPU math library on ILGPU 1.5.3. Device-side code must exploit G
 ## Before host dispatch (not only kernels)
 
 1. Check [Features.md](../../Documentation/Features.md) for an existing `X` / `IP` API.
-2. Read [MigrationGuide.md](../../Documentation/MigrationGuide.md#host-api-and-scopes) — Host API and scopes.
+2. Read spec [§3.4](../../Documentation/BAVCLSpecification.md#34-scope-only-gpu-pinning-implemented) and [§8.6](../../Documentation/BAVCLSpecification.md#86-residence-flags-and-coherence-implemented). Breaking steps are [Migrations](../../Documentation/Migrations/README.md).
 3. Then kernel steps below (GPGPUKernelGuide, P1–P6).
 
 ### Host API do / don't

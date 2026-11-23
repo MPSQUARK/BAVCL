@@ -35,6 +35,8 @@ public static class KernelModuleLoader
 		[((int)KernelDomain.Sorting, typeof(int))] = static gpu => gpu.LoadSortSegmentedRadixKernels(),
 		[((int)KernelDomain.Statistics, typeof(float))] = static gpu => gpu.LoadStatisticsFloatKernels(),
 		[((int)KernelDomain.Statistics, typeof(int))] = static gpu => gpu.LoadStatisticsIntKernels(),
+		[((int)KernelDomain.Generators, typeof(float))] = static gpu => gpu.LoadGeneratorsFloat32Kernels(),
+		[((int)KernelDomain.Generators, typeof(int))] = static gpu => gpu.LoadGeneratorsInt32Kernels(),
 	};
 
 	/// <summary>
@@ -59,26 +61,6 @@ public static class KernelModuleLoader
 
 		Console.WriteLine($"Compiled {compiled} kernel module(s) for {typeof(T).Name} in {timer.Elapsed.TotalMilliseconds:F2} ms");
 	}
-
-	internal static void Load<T>(GPU gpu, params KernelDomainSharedModule[] domains) where T : unmanaged
-    {
-        ArgumentNullException.ThrowIfNull(gpu);
-
-        var timer = Stopwatch.StartNew();
-        var compiled = 0;
-
-        foreach (var domain in domains)
-            if (gpu.LoadModuleOnce(domain, typeof(T), Resolve(domain, typeof(T))))
-                compiled++;
-
-        timer.Stop();
-
-        if (compiled == 0)
-            return;
-
-        Console.WriteLine($"Compiled {compiled} kernel [shared] module(s) for {typeof(T).Name} in {timer.Elapsed.TotalMilliseconds:F2} ms");
-    }
-
 
     /// <summary>Compiles every domain registered for element type <typeparamref name="T"/>.</summary>
 	public static void LoadAll<T>(GPU gpu) where T : unmanaged =>

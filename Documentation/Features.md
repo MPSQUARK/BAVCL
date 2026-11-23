@@ -1,6 +1,6 @@
 # BAVCL Features
 
-User-facing catalog. **Contracts, policies, and internals:** [BAVCLSpecification.md](BAVCLSpecification.md). **Breaking changes:** [MigrationGuide.md](MigrationGuide.md).
+User-facing catalog. **Contracts, policies, and internals:** [BAVCLSpecification.md](BAVCLSpecification.md). **Breaking changes:** [Migrations](Migrations/README.md).
 
 ## How features are organized
 
@@ -73,14 +73,29 @@ These names are **GPU-only** by design — no `X` suffix:
 
 ### Structural (`BAVCL.Modules.Structural`)
 
-- **Factories:** `Zeros`, `Ones`, `Fill`, `Arange`, `Linspace`
+- **GPU factories:** `ZerosX`, `OnesX`, `FillX`, `ArangeX`, `LinspaceX`
 - **CPU:** `Append`, `Prepend`, `Merge`, `Reverse`, row-axis `Concat` / `ConcatIP`, row/column slice reads where CPU-backed
 - **GPU:** `ReverseX`, `TransposeX`, `GetColumnAsVectorX`, `GetSliceAsVectorX`, `ConcatColumnX` / `ConcatColumnXIP`
 - **Output:** `Print`, `ToStr`, `ToCSV`
 
 ### Generators (`BAVCL.Modules.Generators`)
 
-- Host-side `Arange` / `Linspace` returning `float[]` (no GPU allocation)
+- Host-side `Arange` / `Linspace` for `float`, `double` and `int` arrays (no GPU allocation). An arange holds
+  `ceil((end - start) / interval)` samples, computed in that type.
+- **Random numbers (NumPy-aligned names, `Random` prefix):** `Random` / `RandomX` produce floats in `[0, 1)`;
+  `RandomUniform` / `RandomUniformX` produce floats in `[low, high)` and integers in `[low, high)` on `VectorInt`;
+  `RandomNormal` / `RandomNormalX` produce Gaussian values with the given mean and standard deviation.
+  The GPU variants use ILGPU's `RNG<XorShift128Plus>` `FillUniform`. `RandomX` needs no further
+  kernel; `RandomUniformX` maps the samples onto the requested bounds with one scale kernel;
+  `RandomNormalX` applies the inverse normal CDF (Acklam approximation, citations.md [12]; about 1.15e-9 relative error
+  in double precision, with `float32` rounding on top) in one kernel. The uniform input is
+  clamped to `[2^-24, 1 - 2^-24]`, which truncates the tails at roughly ±5.3 standard deviations. The CPU
+  `RandomNormal` uses Box-Muller (citations.md [13]). The RNG is created per call, so the same seed reproduces the same
+  values on the same device; the GPU stream layout depends on the device's parallel warp count. Random results are always below `high`; a range only a few ulps wide necessarily
+  collapses onto `low`.
+- **Zero-length requests are rejected:** every factory throws when asked for a length of zero, and `Arange`
+  throws when its range produces no samples. Empty vectors are not a valid state to request, so no
+  factory returns one.
 
 ### GpuOps (`BAVCL.Modules.GpuOps`)
 
@@ -171,7 +186,7 @@ using (GpuScope.Begin(output, input))
 - **Sorting `SortAscXIP`** — pins internally; requires `KernelWorkloads.Sorting`
 - **GpuOps `OPX`** — pins operands internally; requires `KernelWorkloads.Default`
 
-Host API rules (loops, anti-patterns, nested GpuScope): [Migration Guide](MigrationGuide.md#host-api-and-scopes).
+Host API rules (loops, anti-patterns, nested GpuScope): spec [§3.4](BAVCLSpecification.md#34-scope-only-gpu-pinning-implemented) and [§8.6](BAVCLSpecification.md#86-residence-flags-and-coherence-implemented). Breaking steps: [Migrations](Migrations/README.md).
 
 Load kernels before GPU methods:
 
@@ -187,5 +202,5 @@ See [BAVCLSpecification.md §4.7–4.8](BAVCLSpecification.md#47-experimental-ma
 ## See also
 
 - [BAVCL Specification](BAVCLSpecification.md) — authoritative contracts
-- [Migration Guide](MigrationGuide.md) — breaking API changes, **host API and scopes**
+- [Migrations](Migrations/README.md) — one file per tagged breaking-change step
 - [GPGPU Kernel Guide](GPGPUKernelGuide.md) — kernel authoring

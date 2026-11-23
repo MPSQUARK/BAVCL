@@ -8,7 +8,7 @@ BAVCL is a C# GPU-accelerated numerics library on ILGPU. Authoritative spec: [Do
 |------|------|
 | Numerics bibliography | [`citations.md`](citations.md) (MNRAS layout; numbered [1]–[11]) |
 | Picking an API / suffix (`X`, `IP`, modules) | [Documentation/Features.md](Documentation/Features.md) |
-| `GpuScope`, `CpuScope`, reads, `Copy`, LRU pinning | [Documentation/MigrationGuide.md](Documentation/MigrationGuide.md) — [Host API and scopes](Documentation/MigrationGuide.md#host-api-and-scopes) |
+| `GpuScope`, `CpuScope`, reads, `Copy`, LRU pinning | Spec [§3.4](Documentation/BAVCLSpecification.md#34-scope-only-gpu-pinning-implemented), [§8.4](Documentation/BAVCLSpecification.md#84-gpuscope-implemented), [§8.6](Documentation/BAVCLSpecification.md#86-residence-flags-and-coherence-implemented). Breaking steps: [Documentation/Migrations/README.md](Documentation/Migrations/README.md) |
 | ILGPU kernels or module GPU dispatch | [Documentation/GPGPUKernelGuide.md](Documentation/GPGPUKernelGuide.md) + `.agents/skills/bavcl-gpgpu/SKILL.md` |
 | Full contracts | [Documentation/BAVCLSpecification.md](Documentation/BAVCLSpecification.md) |
 

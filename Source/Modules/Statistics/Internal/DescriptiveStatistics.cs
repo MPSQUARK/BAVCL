@@ -9,7 +9,7 @@ internal static class DescriptiveStatistics
 {
 	internal static float Mean(Vector vector)
 	{
-		Guard.IsNotZero(vector.Length);
+		Guard.DivisorIsNotZero(vector.Length);
 		return vector.Sum() / vector.Length;
 	}
 
@@ -52,7 +52,7 @@ internal static class DescriptiveStatistics
 
 	internal static float Mean(VectorInt vector)
 	{
-		Guard.IsNotZero(vector.Length);
+		Guard.DivisorIsNotZero(vector.Length);
 		return vector.Sum() / vector.Length;
 	}
 

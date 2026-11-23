@@ -12,4 +12,6 @@ public static class KernelWorkloads
 	public static KernelDomain[] Sorting => [KernelDomain.Sorting];
 
 	public static KernelDomain[] Statistics => [KernelDomain.Statistics];
+
+	public static KernelDomain[] Generators => [KernelDomain.Generators];
 }

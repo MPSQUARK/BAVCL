@@ -34,10 +34,10 @@ public class Benchmark
 	//[Params(2, 8, 16, 49, 100, 64, 256, 529, 165518, 5131, 123, 71645, 12.1518f)]
 	//public float val;
 	// public static GPU gpu = new();
-	// public static MemoryBuffer1D<float, Stride1D.Dense> input = Vector.Arange(gpu, 0, 1_000_000, 1).GetBuffer();
+	// public static MemoryBuffer1D<float, Stride1D.Dense> input = Vector.ArangeX(gpu, 0, 1_000_000, 1).GetBuffer();
 	// public static int len = (int)input.Length;
 
-	// public static MemoryBuffer1D<float, Stride1D.Dense> output = Vector.Fill(gpu, 0, len).GetBuffer();
+	// public static MemoryBuffer1D<float, Stride1D.Dense> output = Vector.FillX(gpu, 0, len).GetBuffer();
 
 	// public static float[] vals = input.GetAsArray1D();
 	// public static float[] _output = new float[len];
@@ -144,28 +144,28 @@ public class Benchmark
 	//[Benchmark]
 	//public void ToStr()
 	//{
-	//    vector = Vector.Arange(gpu, -12, length, 1, 1, false);
+	//    vector = Vector.ArangeX(gpu, -12, length, 1, 1);
 	//    vector.ToString();
 	//}
 
 	//[Benchmark]
 	//public void ToStrNewer()
 	//{
-	//    vector = Vector.Arange(gpu, -12, length, 1, 1, false);
+	//    vector = Vector.ArangeX(gpu, -12, length, 1, 1);
 	//    vector.ToStringNEWER();
 	//}
 
 	//[Benchmark]
 	//public void ToStrNewer2()
 	//{
-	//    vector = Vector.Arange(gpu, -12, length, 1, 1, false);
+	//    vector = Vector.ArangeX(gpu, -12, length, 1, 1);
 	//    vector.ToStringNEWER2();
 	//}
 
 	//[Benchmark]
 	//public void ToStrNEWEST()
 	//{
-	//    vector = Vector.Arange(gpu, -12, length, 1, 1, false);
+	//    vector = Vector.ArangeX(gpu, -12, length, 1, 1);
 	//    vector.ToStringNEWEST();
 	//}
 

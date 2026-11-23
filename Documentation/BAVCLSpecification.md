@@ -64,7 +64,7 @@ BAVCL accelerates large array operations on CUDA, OpenCL, or CPU backends while 
 ```
 BAVCL.sln
 ├── README.md               # Quick start, licence summary, doc links
-├── Documentation/          # Spec, Features, MigrationGuide, GPGPUKernelGuide
+├── Documentation/          # Spec, Features, Migrations, GPGPUKernelGuide
 ├── BAVCL.csproj            # Core library (net10.0) — sources under Source/
 └── Testing Console/        # Manual smoke tests + benchmark entry (not canonical tests)
 
@@ -84,7 +84,7 @@ Planned work only. **Shipped behaviour** is documented in §3–§16; open code/
 
 ### 2.0 Roadmap board
 
-The visual status board is maintained in [Roadmap.md](Roadmap.md). It uses Mermaid’s native `kanban` syntax and is synchronized with the detailed roadmap below and the repository’s GitHub issues. Issue-backed cards link to their corresponding GitHub issues.
+The status board is the GitHub project on this repository. This section is the written list. `Documentation/Roadmap.md` has been removed.
 
 ### 2.1 Deferred and out of scope (v1)
 
@@ -242,7 +242,7 @@ using (GpuScope.Begin(modified: output, readOnly: inputA, inputB))
 }
 ```
 
-CPU edits: `CpuScope.Begin<T>(ICacheable<T>, bool syncToGpu)` or `.CpuScope()` / `.CpuScopeAndSync()`. Scope on `ICacheable`; `RetrieveReadOnlySpan` / explicit `EditCpu` on `ICacheable<T>`. See [MigrationGuide.md](MigrationGuide.md).
+CPU edits: `CpuScope.Begin<T>(ICacheable<T>, bool syncToGpu)` or `.CpuScope()` / `.CpuScopeAndSync()`. Scope on `ICacheable`; `RetrieveReadOnlySpan` / explicit `EditCpu` on `ICacheable<T>`. See [§8.6](#86-residence-flags-and-coherence-implemented). Breaking steps: [Migrations](Migrations/README.md).
 
 ### 3.5 Pluggable Memory Management
 
@@ -330,7 +330,7 @@ Invalid fixed ranges (e.g. percentile outside [0, 100]) throw `FixedRangeExcepti
 
 Implementation: `Source/Core/Helpers/Numerics/`. Accuracy report: `dotnet run -c Release --project BAVCL.Benchmarks -- --sum-accuracy-report`.
 
-CPU and GPU `*X` APIs are parity-tested to these bounds. See [MigrationGuide.md § Numerical accuracy](./MigrationGuide.md#numerical-accuracy-float32).
+CPU and GPU `*X` APIs are parity-tested to these bounds. The per-release notes are [0.9.3 → 0.9.4](Migrations/0.9.3-to-0.9.4.md).
 
 ---
 ## 4. Architecture Overview
@@ -667,12 +667,18 @@ Implemented in `BAVCL.Modules.Structural` (`VectorStructural`) and `BAVCL.Module
 
 | Method                                       | Description          |
 | -------------------------------------------- | -------------------- |
-| `Zeros(gpu, length, columns)`                | Zero-filled vector   |
-| `Ones(gpu, length, columns)`                 | Ones-filled          |
-| `Fill(gpu, value, length, columns)`          | Constant fill        |
-| `Arange(gpu, start, end, interval, columns)` | Range with step      |
-| `Linspace(gpu, start, end, steps, columns)`  | Evenly spaced values |
-| `GeneratorsModule.Arange(...)` / `Linspace(...)` static | Return `float[]` only |
+| `ZerosX(gpu, length, columns)`                | Zero-filled vector   |
+| `OnesX(gpu, length, columns)`                 | Ones-filled          |
+| `FillX(gpu, value, length, columns)`          | Constant fill        |
+| `ArangeX(gpu, start, end, interval, columns)` | Range with step      |
+| `LinspaceX(gpu, start, end, steps, columns)`  | Evenly spaced values |
+| `RandomX(gpu, length, seed, columns)` | Uniform values in `[0, 1)`; ILGPU `FillUniform` only, no BAVCL kernel |
+| `RandomUniformX(gpu, length, low, high, seed, columns)` | Uniform values in `[low, high)`; `FillUniform` plus `scaleUniform` (`VectorInt`: `scaleUniformInt`) |
+| `RandomNormalX(gpu, length, mean, stdDev, seed, columns)` | Gaussian values; `FillUniform` plus `normalScale` (inverse normal CDF, Acklam). `mean` and `stdDev` must be finite, and `stdDev` non-negative |
+| `Random` / `RandomUniform` / `RandomNormal` (CPU, `Vector`) | Host equivalents with the same names and signatures; `RandomNormal` uses Box-Muller |
+| `length` | Must be positive; zero-length requests throw. `Arange` ranges producing no samples also throw |
+| `seed` | `int? seed = null`; `null` draws a fresh host seed, a value makes the output reproducible |
+| `GeneratorsModule.Arange(...)` / `Linspace(...)` static | Return host arrays for `float`, `double` and `int`; an arange holds `ceil((end - start) / interval)` samples |
 
 #### 5.2.4 Element-wise and Unary Operations
 
@@ -689,7 +695,7 @@ Implemented in `BAVCL.Modules.Structural` (`VectorStructural`) and `BAVCL.Module
 
 #### 5.2.5 Binary Operations and Operators
 
-**Migration:** See [`MigrationGuide.md`](MigrationGuide.md) for naming (`_IP` → `IP`, GPU `X` alignment) and breaking changes to `Columns`, `OP`/`IPOP`, `ReduceOPX`, and `Matrix*X`.
+**Migration:** [0.9.1 → 0.9.2](Migrations/0.9.1-to-0.9.2.md) for `_IP` → `IP` and the GPU `X` alignment. Later steps are in [Migrations](Migrations/README.md).
 
 Binary `+`, `-`, `*`, `/`, `^` operator overloads use **NumPy-style element-wise broadcast** via `OP()` / `IPOP()`. Three separate API families exist for different semantics:
 
@@ -805,7 +811,7 @@ Notes:
 | ------------ | ---------------------------------------------------------------------------------- |
 | Construction | `Vector3(gpu, float[])`, `Vector3(gpu, int length)` — length must be multiple of 3 |
 | Conversion   | `ToVector()`, `ToVector(columns)` — uses `Pull()` today (buffer reuse TBD — §17 #22) |
-| Factory      | `VectorStructural.Zeros(gpu, length)`, `Fill(gpu, value, length)`                  |
+| Factory      | `VectorStructural.ZerosX(gpu, length)`, `FillX(gpu, value, length)`                |
 | Operators    | `+`, `-`, `*`, `/`, `^` with Vector3 and float (GPU via `GpuOpsModule`)            |
 | Geometry     | `Cross(vecA, vecB)`, `Dot(vecA, vecB)`, `Magnitude()`, `Magnitude(vecA, vecB)`, `Distance(vec)` — `LengthMismatchException` on size mismatch |
 | Per-row ops  | `VOP(vec, op)`, `VOP(vecA, vecB, op)` → returns `Vector` of per-row results        |
@@ -846,6 +852,11 @@ Kernels are loaded selectively via `KernelModuleLoader` (see §7). Each domain f
 | `getSliceKernel`                          | Structural  | Slice extraction                                |
 | `reverseKernel`                           | Structural  | Reverse in-place                                |
 | `transposekernel`                         | Structural  | Matrix transpose                                |
+| ILGPU `Initialize`                         | Algorithms  | Constant initialization                         |
+| ILGPU `Sequence` + sequencer               | Algorithms  | Half-open and endpoint-inclusive sequences      |
+| ILGPU `RNG<XorShift128Plus>.FillUniform`   | Algorithms  | Uniform random initialization                   |
+| `scaleUniform` / `scaleUniformInt`        | Generators  | Maps ILGPU's unit samples onto `[low, high)`    |
+| `normalScale`                             | Generators  | Maps unit samples onto a normal via inverse CDF |
 | `nanToNumKernel`                          | Arithmetic  | Replace NaN/Inf                                 |
 | `a_opFKernel` / `s_opFKernel`             | Arithmetic  | Binary ops (array/scalar)                       |
 | `a_FloatOPKernelIP` / `s_FloatOPKernelIP` | Arithmetic  | In-place binary ops                             |
@@ -1016,7 +1027,7 @@ Plotting prototype removed from repo; see [§2.12](#212-plotting).
 **Type file:** `Source/Types/VectorInt.cs`
 **Kernels:** `Source/Core/GPU/Kernels/{Arithmetic,Structural,Mask}/*.Int32.cs` (or `MaskKernels.VectorInt.cs`), registered under `KernelDomain.Arithmetic` / `.Structural` / `.Mask` for `typeof(int)`
 
-`VectorInt` mirrors `Vector` across GpuOps, Structural, Masking, Statistics, Generators, and IO — same construction, copy/equals, shape, and module organization (§3.6), with `int` in place of `float` throughout. Callers must call `KernelModuleLoader.Load<int>(gpu, KernelWorkloads.Default)` (or equivalent domains) before using `VectorInt` GPU operators, exactly as `Load<float>` is required for `Vector`.
+`VectorInt` mirrors `Vector` across GpuOps, Structural, Masking, Statistics, and IO — same construction, copy/equals, shape, and module organization (§3.6), with `int` in place of `float` throughout. Host sequences are `GeneratorsModule.Arange` / `Linspace` for `int`. `VectorInt.Arange`, `Linspace`, and `RandomUniform` build vectors, and the `X` forms are the GPU paths. Callers must call `KernelModuleLoader.Load<int>(gpu, KernelWorkloads.Default)` before `VectorInt` GPU operators, and `KernelWorkloads.Generators` before `RandomUniformX`. The contract change from the generic host sequences is [0.9.4 → 0.9.5](Migrations/0.9.4-to-0.9.5.md).
 
 #### Unchecked GPU arithmetic
 
