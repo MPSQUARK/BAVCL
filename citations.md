@@ -68,6 +68,14 @@
 
 <p class="ref" id="11">[11] Welford B. P., 1962, <span class="journal">Technometrics</span>, <span class="volume">4</span>, 419</p>
 
+<p class="ref" id="12">[12] Acklam P. J., 2003, An algorithm for computing the inverse normal cumulative distribution function, web note (not peer-reviewed), <a href="https://web.archive.org/web/20151030215612/http://home.online.no/~pjacklam/notes/invnorm/">https://web.archive.org/web/20151030215612/http://home.online.no/~pjacklam/notes/invnorm/</a></p>
+
+<p class="ref" id="13">[13] Box G. E. P., Muller M. E., 1958, <span class="journal">The Annals of Mathematical Statistics</span>, <span class="volume">29</span>, 610, doi:10.1214/aoms/1177706645</p>
+
+<p class="ref" id="14">[14] Marsaglia G., 2003, <span class="journal">Journal of Statistical Software</span>, <span class="volume">8</span>, 14, doi:10.18637/jss.v008.i14</p>
+
+<p class="ref" id="15">[15] Vigna S., 2017, <span class="journal">Journal of Computational and Applied Mathematics</span>, <span class="volume">315</span>, 175, doi:10.1016/j.cam.2016.11.006 (preprint arXiv:1404.0390)</p>
+
 </div>
 
 </div>

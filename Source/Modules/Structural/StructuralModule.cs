@@ -99,21 +99,6 @@ public static class VectorStructural
 
 	extension(Vector)
 	{
-		public static Vector Zeros(GPU gpu, int length, int columns = 0) =>
-			FactoriesCore.Zeros(gpu, length, columns);
-
-		public static Vector Ones(GPU gpu, int length, int columns = 0) =>
-			FactoriesCore.Ones(gpu, length, columns);
-
-		public static Vector Fill(GPU gpu, float value, int length, int columns = 0, bool cache = true) =>
-			FactoriesCore.Fill(gpu, value, length, columns, cache);
-
-		public static Vector Arange(GPU gpu, float startval, float endval, float interval, int columns = 0, bool cache = true) =>
-			FactoriesCore.Arange(gpu, startval, endval, interval, columns, cache);
-
-		public static Vector Linspace(GPU gpu, float startval, float endval, int steps, int columns = 0, bool cache = true) =>
-			FactoriesCore.Linspace(gpu, startval, endval, steps, columns, cache);
-
 		public static Vector Append(Vector left, Vector right) =>
 			ShapeOpsCore.Append(left, right);
 
@@ -172,15 +157,6 @@ public static class VectorStructural
 			FormattingCore.ToStr(vector, decimalplaces);
 	}
 
-	extension(BAVCL.Geometric.Vector3)
-	{
-		public static BAVCL.Geometric.Vector3 Zeros(GPU gpu, int length) =>
-			FactoriesCore.Zeros(gpu, length);
-
-		public static BAVCL.Geometric.Vector3 Fill(GPU gpu, float value, int length) =>
-			FactoriesCore.Fill(gpu, value, length);
-	}
-
 	extension(Mask)
 	{
 		public static string ToStr(Mask mask) => FormattingCore.ToStr(mask);
@@ -198,21 +174,6 @@ public static class VectorIntStructural
 {
 	extension(VectorInt)
 	{
-		public static VectorInt Zeros(GPU gpu, int length, int columns = 0) =>
-			FactoriesCore.ZerosInt(gpu, length, columns);
-
-		public static VectorInt Ones(GPU gpu, int length, int columns = 0) =>
-			FactoriesCore.OnesInt(gpu, length, columns);
-
-		public static VectorInt Fill(GPU gpu, int value, int length, int columns = 0, bool cache = true) =>
-			FactoriesCore.Fill(gpu, value, length, columns, cache);
-
-		public static VectorInt Arange(GPU gpu, int startval, int endval, int interval, int columns = 0, bool cache = true) =>
-			FactoriesCore.Arange(gpu, startval, endval, interval, columns, cache);
-
-		public static VectorInt Linspace(GPU gpu, int startval, int endval, int steps, int columns = 0, bool cache = true) =>
-			FactoriesCore.Linspace(gpu, startval, endval, steps, columns, cache);
-
 		public static VectorInt Append(VectorInt left, VectorInt right) =>
 			ShapeOpsCore.Append(left, right);
 
@@ -369,24 +330,6 @@ public static class VectorStructuralExtensions
 
 	extension(Vector vector)
 	{
-		public Vector ZerosIP(int length, int columns = 0)
-		{
-			FactoriesCore.ZerosInPlace(vector, length, columns);
-			return vector;
-		}
-
-		public Vector OnesIP(int length, int columns = 0)
-		{
-			FactoriesCore.OnesInPlace(vector, length, columns);
-			return vector;
-		}
-
-		public Vector FillIP(float value, int length, int columns = 0)
-		{
-			FactoriesCore.FillInPlace(vector, value, length, columns);
-			return vector;
-		}
-
 		public Vector Append(Vector vectorB) =>
 			Vector.Append(vector, vectorB);
 
@@ -474,24 +417,6 @@ public static class VectorStructuralExtensions
 
 	extension(VectorInt vector)
 	{
-		public VectorInt ZerosIP(int length, int columns = 0)
-		{
-			FactoriesCore.ZerosInPlace(vector, length, columns);
-			return vector;
-		}
-
-		public VectorInt OnesIP(int length, int columns = 0)
-		{
-			FactoriesCore.OnesInPlace(vector, length, columns);
-			return vector;
-		}
-
-		public VectorInt FillIP(int value, int length, int columns = 0)
-		{
-			FactoriesCore.FillInPlace(vector, value, length, columns);
-			return vector;
-		}
-
 		public VectorInt Append(VectorInt vectorB) =>
 			VectorInt.Append(vector, vectorB);
 

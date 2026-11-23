@@ -10,6 +10,9 @@ public interface IMemoryManager
     #region Allocate
     public (uint, MemoryBuffer) Allocate<T>(ICacheable<T> cacheable, Accelerator accelerator) where T : unmanaged;
     public (uint, MemoryBuffer) Allocate<T>(ICacheable cacheable, T[] values, Accelerator accelerator) where T : unmanaged;
+    /// <summary>
+    /// Allocates an empty memory buffer. UNINITIALISED. Can contain old data.
+    /// </summary>
     public (uint, MemoryBuffer) AllocateEmpty<T>(ICacheable cacheable, int length, Accelerator accelerator) where T : unmanaged;
     #endregion
 

@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using BAVCL.Core.Exceptions;
 using BAVCL.Types;
@@ -15,10 +16,72 @@ internal static class Guard
 	internal const float PercentileMin = 0f;
 	internal const float PercentileMax = 100f;
 
-	internal static void IsNotZero(int value, [CallerArgumentExpression(nameof(value))] string? name = null)
+	internal static void DivisorIsNotZero(int value, [CallerArgumentExpression(nameof(value))] string? name = null)
 	{
 		if (value == 0)
 			throw new DivideByZeroException($"Cannot divide by zero ({name ?? "value"}).");
+	}
+
+	internal static void ArgumentIsNotZero<T>(T value, [CallerArgumentExpression(nameof(value))] string? name = null)
+		where T : INumberBase<T>
+	{
+		if (T.IsZero(value))
+			throw new ArgumentOutOfRangeException(name ?? nameof(value), value, "Value must be non-zero.");
+	}
+
+	/// <summary>Throws unless <paramref name="value"/> is greater than zero.</summary>
+	internal static void ArgumentIsPositive<T>(T value, [CallerArgumentExpression(nameof(value))] string? name = null)
+		where T : INumber<T>
+	{
+		if (value <= T.Zero)
+			throw new ArgumentOutOfRangeException(name ?? nameof(value), value, "Value must be positive.");
+	}
+
+	/// <summary>
+	/// Throws when a range yields no samples. Vectors must hold at least one element, so a factory cannot
+	/// return an empty range.
+	/// </summary>
+	internal static void RangeIsNotEmpty(int sampleCount)
+	{
+		if (sampleCount == 0)
+			throw new ArgumentException("The range produces no samples. Vectors must hold at least one element.");
+	}
+
+	/// <summary>
+	/// Throws unless <paramref name="value"/> is non-negative. The check is written as <c>!(value &gt;= 0)</c>
+	/// rather than <c>value &lt; 0</c> so that NaN, for which every comparison is false, is rejected too.
+	/// </summary>
+	internal static void ArgumentIsNonNegative<T>(T value, [CallerArgumentExpression(nameof(value))] string? name = null)
+		where T : INumber<T>
+	{
+		if (!(value >= T.Zero))
+			throw new ArgumentOutOfRangeException(name ?? nameof(value), value, "Value must be non-negative.");
+	}
+
+	/// <summary>
+	/// Throws unless <paramref name="value"/> is finite, so NaN and infinities are rejected.
+	/// </summary>
+	internal static void ArgumentIsFinite<T>(T value, [CallerArgumentExpression(nameof(value))] string? name = null)
+		where T : INumberBase<T>
+	{
+		if (!T.IsFinite(value))
+			throw new ArgumentOutOfRangeException(name ?? nameof(value), value, "Value must be finite.");
+	}
+
+	/// <summary>
+	/// Throws unless <paramref name="value"/> is less than <paramref name="upperBound"/>. The check is written
+	/// as <c>!(value &lt; upperBound)</c> so that NaN, for which every comparison is false, is rejected too.
+	/// </summary>
+	internal static void ArgumentIsLessThan<T>(
+		T value,
+		T upperBound,
+		[CallerArgumentExpression(nameof(value))] string? name = null,
+		[CallerArgumentExpression(nameof(upperBound))] string? upperName = null)
+		where T : INumber<T>
+	{
+		if (!(value < upperBound))
+			throw new ArgumentOutOfRangeException(
+				name ?? nameof(value), value, $"{name} must be less than {upperName}.");
 	}
 
 	internal static void IsNotEmpty(int length, [CallerArgumentExpression(nameof(length))] string? name = null)
