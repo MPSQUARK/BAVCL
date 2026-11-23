@@ -14,11 +14,17 @@ public sealed class BufferPool
 	/// <summary>Pooled <c>float32</c> buffers.</summary>
 	public ElementBufferPool<float> Float { get; }
 
+	internal BufferPool()
+	{
+		Gpu = GPUManager.Default;
+		Int = new ElementBufferPool<int>(Gpu);
+		Float = new ElementBufferPool<float>(Gpu);
+	}
 	internal BufferPool(GPU gpu)
 	{
 		Gpu = gpu;
-		Int = new ElementBufferPool<int>(gpu);
-		Float = new ElementBufferPool<float>(gpu);
+		Int = new ElementBufferPool<int>(Gpu);
+		Float = new ElementBufferPool<float>(Gpu);
 	}
 
 	/// <summary>Drops all pooled slots without freeing LRU buffers (for tests).</summary>

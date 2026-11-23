@@ -49,6 +49,22 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 		set => _livecount = value;
 	}
 
+	protected CacheableBase(T[] value, bool cache = true)
+	{
+		Gpu = GPUManager.Default;
+		Value = value;
+		Length = value.Length;
+
+		if (cache)
+		{
+			Cache(value);
+			Residence = Residence.InSync;
+			return;
+		}
+
+		Residence = Residence.Cpu;
+	}
+
 	protected CacheableBase(GPU gpu, T[] value, bool cache = true)
 	{
 		Gpu = gpu;
@@ -63,6 +79,20 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 		}
 
 		Residence = Residence.Cpu;
+	}
+
+
+	/// <summary>
+	/// Creates GPU-backed storage of specified length.
+	/// Warning: may contain uninitialized data — zero or fill before use.
+	/// </summary>
+	protected CacheableBase(int length)
+	{
+		Gpu = GPUManager.Default;
+		Value = [];
+		Length = length;
+		CacheEmpty(length);
+		Residence = Residence.Gpu;
 	}
 
 	/// <summary>

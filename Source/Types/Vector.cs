@@ -13,15 +13,25 @@ namespace BAVCL;
 /// </summary>
 public sealed partial class Vector : VectorBase<float>
 {
+	public Vector(float[] values, int columns = 0, bool cache = true) :
+		base(values, columns, cache)
+	{ }
 	public Vector(GPU gpu, float[] values, int columns = 0, bool cache = true) :
 		base(gpu, values, columns, cache)
 	{ }
 
+	public Vector(int length, int columns = 0) :
+		base(length, columns)
+	{ }
 	public Vector(GPU gpu, int length, int columns = 0) :
 		base(gpu, length, columns)
 	{ }
 
 	private Vector(GPU gpu, int columns) : base(gpu, columns) { }
+
+	/// <summary>Creates an empty vessel shell with no GPU buffer.</summary>
+	public static Vessel<Vector> CreateVessel(int columns = 0) =>
+		new(new Vector(columns));
 
 	/// <summary>Creates an empty vessel shell with no GPU buffer.</summary>
 	public static Vessel<Vector> CreateVessel(GPU gpu, int columns = 0) =>
@@ -86,11 +96,11 @@ public sealed partial class Vector : VectorBase<float>
 	public Mask CompareX(float scalar, VectorComparison comparison) =>
 		MaskGpu.CompareX(this, scalar, comparison);
 
-    #region OPERATORS
-    /// <summary>
-    /// Returns the absolute value of the vector.
-    /// </summary>
-    public static Vector operator +(Vector vector) =>
+	#region OPERATORS
+	/// <summary>
+	/// Returns the absolute value of the vector.
+	/// </summary>
+	public static Vector operator +(Vector vector) =>
 		vector.AbsX();
 	public static Vector operator +(Vector vectorA, Vector vectorB) =>
 		vectorA.OP(vectorB, Operations.add);
@@ -98,16 +108,16 @@ public sealed partial class Vector : VectorBase<float>
 		vector.OP(Scalar, Operations.add);
 	public static Vector operator +(float Scalar, Vector vector) =>
 		vector.OP(Scalar, Operations.add);
-    // In-place operator optimization
-    public void operator +=(Vector vectorB) =>
+	// In-place operator optimization
+	public void operator +=(Vector vectorB) =>
 		this.IPOP(vectorB, Operations.add);
 	public void operator +=(float Scalar) =>
-        this.IPOP(Scalar, Operations.add);
+		this.IPOP(Scalar, Operations.add);
 
-    /// <summary>
-    /// Negates the vector by multiplying it by -1.
-    /// </summary>
-    public static Vector operator -(Vector vector) =>
+	/// <summary>
+	/// Negates the vector by multiplying it by -1.
+	/// </summary>
+	public static Vector operator -(Vector vector) =>
 		vector.OP(-1, Operations.multiply);
 	public static Vector operator -(Vector vectorA, Vector vectorB) =>
 		vectorA.OP(vectorB, Operations.subtract);
@@ -115,25 +125,25 @@ public sealed partial class Vector : VectorBase<float>
 		vector.OP(scalar, Operations.subtract);
 	public static Vector operator -(float scalar, Vector vector) =>
 		vector.OP(scalar, Operations.flipSubtract);
-    // In-place operator optimization
-    public void operator -=(Vector vectorB) =>
-        this.IPOP(vectorB, Operations.subtract);
-    public void operator -=(float Scalar) =>
-        this.IPOP(Scalar, Operations.subtract);
+	// In-place operator optimization
+	public void operator -=(Vector vectorB) =>
+		this.IPOP(vectorB, Operations.subtract);
+	public void operator -=(float Scalar) =>
+		this.IPOP(Scalar, Operations.subtract);
 
-    public static Vector operator *(Vector vectorA, Vector vectorB) =>
+	public static Vector operator *(Vector vectorA, Vector vectorB) =>
 		vectorA.OP(vectorB, Operations.multiply);
 	public static Vector operator *(Vector vector, float scalar) =>
 		vector.OP(scalar, Operations.multiply);
 	public static Vector operator *(float scalar, Vector vector) =>
 		vector.OP(scalar, Operations.multiply);
-    // In-place operator optimization
-    public void operator *=(Vector vectorB) =>
-        this.IPOP(vectorB, Operations.multiply);
-    public void operator *=(float Scalar) =>
-        this.IPOP(Scalar, Operations.multiply);
+	// In-place operator optimization
+	public void operator *=(Vector vectorB) =>
+		this.IPOP(vectorB, Operations.multiply);
+	public void operator *=(float Scalar) =>
+		this.IPOP(Scalar, Operations.multiply);
 
-    public static Vector operator /(Vector vectorA, Vector vectorB) =>
+	public static Vector operator /(Vector vectorA, Vector vectorB) =>
 		vectorA.OP(vectorB, Operations.divide);
 	public static Vector operator /(Vector vector, float scalar) =>
 		vector.OP(scalar, Operations.divide);
@@ -144,23 +154,23 @@ public sealed partial class Vector : VectorBase<float>
 	public static (Vector TrueLanes, Vector FalseLanes) operator /(Vector vector, Mask mask) =>
 		MaskCompaction.PartitionX(vector, mask);
 
-    // In-place operator optimization
-    public void operator /=(Vector vectorB) =>
-        this.IPOP(vectorB, Operations.divide);
-    public void operator /=(float Scalar) =>
-        this.IPOP(Scalar, Operations.divide);
+	// In-place operator optimization
+	public void operator /=(Vector vectorB) =>
+		this.IPOP(vectorB, Operations.divide);
+	public void operator /=(float Scalar) =>
+		this.IPOP(Scalar, Operations.divide);
 
-    public static Vector operator ^(Vector vectorA, Vector vectorB) =>
+	public static Vector operator ^(Vector vectorA, Vector vectorB) =>
 		vectorA.OP(vectorB, Operations.pow);
 	public static Vector operator ^(Vector vector, float scalar) =>
 		vector.OP(scalar, Operations.pow);
 	public static Vector operator ^(float Scalar, Vector vector) =>
 		vector.OP(Scalar, Operations.flipPow);
-    // In-place operator optimization
-    public void operator ^=(Vector vectorB) =>
-        this.IPOP(vectorB, Operations.pow);
+	// In-place operator optimization
+	public void operator ^=(Vector vectorB) =>
+		this.IPOP(vectorB, Operations.pow);
 	public void operator ^=(float Scalar) =>
-        this.IPOP(Scalar, Operations.pow);
+		this.IPOP(Scalar, Operations.pow);
 
 	/// <summary>Mask fill false lanes (accelerated <c>maskFilter</c> kernel).</summary>
 	public static Vector operator &(Vector vector, Mask mask) =>
@@ -197,5 +207,5 @@ public sealed partial class Vector : VectorBase<float>
 	public static Mask operator <=(Vector vector, float scalar) =>
 		MaskGpu.CompareX(vector, scalar, VectorComparison.LessOrEqual);
 
-    #endregion
+	#endregion
 }
