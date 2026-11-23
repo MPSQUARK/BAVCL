@@ -1,26 +1,25 @@
-using System.Collections.Generic;
-using System.Numerics;
-
 namespace BAVCL.Modules.Generators;
 
 public static class GeneratorsModule
 {
-	public static IEnumerable<T> Arange<T>(T startValue, T endValue, T interval) where T : INumber<T> =>
-		GeneratorsCore.ArangeEnumerable(startValue, endValue, interval);
-
-	public static IEnumerable<T> Linspace<T>(T startValue, T endValue, int num) where T : INumber<T> =>
-		GeneratorsCore.LinspaceEnumerable(startValue, endValue, num);
-
-	public static T[] ArangeArray<T>(T startValue, T endValue, T interval) where T : INumber<T> =>
-		GeneratorsCore.Arange(startValue, endValue, interval);
-
-	public static T[] LinspaceArray<T>(T startValue, T endValue, int num) where T : INumber<T> =>
-		GeneratorsCore.Linspace(startValue, endValue, num);
-
+	/// <summary>Samples <c>start + i * interval</c>, <c>ceil((end - start) / interval)</c> of them. A range that ends below its start travels by the magnitude of the interval.</summary>
 	public static float[] Arange(float startValue, float endValue, float interval) =>
 		GeneratorsCore.Arange(startValue, endValue, interval);
 
+	public static double[] Arange(double startValue, double endValue, double interval) =>
+		GeneratorsCore.Arange(startValue, endValue, interval);
+
+	public static int[] Arange(int startValue, int endValue, int interval) =>
+		GeneratorsCore.Arange(startValue, endValue, interval);
+
+	/// <summary>Evenly spaced samples from start to end inclusive. The endpoints are exact.</summary>
 	public static float[] Linspace(float startValue, float endValue, int num) =>
+		GeneratorsCore.Linspace(startValue, endValue, num);
+
+	public static double[] Linspace(double startValue, double endValue, int num) =>
+		GeneratorsCore.Linspace(startValue, endValue, num);
+
+	public static int[] Linspace(int startValue, int endValue, int num) =>
 		GeneratorsCore.Linspace(startValue, endValue, num);
 }
 
@@ -38,19 +37,19 @@ public static class GeneratorsModuleExtensions
 	extension(int[])
 	{
 		public static int[] Arange(int startValue, int endValue, int interval) =>
-			GeneratorsModule.ArangeArray(startValue, endValue, interval);
+			GeneratorsModule.Arange(startValue, endValue, interval);
 
 		public static int[] Linspace(int startValue, int endValue, int num) =>
-			GeneratorsModule.LinspaceArray(startValue, endValue, num);
+			GeneratorsModule.Linspace(startValue, endValue, num);
 	}
 
 	extension(double[])
 	{
 		public static double[] Arange(double startValue, double endValue, double interval) =>
-			GeneratorsModule.ArangeArray(startValue, endValue, interval);
+			GeneratorsModule.Arange(startValue, endValue, interval);
 
 		public static double[] Linspace(double startValue, double endValue, int num) =>
-			GeneratorsModule.LinspaceArray(startValue, endValue, num);
+			GeneratorsModule.Linspace(startValue, endValue, num);
 	}
 
 	extension(Vector)
