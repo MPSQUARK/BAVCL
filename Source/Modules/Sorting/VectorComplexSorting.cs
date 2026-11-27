@@ -37,12 +37,29 @@ public static class VectorComplexSorting
 		public void ArgsortXIP(VectorInt indices, ComplexSortMode mode = ComplexSortMode.Magnitude, SortOrder order = SortOrder.Ascending) =>
 			ArgsortGpuInPlace(vector, indices, mode, order);
 
-		public VectorComplex64 SortAsc() => Sort(vector, ComplexSortMode.Magnitude, SortOrder.Ascending);
-		public VectorComplex64 SortDesc() => Sort(vector, ComplexSortMode.Magnitude, SortOrder.Descending);
-		public VectorComplex64 SortAscX() => SortX(vector, ComplexSortMode.Magnitude, SortOrder.Ascending);
-		public VectorComplex64 SortDescX() => SortX(vector, ComplexSortMode.Magnitude, SortOrder.Descending);
-		public void SortAscXIP() => SortXIP(vector, ComplexSortMode.Magnitude, SortOrder.Ascending);
-		public void SortDescXIP() => SortXIP(vector, ComplexSortMode.Magnitude, SortOrder.Descending);
+		public VectorComplex64 SortAscX(ComplexSortMode mode = ComplexSortMode.Magnitude) =>
+			ComplexSortingCore.SortAscX(vector, mode);
+
+		public VectorComplex64 SortDescX(ComplexSortMode mode = ComplexSortMode.Magnitude) =>
+			ComplexSortingCore.SortDescX(vector, mode);
+
+		public void SortAscXIP(ComplexSortMode mode = ComplexSortMode.Magnitude) =>
+			ComplexSortingCore.SortAscXIP(vector, mode);
+
+		public void SortDescXIP(ComplexSortMode mode = ComplexSortMode.Magnitude) =>
+			ComplexSortingCore.SortDescXIP(vector, mode);
+
+		public VectorInt ArgsortAscX(ComplexSortMode mode = ComplexSortMode.Magnitude) =>
+			ComplexSortingCore.ArgsortAscX(vector, mode);
+
+		public VectorInt ArgsortDescX(ComplexSortMode mode = ComplexSortMode.Magnitude) =>
+			ComplexSortingCore.ArgsortDescX(vector, mode);
+
+		public void ArgsortAscXIP(VectorInt indices, ComplexSortMode mode = ComplexSortMode.Magnitude) =>
+			ComplexSortingCore.ArgsortAscXIP(vector, indices, mode);
+
+		public void ArgsortDescXIP(VectorInt indices, ComplexSortMode mode = ComplexSortMode.Magnitude) =>
+			ComplexSortingCore.ArgsortDescXIP(vector, indices, mode);
 	}
 
 	static VectorComplex64 SortCore(VectorComplex64 vector, ComplexSortMode mode, SortOrder order)

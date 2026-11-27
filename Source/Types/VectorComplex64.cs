@@ -13,9 +13,8 @@ namespace BAVCL;
 /// <summary>Vector of IEEE-754 double precision complex values.</summary>
 /// <remarks>
 /// Complex has no natural ordering. Arithmetic and transcendental operations are
-/// evaluated by <see cref="System.Numerics.Complex"/> on the CPU. GPU entry points
-/// use an explicit real/imaginary pair representation because the current ILGPU
-/// backend cannot allocate <see cref="Complex"/> buffers directly.
+/// evaluated by <see cref="System.Numerics.Complex"/> on the CPU when no GPU kernel
+/// exists. Arithmetic kernels use the vector's direct <see cref="Complex"/> buffer.
 /// </remarks>
 public sealed class VectorComplex64 : VectorBase<Complex>
 {
