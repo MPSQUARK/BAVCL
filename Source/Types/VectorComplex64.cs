@@ -1,11 +1,9 @@
 using System;
 using System.Linq;
 using System.Numerics;
-using BAVCL.Core;
 using BAVCL.Core.Exceptions;
-using BAVCL.Core.Memory;
+using BAVCL.Modules.Masking;
 using BAVCL.Types;
-using ILGPU;
 using ILGPU.Runtime;
 
 namespace BAVCL;
@@ -43,7 +41,7 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 		ReadOnlySpan<Complex> left = RetrieveReadOnlySpan();
 		ReadOnlySpan<Complex> right = other.RetrieveReadOnlySpan();
 		for (int i = 0; i < left.Length; i++)
-			if (!ComponentEquals(left[i], right[i]))
+			if (left[i] != right[i])
 				return false;
 		return true;
 	}
@@ -53,33 +51,43 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 	public Mask CompareNotEqualsX(VectorComplex64 other) =>
 		CompareX(other, equal: false);
 
-	public Mask CompareEquals(VectorComplex64 other) =>
-		Compare(other, ComponentEquals);
-
-	public Mask Compare(VectorComplex64 other, Func<Complex, Complex, bool> predicate)
+	public Mask CompareEquals(VectorComplex64 other)
 	{
 		ArgumentNullException.ThrowIfNull(other);
-		ArgumentNullException.ThrowIfNull(predicate);
-		Shape shape = Shape().BroadcastWith(other.Shape());
-		Complex[] left = RetrieveReadOnlySpan().ToArray();
-		Complex[] right = other.RetrieveReadOnlySpan().ToArray();
-		bool[] result = new bool[shape.ElementCount];
-		for (int i = 0; i < result.Length; i++)
-			result[i] = predicate(left[BroadcastIndex(i, shape, Shape())], right[BroadcastIndex(i, shape, other.Shape())]);
-		return new Mask(Gpu, result, shape.ToStorageColumns());
+		Shape shape = Shape();
+		Guard.MatchingDimensions(shape, other.Shape());
+		ReadOnlySpan<Complex> left = RetrieveReadOnlySpan();
+		ReadOnlySpan<Complex> right = other.RetrieveReadOnlySpan();
+		bool[] values = new bool[left.Length];
+		for (int i = 0; i < left.Length; i++)
+			values[i] = left[i] == right[i];
+		return new Mask(Gpu, values, Columns);
 	}
 
-	public VectorComplex64 Filter(Mask mask) => FilterCore(mask, partition: false).TrueLanes;
+	public VectorComplex64 Mask(Mask mask, Complex fill = default) =>
+		MaskCompactionCpu.Mask(this, mask, fill);
+
+	public VectorComplex64 MaskX(Mask mask, Complex fill = default) =>
+		MaskGpu.MaskX(this, mask, fill);
+
+	public VectorComplex64 Filter(Mask mask) =>
+		MaskCompactionCpu.Filter(this, mask);
+
+	public VectorComplex64 FilterX(Mask mask) =>
+		MaskCompaction.FilterX(this, mask);
 
 	public (VectorComplex64 TrueLanes, VectorComplex64 FalseLanes) Partition(Mask mask) =>
-		FilterCore(mask, partition: true);
+		MaskCompactionCpu.Partition(this, mask);
+
+	public (VectorComplex64 TrueLanes, VectorComplex64 FalseLanes) PartitionX(Mask mask) =>
+		MaskCompaction.PartitionX(this, mask);
 
 	public static VectorComplex64 operator |(VectorComplex64 vector, Mask mask) => vector.FilterX(mask);
 
 	public static (VectorComplex64 TrueLanes, VectorComplex64 FalseLanes) operator /(VectorComplex64 vector, Mask mask) =>
 		vector.PartitionX(mask);
 
-	public VectorComplex64 this[Mask mask] => FilterX(mask);
+	public VectorComplex64 this[Mask mask] => this.FilterX(mask);
 	public static VectorComplex64 operator &(VectorComplex64 vector, Mask mask) =>
 		vector.MaskX(mask, Complex.Zero);
 	public static VectorComplex64 operator &(VectorComplex64 vector, (Mask mask, Complex fill) masked) =>
@@ -110,35 +118,8 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 	public void IPOP(Complex scalar, Operations operation) => ScalarXIP(scalar, operation);
 	public void IPOPX(Complex scalar, Operations operation) => ScalarXIP(scalar, operation);
 
-	public VectorComplex64 MaskX(Mask mask, Complex fill)
-	{
-		ArgumentNullException.ThrowIfNull(mask);
-		mask.ValidateShapeMatches(Shape(), Length);
-		if (Length == 0)
-			return new VectorComplex64(Gpu, [], Columns);
-		using BufferEntity<Complex64Device> input = BufferPools.For(Gpu).Complex64.Rent(Length);
-		using BufferEntity<Complex64Device> output = BufferPools.For(Gpu).Complex64.Rent(Length);
-		using BufferEntity<int> words = BufferPools.For(Gpu).Int.Rent(Math.Max(mask.Length, 1));
-		Upload(input, ToDevice(RetrieveReadOnlySpan()));
-		Upload(words, mask.ToWordArray());
-		Complex64Device[] values = new Complex64Device[Length];
-		using (GpuScope.Begin(output.PinTarget, input.PinTarget, words.PinTarget))
-		{
-			Gpu.complexMaskFilter(Gpu.DefaultStream, Length, output.View, input.View, words.View,
-				new Complex64Device(fill.Real, fill.Imaginary));
-			Gpu.Synchronize();
-			output.View.CopyToCPU(values);
-		}
-		return FromDevice(Gpu, values, Columns);
-	}
-
 	public Mask CompareEqualsX(Complex scalar) => CompareScalarX(scalar, equal: true);
 	public Mask CompareNotEqualsX(Complex scalar) => CompareScalarX(scalar, equal: false);
-
-	public VectorComplex64 FilterX(Mask mask) => FilterGpu(mask, partition: false).TrueLanes;
-
-	public (VectorComplex64 TrueLanes, VectorComplex64 FalseLanes) PartitionX(Mask mask) =>
-		FilterGpu(mask, partition: true);
 
 	public static VectorComplex64 operator +(VectorComplex64 vector) => vector.Copy();
 	public static VectorComplex64 operator -(VectorComplex64 vector) => vector.Map(static value => -value);
@@ -201,11 +182,9 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 		EditableView<Complex> view = scope.View;
 		for (int left = 0, right = Length - 1; left < right; left++, right--)
 		{
-			Complex value = view[left];
-			view[left] = view[right];
-			view[right] = value;
-		}
-	}
+            (view[right], view[left]) = (view[left], view[right]);
+        }
+    }
 
 	public Complex[] GetSliceAsArray(int start, int length) =>
 		RetrieveReadOnlySpan().Slice(start, length).ToArray();
@@ -234,250 +213,104 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 
 	VectorComplex64 VectorX(VectorComplex64 other, Operations operation)
 	{
+		ValidateOperation(operation);
 		ArgumentNullException.ThrowIfNull(other);
-		Shape outputShape = Shape().BroadcastWith(other.Shape());
+		Shape leftShape = Shape();
+		Shape rightShape = other.Shape();
+		Shape outputShape = leftShape.BroadcastWith(rightShape);
 		if (outputShape.ElementCount == 0)
 			return new VectorComplex64(Gpu, [], outputShape.ToStorageColumns());
-		KernelModuleLoader.Load<Complex>(Gpu, KernelDomain.Arithmetic);
-		using BufferEntity<Complex64Device> left = BufferPools.For(Gpu).Complex64.Rent(outputShape.ElementCount);
-		using BufferEntity<Complex64Device> right = BufferPools.For(Gpu).Complex64.Rent(outputShape.ElementCount);
-		using BufferEntity<Complex64Device> output = BufferPools.For(Gpu).Complex64.Rent(outputShape.ElementCount);
-		Upload(left, ExpandToDevice(RetrieveReadOnlySpan(), Shape(), outputShape));
-		Upload(right, ExpandToDevice(other.RetrieveReadOnlySpan(), other.Shape(), outputShape));
-		Complex64Device[] values = new Complex64Device[output.Length];
-		using (GpuScope.Begin(output.PinTarget, left.PinTarget, right.PinTarget))
+		VectorComplex64 result = new(Gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
+		var op = new SpecializedValue<int>((int)operation);
+		using (GpuScope.Begin(result, this, other))
 		{
-			Gpu.complexVectorOp(Gpu.DefaultStream, output.Length, output.View, left.View, right.View, new SpecializedValue<int>((int)operation));
+			if (leftShape.MatchesDimensions(rightShape) && Columns == other.Columns)
+			{
+				Gpu.complexVectorOp(Gpu.DefaultStream, result.Length,
+					result.GetBuffer().View, GetBuffer().View, other.GetBuffer().View, op);
+			}
+			else
+			{
+				Gpu.complexBroadcast(Gpu.DefaultStream, result.Length,
+					result.GetBuffer().View, GetBuffer().View, other.GetBuffer().View,
+					outputShape.Cols, BroadcastStrides.For(leftShape), BroadcastStrides.For(rightShape), op);
+			}
+
 			Gpu.Synchronize();
-			output.View.CopyToCPU(values);
 		}
-		return FromDevice(Gpu, values, outputShape.ToStorageColumns());
+		return result;
 	}
 
 	VectorComplex64 ScalarX(Complex scalar, Operations operation)
 	{
+		ValidateOperation(operation);
 		if (Length == 0)
 			return new VectorComplex64(Gpu, [], Columns);
-		KernelModuleLoader.Load<Complex>(Gpu, KernelDomain.Arithmetic);
-		using BufferEntity<Complex64Device> input = BufferPools.For(Gpu).Complex64.Rent(Length);
-		using BufferEntity<Complex64Device> output = BufferPools.For(Gpu).Complex64.Rent(Length);
-		Upload(input, ToDevice(RetrieveReadOnlySpan()));
-		Complex64Device[] values = new Complex64Device[Length];
-		using (GpuScope.Begin(output.PinTarget, input.PinTarget))
+		VectorComplex64 result = new(Gpu, Length, Columns);
+		using (GpuScope.Begin(result, this))
 		{
-			Gpu.complexScalarOp(Gpu.DefaultStream, Length, output.View, input.View,
-				new Complex64Device(scalar.Real, scalar.Imaginary),
-				new SpecializedValue<int>((int)operation));
+			Gpu.complexScalarOp(Gpu.DefaultStream, Length, result.GetBuffer().View,
+				GetBuffer().View, scalar, new SpecializedValue<int>((int)operation));
 			Gpu.Synchronize();
-			output.View.CopyToCPU(values);
 		}
-		return FromDevice(Gpu, values, Columns);
+		return result;
 	}
 
 	void VectorXIP(VectorComplex64 other, Operations operation)
 	{
+		ValidateOperation(operation);
 		ArgumentNullException.ThrowIfNull(other);
-		Shape outputShape = Shape().BroadcastWith(other.Shape());
-		if (!outputShape.MatchesDimensions(Shape()))
+		Shape leftShape = Shape();
+		Shape rightShape = other.Shape();
+		Shape outputShape = leftShape.BroadcastWith(rightShape);
+		if (!outputShape.MatchesDimensions(leftShape))
 			throw new PerformanceException("Swap operand order OR use allocating overload 'OPX'.");
 		if (Length == 0)
 			return;
-		KernelModuleLoader.Load<Complex>(Gpu, KernelDomain.Arithmetic);
-		using BufferEntity<Complex64Device> left = BufferPools.For(Gpu).Complex64.Rent(Length);
-		using BufferEntity<Complex64Device> right = BufferPools.For(Gpu).Complex64.Rent(Length);
-		Upload(left, ToDevice(RetrieveReadOnlySpan()));
-		Upload(right, ExpandToDevice(other.RetrieveReadOnlySpan(), other.Shape(), outputShape));
-		Complex64Device[] values = new Complex64Device[Length];
-		using (GpuScope.Begin(left.PinTarget, right.PinTarget))
+		var op = new SpecializedValue<int>((int)operation);
+		using (GpuScope.Begin(this, other))
 		{
-			Gpu.complexVectorOpIP(Gpu.DefaultStream, Length, left.View, right.View, new SpecializedValue<int>((int)operation));
+			if (leftShape.MatchesDimensions(rightShape) && Columns == other.Columns)
+				Gpu.complexVectorOpIP(Gpu.DefaultStream, Length, GetBuffer().View, other.GetBuffer().View, op);
+			else
+				Gpu.complexBroadcastIP(Gpu.DefaultStream, Length, GetBuffer().View, other.GetBuffer().View,
+					leftShape.Cols, BroadcastStrides.For(rightShape), op);
 			Gpu.Synchronize();
-			left.View.CopyToCPU(values);
 		}
-		ReplaceCpuValues(values);
 	}
 
 	void ScalarXIP(Complex scalar, Operations operation)
 	{
+		ValidateOperation(operation);
 		if (Length == 0)
 			return;
-		KernelModuleLoader.Load<Complex>(Gpu, KernelDomain.Arithmetic);
-		using BufferEntity<Complex64Device> input = BufferPools.For(Gpu).Complex64.Rent(Length);
-		Upload(input, ToDevice(RetrieveReadOnlySpan()));
-		Complex64Device[] values = new Complex64Device[Length];
-		using (GpuScope.Begin(input.PinTarget))
+		using (GpuScope.Begin(this))
 		{
-			Gpu.complexScalarOpIP(Gpu.DefaultStream, Length, input.View,
-				new Complex64Device(scalar.Real, scalar.Imaginary),
+			Gpu.complexScalarOpIP(Gpu.DefaultStream, Length, GetBuffer().View, scalar,
 				new SpecializedValue<int>((int)operation));
 			Gpu.Synchronize();
-			input.View.CopyToCPU(values);
 		}
-		ReplaceCpuValues(values);
+	}
+
+	static void ValidateOperation(Operations operation)
+	{
+		switch (operation)
+		{
+			case Operations.add:
+			case Operations.subtract:
+			case Operations.multiply:
+			case Operations.divide:
+				return;
+			default:
+				throw new UnsupportedOperationException(operation.ToString());
+		}
 	}
 
 	Mask CompareX(VectorComplex64 other, bool equal)
-	{
-		ArgumentNullException.ThrowIfNull(other);
-		Shape outputShape = Shape().BroadcastWith(other.Shape());
-		if (outputShape.ElementCount == 0)
-			throw new ArgumentException("A comparison cannot produce an empty mask.", nameof(other));
-		KernelModuleLoader.Load<Complex>(Gpu, KernelDomain.Mask);
-		int[] flags = new int[outputShape.ElementCount];
-		using BufferEntity<Complex64Device> leftBuffer = BufferPools.For(Gpu).Complex64.Rent(flags.Length);
-		using BufferEntity<Complex64Device> rightBuffer = BufferPools.For(Gpu).Complex64.Rent(flags.Length);
-		using BufferEntity<int> flagBuffer = BufferPools.For(Gpu).Int.Rent(flags.Length);
-		Upload(leftBuffer, ExpandToDevice(RetrieveReadOnlySpan(), Shape(), outputShape));
-		Upload(rightBuffer, ExpandToDevice(other.RetrieveReadOnlySpan(), other.Shape(), outputShape));
-		using (GpuScope.Begin(flagBuffer.PinTarget, leftBuffer.PinTarget, rightBuffer.PinTarget))
-		{
-			Gpu.complexCompareEquals(Gpu.DefaultStream, flags.Length, flagBuffer.View,
-				leftBuffer.View, rightBuffer.View, new SpecializedValue<int>(equal ? 0 : 1));
-			Gpu.Synchronize();
-			flagBuffer.View.CopyToCPU(flags);
-		}
-		return new Mask(Gpu, FlagsToBool(flags), outputShape.ToStorageColumns());
-	}
+		=> MaskGpu.CompareX(this, other, equal);
 
 	Mask CompareScalarX(Complex scalar, bool equal)
-	{
-		if (Length == 0)
-			throw new ArgumentException("A comparison cannot produce an empty mask.", nameof(scalar));
-		KernelModuleLoader.Load<Complex>(Gpu, KernelDomain.Mask);
-		int[] flags = new int[Length];
-		using BufferEntity<Complex64Device> inputBuffer = BufferPools.For(Gpu).Complex64.Rent(Length);
-		using BufferEntity<int> flagBuffer = BufferPools.For(Gpu).Int.Rent(Length);
-		Upload(inputBuffer, ToDevice(RetrieveReadOnlySpan()));
-		using (GpuScope.Begin(flagBuffer.PinTarget, inputBuffer.PinTarget))
-		{
-			Gpu.complexCompareScalar(Gpu.DefaultStream, Length, flagBuffer.View, inputBuffer.View,
-				new Complex64Device(scalar.Real, scalar.Imaginary),
-				new SpecializedValue<int>(equal ? 0 : 1));
-			Gpu.Synchronize();
-			flagBuffer.View.CopyToCPU(flags);
-		}
-		return new Mask(Gpu, FlagsToBool(flags), Columns);
-	}
-
-	(VectorComplex64 TrueLanes, VectorComplex64 FalseLanes) FilterGpu(Mask mask, bool partition)
-	{
-		ArgumentNullException.ThrowIfNull(mask);
-		mask.ValidateShapeMatches(Shape(), Length);
-		if (Length == 0)
-			return (new VectorComplex64(Gpu, []), new VectorComplex64(Gpu, []));
-		KernelModuleLoader.Load<Complex>(Gpu, KernelDomain.Mask);
-		Complex64Device[] input = ToDevice(RetrieveReadOnlySpan());
-		bool[] bits = mask.ToBoolArray();
-		int trueCount = 0;
-		for (int i = 0; i < bits.Length; i++)
-			if (bits[i]) trueCount++;
-		int falseCount = Length - trueCount;
-		using BufferEntity<Complex64Device> inputBuffer = BufferPools.For(Gpu).Complex64.Rent(Length);
-		using BufferEntity<Complex64Device> trueBuffer = BufferPools.For(Gpu).Complex64.Rent(Math.Max(trueCount, 1));
-		using BufferEntity<Complex64Device> falseBuffer = BufferPools.For(Gpu).Complex64.Rent(Math.Max(falseCount, 1));
-		using BufferEntity<int> flags = BufferPools.For(Gpu).Int.Rent(Length);
-		using BufferEntity<int> positions = BufferPools.For(Gpu).Int.Rent(Length);
-		int[] flagValues = new int[Length];
-		int[] positionValues = new int[Length];
-		int position = 0;
-		for (int i = 0; i < Length; i++)
-		{
-			flagValues[i] = bits[i] ? 1 : 0;
-			positionValues[i] = position;
-			if (bits[i]) position++;
-		}
-		Upload(inputBuffer, input);
-		Upload(flags, flagValues);
-		Upload(positions, positionValues);
-		Complex64Device[] trueValues = new Complex64Device[Math.Max(trueCount, 1)];
-		Complex64Device[] falseValues = new Complex64Device[Math.Max(falseCount, 1)];
-		using (GpuScope.Begin(
-			partition ? [trueBuffer.PinTarget, falseBuffer.PinTarget] : [trueBuffer.PinTarget],
-			[inputBuffer.PinTarget, flags.PinTarget, positions.PinTarget]))
-		{
-			if (partition)
-				Gpu.complexPartitionGather(Gpu.DefaultStream, Length, trueBuffer.View, falseBuffer.View,
-					inputBuffer.View, flags.View, positions.View);
-			else
-				Gpu.complexGather(Gpu.DefaultStream, Length, trueBuffer.View, inputBuffer.View, flags.View, positions.View);
-			Gpu.Synchronize();
-			if (trueCount > 0) trueBuffer.View.SubView(0, trueCount).CopyToCPU(trueValues);
-			if (partition && falseCount > 0) falseBuffer.View.SubView(0, falseCount).CopyToCPU(falseValues);
-		}
-		return (
-			FromDevice(Gpu, trueValues[..trueCount], 0),
-			partition ? FromDevice(Gpu, falseValues[..falseCount], 0) : new VectorComplex64(Gpu, []));
-	}
-
-	void ReplaceCpuValues(Complex64Device[] values)
-	{
-		Complex[] converted = FromDeviceArray(values);
-		using var scope = this.CpuScope();
-		EditableView<Complex> view = scope.View;
-		for (int i = 0; i < converted.Length; i++)
-			view[i] = converted[i];
-	}
-
-	static Complex64Device[] ToDevice(ReadOnlySpan<Complex> values)
-	{
-		Complex64Device[] result = new Complex64Device[values.Length];
-		for (int i = 0; i < values.Length; i++)
-			result[i] = new Complex64Device(values[i].Real, values[i].Imaginary);
-		return result;
-	}
-
-	static void Upload(BufferEntity<Complex64Device> destination, Complex64Device[] values) =>
-		destination.CopyFromCPU(values);
-
-	static void Upload(BufferEntity<int> destination, int[] values) =>
-		destination.CopyFromCPU(values);
-
-	static Complex64Device[] ExpandToDevice(ReadOnlySpan<Complex> values, Shape input, Shape output)
-	{
-		Complex64Device[] result = new Complex64Device[output.ElementCount];
-		for (int flat = 0; flat < result.Length; flat++)
-		{
-			int row = flat / output.Cols;
-			int column = flat % output.Cols;
-			int inputRow = input.Rows == 1 ? 0 : row;
-			int inputColumn = input.Cols == 1 ? 0 : column;
-			result[flat] = new Complex64Device(
-				values[inputRow * input.Cols + inputColumn].Real,
-				values[inputRow * input.Cols + inputColumn].Imaginary);
-		}
-		return result;
-	}
-
-	static VectorComplex64 FromDevice(GPU gpu, Complex64Device[] values, int columns) =>
-		new(gpu, FromDeviceArray(values), columns);
-
-	static Complex[] FromDeviceArray(Complex64Device[] values)
-	{
-		Complex[] result = new Complex[values.Length];
-		for (int i = 0; i < values.Length; i++)
-			result[i] = new Complex(values[i].Real, values[i].Imaginary);
-		return result;
-	}
-
-	static Complex64Device[] Compact(Complex64Device[] values, bool[] bits, bool expected)
-	{
-		var result = new System.Collections.Generic.List<Complex64Device>();
-		for (int i = 0; i < values.Length; i++)
-			if (bits[i] == expected)
-				result.Add(values[i]);
-		return result.ToArray();
-	}
-
-	static bool[] FlagsToBool(int[] flags)
-	{
-		bool[] result = new bool[flags.Length];
-		for (int i = 0; i < flags.Length; i++)
-			result[i] = flags[i] != 0;
-		return result;
-	}
-
-	static bool ComponentEquals(Complex left, Complex right) =>
-		left.Real == right.Real && left.Imaginary == right.Imaginary;
+		=> MaskGpu.CompareX(this, scalar, equal);
 
 	VectorComplex64 Map(Func<Complex, Complex> operation)
 	{
@@ -495,37 +328,15 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 		Complex[] left = RetrieveReadOnlySpan().ToArray();
 		Complex[] right = other.RetrieveReadOnlySpan().ToArray();
 		Complex[] output = new Complex[outputShape.ElementCount];
+		BroadcastStrides leftStrides = BroadcastStrides.For(Shape());
+		BroadcastStrides rightStrides = BroadcastStrides.For(other.Shape());
+		int columns = outputShape.Cols;
 		for (int i = 0; i < output.Length; i++)
-			output[i] = operation(left[BroadcastIndex(i, outputShape, Shape())], right[BroadcastIndex(i, outputShape, other.Shape())]);
-		return new VectorComplex64(Gpu, output, outputShape.ToStorageColumns());
-	}
-
-	(VectorComplex64 TrueLanes, VectorComplex64 FalseLanes) FilterCore(Mask mask, bool partition)
-	{
-		ArgumentNullException.ThrowIfNull(mask);
-		mask.ValidateShapeMatches(Shape(), Length);
-		ReadOnlySpan<Complex> values = RetrieveReadOnlySpan();
-		bool[] bits = mask.ToBoolArray();
-		var trueValues = new System.Collections.Generic.List<Complex>();
-		var falseValues = new System.Collections.Generic.List<Complex>();
-		for (int i = 0; i < values.Length; i++)
 		{
-			if (bits[i])
-				trueValues.Add(values[i]);
-			else if (partition)
-				falseValues.Add(values[i]);
+			int row = i / columns;
+			int column = i - (row * columns);
+			output[i] = operation(left[leftStrides.IndexOf(row, column)], right[rightStrides.IndexOf(row, column)]);
 		}
-		if (!partition)
-			return (new VectorComplex64(Gpu, trueValues.ToArray()), new VectorComplex64(Gpu, []));
-		return (new VectorComplex64(Gpu, trueValues.ToArray()), new VectorComplex64(Gpu, falseValues.ToArray()));
-	}
-
-	static int BroadcastIndex(int flatIndex, Shape output, Shape input)
-	{
-		int row = flatIndex / output.Cols;
-		int column = flatIndex % output.Cols;
-		int inputRow = input.Rows == 1 ? 0 : row;
-		int inputColumn = input.Cols == 1 ? 0 : column;
-		return inputRow * input.Cols + inputColumn;
+		return new VectorComplex64(Gpu, output, outputShape.ToStorageColumns());
 	}
 }

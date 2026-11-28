@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using BAVCL.Core.Helpers;
 using BAVCL.Core.Memory;
 using BAVCL.Modules.Statistics;

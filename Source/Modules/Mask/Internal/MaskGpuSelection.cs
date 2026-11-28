@@ -1,3 +1,4 @@
+using System;
 using BAVCL.Core.Memory;
 using BAVCL.Types;
 using ILGPU;
@@ -9,55 +10,52 @@ namespace BAVCL.Modules.Masking;
 /// <summary>GPU compaction selection: broadcast flags, exclusive scan write positions, true count.</summary>
 internal static class MaskGpuSelection
 {
-	internal static SelectionLease RunExclusiveScan(GPU gpu, Mask mask, Shape maskShape, Shape outputShape)
+	internal static TResult Scan<TResult>(
+		GPU gpu,
+		Mask mask,
+		Shape maskShape,
+		Shape outputShape,
+		Func<ArrayView1D<int, Stride1D.Dense>, ArrayView1D<int, Stride1D.Dense>, int, TResult> consume)
 	{
 		int elementCount = outputShape.ElementCount;
-		BufferEntity<int>? flags = null;
-		BufferEntity<int>? writePos = null;
-
-		try
+		using BufferEntity<int> flags = BufferPools.For(gpu).Int.Rent(elementCount);
+		using BufferEntity<int> writePos = BufferPools.For(gpu).Int.Rent(elementCount);
+		using (GpuScope.Begin([flags.PinTarget, writePos.PinTarget], [mask]))
 		{
-			flags = BufferPools.For(gpu).Int.Rent(elementCount);
-			writePos = BufferPools.For(gpu).Int.Rent(elementCount);
-
-			int trueCount;
-			using (GpuScope.Begin([flags.PinTarget, writePos.PinTarget], [mask]))
-			{
-				ArrayView1D<int, Stride1D.Dense> flagsView = flags.View;
-				ArrayView1D<int, Stride1D.Dense> writePosView = writePos.View;
-
-				gpu.maskBroadcastFlags(
-					gpu.DefaultStream,
-					elementCount,
-					flagsView,
-					mask.GetBuffer().View,
-					outputShape.Cols,
-					BroadcastStrides.For(maskShape));
-
-				Scan<int, Stride1D.Dense, Stride1D.Dense> scan = gpu.AlgorithmProviders.IntSumExclusive;
-				LaunchDenseScan(gpu, scan, flagsView, writePosView);
-				gpu.Synchronize();
-
-				trueCount = 0;
-				if (elementCount > 0)
-				{
-					int last = elementCount - 1;
-					int[] lastFlag = [0];
-					int[] lastWrite = [0];
-					flagsView.SubView(last, 1).CopyToCPU(lastFlag);
-					writePosView.SubView(last, 1).CopyToCPU(lastWrite);
-					trueCount = lastWrite[0] + lastFlag[0];
-				}
-			}
-
-			return new SelectionLease(flags, writePos, elementCount, trueCount);
+			ArrayView1D<int, Stride1D.Dense> flagsView = flags.View;
+			ArrayView1D<int, Stride1D.Dense> writePosView = writePos.View;
+			int trueCount = ExclusivePrefixCount(gpu, mask, maskShape, outputShape, flagsView, writePosView);
+			return consume(flagsView, writePosView, trueCount);
 		}
-		catch
-		{
-			writePos?.Dispose();
-			flags?.Dispose();
-			throw;
-		}
+	}
+
+	static int ExclusivePrefixCount(
+		GPU gpu,
+		Mask mask,
+		Shape maskShape,
+		Shape outputShape,
+		ArrayView1D<int, Stride1D.Dense> flags,
+		ArrayView1D<int, Stride1D.Dense> writePos)
+	{
+		int elementCount = outputShape.ElementCount;
+		gpu.maskBroadcastFlags(
+			gpu.DefaultStream,
+			elementCount,
+			flags,
+			mask.GetBuffer().View,
+			outputShape.Cols,
+			BroadcastStrides.For(maskShape));
+		LaunchDenseScan(gpu, gpu.AlgorithmProviders.IntSumExclusive, flags, writePos);
+		gpu.Synchronize();
+
+		if (elementCount == 0)
+			return 0;
+
+		int[] lastFlag = [0];
+		int[] lastWrite = [0];
+		flags.SubView(elementCount - 1, 1).CopyToCPU(lastFlag);
+		writePos.SubView(elementCount - 1, 1).CopyToCPU(lastWrite);
+		return lastWrite[0] + lastFlag[0];
 	}
 
 	static void LaunchDenseScan<T>(

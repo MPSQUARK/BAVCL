@@ -182,7 +182,7 @@ internal static class SortAlgorithms
 		GPU gpu = input.Gpu;
 		int length = input.Length;
 		int radixTempOffset = RadixTempOffset(length);
-		int radixTempElements = RadixPairsTempElements<AscendingInt32>(gpu, length);
+		int radixTempElements = RadixPairsTempElements<int, AscendingInt32>(gpu, length);
 
 		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
 		using (GpuScope.BeginReadOnly(input))
@@ -218,7 +218,7 @@ internal static class SortAlgorithms
 		GPU gpu = input.Gpu;
 		int length = input.Length;
 		int radixTempOffset = RadixTempOffset(length);
-		int radixTempElements = RadixPairsTempElements<AscendingInt32>(gpu, length);
+		int radixTempElements = RadixPairsTempElements<int, AscendingInt32>(gpu, length);
 		using (GpuScope.Begin(indices, input))
 		{
 			using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
@@ -246,7 +246,7 @@ internal static class SortAlgorithms
 		GPU gpu = input.Gpu;
 		int length = input.Length;
 		int radixTempOffset = RadixTempOffset(length);
-		int radixTempElements = RadixPairsTempElements<DescendingInt32>(gpu, length);
+		int radixTempElements = RadixPairsTempElements<int, DescendingInt32>(gpu, length);
 
 		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
 		using (GpuScope.BeginReadOnly(input))
@@ -282,7 +282,7 @@ internal static class SortAlgorithms
 		GPU gpu = input.Gpu;
 		int length = input.Length;
 		int radixTempOffset = RadixTempOffset(length);
-		int radixTempElements = RadixPairsTempElements<DescendingInt32>(gpu, length);
+		int radixTempElements = RadixPairsTempElements<int, DescendingInt32>(gpu, length);
 		using (GpuScope.Begin(indices, input))
 		{
 			using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
@@ -310,7 +310,7 @@ internal static class SortAlgorithms
 		GPU gpu = input.Gpu;
 		int length = input.Length;
 		int radixTempOffset = RadixTempOffset(length);
-		int radixTempElements = RadixPairsTempElements<AscendingInt32>(gpu, length);
+		int radixTempElements = RadixPairsTempElements<int, AscendingInt32>(gpu, length);
 
 		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
 		using (GpuScope.BeginReadOnly(input))
@@ -346,7 +346,7 @@ internal static class SortAlgorithms
 		GPU gpu = input.Gpu;
 		int length = input.Length;
 		int radixTempOffset = RadixTempOffset(length);
-		int radixTempElements = RadixPairsTempElements<AscendingInt32>(gpu, length);
+		int radixTempElements = RadixPairsTempElements<int, AscendingInt32>(gpu, length);
 		using (GpuScope.Begin(indices, input))
 		{
 			using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
@@ -374,7 +374,7 @@ internal static class SortAlgorithms
 		GPU gpu = input.Gpu;
 		int length = input.Length;
 		int radixTempOffset = RadixTempOffset(length);
-		int radixTempElements = RadixPairsTempElements<DescendingInt32>(gpu, length);
+		int radixTempElements = RadixPairsTempElements<int, DescendingInt32>(gpu, length);
 
 		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
 		using (GpuScope.BeginReadOnly(input))
@@ -410,7 +410,7 @@ internal static class SortAlgorithms
 		GPU gpu = input.Gpu;
 		int length = input.Length;
 		int radixTempOffset = RadixTempOffset(length);
-		int radixTempElements = RadixPairsTempElements<DescendingInt32>(gpu, length);
+		int radixTempElements = RadixPairsTempElements<int, DescendingInt32>(gpu, length);
 		using (GpuScope.Begin(indices, input))
 		{
 			using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
@@ -671,8 +671,10 @@ internal static class SortAlgorithms
 	static int RadixTempElements<TSortOp>(GPU gpu, int length) where TSortOp : struct, IRadixSortOperation<int> =>
 		(int)gpu.accelerator.ComputeRadixSortTempStorageSize<int, TSortOp>(length);
 
-	static int RadixPairsTempElements<TSortOp>(GPU gpu, int length) where TSortOp : struct, IRadixSortOperation<int> =>
-		(int)gpu.accelerator.ComputeRadixSortPairsTempStorageSize<int, int, TSortOp>(length);
+	static int RadixPairsTempElements<TKey, TSortOp>(GPU gpu, int length)
+		where TKey : unmanaged
+		where TSortOp : struct, IRadixSortOperation<TKey> =>
+		(int)gpu.accelerator.ComputeRadixSortPairsTempStorageSize<TKey, int, TSortOp>(length);
 
 	/// <summary>
 	/// ILGPU reinterprets radix temp storage as wider structs, so carving it out of a shared scratch
@@ -682,14 +684,11 @@ internal static class SortAlgorithms
 	static int RadixTempOffset(int length) =>
 		(length + RadixTempAlignmentElements - 1) & ~(RadixTempAlignmentElements - 1);
 
-	static int LongPairsTempElements<TSortOp>(GPU gpu, int length) where TSortOp : struct, IRadixSortOperation<long> =>
-		(int)gpu.accelerator.ComputeRadixSortPairsTempStorageSize<long, int, TSortOp>(length);
-
 	internal static void Sort1DAscXIP(VectorComplex64 vector, ComplexSortMode mode)
 	{
 		GPU gpu = vector.Gpu;
 		int length = vector.Length;
-		int tempElements = LongPairsTempElements<AscendingInt64>(gpu, length);
+		int tempElements = RadixPairsTempElements<long, AscendingInt64>(gpu, length);
 		using (GpuScope.Begin(vector))
 		{
 			using BufferEntity<long> keys = BufferPools.For(gpu).Long.Rent(length);
@@ -732,7 +731,7 @@ internal static class SortAlgorithms
 	{
 		GPU gpu = vector.Gpu;
 		int length = vector.Length;
-		int tempElements = LongPairsTempElements<DescendingInt64>(gpu, length);
+		int tempElements = RadixPairsTempElements<long, DescendingInt64>(gpu, length);
 		using (GpuScope.Begin(vector))
 		{
 			using BufferEntity<long> keys = BufferPools.For(gpu).Long.Rent(length);
@@ -783,7 +782,7 @@ internal static class SortAlgorithms
 	{
 		GPU gpu = input.Gpu;
 		int length = input.Length;
-		int tempElements = LongPairsTempElements<AscendingInt64>(gpu, length);
+		int tempElements = RadixPairsTempElements<long, AscendingInt64>(gpu, length);
 		using (GpuScope.BeginReadOnly(input))
 		{
 			VectorInt indices = new(gpu, length, input.Columns);
@@ -828,7 +827,7 @@ internal static class SortAlgorithms
 	{
 		GPU gpu = input.Gpu;
 		int length = input.Length;
-		int tempElements = LongPairsTempElements<DescendingInt64>(gpu, length);
+		int tempElements = RadixPairsTempElements<long, DescendingInt64>(gpu, length);
 		using (GpuScope.BeginReadOnly(input))
 		{
 			VectorInt indices = new(gpu, length, input.Columns);
@@ -873,7 +872,7 @@ internal static class SortAlgorithms
 	{
 		GPU gpu = input.Gpu;
 		int length = input.Length;
-		int tempElements = LongPairsTempElements<AscendingInt64>(gpu, length);
+		int tempElements = RadixPairsTempElements<long, AscendingInt64>(gpu, length);
 		using (GpuScope.Begin(indices, input))
 		{
 			using BufferEntity<long> keys = BufferPools.For(gpu).Long.Rent(length);
@@ -913,7 +912,7 @@ internal static class SortAlgorithms
 	{
 		GPU gpu = input.Gpu;
 		int length = input.Length;
-		int tempElements = LongPairsTempElements<DescendingInt64>(gpu, length);
+		int tempElements = RadixPairsTempElements<long, DescendingInt64>(gpu, length);
 		using (GpuScope.Begin(indices, input))
 		{
 			using BufferEntity<long> keys = BufferPools.For(gpu).Long.Rent(length);
