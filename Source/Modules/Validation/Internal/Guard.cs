@@ -159,6 +159,16 @@ internal static class Guard
 			throw new ArgumentOutOfRangeException(name ?? nameof(columns), columns, $"Columns must be zero or greater. Received {columns}.");
 	}
 
+	/// <summary>
+	/// Throws unless <paramref name="elementCount"/> divides evenly into rows of <paramref name="columns"/>.
+	/// Zero columns means one dimensional, so any element count is accepted. Column validity is checked by <see cref="ValidColumns"/>.
+	/// </summary>
+	internal static void MaskRectangularLayout(int elementCount, int columns)
+	{
+		if (columns != 0 && elementCount % columns != 0)
+			throw new MaskLayoutException(elementCount, columns);
+	}
+
 	internal static void NotEmpty(ICacheable cacheable)
 	{
 		if (cacheable.Residence == Residence.None)
