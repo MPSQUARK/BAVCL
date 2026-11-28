@@ -14,8 +14,8 @@ namespace BAVCL.Types;
 /// </summary>
 public sealed class Mask : CacheableBase<int>
 {
-	readonly int _elementCount;
-	int _columns;
+	volatile int _elementCount;
+	volatile int _columns;
 
 	/// <summary>Logical boolean element count; matches <see cref="Vector.Length"/>.</summary>
 	public int ElementCount => _elementCount;
@@ -27,9 +27,7 @@ public sealed class Mask : CacheableBase<int>
 		get => _columns;
 		set
 		{
-			if (value < 0)
-				throw new ArgumentOutOfRangeException(nameof(Columns), value, "Columns must be zero or greater.");
-
+			Guard.ValidColumns(value);
 			_columns = value;
 		}
 	}
@@ -40,44 +38,84 @@ public sealed class Mask : CacheableBase<int>
 		set => SetBit(index, value);
 	}
 
-	public Mask(GPU gpu, bool[] values, int columns = 0, bool cache = true)
-		: this(gpu, values.AsSpan(), columns, cache)
+	public Mask(GPU? gpu = null) : base(gpu) { }
+
+	public Mask(bool[] values, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
+		: this(values.AsSpan(), columns, upload, gpu)
 	{ }
 
-	public Mask(GPU gpu, ReadOnlySpan<bool> values, int columns = 0, bool cache = true)
-		: base(gpu, MaskBitOps.Pack(ValidateValues(values)), cache)
+	public Mask(ReadOnlySpan<bool> values, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
+		: base(MaskBitOps.Pack(ValidateValues(values)), upload, gpu)
 	{
 		_elementCount = values.Length;
-		_columns = columns;
+		Columns = columns;
 		ValidateRectangularLayout();
 	}
 
-	public Mask(GPU gpu, int elementCount, int columns = 0, bool cache = true)
-		: base(gpu, new int[MaskBitOps.WordCount(ValidateElementCount(elementCount))], cache)
+	public Mask(int elementCount, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
+		: base(new int[MaskBitOps.WordCount(ValidateElementCount(elementCount))], upload, gpu)
 	{
 		_elementCount = elementCount;
-		_columns = columns;
+		Columns = columns;
 		ValidateRectangularLayout();
 	}
 
-	public Mask(GPU gpu, int[] words, int elementCount, int columns = 0, bool cache = true)
-		: base(gpu, PrepareWords(words, elementCount), cache)
+	public Mask(int[] words, int elementCount, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
+		: base(PrepareWords(words, elementCount), upload, gpu)
 	{
 		_elementCount = elementCount;
-		_columns = columns;
+		Columns = columns;
 		ValidateRectangularLayout();
 	}
 
-	private Mask(GPU gpu, int elementCount, int columns) : base(gpu, [], cache: false)
+	public void Assign(bool[] values, int columns = 0, Upload upload = Upload.Now)
 	{
+		ArgumentNullException.ThrowIfNull(values);
+		Assign(values.AsSpan(), columns, upload);
+	}
+
+	public void Assign(ReadOnlySpan<bool> values, int columns = 0, Upload upload = Upload.Now)
+	{
+		ValidateValues(values);
+		ValidateLayout(values.Length, columns);
+		int[] packed = MaskBitOps.Pack(values);
+		AssignDataCore(packed, upload);
+		_elementCount = values.Length;
+		_columns = columns;
+	}
+
+	public void Assign(int elementCount, int columns = 0, Upload upload = Upload.Now)
+	{
+		ValidateElementCount(elementCount);
+		ValidateLayout(elementCount, columns);
+		int[] words = new int[MaskBitOps.WordCount(elementCount)];
+		AssignDataCore(words, upload);
 		_elementCount = elementCount;
 		_columns = columns;
-		ValidateRectangularLayout();
 	}
 
-	/// <summary>Creates an empty vessel shell with no GPU buffer.</summary>
-	public static Vessel<Mask> CreateVessel(GPU gpu, int elementCount, int columns = 0) =>
-		new(new Mask(gpu, elementCount, columns), gpu);
+	public void Assign(int[] words, int elementCount, int columns = 0, Upload upload = Upload.Now)
+	{
+		ValidateLayout(elementCount, columns);
+		int[] prepared = PrepareWords(words, elementCount);
+		AssignDataCore(prepared, upload);
+		_elementCount = elementCount;
+		_columns = columns;
+	}
+
+	internal void SetPossessedLayout(int elementCount, int columns)
+	{
+		ValidateElementCount(elementCount);
+		ValidateLayout(elementCount, columns);
+		_elementCount = elementCount;
+		_columns = columns;
+	}
+
+	protected override void OnRestoredEmpty()
+	{
+		_elementCount = 0;
+		_columns = 0;
+	}
 
 	public int RowCount()
 	{
@@ -109,7 +147,7 @@ public sealed class Mask : CacheableBase<int>
 		int wordIndex = index >> MaskBitOps.WordShift;
 		int bitIndex = index & MaskBitOps.WordMask;
 
-		using (var scope = this.CpuScope())
+		using (var scope = this.CpuScope(Upload.Defer))
 		{
 			EditableView<int> view = scope.View;
 			view[wordIndex] = MaskBitOps.ApplyBit(view[wordIndex], bitIndex, value);
@@ -184,11 +222,12 @@ public sealed class Mask : CacheableBase<int>
 			throw new IndexOutOfRangeException($"Index {index} is out of range for mask of length {_elementCount}.");
 	}
 
-	private void ValidateRectangularLayout()
+	private void ValidateRectangularLayout() => ValidateLayout(_elementCount, Columns);
+
+	private static void ValidateLayout(int elementCount, int columns)
 	{
-		if (!IsRectangular())
-			throw new ArgumentException(
-				$"Mask storage layout is not rectangular: elementCount={_elementCount}, columns={Columns}.");
+		Guard.ValidColumns(columns);
+		Guard.MaskRectangularLayout(elementCount, columns);
 	}
 
 	public static Mask operator &(Mask left, Mask right) =>
