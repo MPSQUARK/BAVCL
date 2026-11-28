@@ -152,4 +152,49 @@ internal static class Guard
 		MatchingGpu(values.Gpu, indices.Gpu);
 		MatchingDimensions(values.Shape(), indices.Shape());
 	}
+
+	internal static void ValidColumns(int columns, [CallerArgumentExpression(nameof(columns))] string? name = null)
+	{
+		if (columns < 0)
+			throw new ArgumentOutOfRangeException(name ?? nameof(columns), columns, $"Columns must be zero or greater. Received {columns}.");
+	}
+
+	internal static void NotEmpty(ICacheable cacheable)
+	{
+		if (cacheable.Residence == Residence.None)
+			throw new InvalidOperationException(
+				$"Cannot operate on an empty {cacheable.GetType().Name}. Call Assign or Possess first.");
+	}
+
+	internal static void IsEmptyForPossession(ICacheable cacheable)
+	{
+		if (cacheable.Residence != Residence.None)
+			throw new InvalidOperationException(
+				$"{cacheable.GetType().Name} must be empty before it can be possessed by a pooled buffer.");
+	}
+
+	internal static void AcquirePossession<T>(CacheableBase<T> target) where T : unmanaged
+	{
+		if (!target.TryAcquirePossession())
+			throw new InvalidOperationException(
+				$"{target.GetType().Name} is already possessed by another pooled buffer.");
+	}
+
+	internal static void CanReassign<T>(CacheableBase<T> cacheable) where T : unmanaged
+	{
+		if (cacheable.IsPossessed)
+			throw new InvalidOperationException(
+				$"Cannot reassign {cacheable.GetType().Name} while it is possessed by a pooled buffer.");
+
+		if (cacheable.LiveCount > 0 || ResidenceHelper.IsActiveCpu(cacheable.Residence) || ResidenceHelper.IsActiveGpu(cacheable.Residence))
+			throw new InvalidOperationException(
+				$"Cannot reassign {cacheable.GetType().Name} while a CPU or GPU scope is active.");
+	}
+
+	internal static void BufferReleased(uint id, uint remaining)
+	{
+		if (remaining != 0)
+			throw new InvalidOperationException(
+				$"Cannot release GPU buffer {id} while it is still live.");
+	}
 }
