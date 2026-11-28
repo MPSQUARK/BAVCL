@@ -17,13 +17,16 @@ internal static class BufferIdTransfer
 			soul.Value = slot.Value;
 		soul.SetResidence(transferred);
 
-		Vessel<CacheableBase<T>>.RestoreVesselState(slot);
+		slot.RestoreEmptyState();
 	}
 
 	internal static void Banish<T>(CacheableBase<T> soul, BufferSlot<T> slot) where T : unmanaged
 	{
 		if (soul.ID == 0)
+		{
+			soul.RestoreEmptyState();
 			return;
+		}
 
 		Residence transferred = soul.Residence;
 		slot.ID = soul.ID;
@@ -34,6 +37,6 @@ internal static class BufferIdTransfer
 			slot.Value = soul.Value;
 		slot.SetResidence(transferred);
 
-		Vessel<CacheableBase<T>>.RestoreVesselState(soul);
+		soul.RestoreEmptyState();
 	}
 }

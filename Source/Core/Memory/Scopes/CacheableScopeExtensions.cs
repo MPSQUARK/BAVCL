@@ -2,12 +2,9 @@ namespace BAVCL.Core;
 
 public static class CacheableScopeExtensions
 {
-	public static CpuScope<T> CpuScope<T>(this ICacheable<T> cacheable, bool syncToGpu = false)
+	public static CpuScope<T> CpuScope<T>(this ICacheable<T> cacheable, Upload upload = Upload.Now)
 		where T : unmanaged =>
-		global::BAVCL.Core.CpuScope.Begin(cacheable, syncToGpu);
-
-	public static CpuScope<T> CpuScopeAndSync<T>(this ICacheable<T> cacheable) where T : unmanaged =>
-		global::BAVCL.Core.CpuScope.Begin(cacheable, syncToGpu: true);
+		global::BAVCL.Core.CpuScope.Begin(cacheable, upload);
 
 	public static GpuPinScope GpuScope(this ICacheable modified) =>
 		global::BAVCL.Core.GpuScope.Begin(modified);

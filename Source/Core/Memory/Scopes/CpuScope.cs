@@ -4,8 +4,8 @@ namespace BAVCL.Core;
 
 public static class CpuScope
 {
-	public static CpuScope<T> Begin<T>(ICacheable<T> cacheable, bool syncToGpu = false) where T : unmanaged =>
-		new(cacheable, syncToGpu);
+	public static CpuScope<T> Begin<T>(ICacheable<T> cacheable, Upload upload = Upload.Now) where T : unmanaged =>
+		new(cacheable, upload);
 }
 
 /// <summary>
@@ -15,7 +15,7 @@ public static class CpuScope
 public readonly ref struct CpuScope<T> : IDisposable where T : unmanaged
 {
 	readonly ICacheable<T> _cacheable;
-	readonly bool _syncToGpu;
+	readonly Upload _upload;
 	readonly EditableView<T> _view;
 	readonly bool _hasView;
 
@@ -27,10 +27,10 @@ public readonly ref struct CpuScope<T> : IDisposable where T : unmanaged
 			: throw new InvalidOperationException(
 				$"CPU scope on {typeof(T).Name} has no editable span.");
 
-	internal CpuScope(ICacheable<T> cacheable, bool syncToGpu)
+	internal CpuScope(ICacheable<T> cacheable, Upload upload)
 	{
 		_cacheable = cacheable;
-		_syncToGpu = syncToGpu;
+		_upload = upload;
 		cacheable.EnterCpuScope();
 
 		bool hasView = false;
@@ -49,5 +49,5 @@ public readonly ref struct CpuScope<T> : IDisposable where T : unmanaged
 			_view = new EditableView<T>(editable);
 	}
 
-	public void Dispose() => _cacheable.ExitCpuScope(_syncToGpu);
+	public void Dispose() => _cacheable.ExitCpuScope(_upload);
 }
