@@ -43,20 +43,30 @@ internal class LRU : IMemoryManager
 
     public (uint, MemoryBuffer) AllocateEmpty<T>(ICacheable cacheable, int length, Accelerator accelerator, Init init = Init.UnInit) where T : unmanaged
     {
-        bool needsZero = init == Init.Zeroed && length > 0;
-        (uint id, MemoryBuffer1D<T, Stride1D.Dense> buffer) = AllocateBuffer<T>(cacheable, length, accelerator, pin: needsZero);
+        uint id = GenerateId();
+        MemoryBuffer1D<T, Stride1D.Dense> buffer;
 
-        if (needsZero)
+        lock (_gate)
         {
-            try
+            GC(cacheable.MemorySize);
+            buffer = accelerator.Allocate1D<T>(length);
+
+            if (init == Init.Zeroed && length > 0)
             {
-                buffer.MemSetToZero(accelerator.DefaultStream);
-                accelerator.Synchronize();
+                try
+                {
+                    buffer.MemSetToZero(accelerator.DefaultStream);
+                    accelerator.Synchronize();
+                }
+                catch
+                {
+                    buffer.Dispose();
+                    throw;
+                }
             }
-            finally
-            {
-                cacheable.DecrementLiveCount();
-            }
+
+            UpdateMemoryUsage(cacheable.MemorySize);
+            RegisterEntry(id, buffer, cacheable);
         }
 
         return (id, buffer);
@@ -65,36 +75,29 @@ internal class LRU : IMemoryManager
     public (uint, MemoryBuffer) Allocate<T>(ICacheable cacheable, ArrayView1D<T, Stride1D.Dense> deviceView, Accelerator accelerator) where T : unmanaged
     {
         int length = deviceView.IntLength;
-        bool needsCopy = length > 0;
-        (uint id, MemoryBuffer1D<T, Stride1D.Dense> buffer) = AllocateBuffer<T>(cacheable, length, accelerator, pin: needsCopy);
-
-        if (needsCopy)
-        {
-            try
-            {
-                buffer.View.CopyFrom(accelerator.DefaultStream, deviceView);
-                accelerator.Synchronize();
-            }
-            finally
-            {
-                cacheable.DecrementLiveCount();
-            }
-        }
-
-        return (id, buffer);
-    }
-
-    (uint, MemoryBuffer1D<T, Stride1D.Dense>) AllocateBuffer<T>(ICacheable cacheable, int length, Accelerator accelerator, bool pin) where T : unmanaged
-    {
         uint id = GenerateId();
         MemoryBuffer1D<T, Stride1D.Dense> buffer;
-        long memNeeded = (long)Interop.SizeOf<T>() * (long)length;
 
         lock (_gate)
         {
-            GC(memNeeded);
-            UpdateMemoryUsage(memNeeded);
+            GC(cacheable.MemorySize);
             buffer = accelerator.Allocate1D<T>(length);
+
+            if (length > 0)
+            {
+                try
+                {
+                    buffer.View.CopyFrom(accelerator.DefaultStream, deviceView);
+                    accelerator.Synchronize();
+                }
+                catch
+                {
+                    buffer.Dispose();
+                    throw;
+                }
+            }
+
+            UpdateMemoryUsage(cacheable.MemorySize);
             RegisterEntry(id, buffer, cacheable);
         }
 
