@@ -33,10 +33,8 @@ Minimal example:
 ```csharp
 using BAVCL;
 
-GPU gpu = GPUManager.Default;
-
-Vector a = new(gpu, [1f, 2f, 3f, 4f]);
-Vector b = new(gpu, [10f, 20f, 30f, 40f]);
+Vector a = new([1f, 2f, 3f, 4f]);
+Vector b = new([10f, 20f, 30f, 40f]);
 
 Vector sum = a + b;
 sum.Print();
