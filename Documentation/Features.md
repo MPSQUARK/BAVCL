@@ -12,7 +12,7 @@ using BAVCL.Modules.Structural;
 using BAVCL.Modules.Scan;
 using BAVCL.Modules.Sorting;
 
-Vector v = new(gpu, [3f, 1f, 2f]);
+Vector v = new([3f, 1f, 2f]);
 v.SortAscIP();
 v.Print();
 ```
@@ -148,7 +148,17 @@ Per `Vector` and `VectorInt`:
 | **`GPUManager`** | Default GPU singleton, device selection, memory cap |
 | **`KernelModuleLoader`** | Compile kernel domains (`Default`, `Geometry`, `Sorting`, …) per element type |
 | **LRU cache** | Automatic GPU buffer caching via `IMemoryManager` |
-| **`BufferPool`** | Pooled scratch buffers; **entity / vessel / possess / banish** API for domain temps (see spec §4.5.3) |
+| **`BufferPool`** | Pooled scratch buffers; `BufferEntity<T>.Possess(emptyTarget)` borrows a pooled buffer into any empty domain instance (see spec §5.5.3) |
+
+### Construction, `Upload`, `Init`, and empty shells
+
+Every core data type (`Vector`, `VectorInt`, `VectorComplex64`, `Vector3`, `Mask`) defaults to `GPUManager.Default` when `gpu:` is omitted:
+
+| Pattern | Meaning | Residence |
+|---------|---------|-----------|
+| `new Vector(values, columns: 0, upload: Upload.Now, gpu: null)` | Construct from host data; `Upload.Now` uploads immediately, `Upload.Defer` keeps on CPU until first GPU op | `InSync` / `Cpu` |
+| `new Vector(length, columns: 0, init: Init.UnInit, gpu: null)` | Allocate GPU storage directly; `Init.UnInit` skips clearing, `Init.Zeroed` zeros on device (`Mask` always zeros and has no `Init`) | `Gpu` |
+| `new Vector(gpu: null)` | Empty shell (`IsEmpty == true`); populate later via `Assign(array / length / deviceView)` or `entity.Possess(v)` | `None` |
 
 ### Scopes and reads
 
@@ -157,7 +167,7 @@ Library `*X` / `*XIP` methods pin GPU buffers internally (`GpuScope`). Callers w
 | Intent | API |
 |--------|-----|
 | Read (after GPU or anytime) | `RetrieveReadOnlySpan()` — do not open `CpuScope` for read-only |
-| Edit in-place | `CpuScope` / `CpuScopeAndSync` + `scope.View` |
+| Edit in-place | `CpuScope()` + `scope.View` (`CpuScope(Upload.Defer)` keeps the result on the CPU) |
 | Custom kernel | `GpuScope.Begin(output, input…)` then `Synchronize()` |
 
 ```csharp
@@ -166,7 +176,7 @@ vector.SortAscX();
 ReadOnlySpan<float> sorted = vector.RetrieveReadOnlySpan();
 
 // Batch CPU edit
-using (var scope = vector.CpuScopeAndSync())
+using (var scope = vector.CpuScope())
 {
     EditableView<float> view = scope.View;
     view[0] = 1f;

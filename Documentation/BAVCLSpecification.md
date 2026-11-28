@@ -246,7 +246,7 @@ using (GpuScope.Begin(modified: output, readOnly: inputA, inputB))
 }
 ```
 
-CPU edits: `CpuScope.Begin<T>(ICacheable<T>, bool syncToGpu)` or `.CpuScope()` / `.CpuScopeAndSync()`. Scope on `ICacheable`; `RetrieveReadOnlySpan` / explicit `EditCpu` on `ICacheable<T>`. See [§8.6](#86-residence-flags-and-coherence-implemented). Breaking steps: [Migrations](Migrations/README.md).
+CPU edits: `CpuScope.Begin<T>(ICacheable<T>, Upload upload = Upload.Now)` or `.CpuScope(Upload upload = Upload.Now)`. `Upload.Defer` keeps the result on the CPU until the next GPU operation. Scope on `ICacheable`; `RetrieveReadOnlySpan` / explicit `EditCpu` on `ICacheable<T>`. See [§8.6](#86-residence-flags-and-coherence-implemented). Breaking steps: [Migrations](Migrations/README.md).
 
 ### 3.5 Pluggable Memory Management
 
@@ -626,15 +626,17 @@ This section documents **what exists in code today**. See [Section 17](#17-code-
 
 #### 5.2.1 Construction and Properties
 
-| Method / Property                             | Description                                |
-| --------------------------------------------- | ------------------------------------------ |
-| `Vector(GPU, float[], columns=0, cache=true)` | Construct from array; `columns=0` row 1D (default), `1` column, `N>1` matrix |
-| `Vector(GPU, int length, columns=0)`          | Uninitialized length (may contain garbage) |
-| `Copy(cache=true)`                            | Deep copy                                  |
-| `Equals(Vector)`                              | Element-wise equality after CPU sync       |
-| `Shape()`                                     | `Shape` struct (`Rows`, `Cols`)            |
-| `Flatten()`                                   | Set `Columns = 0` (1D row storage)         |
-| `ToVector3()`                                 | Convert when length % 3 == 0               |
+| Method / Property                                                    | Description                                |
+| -------------------------------------------------------------------- | ------------------------------------------ |
+| `Vector(GPU? gpu = null)`                                            | Empty shell (`IsEmpty == true`, `Residence.None`); populate via `Assign` or `BufferEntity.Possess` |
+| `Vector(float[], columns=0, upload=Upload.Now, gpu=null)`            | Construct from array; `Upload.Now` (`InSync`) or `Upload.Defer` (`Cpu`); `columns=0` row 1D, `1` column, `N>1` matrix |
+| `Vector(int length, columns=0, init=Init.UnInit, gpu=null)`          | GPU-backed length; `Init.UnInit` (undefined contents) or `Init.Zeroed` (device memset) |
+| `Assign(values / length / deviceView, columns=0, ...)`               | Replace storage safely (frees any prior owned LRU buffer; throws if pinned, scoped, or possessed) |
+| `Copy(upload=Upload.Now)`                                            | Deep copy                                  |
+| `Equals(Vector)`                                                     | Element-wise equality after CPU sync       |
+| `Shape()`                                                            | `Shape` struct (`Rows`, `Cols`)            |
+| `Flatten()`                                                          | Set `Columns = 0` (1D row storage)         |
+| `ToVector3()`                                                        | Convert when length % 3 == 0               |
 
 #### 5.2.2 Statistical Properties
 
@@ -899,19 +901,19 @@ Kernels are loaded selectively via `KernelModuleLoader` (see §7). Each domain f
 
 **Kernel path** (sort, internal temps): `entity.View` + `GpuScope.Begin(entity.PinTarget)` — no vessel.
 
-**Domain path**:
+**Domain path** (direct possession of any empty instance):
 
 ```csharp
 using BufferEntity<int> entity = BufferPools.For(gpu).Int.Rent(wordCount);
-Vessel<Mask> vessel = Mask.CreateVessel(gpu, elementCount);
-using (var possession = entity.Possess(vessel))
+Mask mask = new(gpu);
+using (var possession = entity.Possess(mask, elementCount))
 {
-    Mask mask = possession.Soul;
     // domain APIs + GpuScope.Begin(mask)
 }
+// mask.IsEmpty == true again after scope disposes
 ```
 
-**Rules:** one entity → one active possession; vessel must be empty (`ID == 0`) before possess; vessel and entity must use the same `gpu` (`CreateVessel(gpu, …)` + `BufferPools.For(gpu)`); dispose entity only after Banish. Violations throw `EntityAlreadyPossessedException`, `VesselAlreadyInhabitedException`, `EntityDisposeWhilePossessedException`, or `VesselGpuMismatchException`.
+**Rules:** one entity → one active possession; target must be empty (`IsEmpty == true`, `Residence.None`) before possess; target and entity must use the same `gpu`; dispose entity only after Banish. Violations throw `EntityAlreadyPossessedException`, `InvalidOperationException`, `EntityDisposeWhilePossessedException`, or `GpuMismatchException`.
 
 Sort/argsort uses the kernel path internally.
 

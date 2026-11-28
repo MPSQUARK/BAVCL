@@ -88,7 +88,7 @@ Quick reference: [references/principles.md](./references/principles.md)
 |--------|-----|
 | Read | `RetrieveReadOnlySpan()` |
 | Edit in-place | `CpuScope` + `scope.View` |
-| Structural edit | `CpuScopeAndSync` + `RetrieveReadOnlySpan()` then assign `Value` |
+| Structural edit | `CpuScope(Upload.Now)` + `RetrieveReadOnlySpan()` then assign `Value` |
 
 Do not open `CpuScope` for read-only access. Pin with `GpuScope` before kernels.
 
