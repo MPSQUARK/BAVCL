@@ -14,17 +14,27 @@ public sealed class BufferPool
 	/// <summary>Pooled <c>float32</c> buffers.</summary>
 	public ElementBufferPool<float> Float { get; }
 
+	/// <summary>Pooled direct storage for <see cref="System.Numerics.Complex"/> values.</summary>
+	public ElementBufferPool<System.Numerics.Complex> Complex { get; }
+
+	/// <summary>Pooled <c>int64</c> buffers.</summary>
+	public ElementBufferPool<long> Long { get; }
+
+	/// <summary>Compatibility alias for the pooled complex storage.</summary>
+	public ElementBufferPool<System.Numerics.Complex> Complex64 => Complex;
+
 	internal BufferPool()
+		: this(GPUManager.Default)
 	{
-		Gpu = GPUManager.Default;
-		Int = new ElementBufferPool<int>(Gpu);
-		Float = new ElementBufferPool<float>(Gpu);
 	}
+
 	internal BufferPool(GPU gpu)
 	{
 		Gpu = gpu;
-		Int = new ElementBufferPool<int>(Gpu);
-		Float = new ElementBufferPool<float>(Gpu);
+		Int = new ElementBufferPool<int>(gpu);
+		Float = new ElementBufferPool<float>(gpu);
+		Complex = new ElementBufferPool<System.Numerics.Complex>(gpu);
+		Long = new ElementBufferPool<long>(gpu);
 	}
 
 	/// <summary>Drops all pooled slots without freeing LRU buffers (for tests).</summary>
@@ -32,5 +42,7 @@ public sealed class BufferPool
 	{
 		Int.Clear();
 		Float.Clear();
+		Complex.Clear();
+		Long.Clear();
 	}
 }

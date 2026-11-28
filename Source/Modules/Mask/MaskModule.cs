@@ -91,4 +91,5 @@ public static class MaskModuleExtensions
 		public (VectorInt TrueLanes, VectorInt FalseLanes) PartitionX(Mask mask) =>
 			MaskCompaction.PartitionX(vector, mask);
 	}
+
 }

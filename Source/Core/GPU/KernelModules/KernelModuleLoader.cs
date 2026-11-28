@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using BAVCL.Core.Exceptions;
 using BAVCL.Source.Core.Enums;
 
@@ -16,6 +17,7 @@ public static class KernelModuleLoader
 	{
 		[((int)KernelDomainSharedModule.MaskCore, typeof(float))] = static gpu => gpu.LoadMaskCoreKernels(),
 		[((int)KernelDomainSharedModule.MaskCore, typeof(int))] = static gpu => gpu.LoadMaskCoreKernels(),
+		[((int)KernelDomainSharedModule.MaskCore, typeof(Complex))] = static gpu => gpu.LoadMaskCoreKernels(),
 		[((int)KernelDomain.Arithmetic, typeof(float))] = static gpu => gpu.LoadArithmeticFloat32Kernels(),
 		[((int)KernelDomain.Structural, typeof(float))] = static gpu => gpu.LoadStructuralFloat32Kernels(),
 		[((int)KernelDomain.Geometry, typeof(float))] = static gpu => gpu.LoadGeometryFloat32Kernels(),
@@ -37,6 +39,13 @@ public static class KernelModuleLoader
 		[((int)KernelDomain.Statistics, typeof(int))] = static gpu => gpu.LoadStatisticsIntKernels(),
 		[((int)KernelDomain.Generators, typeof(float))] = static gpu => gpu.LoadGeneratorsFloat32Kernels(),
 		[((int)KernelDomain.Generators, typeof(int))] = static gpu => gpu.LoadGeneratorsInt32Kernels(),
+		[((int)KernelDomain.Arithmetic, typeof(Complex))] = static gpu => gpu.LoadArithmeticComplex64Kernels(),
+		[((int)KernelDomain.Mask, typeof(Complex))] = static gpu =>
+		{
+			gpu.LoadModuleOnce(KernelDomainSharedModule.MaskCore, typeof(Complex), Resolve(KernelDomainSharedModule.MaskCore, typeof(Complex)));
+			gpu.LoadMaskComplex64Kernels();
+		},
+		[((int)KernelDomain.Sorting, typeof(Complex))] = static gpu => gpu.LoadSortComplexKernels(),
 	};
 
 	/// <summary>
@@ -88,4 +97,5 @@ public static class KernelModuleLoader
 		Modules.TryGetValue(((int)domain, elementType), out Action<GPU>? load)
 			? load
 			: throw new KernelModuleNotAvailableException(domain, elementType);
+
 }

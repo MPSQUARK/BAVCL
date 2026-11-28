@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using BAVCL.Core.Exceptions;
 using ILGPU;
 using ILGPU.Algorithms;
@@ -24,8 +25,14 @@ public partial class GPU
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides> compactGatherInt
 		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(compactGatherInt), KernelDomain.Mask);
 
+	public Action<AcceleratorStream, Index1D, ArrayView<Complex>, ArrayView<Complex>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides> compactGatherComplex
+		= (_, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(compactGatherComplex), KernelDomain.Mask);
+
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides> compactGatherIntPartition
 		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(compactGatherIntPartition), KernelDomain.Mask);
+
+	public Action<AcceleratorStream, Index1D, ArrayView<Complex>, ArrayView<Complex>, ArrayView<Complex>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides> compactGatherComplexPartition
+		= (_, _, _, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(compactGatherComplexPartition), KernelDomain.Mask);
 
 	public Action<AcceleratorStream, Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides> compactWriteIndices
 		= (_, _, _, _, _, _, _) => throw new KernelNotCompiledException(nameof(compactWriteIndices), KernelDomain.Mask);
@@ -52,7 +59,9 @@ public partial class GPU
 		compactGatherFloat = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides>(CompactGatherFloat_Kern);
 		compactGatherFloatPartition = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<float>, ArrayView<float>, ArrayView<float>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides>(CompactGatherFloatPartition_Kern);
 		compactGatherInt = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides>(CompactGatherInt_Kern);
+		compactGatherComplex = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<Complex>, ArrayView<Complex>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides>(CompactGatherComplex_Kern);
 		compactGatherIntPartition = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides>(CompactGatherIntPartition_Kern);
+		compactGatherComplexPartition = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<Complex>, ArrayView<Complex>, ArrayView<Complex>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides>(CompactGatherComplexPartition_Kern);
 		compactWriteIndices = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, ArrayView<int>, int, BroadcastStrides>(CompactWriteIndices_Kern);
 		maskPopcountPartial = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, int, int>(MaskPopcountPartial_Kern);
 		maskAnyPartial = accelerator.LoadAutoGroupedKernel<Index1D, ArrayView<int>, ArrayView<int>, int, int>(MaskAnyPartial_Kern);
@@ -147,6 +156,43 @@ public partial class GPU
 		int row = element.X / outputColumns;
 		int column = element.X - (row * outputColumns);
 		output[writePos[element]] = input[inputStrides.IndexOf(row, column)];
+	}
+
+	static void CompactGatherComplex_Kern(
+		Index1D element,
+		ArrayView<Complex> output,
+		ArrayView<Complex> input,
+		ArrayView<int> flags,
+		ArrayView<int> writePos,
+		int outputColumns,
+		BroadcastStrides inputStrides)
+	{
+		if (flags[element] == 0)
+			return;
+
+		int row = element.X / outputColumns;
+		int column = element.X - (row * outputColumns);
+		output[writePos[element]] = input[inputStrides.IndexOf(row, column)];
+	}
+
+	static void CompactGatherComplexPartition_Kern(
+		Index1D element,
+		ArrayView<Complex> trueOutput,
+		ArrayView<Complex> falseOutput,
+		ArrayView<Complex> input,
+		ArrayView<int> flags,
+		ArrayView<int> writePos,
+		int outputColumns,
+		BroadcastStrides inputStrides)
+	{
+		int row = element.X / outputColumns;
+		int column = element.X - (row * outputColumns);
+		Complex value = input[inputStrides.IndexOf(row, column)];
+		int write = writePos[element];
+		if (flags[element] != 0)
+			trueOutput[write] = value;
+		else
+			falseOutput[element.X - write] = value;
 	}
 
 	static void CompactWriteIndices_Kern(
