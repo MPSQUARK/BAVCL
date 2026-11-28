@@ -8,7 +8,7 @@ internal static class VectorVectorOp
 	internal static Vector VectorVectorOP(Vector vectorA, Vector vectorB, Operations operation)
 	{
 		GPU gpu = vectorA.Gpu;
-		Vector output = new(gpu, vectorA.Length, vectorA.Columns);
+		Vector output = new(vectorA.Length, vectorA.Columns, gpu: gpu);
 
 		using (GpuScope.Begin(output, vectorA, vectorB))
 		{
@@ -42,7 +42,7 @@ internal static class VectorVectorOp
 	internal static Vector RunReduceRowOp(Vector vector, Vector matrix, Operations operation)
 	{
 		GPU gpu = vector.Gpu;
-		Vector output = new(gpu, matrix.RowCount(), 1);
+		Vector output = new(matrix.RowCount(), 1, gpu: gpu);
 
 		using (GpuScope.Begin(output, vector, matrix))
 		{
@@ -70,7 +70,7 @@ internal static class VectorVectorOp
 	{
 		VectorIntOperationValidation.ValidateOperation(operation);
 		GPU gpu = vectorA.Gpu;
-		VectorInt output = new(gpu, vectorA.Length, vectorA.Columns);
+		VectorInt output = new(vectorA.Length, vectorA.Columns, gpu: gpu);
 
 		using (GpuScope.Begin(output, vectorA, vectorB))
 		{
@@ -117,7 +117,7 @@ internal static class VectorVectorOp
 	{
 		VectorIntOperationValidation.ValidateReduceOperation(operation);
 		GPU gpu = vector.Gpu;
-		VectorInt output = new(gpu, matrix.RowCount(), 1);
+		VectorInt output = new(matrix.RowCount(), 1, gpu: gpu);
 
 		using (GpuScope.Begin(output, vector, matrix))
 		{

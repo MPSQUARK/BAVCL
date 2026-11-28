@@ -147,7 +147,7 @@ public static class VectorComplexSorting
 		ValidateMode(mode);
 		Complex[] values = vector.RetrieveReadOnlySpan().ToArray();
 		SortRows(values, vector.Columns, mode, order);
-		return new VectorComplex64(vector.Gpu, values, vector.Columns);
+		return new VectorComplex64(values, vector.Columns, gpu: vector.Gpu);
 	}
 
 	static void SortInPlace(VectorComplex64 vector, ComplexSortMode mode, SortOrder order)
@@ -176,7 +176,7 @@ public static class VectorComplexSorting
 			Array.Sort(indices, offset, count, Comparer<int>.Create((left, right) =>
 				Compare(values[offset + left], values[offset + right], mode, order)));
 		}
-		return new VectorInt(vector.Gpu, indices, vector.Columns);
+		return new VectorInt(indices, vector.Columns, gpu: vector.Gpu);
 	}
 
 	static void ArgsortCoreIP(VectorComplex64 vector, VectorInt indices, ComplexSortMode mode, SortOrder order)

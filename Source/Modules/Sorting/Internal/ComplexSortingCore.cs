@@ -47,9 +47,9 @@ internal static class ComplexSortingCore
 	{
 		Validate(mode);
 		if (vector.Length == 0)
-			return new VectorInt(vector.Gpu, 0, vector.Columns);
+			return new VectorInt(0, vector.Columns, gpu: vector.Gpu);
 		if (vector.Length == 1)
-			return new VectorInt(vector.Gpu, [0], vector.Columns);
+			return new VectorInt([0], vector.Columns, gpu: vector.Gpu);
 		if (vector.Is2D())
 			return SortAlgorithms.Argsort2DAscX(vector, mode);
 		return SortAlgorithms.Argsort1DAscX(vector, mode);
@@ -59,9 +59,9 @@ internal static class ComplexSortingCore
 	{
 		Validate(mode);
 		if (vector.Length == 0)
-			return new VectorInt(vector.Gpu, 0, vector.Columns);
+			return new VectorInt(0, vector.Columns, gpu: vector.Gpu);
 		if (vector.Length == 1)
-			return new VectorInt(vector.Gpu, [0], vector.Columns);
+			return new VectorInt([0], vector.Columns, gpu: vector.Gpu);
 		if (vector.Is2D())
 			return SortAlgorithms.Argsort2DDescX(vector, mode);
 		return SortAlgorithms.Argsort1DDescX(vector, mode);

@@ -10,7 +10,7 @@ internal static class ShapeOpsCore
 	const string ConcatColumnMessage = "Column-axis concatenation requires ConcatColumnX or ConcatColumnXIP.";
 
 	internal static Vector Append(Vector left, Vector right) =>
-		new(left.Gpu, left.RetrieveReadOnlySpan().ToArray().Concat(right.RetrieveReadOnlySpan().ToArray()).ToArray(), left.Columns);
+		new(left.RetrieveReadOnlySpan().ToArray().Concat(right.RetrieveReadOnlySpan().ToArray()).ToArray(), left.Columns, gpu: left.Gpu);
 
 	internal static void AppendInPlace(Vector vectorA, Vector vectorB)
 	{
@@ -81,7 +81,7 @@ internal static class ShapeOpsCore
 			other.Columns = other.Length / vector.RowCount();
 		}
 
-		Vector output = new(vector.Gpu, other.Length + vector.Length);
+		Vector output = new(other.Length + vector.Length, gpu: vector.Gpu);
 
 		using (GpuScope.Begin(output, vector, other))
 		{
@@ -100,7 +100,7 @@ internal static class ShapeOpsCore
 	}
 
 	internal static Vector Merge(Vector left, Vector right) =>
-		new(left.Gpu, left.RetrieveReadOnlySpan().ToArray().Union(right.RetrieveReadOnlySpan().ToArray()).ToArray(), left.Columns);
+		new(left.RetrieveReadOnlySpan().ToArray().Union(right.RetrieveReadOnlySpan().ToArray()).ToArray(), left.Columns, gpu: left.Gpu);
 
 	internal static void MergeInPlace(Vector vector, Vector vectorB)
 	{
@@ -114,7 +114,7 @@ internal static class ShapeOpsCore
 	}
 
 	internal static Vector Reverse(Vector vector) =>
-		new(vector.Gpu, vector.ToArray().Reverse().ToArray(), vector.Columns);
+		new(vector.ToArray().Reverse().ToArray(), vector.Columns, gpu: vector.Gpu);
 
 	internal static void ReverseInPlace(Vector vector)
 	{
@@ -152,7 +152,7 @@ internal static class ShapeOpsCore
 	{
 		if (vector.Is1DRowVector() || vector.Columns >= vector.Length) { throw new Exception("Cannot transpose 1D Vector"); }
 
-		Vector output = new(vector.Gpu, vector.Length, vector.RowCount());
+		Vector output = new(vector.Length, vector.RowCount(), gpu: vector.Gpu);
 
 		using (GpuScope.Begin(output, vector))
 		{
@@ -172,7 +172,8 @@ internal static class ShapeOpsCore
 
 	internal static Vector TransferBuffer(Vector inheritee, Vector temp, bool incColumns = false)
 	{
-		inheritee.Gpu.FreeBuffer(inheritee.ID);
+		inheritee.Gpu.ReleaseBuffer(inheritee.ID);
+
 		Residence transferred = temp.Residence;
 		inheritee.ID = temp.ID;
 		inheritee.Value = temp.Value;
@@ -189,12 +190,12 @@ internal static class ShapeOpsCore
 		vector.RetrieveReadOnlySpan().Slice(row * vector.Columns, vector.Columns).ToArray();
 
 	internal static Vector GetRowAsVector(Vector vector, int row) =>
-		new(vector.Gpu, GetRowAsArray(vector, row), 0);
+		new(GetRowAsArray(vector, row), 0, gpu: vector.Gpu);
 
 	internal static Vector GetColumnAsVectorX(Vector vector, int column)
 	{
 		int[] select = [column, vector.Columns];
-		Vector output = new(vector.Gpu, vector.RowCount());
+		Vector output = new(vector.RowCount(), gpu: vector.Gpu);
 
 		using (GpuScope.Begin(output, vector))
 		{
@@ -270,7 +271,7 @@ internal static class ShapeOpsCore
 	}
 
 	internal static VectorInt Append(VectorInt left, VectorInt right) =>
-		new(left.Gpu, left.RetrieveReadOnlySpan().ToArray().Concat(right.RetrieveReadOnlySpan().ToArray()).ToArray(), left.Columns);
+		new(left.RetrieveReadOnlySpan().ToArray().Concat(right.RetrieveReadOnlySpan().ToArray()).ToArray(), left.Columns, gpu: left.Gpu);
 
 	internal static VectorInt Prepend(VectorInt left, VectorInt right) => Append(right, left);
 
@@ -341,7 +342,7 @@ internal static class ShapeOpsCore
 			other.Columns = other.Length / vector.RowCount();
 		}
 
-		VectorInt output = new(vector.Gpu, other.Length + vector.Length);
+		VectorInt output = new(other.Length + vector.Length, gpu: vector.Gpu);
 
 		using (GpuScope.Begin(output, vector, other))
 		{
@@ -360,7 +361,7 @@ internal static class ShapeOpsCore
 	}
 
 	internal static VectorInt Merge(VectorInt left, VectorInt right) =>
-		new(left.Gpu, left.RetrieveReadOnlySpan().ToArray().Union(right.RetrieveReadOnlySpan().ToArray()).ToArray(), left.Columns);
+		new(left.RetrieveReadOnlySpan().ToArray().Union(right.RetrieveReadOnlySpan().ToArray()).ToArray(), left.Columns, gpu: left.Gpu);
 
 	internal static void MergeInPlace(VectorInt vector, VectorInt vectorB)
 	{
@@ -387,7 +388,7 @@ internal static class ShapeOpsCore
 	}
 
 	internal static VectorInt Reverse(VectorInt vector) =>
-		new(vector.Gpu, vector.ToArray().Reverse().ToArray(), vector.Columns);
+		new(vector.ToArray().Reverse().ToArray(), vector.Columns, gpu: vector.Gpu);
 
 	internal static VectorInt ReverseX(VectorInt vector)
 	{
@@ -412,7 +413,7 @@ internal static class ShapeOpsCore
 	{
 		if (vector.Is1DRowVector() || vector.Columns >= vector.Length) { throw new Exception("Cannot transpose 1D Vector"); }
 
-		VectorInt output = new(vector.Gpu, vector.Length, vector.RowCount());
+		VectorInt output = new(vector.Length, vector.RowCount(), gpu: vector.Gpu);
 
 		using (GpuScope.Begin(output, vector))
 		{
@@ -432,7 +433,8 @@ internal static class ShapeOpsCore
 
 	internal static VectorInt TransferBuffer(VectorInt inheritee, VectorInt temp, bool incColumns = false)
 	{
-		inheritee.Gpu.FreeBuffer(inheritee.ID);
+		inheritee.Gpu.ReleaseBuffer(inheritee.ID);
+
 		Residence transferred = temp.Residence;
 		inheritee.ID = temp.ID;
 		inheritee.Value = temp.Value;
@@ -449,12 +451,12 @@ internal static class ShapeOpsCore
 		vector.RetrieveReadOnlySpan().Slice(row * vector.Columns, vector.Columns).ToArray();
 
 	internal static VectorInt GetRowAsVector(VectorInt vector, int row) =>
-		new(vector.Gpu, GetRowAsArray(vector, row), 0);
+		new(GetRowAsArray(vector, row), 0, gpu: vector.Gpu);
 
 	internal static VectorInt GetColumnAsVectorX(VectorInt vector, int column)
 	{
 		int[] select = [column, vector.Columns];
-		VectorInt output = new(vector.Gpu, vector.RowCount());
+		VectorInt output = new(vector.RowCount(), gpu: vector.Gpu);
 
 		using (GpuScope.Begin(output, vector))
 		{

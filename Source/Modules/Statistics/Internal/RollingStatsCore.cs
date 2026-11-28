@@ -5,151 +5,151 @@ namespace BAVCL.Modules.Statistics;
 
 internal static class RollingStatsCore
 {
-	internal static Vector RollingSum1D(Vector vector, int window, bool syncToGpu = true)
+	internal static Vector RollingSum1D(Vector vector, int window, Upload upload = Upload.Now)
 	{
 		Guard.RollingWindow(window, vector.Length);
-		Vector cum = ScanCore.CumSumInclusive1D(vector, syncToGpu);
-		return ApplyRollingSum1D(vector, cum, window, syncToGpu);
+		Vector cum = ScanCore.CumSumInclusive1D(vector, upload);
+		return ApplyRollingSum1D(vector, cum, window, upload);
 	}
 
-	internal static Vector RollingSum2D(Vector vector, int window, bool syncToGpu = true)
+	internal static Vector RollingSum2D(Vector vector, int window, Upload upload = Upload.Now)
 	{
 		Guard.RollingWindow(window, vector.Length);
-		Vector cum = ScanCore.CumSumInclusive2D(vector, syncToGpu);
-		return ApplyRollingSum2D(vector, cum, window, syncToGpu);
+		Vector cum = ScanCore.CumSumInclusive2D(vector, upload);
+		return ApplyRollingSum2D(vector, cum, window, upload);
 	}
 
-	internal static VectorInt RollingSum1D(VectorInt vector, int window, bool syncToGpu = true)
+	internal static VectorInt RollingSum1D(VectorInt vector, int window, Upload upload = Upload.Now)
 	{
 		Guard.RollingWindow(window, vector.Length);
-		VectorInt cum = ScanCore.CumSumInclusive1D(vector, syncToGpu);
-		return ApplyRollingSum1D(vector, cum, window, syncToGpu);
+		VectorInt cum = ScanCore.CumSumInclusive1D(vector, upload);
+		return ApplyRollingSum1D(vector, cum, window, upload);
 	}
 
-	internal static VectorInt RollingSum2D(VectorInt vector, int window, bool syncToGpu = true)
+	internal static VectorInt RollingSum2D(VectorInt vector, int window, Upload upload = Upload.Now)
 	{
 		Guard.RollingWindow(window, vector.Length);
-		VectorInt cum = ScanCore.CumSumInclusive2D(vector, syncToGpu);
-		return ApplyRollingSum2D(vector, cum, window, syncToGpu);
+		VectorInt cum = ScanCore.CumSumInclusive2D(vector, upload);
+		return ApplyRollingSum2D(vector, cum, window, upload);
 	}
 
-	internal static Vector MovingAverage1D(Vector vector, int window, bool syncToGpu = true)
+	internal static Vector MovingAverage1D(Vector vector, int window, Upload upload = Upload.Now)
 	{
 		Guard.RollingWindow(window, vector.Length);
-		Vector cum = ScanCore.CumSumInclusive1D(vector, syncToGpu);
-		return ApplyMovingAverage1D(vector, cum, window, syncToGpu);
+		Vector cum = ScanCore.CumSumInclusive1D(vector, upload);
+		return ApplyMovingAverage1D(vector, cum, window, upload);
 	}
 
-	internal static Vector MovingAverage2D(Vector vector, int window, bool syncToGpu = true)
+	internal static Vector MovingAverage2D(Vector vector, int window, Upload upload = Upload.Now)
 	{
 		Guard.RollingWindow(window, vector.Length);
-		Vector cum = ScanCore.CumSumInclusive2D(vector, syncToGpu);
-		return ApplyMovingAverage2D(vector, cum, window, syncToGpu);
+		Vector cum = ScanCore.CumSumInclusive2D(vector, upload);
+		return ApplyMovingAverage2D(vector, cum, window, upload);
 	}
 
-	internal static Vector MovingAverage1D(VectorInt vector, int window, bool syncToGpu = true)
+	internal static Vector MovingAverage1D(VectorInt vector, int window, Upload upload = Upload.Now)
 	{
 		Guard.RollingWindow(window, vector.Length);
-		VectorInt cum = ScanCore.CumSumInclusive1D(vector, syncToGpu);
-		VectorInt rolling = ApplyRollingSum1D(vector, cum, window, syncToGpu);
-		return ConvertToAverage1D(rolling, window, syncToGpu);
+		VectorInt cum = ScanCore.CumSumInclusive1D(vector, upload);
+		VectorInt rolling = ApplyRollingSum1D(vector, cum, window, upload);
+		return ConvertToAverage1D(rolling, window, upload);
 	}
 
-	internal static Vector MovingAverage2D(VectorInt vector, int window, bool syncToGpu = true)
+	internal static Vector MovingAverage2D(VectorInt vector, int window, Upload upload = Upload.Now)
 	{
 		Guard.RollingWindow(window, vector.Length);
-		VectorInt cum = ScanCore.CumSumInclusive2D(vector, syncToGpu);
-		VectorInt rolling = ApplyRollingSum2D(vector, cum, window, syncToGpu);
-		return ConvertToAverage2D(rolling, window, syncToGpu);
+		VectorInt cum = ScanCore.CumSumInclusive2D(vector, upload);
+		VectorInt rolling = ApplyRollingSum2D(vector, cum, window, upload);
+		return ConvertToAverage2D(rolling, window, upload);
 	}
 
-	static Vector ApplyRollingSum1D(Vector vector, Vector cum, int window, bool syncToGpu)
+	static Vector ApplyRollingSum1D(Vector vector, Vector cum, int window, Upload upload)
 	{
-		Vector output = new(vector.Gpu, vector.Length, vector.Columns);
+		Vector output = new(vector.Length, vector.Columns, gpu: vector.Gpu);
 		ReadOnlySpan<float> cumSpan = cum.RetrieveReadOnlySpan();
 
-		using (output.CpuScope(syncToGpu))
+		using (output.CpuScope(upload))
 			FillRollingSum1D(output.Value, cumSpan, vector.Length, window);
 
 		return output;
 	}
 
-	static Vector ApplyRollingSum2D(Vector vector, Vector cum, int window, bool syncToGpu)
+	static Vector ApplyRollingSum2D(Vector vector, Vector cum, int window, Upload upload)
 	{
-		Vector output = new(vector.Gpu, vector.Length, vector.Columns);
+		Vector output = new(vector.Length, vector.Columns, gpu: vector.Gpu);
 		ReadOnlySpan<float> cumSpan = cum.RetrieveReadOnlySpan();
 		int cols = vector.ElementsPerRow();
 
-		using (output.CpuScope(syncToGpu))
+		using (output.CpuScope(upload))
 			FillRollingSum2D(output.Value, cumSpan, vector.Length, cols, window);
 
 		return output;
 	}
 
-	static VectorInt ApplyRollingSum1D(VectorInt vector, VectorInt cum, int window, bool syncToGpu)
+	static VectorInt ApplyRollingSum1D(VectorInt vector, VectorInt cum, int window, Upload upload)
 	{
-		VectorInt output = new(vector.Gpu, vector.Length, vector.Columns);
+		VectorInt output = new(vector.Length, vector.Columns, gpu: vector.Gpu);
 		ReadOnlySpan<int> cumSpan = cum.RetrieveReadOnlySpan();
 
-		using (output.CpuScope(syncToGpu))
+		using (output.CpuScope(upload))
 			FillRollingSum1D(output.Value, cumSpan, vector.Length, window);
 
 		return output;
 	}
 
-	static VectorInt ApplyRollingSum2D(VectorInt vector, VectorInt cum, int window, bool syncToGpu)
+	static VectorInt ApplyRollingSum2D(VectorInt vector, VectorInt cum, int window, Upload upload)
 	{
-		VectorInt output = new(vector.Gpu, vector.Length, vector.Columns);
+		VectorInt output = new(vector.Length, vector.Columns, gpu: vector.Gpu);
 		ReadOnlySpan<int> cumSpan = cum.RetrieveReadOnlySpan();
 		int cols = vector.ElementsPerRow();
 
-		using (output.CpuScope(syncToGpu))
+		using (output.CpuScope(upload))
 			FillRollingSum2D(output.Value, cumSpan, vector.Length, cols, window);
 
 		return output;
 	}
 
-	static Vector ApplyMovingAverage1D(Vector vector, Vector cum, int window, bool syncToGpu)
+	static Vector ApplyMovingAverage1D(Vector vector, Vector cum, int window, Upload upload)
 	{
-		Vector output = new(vector.Gpu, vector.Length, vector.Columns);
+		Vector output = new(vector.Length, vector.Columns, gpu: vector.Gpu);
 		ReadOnlySpan<float> cumSpan = cum.RetrieveReadOnlySpan();
 
-		using (output.CpuScope(syncToGpu))
+		using (output.CpuScope(upload))
 			FillMovingAverage1D(output.Value, cumSpan, vector.Length, window);
 
 		return output;
 	}
 
-	static Vector ApplyMovingAverage2D(Vector vector, Vector cum, int window, bool syncToGpu)
+	static Vector ApplyMovingAverage2D(Vector vector, Vector cum, int window, Upload upload)
 	{
-		Vector output = new(vector.Gpu, vector.Length, vector.Columns);
+		Vector output = new(vector.Length, vector.Columns, gpu: vector.Gpu);
 		ReadOnlySpan<float> cumSpan = cum.RetrieveReadOnlySpan();
 		int cols = vector.ElementsPerRow();
 
-		using (output.CpuScope(syncToGpu))
+		using (output.CpuScope(upload))
 			FillMovingAverage2D(output.Value, cumSpan, vector.Length, cols, window);
 
 		return output;
 	}
 
-	static Vector ConvertToAverage1D(VectorInt rolling, int window, bool syncToGpu)
+	static Vector ConvertToAverage1D(VectorInt rolling, int window, Upload upload)
 	{
-		Vector output = new(rolling.Gpu, rolling.Length, rolling.Columns);
+		Vector output = new(rolling.Length, rolling.Columns, gpu: rolling.Gpu);
 		ReadOnlySpan<int> rollingSpan = rolling.RetrieveReadOnlySpan();
 
-		using (output.CpuScope(syncToGpu))
+		using (output.CpuScope(upload))
 			FillAverageFromRolling1D(output.Value, rollingSpan, rolling.Length, window);
 
 		return output;
 	}
 
-	static Vector ConvertToAverage2D(VectorInt rolling, int window, bool syncToGpu)
+	static Vector ConvertToAverage2D(VectorInt rolling, int window, Upload upload)
 	{
-		Vector output = new(rolling.Gpu, rolling.Length, rolling.Columns);
+		Vector output = new(rolling.Length, rolling.Columns, gpu: rolling.Gpu);
 		ReadOnlySpan<int> rollingSpan = rolling.RetrieveReadOnlySpan();
 		int cols = rolling.ElementsPerRow();
 
-		using (output.CpuScope(syncToGpu))
+		using (output.CpuScope(upload))
 			FillAverageFromRolling2D(output.Value, rollingSpan, rolling.Length, cols, window);
 
 		return output;

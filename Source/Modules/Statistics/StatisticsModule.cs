@@ -165,15 +165,15 @@ public static class VectorStatistics
 
 		public static float IqrX(Vector vector) => GpuOrderStatistics.IqrX(vector);
 
-		public static Vector RollingSum(Vector vector, int window, bool syncToGpu = true) =>
+		public static Vector RollingSum(Vector vector, int window, Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? RollingStatsCore.RollingSum2D(vector, window, syncToGpu)
-				: RollingStatsCore.RollingSum1D(vector, window, syncToGpu);
+				? RollingStatsCore.RollingSum2D(vector, window, upload)
+				: RollingStatsCore.RollingSum1D(vector, window, upload);
 
-		public static Vector MovingAverage(Vector vector, int window, bool syncToGpu = true) =>
+		public static Vector MovingAverage(Vector vector, int window, Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? RollingStatsCore.MovingAverage2D(vector, window, syncToGpu)
-				: RollingStatsCore.MovingAverage1D(vector, window, syncToGpu);
+				? RollingStatsCore.MovingAverage2D(vector, window, upload)
+				: RollingStatsCore.MovingAverage1D(vector, window, upload);
 
 		public static Vector RollingSumX(Vector vector, int window) =>
 			vector.Is2D()
@@ -277,15 +277,15 @@ public static class VectorStatistics
 
 		public static float IqrX(VectorInt vector) => GpuOrderStatistics.IqrX(vector);
 
-		public static VectorInt RollingSum(VectorInt vector, int window, bool syncToGpu = true) =>
+		public static VectorInt RollingSum(VectorInt vector, int window, Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? RollingStatsCore.RollingSum2D(vector, window, syncToGpu)
-				: RollingStatsCore.RollingSum1D(vector, window, syncToGpu);
+				? RollingStatsCore.RollingSum2D(vector, window, upload)
+				: RollingStatsCore.RollingSum1D(vector, window, upload);
 
-		public static Vector MovingAverage(VectorInt vector, int window, bool syncToGpu = true) =>
+		public static Vector MovingAverage(VectorInt vector, int window, Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? RollingStatsCore.MovingAverage2D(vector, window, syncToGpu)
-				: RollingStatsCore.MovingAverage1D(vector, window, syncToGpu);
+				? RollingStatsCore.MovingAverage2D(vector, window, upload)
+				: RollingStatsCore.MovingAverage1D(vector, window, upload);
 
 		public static VectorInt RollingSumX(VectorInt vector, int window) =>
 			vector.Is2D()
@@ -449,11 +449,11 @@ public static class StatisticsModule
 
 		public float IqrX() => VectorStatistics.IqrX(vector);
 
-		public Vector RollingSum(int window, bool syncToGpu = true) =>
-			VectorStatistics.RollingSum(vector, window, syncToGpu);
+		public Vector RollingSum(int window, Upload upload = Upload.Now) =>
+			VectorStatistics.RollingSum(vector, window, upload);
 
-		public Vector MovingAverage(int window, bool syncToGpu = true) =>
-			VectorStatistics.MovingAverage(vector, window, syncToGpu);
+		public Vector MovingAverage(int window, Upload upload = Upload.Now) =>
+			VectorStatistics.MovingAverage(vector, window, upload);
 
 		public Vector RollingSumX(int window) => VectorStatistics.RollingSumX(vector, window);
 
@@ -542,11 +542,11 @@ public static class StatisticsModule
 
 		public float IqrX() => VectorStatistics.IqrX(vector);
 
-		public VectorInt RollingSum(int window, bool syncToGpu = true) =>
-			VectorStatistics.RollingSum(vector, window, syncToGpu);
+		public VectorInt RollingSum(int window, Upload upload = Upload.Now) =>
+			VectorStatistics.RollingSum(vector, window, upload);
 
-		public Vector MovingAverage(int window, bool syncToGpu = true) =>
-			VectorStatistics.MovingAverage(vector, window, syncToGpu);
+		public Vector MovingAverage(int window, Upload upload = Upload.Now) =>
+			VectorStatistics.MovingAverage(vector, window, upload);
 
 		public VectorInt RollingSumX(int window) => VectorStatistics.RollingSumX(vector, window);
 

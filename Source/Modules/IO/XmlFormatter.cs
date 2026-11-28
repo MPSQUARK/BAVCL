@@ -59,7 +59,7 @@ public sealed class XmlFormatter :
 	{
 		ArgumentNullException.ThrowIfNull(gpu);
 		return DeserializeAllFloatArray(text, typeof(Vector), typeof(float))
-			.Select(document => new Vector(gpu, document.Data, document.Columns, cache: document.Data.Length > 0))
+			.Select(document => new Vector(document.Data, document.Columns, gpu: gpu))
 			.ToList();
 	}
 
@@ -74,7 +74,7 @@ public sealed class XmlFormatter :
 	{
 		ArgumentNullException.ThrowIfNull(gpu);
 		return DeserializeAllIntArray(text, typeof(VectorInt), typeof(int))
-			.Select(document => new VectorInt(gpu, document.Data, document.Columns, cache: document.Data.Length > 0))
+			.Select(document => new VectorInt(document.Data, document.Columns, gpu: gpu))
 			.ToList();
 	}
 
@@ -92,7 +92,7 @@ public sealed class XmlFormatter :
 			.Select(document =>
 			{
 				StructuredIoValidation.ValidateVector3Layout(document.Columns, document.Data.Length);
-				return new Vector3(gpu, document.Data, cache: document.Data.Length > 0);
+				return new Vector3(document.Data, gpu: gpu);
 			})
 			.ToList();
 	}
@@ -314,14 +314,14 @@ public sealed class XmlFormatter :
 	{
 		ArgumentNullException.ThrowIfNull(gpu);
 		FloatArrayDocument document = DeserializeFloatArray(text, typeof(Vector), typeof(float));
-		return new Vector(gpu, document.Data, document.Columns, cache: document.Data.Length > 0);
+		return new Vector(document.Data, document.Columns, gpu: gpu);
 	}
 
 	VectorInt DeserializeVectorInt(GPU gpu, string text)
 	{
 		ArgumentNullException.ThrowIfNull(gpu);
 		IntArrayDocument document = DeserializeIntArray(text, typeof(VectorInt), typeof(int));
-		return new VectorInt(gpu, document.Data, document.Columns, cache: document.Data.Length > 0);
+		return new VectorInt(document.Data, document.Columns, gpu: gpu);
 	}
 
 	Vector3 DeserializeVector3(GPU gpu, string text)
@@ -329,7 +329,7 @@ public sealed class XmlFormatter :
 		ArgumentNullException.ThrowIfNull(gpu);
 		FloatArrayDocument document = DeserializeFloatArray(text, typeof(Vector3), typeof(float));
 		StructuredIoValidation.ValidateVector3Layout(document.Columns, document.Data.Length);
-		return new Vector3(gpu, document.Data, cache: document.Data.Length > 0);
+		return new Vector3(document.Data, gpu: gpu);
 	}
 
 	Mask DeserializeMask(GPU gpu, string text)
@@ -544,7 +544,7 @@ public sealed class XmlFormatter :
 
 		StructuredIoValidation.ValidateMaskPackedLayout(columns, count, words.Length);
 
-		return new Mask(gpu, words, count, columns);
+		return new Mask(words, count, columns, gpu: gpu);
 	}
 
 	static Mask DeserializeMaskBoolFragment(GPU gpu, XElement root)
@@ -569,7 +569,7 @@ public sealed class XmlFormatter :
 
 		StructuredIoValidation.ValidateMaskBoolLayout(columns, data.Length);
 
-		return new Mask(gpu, data, columns);
+		return new Mask(data, columns, gpu: gpu);
 	}
 
 	static void ValidateRootName(XElement root, Type expectedType)

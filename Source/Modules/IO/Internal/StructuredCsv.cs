@@ -244,7 +244,7 @@ internal static class StructuredCsv
 		StructuredIoValidation.ValidateOptionalDtype(document.Dtype, typeof(bool));
 		StructuredIoValidation.ValidateMaskBoolLayout(document.Columns, document.Data.Length);
 
-		return new Mask(gpu, document.Data, document.Columns);
+		return new Mask(document.Data, document.Columns, gpu: gpu);
 	}
 
 	static Mask DeserializeMaskPackedItemRow(GPU gpu, IReadOnlyDictionary<string, string> fields, int schemaVersion)
@@ -263,7 +263,7 @@ internal static class StructuredCsv
 		StructuredIoValidation.ValidateOptionalDtype(document.Dtype, typeof(int));
 		StructuredIoValidation.ValidateMaskPackedLayout(document.Columns, document.Count, document.Data.Length);
 
-		return new Mask(gpu, document.Data, document.Count, document.Columns);
+		return new Mask(document.Data, document.Count, document.Columns, gpu: gpu);
 	}
 
 	static FloatArrayDocument BuildFloatArrayDocument(IReadOnlyDictionary<string, string> fields, Type expectedType)
