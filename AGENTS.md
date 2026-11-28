@@ -18,7 +18,7 @@ BAVCL is a C# GPU-accelerated numerics library on ILGPU. Authoritative spec: [Do
 - **Do not** open `CpuScope` for read-only; **do not** call `SyncCPU()` in consumer code
 - **GpuScope:** one `GpuScope.Begin(modified, readOnly…)` when buffers exist; nested scopes only for allocate-after-pin (see `SortAlgorithms.Argsort1DAscX`)
 - **Edit in-place:** `CpuScope` + `scope.View` (`EditableView`)
-- **Structural edit:** `CpuScopeAndSync` + `RetrieveReadOnlySpan()` for inputs, then assign backing store (library-internal `Value` / `Length`)
+- **Structural edit:** `CpuScope(Upload.Now)` + `RetrieveReadOnlySpan()` for inputs, then assign backing store (library-internal `Value` / `Length`)
 - **Loops:** one `RetrieveReadOnlySpan()` for read loops; one `CpuScope` + `View` for write loops — not `GetAt` / `SetAt`
 - **Pinning:** only via `GpuScope` — `LiveCount` is observable for debugging
 - **Discovery:** check Features.md before inventing a code path
@@ -26,8 +26,8 @@ BAVCL is a C# GPU-accelerated numerics library on ILGPU. Authoritative spec: [Do
 | Intent | API |
 |--------|-----|
 | Read (anywhere) | `RetrieveReadOnlySpan()` |
-| Edit in-place | `CpuScope` / `CpuScopeAndSync` + `scope.View` |
-| Edit structural | `CpuScopeAndSync` + `RetrieveReadOnlySpan()` then assign backing store |
+| Edit in-place | `CpuScope()` + `scope.View` (`CpuScope(Upload.Defer)` keeps the result on the CPU) |
+| Edit structural | `CpuScope(Upload.Now)` + `RetrieveReadOnlySpan()` then assign backing store |
 
 ## Device-side code (kernels, GPU dispatch, ILGPU)
 
