@@ -15,19 +15,13 @@ namespace BAVCL;
 /// </summary>
 public sealed partial class VectorInt : VectorBase<int>
 {
-	public VectorInt(GPU gpu, int[] values, int columns = 0, bool cache = true) :
-		base(gpu, values, columns, cache)
-	{ }
+	public VectorInt(GPU? gpu = null) : base(gpu) { }
 
-	public VectorInt(GPU gpu, int length, int columns = 0) :
-		base(gpu, length, columns)
-	{ }
+	public VectorInt(int[] values, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
+		: base(values, columns, upload, gpu) { }
 
-	private VectorInt(GPU gpu, int columns) : base(gpu, columns) { }
-
-	/// <summary>Creates an empty vessel shell with no GPU buffer.</summary>
-	public static Vessel<VectorInt> CreateVessel(GPU gpu, int columns = 0) =>
-		new(new VectorInt(gpu, columns), gpu);
+	public VectorInt(int length, int columns = 0, Init init = Init.UnInit, GPU? gpu = null)
+		: base(length, columns, init, gpu) { }
 
 	public override void Print() => Console.WriteLine(this.ToStr());
 
@@ -48,8 +42,8 @@ public sealed partial class VectorInt : VectorBase<int>
 		return true;
 	}
 
-	public VectorInt Copy(bool cache = true) =>
-		new(Gpu, ToArray(), Columns, cache);
+	public VectorInt Copy(Upload upload = Upload.Now) =>
+		new(ToArray(), Columns, upload, Gpu);
 
 	public void Flatten() => Columns = 0;
 

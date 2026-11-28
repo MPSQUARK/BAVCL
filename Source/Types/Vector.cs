@@ -13,29 +13,13 @@ namespace BAVCL;
 /// </summary>
 public sealed partial class Vector : VectorBase<float>
 {
-	public Vector(float[] values, int columns = 0, bool cache = true) :
-		base(values, columns, cache)
-	{ }
-	public Vector(GPU gpu, float[] values, int columns = 0, bool cache = true) :
-		base(gpu, values, columns, cache)
-	{ }
+	public Vector(GPU? gpu = null) : base(gpu) { }
 
-	public Vector(int length, int columns = 0) :
-		base(length, columns)
-	{ }
-	public Vector(GPU gpu, int length, int columns = 0) :
-		base(gpu, length, columns)
-	{ }
+	public Vector(float[] values, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
+		: base(values, columns, upload, gpu) { }
 
-	private Vector(GPU gpu, int columns) : base(gpu, columns) { }
-
-	/// <summary>Creates an empty vessel shell with no GPU buffer.</summary>
-	public static Vessel<Vector> CreateVessel(int columns = 0) =>
-		new(new Vector(columns));
-
-	/// <summary>Creates an empty vessel shell with no GPU buffer.</summary>
-	public static Vessel<Vector> CreateVessel(GPU gpu, int columns = 0) =>
-		new(new Vector(gpu, columns), gpu);
+	public Vector(int length, int columns = 0, Init init = Init.UnInit, GPU? gpu = null)
+		: base(length, columns, init, gpu) { }
 
 	public override void Print() => Console.WriteLine(this.ToStr());
 
@@ -59,8 +43,8 @@ public sealed partial class Vector : VectorBase<float>
 		return true;
 	}
 
-	public Vector Copy(bool Cache = true) =>
-		new(Gpu, ToArray(), Columns, Cache);
+	public Vector Copy(Upload upload = Upload.Now) =>
+		new(ToArray(), Columns, upload, Gpu);
 
 	public void Flatten() => Columns = 0;
 
@@ -68,9 +52,9 @@ public sealed partial class Vector : VectorBase<float>
 	{
 		if (Length % 3 != 0) { throw new Exception("Vector length must be a multiple of 3"); }
 		if (ID != 0)
-			return new Geometric.Vector3(Gpu, Pull());
+			return new Geometric.Vector3(Pull(), gpu: Gpu);
 
-		return new Geometric.Vector3(Gpu, ToArray());
+		return new Geometric.Vector3(ToArray(), gpu: Gpu);
 	}
 
 	public override string ToString() => VectorStructuralExtensions.ToStr(this);

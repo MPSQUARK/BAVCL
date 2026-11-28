@@ -16,19 +16,16 @@ namespace BAVCL;
 /// </remarks>
 public sealed class VectorComplex64 : VectorBase<Complex>
 {
-	public VectorComplex64(GPU gpu, Complex[] values, int columns = 0, bool cache = true)
-		: base(gpu, values, columns, cache && values.Length > 0) { }
+	public VectorComplex64(GPU? gpu = null) : base(gpu) { }
 
-	public VectorComplex64(GPU gpu, int length, int columns = 0)
-		: base(gpu, new Complex[length], columns, cache: false) { }
+	public VectorComplex64(Complex[] values, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
+		: base(values, columns, upload, gpu) { }
 
-	private VectorComplex64(GPU gpu, int columns) : base(gpu, [], columns, cache: false) { }
+	public VectorComplex64(int length, int columns = 0, Init init = Init.UnInit, GPU? gpu = null)
+		: base(length, columns, init, gpu) { }
 
-	public static Vessel<VectorComplex64> CreateVessel(GPU gpu, int columns = 0) =>
-		new(new VectorComplex64(gpu, columns), gpu);
-
-	public VectorComplex64 Copy(bool cache = true) =>
-		new(Gpu, ToArray(), Columns, cache);
+	public VectorComplex64 Copy(Upload upload = Upload.Now) =>
+		new(ToArray(), Columns, upload, Gpu);
 
 	public override void Print() => Console.WriteLine(string.Join(", ", RetrieveReadOnlySpan().ToArray()));
 
@@ -61,7 +58,7 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 		bool[] values = new bool[left.Length];
 		for (int i = 0; i < left.Length; i++)
 			values[i] = left[i] == right[i];
-		return new Mask(Gpu, values, Columns);
+		return new Mask(values, Columns, gpu: Gpu);
 	}
 
 	public VectorComplex64 Mask(Mask mask, Complex fill = default) =>
@@ -136,17 +133,17 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 	public static VectorComplex64 operator /(VectorComplex64 vector, Complex scalar) => vector.Map(value => value / scalar);
 	public static VectorComplex64 operator /(Complex scalar, VectorComplex64 vector) => vector.Map(value => scalar / value);
 
-	public static VectorComplex64 Zeros(GPU gpu, int length, int columns = 0) =>
-		new(gpu, new Complex[length], columns);
+	public static VectorComplex64 Zeros(int length, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null) =>
+		new(new Complex[length], columns, upload, gpu);
 
-	public static VectorComplex64 Ones(GPU gpu, int length, int columns = 0) =>
-		Fill(gpu, Complex.One, length, columns);
+	public static VectorComplex64 Ones(int length, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null) =>
+		Fill(Complex.One, length, columns, upload, gpu);
 
-	public static VectorComplex64 Fill(GPU gpu, Complex value, int length, int columns = 0)
+	public static VectorComplex64 Fill(Complex value, int length, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		Complex[] values = new Complex[length];
 		Array.Fill(values, value);
-		return new VectorComplex64(gpu, values, columns);
+		return new VectorComplex64(values, columns, upload, gpu);
 	}
 
 	public void Flatten() => Columns = 0;
@@ -160,25 +157,25 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 		Complex[] values = new Complex[left.Length + right.Length];
 		left.RetrieveReadOnlySpan().CopyTo(values);
 		right.RetrieveReadOnlySpan().CopyTo(values.AsSpan(left.Length));
-		return new VectorComplex64(left.Gpu, values, left.Columns);
+		return new VectorComplex64(values, left.Columns, gpu: left.Gpu);
 	}
 
 	public void ConcatIP(VectorComplex64 other)
 	{
 		VectorComplex64 result = Concat(this, other);
-		using var scope = CpuScope.Begin(this, syncToGpu: true);
+		using var scope = CpuScope.Begin(this, Upload.Now);
 		Value = result.ToArray();
 		Length = Value.Length;
 	}
 
-	public VectorComplex64 Append(Complex value) => Concat(this, new VectorComplex64(Gpu, [value]));
-	public VectorComplex64 Prepend(Complex value) => Concat(new VectorComplex64(Gpu, [value]), this);
+	public VectorComplex64 Append(Complex value) => Concat(this, new VectorComplex64([value], gpu: Gpu));
+	public VectorComplex64 Prepend(Complex value) => Concat(new VectorComplex64([value], gpu: Gpu), this);
 
-	public VectorComplex64 Reverse() => new(Gpu, RetrieveReadOnlySpan().ToArray().Reverse().ToArray(), Columns);
+	public VectorComplex64 Reverse() => new(RetrieveReadOnlySpan().ToArray().Reverse().ToArray(), Columns, gpu: Gpu);
 
 	public void ReverseIP()
 	{
-		using var scope = CpuScope.Begin(this);
+		using var scope = CpuScope.Begin(this, Upload.Defer);
 		EditableView<Complex> view = scope.View;
 		for (int left = 0, right = Length - 1; left < right; left++, right--)
 		{
@@ -190,7 +187,7 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 		RetrieveReadOnlySpan().Slice(start, length).ToArray();
 
 	public VectorComplex64 GetSliceAsVector(int start, int length) =>
-		new(Gpu, GetSliceAsArray(start, length));
+		new(GetSliceAsArray(start, length), gpu: Gpu);
 
 	public override string ToString() => string.Join(", ", RetrieveReadOnlySpan().ToArray());
 
@@ -219,8 +216,8 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 		Shape rightShape = other.Shape();
 		Shape outputShape = leftShape.BroadcastWith(rightShape);
 		if (outputShape.ElementCount == 0)
-			return new VectorComplex64(Gpu, [], outputShape.ToStorageColumns());
-		VectorComplex64 result = new(Gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
+			return new VectorComplex64([], outputShape.ToStorageColumns(), gpu: Gpu);
+		VectorComplex64 result = new(outputShape.ElementCount, outputShape.ToStorageColumns(), gpu: Gpu);
 		var op = new SpecializedValue<int>((int)operation);
 		using (GpuScope.Begin(result, this, other))
 		{
@@ -245,8 +242,8 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 	{
 		ValidateOperation(operation);
 		if (Length == 0)
-			return new VectorComplex64(Gpu, [], Columns);
-		VectorComplex64 result = new(Gpu, Length, Columns);
+			return new VectorComplex64([], Columns, gpu: Gpu);
+		VectorComplex64 result = new(Length, Columns, gpu: Gpu);
 		using (GpuScope.Begin(result, this))
 		{
 			Gpu.complexScalarOp(Gpu.DefaultStream, Length, result.GetBuffer().View,
@@ -318,7 +315,7 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 		Complex[] output = new Complex[input.Length];
 		for (int i = 0; i < input.Length; i++)
 			output[i] = operation(input[i]);
-		return new VectorComplex64(Gpu, output, Columns);
+		return new VectorComplex64(output, Columns, gpu: Gpu);
 	}
 
 	VectorComplex64 Binary(VectorComplex64 other, Func<Complex, Complex, Complex> operation)
@@ -337,6 +334,6 @@ public sealed class VectorComplex64 : VectorBase<Complex>
 			int column = i - (row * columns);
 			output[i] = operation(left[leftStrides.IndexOf(row, column)], right[rightStrides.IndexOf(row, column)]);
 		}
-		return new VectorComplex64(Gpu, output, outputShape.ToStorageColumns());
+		return new VectorComplex64(output, outputShape.ToStorageColumns(), gpu: Gpu);
 	}
 }

@@ -5,11 +5,11 @@ public partial class Matrix : VectorBase<float>
 
     public (int, int) MatrixShape;
 
-    public Matrix(GPU gpu, float[] value, (int, int) shape, int columns = 1, bool Cache = true) : base(gpu, value, columns, Cache)
+    public Matrix(float[] value, (int, int) shape, int columns = 1, Upload upload = Upload.Now, GPU? gpu = null) : base(value, columns, upload, gpu)
     {
         this.MatrixShape = shape;
 
-        ID = gpu.GCItem(ID);
+        ID = Gpu.GCItem(ID);
         throw new System.NotImplementedException();
     }
 
