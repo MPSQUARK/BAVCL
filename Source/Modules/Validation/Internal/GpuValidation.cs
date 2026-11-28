@@ -11,12 +11,4 @@ internal static class GpuValidation
 
 		throw new GpuMismatchException();
 	}
-
-	internal static void IsSameVesselContainer(GPU vesselGpu, GPU containerGpu)
-	{
-		if (ReferenceEquals(vesselGpu, containerGpu))
-			return;
-
-		throw new VesselGpuMismatchException();
-	}
 }
