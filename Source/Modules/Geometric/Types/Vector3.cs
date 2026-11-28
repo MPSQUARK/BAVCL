@@ -2,6 +2,8 @@ using System;
 using BAVCL.Geometric.Enums;
 using BAVCL.Modules.Geometric;
 using BAVCL.Modules.GpuOps;
+using ILGPU;
+using ILGPU.Runtime;
 
 namespace BAVCL.Geometric;
 
@@ -9,12 +11,39 @@ public sealed class Vector3 : VectorBase<float>
 {
 	public override int Columns { get { return _columns; } set { _columns = 3; } }
 
-	public Vector3(GPU gpu, float[] value, bool cache = true) : base(gpu, ValidateVectorLength(value), 3, cache) { }
+	public Vector3(GPU? gpu = null) : base(gpu) { _columns = 3; }
 
-	public Vector3(GPU gpu, int length) : base(gpu, ValidateVectorLength(length), 3) { }
+	public Vector3(float[] values, Upload upload = Upload.Now, GPU? gpu = null)
+		: base(ValidateVectorLength(values), 3, upload, gpu) { }
+
+	public Vector3(int length, Init init = Init.UnInit, GPU? gpu = null)
+		: base(ValidateVectorLength(length), 3, init, gpu) { }
+
+	public override void Assign(float[] values, int columns = 3, Upload upload = Upload.Now)
+	{
+		ValidateVectorLength(values);
+		base.Assign(values, 3, upload);
+	}
+
+	public void Assign(float[] values, Upload upload) => Assign(values, 3, upload);
+
+	public override void Assign(int length, int columns = 3, Init init = Init.UnInit)
+	{
+		ValidateVectorLength(length);
+		base.Assign(length, 3, init);
+	}
+
+	public void Assign(int length, Init init) => Assign(length, 3, init);
+
+	public override void Assign(ArrayView1D<float, Stride1D.Dense> deviceView, int columns = 3)
+	{
+		ValidateVectorLength(deviceView.IntLength);
+		base.Assign(deviceView, 3);
+	}
 
 	static float[] ValidateVectorLength(float[] values)
 	{
+		ArgumentNullException.ThrowIfNull(values);
 		if (values.Length % 3 != 0) throw new Exception($"Vector3 must have a length that is a multiple of 3. Recieved {values.Length}");
 		return values;
 	}
@@ -25,28 +54,28 @@ public sealed class Vector3 : VectorBase<float>
 		return length;
 	}
 
-	public Vector ToVector(bool cache = true)
+	public Vector ToVector(Upload upload = Upload.Now)
 	{
 		if (_id != 0)
-			return new Vector(Gpu, Pull(), Columns, cache);
+			return new Vector(Pull(), Columns, upload, Gpu);
 
-		return new Vector(Gpu, ToArray(), Columns, cache);
+		return new Vector(ToArray(), Columns, upload, Gpu);
 	}
 
-	public Vector ToVector(int columns, bool cache = true)
+	public Vector ToVector(int columns, Upload upload = Upload.Now)
 	{
 		if (_id != 0)
-			return new Vector(Gpu, Pull(), Columns, cache);
+			return new Vector(Pull(), Columns, upload, Gpu);
 
-		return new Vector(Gpu, ToArray(), columns, cache);
+		return new Vector(ToArray(), columns, upload, Gpu);
 	}
 
-	public Vector3 Copy()
+	public Vector3 Copy(Upload upload = Upload.Now)
 	{
 		if (_id != 0)
-			return new Vector3(Gpu, Pull());
+			return new Vector3(Pull(), upload, Gpu);
 
-		return new Vector3(Gpu, ToArray());
+		return new Vector3(ToArray(), upload, Gpu);
 	}
 
 	public float this[int i, Coord coord]
