@@ -9,6 +9,12 @@ public sealed class Vessel<TCacheable> where TCacheable : class
 	internal TCacheable Target { get; }
 	internal GPU Gpu { get; }
 
+	internal Vessel(TCacheable target)
+	{
+		Target = target;
+		Gpu = GPUManager.Default;
+	}
+
 	internal Vessel(TCacheable target, GPU gpu)
 	{
 		Target = target;

@@ -16,9 +16,9 @@ public static class KernelModuleLoader
 	private static readonly Dictionary<(int Domain, Type ElementType), Action<GPU>> Modules = new()
 	{
 		[((int)KernelDomainSharedModule.MaskCore, typeof(float))] = static gpu => gpu.LoadMaskCoreKernels(),
-        [((int)KernelDomainSharedModule.MaskCore, typeof(int))] = static gpu => gpu.LoadMaskCoreKernels(),
-        [((int)KernelDomainSharedModule.MaskCore, typeof(Complex))] = static gpu => gpu.LoadMaskCoreKernels(),
-        [((int)KernelDomain.Arithmetic, typeof(float))] = static gpu => gpu.LoadArithmeticFloat32Kernels(),
+		[((int)KernelDomainSharedModule.MaskCore, typeof(int))] = static gpu => gpu.LoadMaskCoreKernels(),
+		[((int)KernelDomainSharedModule.MaskCore, typeof(Complex))] = static gpu => gpu.LoadMaskCoreKernels(),
+		[((int)KernelDomain.Arithmetic, typeof(float))] = static gpu => gpu.LoadArithmeticFloat32Kernels(),
 		[((int)KernelDomain.Structural, typeof(float))] = static gpu => gpu.LoadStructuralFloat32Kernels(),
 		[((int)KernelDomain.Geometry, typeof(float))] = static gpu => gpu.LoadGeometryFloat32Kernels(),
 		[((int)KernelDomain.Mask, typeof(float))] = static gpu =>
@@ -52,6 +52,13 @@ public static class KernelModuleLoader
 	/// Compiles the given domains for element type <typeparamref name="T"/>. Modules already
 	/// loaded on this device are skipped, so repeated calls are additive.
 	/// </summary>
+	public static void Load<T>(params KernelDomain[] domains) where T : unmanaged =>
+		Load<T>(GPUManager.Default, domains);
+
+	/// <summary>
+	/// Compiles the given domains for element type <typeparamref name="T"/>. Modules already
+	/// loaded on this device are skipped, so repeated calls are additive.
+	/// </summary>
 	public static void Load<T>(GPU gpu, params KernelDomain[] domains) where T : unmanaged
 	{
 		ArgumentNullException.ThrowIfNull(gpu);
@@ -71,7 +78,11 @@ public static class KernelModuleLoader
 		Console.WriteLine($"Compiled {compiled} kernel module(s) for {typeof(T).Name} in {timer.Elapsed.TotalMilliseconds:F2} ms");
 	}
 
-    /// <summary>Compiles every domain registered for element type <typeparamref name="T"/>.</summary>
+	/// <summary>Compiles every domain registered for element type <typeparamref name="T"/>.</summary>
+	public static void LoadAll<T>() where T : unmanaged =>
+		LoadAll<T>(GPUManager.Default);
+
+	/// <summary>Compiles every domain registered for element type <typeparamref name="T"/>.</summary>
 	public static void LoadAll<T>(GPU gpu) where T : unmanaged =>
 		Load<T>(gpu, [.. Modules.Keys
 			.Where(key => key.ElementType == typeof(T) && Enum.IsDefined(typeof(KernelDomain), key.Domain))

@@ -19,7 +19,13 @@ public abstract class VectorBase<T> : CacheableBase<T>, IIO where T : unmanaged
 		}
 	}
 
+	protected VectorBase(T[] value, int columns = 0, bool cache = true) : base(value, cache) =>
+		Columns = columns;
+
 	protected VectorBase(GPU gpu, T[] value, int columns = 0, bool cache = true) : base(gpu, value, cache) =>
+		Columns = columns;
+
+	protected VectorBase(int length, int columns = 0) : base(length) =>
 		Columns = columns;
 
 	protected VectorBase(GPU gpu, int length, int columns = 0) : base(gpu, length) =>

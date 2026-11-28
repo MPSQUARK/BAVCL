@@ -23,6 +23,11 @@ public sealed class BufferPool
 	/// <summary>Compatibility alias for the pooled complex storage.</summary>
 	public ElementBufferPool<System.Numerics.Complex> Complex64 => Complex;
 
+	internal BufferPool()
+		: this(GPUManager.Default)
+	{
+	}
+
 	internal BufferPool(GPU gpu)
 	{
 		Gpu = gpu;
