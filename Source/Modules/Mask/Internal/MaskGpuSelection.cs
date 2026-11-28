@@ -1,4 +1,3 @@
-using System;
 using BAVCL.Core.Memory;
 using BAVCL.Types;
 using ILGPU;
@@ -10,26 +9,7 @@ namespace BAVCL.Modules.Masking;
 /// <summary>GPU compaction selection: broadcast flags, exclusive scan write positions, true count.</summary>
 internal static class MaskGpuSelection
 {
-	internal static TResult Scan<TResult>(
-		GPU gpu,
-		Mask mask,
-		Shape maskShape,
-		Shape outputShape,
-		Func<ArrayView1D<int, Stride1D.Dense>, ArrayView1D<int, Stride1D.Dense>, int, TResult> consume)
-	{
-		int elementCount = outputShape.ElementCount;
-		using BufferEntity<int> flags = BufferPools.For(gpu).Int.Rent(elementCount);
-		using BufferEntity<int> writePos = BufferPools.For(gpu).Int.Rent(elementCount);
-		using (GpuScope.Begin([flags.PinTarget, writePos.PinTarget], [mask]))
-		{
-			ArrayView1D<int, Stride1D.Dense> flagsView = flags.View;
-			ArrayView1D<int, Stride1D.Dense> writePosView = writePos.View;
-			int trueCount = ExclusivePrefixCount(gpu, mask, maskShape, outputShape, flagsView, writePosView);
-			return consume(flagsView, writePosView, trueCount);
-		}
-	}
-
-	static int ExclusivePrefixCount(
+	internal static int ExclusivePrefixCount(
 		GPU gpu,
 		Mask mask,
 		Shape maskShape,
