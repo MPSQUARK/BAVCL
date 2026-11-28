@@ -67,7 +67,7 @@ internal static class GpuRollingStatsCore
 	static Vector LaunchRollingSumFloat1D(Vector vector, Vector cum, int window)
 	{
 		GPU gpu = vector.Gpu;
-		Vector output = new(gpu, vector.Length, vector.Columns);
+		Vector output = new(vector.Length, vector.Columns, gpu: gpu);
 		int length = vector.Length;
 		ArrayView1D<float, Stride1D.Dense> outputView = output.GetBuffer().View;
 		ArrayView1D<float, Stride1D.Dense> cumView = cum.GetBuffer().View;
@@ -84,7 +84,7 @@ internal static class GpuRollingStatsCore
 	static Vector LaunchRollingSumFloat2D(Vector vector, Vector cum, int window)
 	{
 		GPU gpu = vector.Gpu;
-		Vector output = new(gpu, vector.Length, vector.Columns);
+		Vector output = new(vector.Length, vector.Columns, gpu: gpu);
 		int length = vector.Length;
 		ArrayView1D<float, Stride1D.Dense> outputView = output.GetBuffer().View;
 		ArrayView1D<float, Stride1D.Dense> cumView = cum.GetBuffer().View;
@@ -101,7 +101,7 @@ internal static class GpuRollingStatsCore
 	static VectorInt LaunchRollingSumInt1D(VectorInt vector, VectorInt cum, int window)
 	{
 		GPU gpu = vector.Gpu;
-		VectorInt output = new(gpu, vector.Length, vector.Columns);
+		VectorInt output = new(vector.Length, vector.Columns, gpu: gpu);
 		int length = vector.Length;
 		ArrayView1D<int, Stride1D.Dense> outputView = output.GetBuffer().View;
 		ArrayView1D<int, Stride1D.Dense> cumView = cum.GetBuffer().View;
@@ -118,7 +118,7 @@ internal static class GpuRollingStatsCore
 	static VectorInt LaunchRollingSumInt2D(VectorInt vector, VectorInt cum, int window)
 	{
 		GPU gpu = vector.Gpu;
-		VectorInt output = new(gpu, vector.Length, vector.Columns);
+		VectorInt output = new(vector.Length, vector.Columns, gpu: gpu);
 		int length = vector.Length;
 		ArrayView1D<int, Stride1D.Dense> outputView = output.GetBuffer().View;
 		ArrayView1D<int, Stride1D.Dense> cumView = cum.GetBuffer().View;
@@ -135,7 +135,7 @@ internal static class GpuRollingStatsCore
 	static Vector LaunchMovingAverageFloat1D(Vector vector, Vector cum, int window)
 	{
 		GPU gpu = vector.Gpu;
-		Vector output = new(gpu, vector.Length, vector.Columns);
+		Vector output = new(vector.Length, vector.Columns, gpu: gpu);
 		int length = vector.Length;
 		ArrayView1D<float, Stride1D.Dense> outputView = output.GetBuffer().View;
 		ArrayView1D<float, Stride1D.Dense> cumView = cum.GetBuffer().View;
@@ -152,7 +152,7 @@ internal static class GpuRollingStatsCore
 	static Vector LaunchMovingAverageFloat2D(Vector vector, Vector cum, int window)
 	{
 		GPU gpu = vector.Gpu;
-		Vector output = new(gpu, vector.Length, vector.Columns);
+		Vector output = new(vector.Length, vector.Columns, gpu: gpu);
 		int length = vector.Length;
 		ArrayView1D<float, Stride1D.Dense> outputView = output.GetBuffer().View;
 		ArrayView1D<float, Stride1D.Dense> cumView = cum.GetBuffer().View;
@@ -169,7 +169,7 @@ internal static class GpuRollingStatsCore
 	static Vector LaunchMovingAverageFromIntRolling1D(VectorInt rolling, int window)
 	{
 		GPU gpu = rolling.Gpu;
-		Vector output = new(gpu, rolling.Length, rolling.Columns);
+		Vector output = new(rolling.Length, rolling.Columns, gpu: gpu);
 		int length = rolling.Length;
 		ArrayView1D<float, Stride1D.Dense> outputView = output.GetBuffer().View;
 		ArrayView1D<int, Stride1D.Dense> rollingView = rolling.GetBuffer().View;
@@ -186,7 +186,7 @@ internal static class GpuRollingStatsCore
 	static Vector LaunchMovingAverageFromIntRolling2D(VectorInt rolling, int window)
 	{
 		GPU gpu = rolling.Gpu;
-		Vector output = new(gpu, rolling.Length, rolling.Columns);
+		Vector output = new(rolling.Length, rolling.Columns, gpu: gpu);
 		int length = rolling.Length;
 		ArrayView1D<float, Stride1D.Dense> outputView = output.GetBuffer().View;
 		ArrayView1D<int, Stride1D.Dense> rollingView = rolling.GetBuffer().View;

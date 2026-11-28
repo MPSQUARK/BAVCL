@@ -8,7 +8,7 @@ internal static class VectorGpuOps
 	internal static Vector ScalarOP(Vector vector, float scalar, Operations operation)
 	{
 		GPU gpu = vector.Gpu;
-		Vector output = new(gpu, vector.Length, vector.Columns);
+		Vector output = new(vector.Length, vector.Columns, gpu: gpu);
 
 		using (GpuScope.Begin(output, vector))
 		{

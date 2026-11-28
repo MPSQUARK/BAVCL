@@ -21,7 +21,7 @@ public interface ICacheable
 	void SetResidence(Residence residence);
 
 	void EnterCpuScope();
-	void ExitCpuScope(bool syncToGpu);
+	void ExitCpuScope(Upload upload);
 	void RollbackCpuScopeEnter();
 }
 

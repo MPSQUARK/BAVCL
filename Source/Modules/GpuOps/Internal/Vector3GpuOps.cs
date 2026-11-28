@@ -1,5 +1,5 @@
 using BAVCL.Geometric;
-using BAVCL.Modules.Structural;
+using BAVCL.Modules.Generators;
 using ILGPU;
 using ILGPU.Runtime;
 
@@ -10,7 +10,7 @@ internal static class Vector3GpuOps
 	internal static Vector VOPX(Vector3 vector, Operations operation)
 	{
 		GPU gpu = vector.Gpu;
-		Vector output = Vector.Zeros(gpu, vector.RowCount(), 0);
+		Vector output = Vector.ZerosX(vector.RowCount(), 0, gpu: gpu);
 
 		using (GpuScope.Begin(output, vector))
 		{
@@ -27,7 +27,7 @@ internal static class Vector3GpuOps
 	internal static Vector VOPX(Vector3 left, Vector3 right, Operations operation)
 	{
 		GPU gpu = left.Gpu;
-		Vector output = Vector.Zeros(gpu, left.RowCount(), 0);
+		Vector output = Vector.ZerosX(left.RowCount(), 0, gpu: gpu);
 
 		using (GpuScope.Begin(output, left, right))
 		{
@@ -45,7 +45,7 @@ internal static class Vector3GpuOps
 	internal static Vector3 OPX(Vector3 left, Vector3 right, Operations operation)
 	{
 		GPU gpu = left.Gpu;
-		Vector3 output = new(gpu, left.Length);
+		Vector3 output = new(left.Length, gpu: gpu);
 
 		using (GpuScope.Begin(output, left, right))
 		{
@@ -64,7 +64,7 @@ internal static class Vector3GpuOps
 	internal static Vector3 OPX(Vector3 vector, float scalar, Operations operation)
 	{
 		GPU gpu = vector.Gpu;
-		Vector3 output = new(gpu, vector.Length);
+		Vector3 output = new(vector.Length, gpu: gpu);
 
 		using (GpuScope.Begin(output, vector))
 		{

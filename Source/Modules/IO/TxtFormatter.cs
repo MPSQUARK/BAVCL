@@ -58,7 +58,7 @@ public sealed class TxtFormatter :
 			.Select(segment =>
 			{
 				(float[] values, int columns) = TxtParsing.ParseFloatGrid(segment);
-				return new Vector(gpu, values, columns, cache: values.Length > 0);
+				return new Vector(values, columns, gpu: gpu);
 			})
 			.ToList();
 	}
@@ -76,7 +76,7 @@ public sealed class TxtFormatter :
 			.Select(segment =>
 			{
 				(int[] values, int columns) = TxtParsing.ParseIntGrid(segment);
-				return new VectorInt(gpu, values, columns, cache: values.Length > 0);
+				return new VectorInt(values, columns, gpu: gpu);
 			})
 			.ToList();
 	}
@@ -108,7 +108,7 @@ public sealed class TxtFormatter :
 			.Select(segment =>
 			{
 				(bool[] values, int columns) = TxtParsing.ParseBoolGrid(segment);
-				return new Mask(gpu, values, columns);
+				return new Mask(values, columns, gpu: gpu);
 			})
 			.ToList();
 	}
@@ -144,14 +144,14 @@ public sealed class TxtFormatter :
 	{
 		ArgumentNullException.ThrowIfNull(gpu);
 		(float[] values, int columns) = TxtParsing.ParseFloatGrid(text);
-		return new Vector(gpu, values, columns, cache: values.Length > 0);
+		return new Vector(values, columns, gpu: gpu);
 	}
 
 	static VectorInt DeserializeVectorInt(GPU gpu, string text)
 	{
 		ArgumentNullException.ThrowIfNull(gpu);
 		(int[] values, int columns) = TxtParsing.ParseIntGrid(text);
-		return new VectorInt(gpu, values, columns, cache: values.Length > 0);
+		return new VectorInt(values, columns, gpu: gpu);
 	}
 
 	static Vector3 DeserializeVector3(GPU gpu, string text)
@@ -165,13 +165,13 @@ public sealed class TxtFormatter :
 		(float[] values, int columns) = TxtParsing.ParseFloatGrid(text, requiredColumns: 3);
 		StructuredIoValidation.ValidateVector3Layout(columns, values.Length);
 
-		return new Vector3(gpu, values, cache: values.Length > 0);
+		return new Vector3(values, gpu: gpu);
 	}
 
 	static Mask DeserializeMask(GPU gpu, string text)
 	{
 		ArgumentNullException.ThrowIfNull(gpu);
 		(bool[] values, int columns) = TxtParsing.ParseBoolGrid(text);
-		return new Mask(gpu, values, columns);
+		return new Mask(values, columns, gpu: gpu);
 	}
 }

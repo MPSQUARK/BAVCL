@@ -45,7 +45,7 @@ internal static class Vector3Geometry
 			throw new Exception($"Cannot Cross Product two Vector3's together of different lengths. {left.Length} != {right.Length}");
 
 		GPU gpu = left.Gpu;
-		Vector3 output = new(gpu, left.Length);
+		Vector3 output = new(left.Length, gpu: gpu);
 
 		using (GpuScope.Begin(output, left, right))
 		{
@@ -64,7 +64,7 @@ internal static class Vector3Geometry
 	internal static Vector3 NormaliseX(Vector3 vector)
 	{
 		GPU gpu = vector.Gpu;
-		Vector3 output = new(gpu, vector.Length);
+		Vector3 output = new(vector.Length, gpu: gpu);
 
 		using (GpuScope.Begin(output, vector))
 		{
@@ -83,7 +83,7 @@ internal static class Vector3Geometry
 	{
 		ReadOnlySpan<float> data = vector.RetrieveReadOnlySpan();
 		float[] row = data.Slice(vertRow + vertRow + vertRow, 3).ToArray();
-		return new Vector3(vector.Gpu, row);
+		return new Vector3(row, gpu: vector.Gpu);
 	}
 
 	internal static Vector3 Concat(Vector3 left, Vertex vertA) =>
@@ -106,7 +106,7 @@ internal static class Vector3Geometry
 
 	internal static Vector3 ConcatIP(Vector3 vector, Vertex vertA)
 	{
-		using (vector.CpuScopeAndSync())
+		using (vector.CpuScope())
 		{
 			ReadOnlySpan<float> left = vector.RetrieveReadOnlySpan();
 			vector.Value = [..left, vertA.X, vertA.Y, vertA.Z];
@@ -118,7 +118,7 @@ internal static class Vector3Geometry
 
 	internal static Vector3 ConcatIP(Vector3 vector, Vertex[] vertices)
 	{
-		using (vector.CpuScopeAndSync())
+		using (vector.CpuScope())
 		{
             vector.Value = vertices.Aggregate(vector.RetrieveReadOnlySpan().ToArray(), (current, vert) =>
 				[.. current, vert.X, vert.Y, vert.Z]);
@@ -130,7 +130,7 @@ internal static class Vector3Geometry
 
 	internal static Vector3 ConcatIP(Vector3 vector, List<Vertex> vertices)
 	{
-		using (vector.CpuScopeAndSync())
+		using (vector.CpuScope())
 		{
 			ReadOnlySpan<float> left = vector.RetrieveReadOnlySpan();
 			vector.Value = vertices.Aggregate(left.ToArray(), (current, vert) =>
@@ -143,7 +143,7 @@ internal static class Vector3Geometry
 
 	internal static Vector3 ConcatIP(Vector3 vector, Vector3 other)
 	{
-		using (vector.CpuScopeAndSync())
+		using (vector.CpuScope())
 		{
 			ReadOnlySpan<float> left = vector.RetrieveReadOnlySpan();
 			ReadOnlySpan<float> right = other.RetrieveReadOnlySpan();
@@ -156,7 +156,7 @@ internal static class Vector3Geometry
 
 	internal static Vector3 ConcatIP(Vector3 vector, Vector3[] vectors)
 	{
-		using (vector.CpuScopeAndSync())
+		using (vector.CpuScope())
 		{
 			float[] merged = vector.RetrieveReadOnlySpan().ToArray();
 			for (int i = 0; i < vectors.Length; i++)
@@ -171,7 +171,7 @@ internal static class Vector3Geometry
 
 	internal static Vector3 ConcatIP(Vector3 vector, List<Vector3> vectors)
 	{
-		using (vector.CpuScopeAndSync())
+		using (vector.CpuScope())
 		{
 			float[] merged = vector.RetrieveReadOnlySpan().ToArray();
 			for (int i = 0; i < vectors.Count; i++)

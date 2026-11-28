@@ -56,6 +56,7 @@ public readonly struct GpuPinScope : IDisposable
 
 	static void EnterModifiedPin(ICacheable cacheable)
 	{
+		Guard.NotEmpty(cacheable);
 		ResidenceHelper.GuardCrossContext(cacheable.Residence, enteringCpu: false);
 
 		Residence current = cacheable.Residence;
@@ -67,6 +68,7 @@ public readonly struct GpuPinScope : IDisposable
 
 	static void EnterReadOnlyPin(ICacheable cacheable)
 	{
+		Guard.NotEmpty(cacheable);
 		ResidenceHelper.GuardCrossContext(cacheable.Residence, enteringCpu: false);
 		cacheable.IncrementLiveCount();
 	}

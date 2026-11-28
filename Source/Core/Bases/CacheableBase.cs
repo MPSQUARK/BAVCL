@@ -18,6 +18,8 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 	Residence _cpuScopeResidenceBeforeOuterEnter;
 
 	internal int _cpuScopeDepth;
+	int _isPossessed;
+	int _assignGate;
 
 	protected volatile internal uint _id;
 	protected volatile internal uint _livecount;
@@ -28,6 +30,15 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 		get => _residence.Value;
 		set => _residence.Value = value;
 	}
+
+	/// <summary>True when this instance has no backing data or GPU buffer yet.</summary>
+	public bool IsEmpty => Residence == Residence.None;
+
+	internal bool IsPossessed => Volatile.Read(ref _isPossessed) != 0;
+
+	internal bool TryAcquirePossession() => Interlocked.CompareExchange(ref _isPossessed, 1, 0) == 0;
+
+	internal void ReleasePossession() => Volatile.Write(ref _isPossessed, 0);
 
 	public int Length
 	{
@@ -49,37 +60,35 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 		set => _livecount = value;
 	}
 
-	protected CacheableBase(GPU gpu, T[] value, bool cache = true)
+	/// <summary>Creates an empty shell with no backing data or GPU buffer.</summary>
+	protected CacheableBase(GPU? gpu = null)
 	{
-		Gpu = gpu;
-		Value = value;
-		Length = value.Length;
-
-		if (cache)
-		{
-			Cache(value);
-			Residence = Residence.InSync;
-			return;
-		}
-
-		Residence = Residence.Cpu;
+		Gpu = gpu ?? GPUManager.Default;
+		Value = [];
+		Length = 0;
+		ID = 0;
+		Residence = Residence.None;
 	}
 
-	/// <summary>
-	/// Creates GPU-backed storage of specified length.
-	/// Warning: may contain uninitialized data — zero or fill before use.
-	/// </summary>
-	protected CacheableBase(GPU gpu, int length)
+	/// <summary>Creates storage backed by host <paramref name="values"/>.</summary>
+	protected CacheableBase(T[] values, Upload upload = Upload.Now, GPU? gpu = null)
 	{
-		Gpu = gpu;
-		Value = [];
-		Length = length;
-		CacheEmpty(length);
-		Residence = Residence.Gpu;
+		ArgumentNullException.ThrowIfNull(values);
+		Gpu = gpu ?? GPUManager.Default;
+		ApplyData(values, upload);
+	}
+
+	/// <summary>Creates GPU-backed storage of <paramref name="length"/> elements.</summary>
+	protected CacheableBase(int length, Init init = Init.UnInit, GPU? gpu = null)
+	{
+		Guard.ArgumentIsNonNegative(length);
+		Gpu = gpu ?? GPUManager.Default;
+		ApplyLength(length, init);
 	}
 
 	public T[] Pull()
 	{
+		Guard.NotEmpty(this);
 		MemoryBuffer1D<T, Stride1D.Dense> buffer = GetBuffer();
 		T[] values = new T[buffer.Length];
 		buffer.AsArrayView<T>(0, buffer.Length).CopyToCPU(values);
@@ -88,6 +97,7 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 
 	public ReadOnlySpan<T> RetrieveReadOnlySpan()
 	{
+		Guard.NotEmpty(this);
 		SyncCPU();
 		return GetCpuReadOnlySpan();
 	}
@@ -113,7 +123,7 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 
 	public void SyncCPU()
 	{
-		if (ResidenceHelper.IsInSync(Residence) || ResidenceHelper.IsCpuAuthority(Residence))
+		if (IsEmpty || ResidenceHelper.IsInSync(Residence) || ResidenceHelper.IsCpuAuthority(Residence))
 			return;
 
 		if (ID != 0)
@@ -125,7 +135,7 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 
 	public void SyncCPU(MemoryBuffer buffer)
 	{
-		if (ResidenceHelper.IsInSync(Residence) || ResidenceHelper.IsCpuAuthority(Residence))
+		if (IsEmpty || ResidenceHelper.IsInSync(Residence) || ResidenceHelper.IsCpuAuthority(Residence))
 			return;
 
 		if (Value == null || Value.Length != buffer.Length)
@@ -138,6 +148,8 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 
 	public MemoryBuffer1D<T, Stride1D.Dense> GetBuffer()
 	{
+		Guard.NotEmpty(this);
+
 		if (ResidenceHelper.IsCpuAuthority(Residence) && !ResidenceHelper.IsActiveCpu(Residence))
 			return (MemoryBuffer1D<T, Stride1D.Dense>)UpdateCache();
 
@@ -146,6 +158,8 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 
 	public MemoryBuffer UpdateCache()
 	{
+		Guard.NotEmpty(this);
+
 		if (ResidenceHelper.IsInSync(Residence) || ResidenceHelper.IsGpuAuthority(Residence))
 			return GetBuffer();
 
@@ -160,6 +174,7 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 
 	public MemoryBuffer UpdateCache(T[] array)
 	{
+		ArgumentNullException.ThrowIfNull(array);
 		Length = array.Length;
 		Value = array;
 		(ID, MemoryBuffer buffer) = Gpu.UpdateBuffer(this, array);
@@ -169,10 +184,7 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 
 	public void DeCache()
 	{
-		if (ID == 0)
-			return;
-
-		if (LiveCount != 0)
+		if (ID == 0 || LiveCount != 0 || IsPossessed)
 			return;
 
 		SyncCPU();
@@ -186,6 +198,7 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 
 	public void EnterCpuScope()
 	{
+		Guard.NotEmpty(this);
 		ResidenceHelper.GuardCrossContext(Residence, enteringCpu: true);
 
 		if (Interlocked.Increment(ref _cpuScopeDepth) != 1)
@@ -213,7 +226,7 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 		}
 	}
 
-	public void ExitCpuScope(bool syncToGpu)
+	public void ExitCpuScope(Upload upload)
 	{
 		if (Interlocked.Decrement(ref _cpuScopeDepth) != 0)
 			return;
@@ -221,7 +234,7 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 		CommitCpuView();
 		ResidenceScopeHelper.TransitionOrReconcile(this, Residence.ActiveCpu, Residence.Cpu);
 
-		if (syncToGpu)
+		if (upload == Upload.Now)
 			UpdateCache();
 	}
 
@@ -264,9 +277,112 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 		return buffer;
 	}
 
-	internal MemoryBuffer CacheEmpty(int length)
+	internal MemoryBuffer CacheEmpty(int length, Init init = Init.UnInit)
 	{
-		(ID, MemoryBuffer buffer) = Gpu.AllocateEmpty<T>(this, length);
+		(ID, MemoryBuffer buffer) = Gpu.AllocateEmpty<T>(this, length, init);
 		return buffer;
+	}
+
+	internal MemoryBuffer Cache(ArrayView1D<T, Stride1D.Dense> deviceView)
+	{
+		(ID, MemoryBuffer buffer) = Gpu.Allocate(this, deviceView);
+		return buffer;
+	}
+
+	internal void RestoreEmptyState()
+	{
+		ID = 0;
+		Value = [];
+		Length = 0;
+		Residence = Residence.None;
+		ReleasePossession();
+		OnRestoredEmpty();
+	}
+
+	protected virtual void OnRestoredEmpty() { }
+
+	/// <summary>
+	/// Releases any owned GPU buffer and resets host storage without leaking LRU entries.
+	/// </summary>
+	protected void ReleaseOwnedStorage()
+	{
+		Guard.CanReassign(this);
+		Gpu.ReleaseBuffer(ID);
+		ID = 0;
+		Value = [];
+		Length = 0;
+		Residence = Residence.None;
+	}
+
+	protected void AssignDataCore(T[] values, Upload upload)
+	{
+		ArgumentNullException.ThrowIfNull(values);
+		RunExclusiveAssign(() =>
+		{
+			ReleaseOwnedStorage();
+			ApplyData(values, upload);
+		});
+	}
+
+	protected void AssignLengthCore(int length, Init init)
+	{
+		Guard.ArgumentIsNonNegative(length);
+		RunExclusiveAssign(() =>
+		{
+			ReleaseOwnedStorage();
+			ApplyLength(length, init);
+		});
+	}
+
+	protected void AssignViewCore(ArrayView1D<T, Stride1D.Dense> deviceView)
+	{
+		Guard.ArgumentIsPositive(deviceView.IntLength);
+		RunExclusiveAssign(() =>
+		{
+			ReleaseOwnedStorage();
+			Value = [];
+			Length = deviceView.IntLength;
+			Cache(deviceView);
+			Residence = Residence.Gpu;
+		});
+	}
+
+	void RunExclusiveAssign(Action assign)
+	{
+		if (Interlocked.CompareExchange(ref _assignGate, 1, 0) != 0)
+			throw new InvalidOperationException(
+				$"Concurrent Assign detected on {GetType().Name}.");
+
+		try
+		{
+			assign();
+		}
+		finally
+		{
+			Volatile.Write(ref _assignGate, 0);
+		}
+	}
+
+	void ApplyData(T[] values, Upload upload)
+	{
+		Value = values;
+		Length = values.Length;
+
+		if (upload == Upload.Now && values.Length > 0)
+		{
+			Cache(values);
+			Residence = Residence.InSync;
+			return;
+		}
+
+		Residence = Residence.Cpu;
+	}
+
+	void ApplyLength(int length, Init init)
+	{
+		Value = [];
+		Length = length;
+		CacheEmpty(length, init);
+		Residence = Residence.Gpu;
 	}
 }

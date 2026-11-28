@@ -45,7 +45,7 @@ internal static class CrossCore
 		}
 
 		GPU gpu = matrixA.Gpu;
-		Vector output = new(gpu, rowsA * colsB, colsB);
+		Vector output = new(rowsA * colsB, colsB, gpu: gpu);
 
 		using (GpuScope.Begin(output, matrixA, matrixB))
 		{
@@ -129,7 +129,7 @@ internal static class CrossCore
 		}
 
 		GPU gpu = matrixA.Gpu;
-		VectorInt output = new(gpu, rowsA * colsB, colsB);
+		VectorInt output = new(rowsA * colsB, colsB, gpu: gpu);
 
 		using (GpuScope.Begin(output, matrixA, matrixB))
 		{

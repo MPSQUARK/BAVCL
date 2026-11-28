@@ -56,7 +56,7 @@ public sealed class CsvFormatter :
 
 	IReadOnlyList<Vector> ICollectionFormatter<Vector>.DeserializeAll(GPU gpu, string text) =>
 		StructuredCsv.DeserializeAllFloatArray(text, typeof(Vector))
-			.Select(document => new Vector(gpu, document.Data, document.Columns, cache: document.Data.Length > 0))
+			.Select(document => new Vector(document.Data, document.Columns, gpu: gpu))
 			.ToList();
 
 	string ICollectionFormatter<VectorInt>.OpenCollection(VectorInt first, int flags) =>
@@ -69,7 +69,7 @@ public sealed class CsvFormatter :
 
 	IReadOnlyList<VectorInt> ICollectionFormatter<VectorInt>.DeserializeAll(GPU gpu, string text) =>
 		StructuredCsv.DeserializeAllIntArray(text, typeof(VectorInt))
-			.Select(document => new VectorInt(gpu, document.Data, document.Columns, cache: document.Data.Length > 0))
+			.Select(document => new VectorInt(document.Data, document.Columns, gpu: gpu))
 			.ToList();
 
 	string ICollectionFormatter<Vector3>.OpenCollection(Vector3 first, int flags) =>
@@ -85,7 +85,7 @@ public sealed class CsvFormatter :
 			.Select(document =>
 			{
 				StructuredIoValidation.ValidateVector3Layout(document.Columns, document.Data.Length);
-				return new Vector3(gpu, document.Data, cache: document.Data.Length > 0);
+				return new Vector3(document.Data, gpu: gpu);
 			})
 			.ToList();
 
@@ -151,14 +151,14 @@ public sealed class CsvFormatter :
 	{
 		ArgumentNullException.ThrowIfNull(gpu);
 		FloatArrayDocument document = StructuredCsv.DeserializeFloatArray(text, typeof(Vector));
-		return new Vector(gpu, document.Data, document.Columns, cache: document.Data.Length > 0);
+		return new Vector(document.Data, document.Columns, gpu: gpu);
 	}
 
 	static VectorInt DeserializeVectorInt(GPU gpu, string text)
 	{
 		ArgumentNullException.ThrowIfNull(gpu);
 		IntArrayDocument document = StructuredCsv.DeserializeIntArray(text, typeof(VectorInt));
-		return new VectorInt(gpu, document.Data, document.Columns, cache: document.Data.Length > 0);
+		return new VectorInt(document.Data, document.Columns, gpu: gpu);
 	}
 
 	static Vector3 DeserializeVector3(GPU gpu, string text)
@@ -166,6 +166,6 @@ public sealed class CsvFormatter :
 		ArgumentNullException.ThrowIfNull(gpu);
 		FloatArrayDocument document = StructuredCsv.DeserializeFloatArray(text, typeof(Vector3));
 		StructuredIoValidation.ValidateVector3Layout(document.Columns, document.Data.Length);
-		return new Vector3(gpu, document.Data, cache: document.Data.Length > 0);
+		return new Vector3(document.Data, gpu: gpu);
 	}
 }

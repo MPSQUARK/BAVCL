@@ -1,3 +1,4 @@
+using ILGPU;
 using ILGPU.Runtime;
 using System;
 using System.Collections.Generic;
@@ -45,7 +46,8 @@ public sealed partial class GPU(Accelerator accelerator, IMemoryManager memoryMa
 	// Wrappers for Memory Manager
 	public (uint, MemoryBuffer) Allocate<T>(ICacheable<T> cacheable) where T : unmanaged => _memoryManager.Allocate(cacheable, accelerator);
 	public (uint, MemoryBuffer) Allocate<T>(ICacheable cacheable, T[] values) where T : unmanaged => _memoryManager.Allocate(cacheable, values, accelerator);
-	public (uint, MemoryBuffer) AllocateEmpty<T>(ICacheable cacheable, int length) where T : unmanaged => _memoryManager.AllocateEmpty<T>(cacheable, length, accelerator);
+	public (uint, MemoryBuffer) Allocate<T>(ICacheable cacheable, ArrayView1D<T, Stride1D.Dense> deviceView) where T : unmanaged => _memoryManager.Allocate(cacheable, deviceView, accelerator);
+	public (uint, MemoryBuffer) AllocateEmpty<T>(ICacheable cacheable, int length, Init init = Init.UnInit) where T : unmanaged => _memoryManager.AllocateEmpty<T>(cacheable, length, accelerator, init);
 	public MemoryBuffer? TryGetBuffer<T>(uint Id) where T : unmanaged => _memoryManager.GetBuffer(Id);
 	public (uint, MemoryBuffer) UpdateBuffer<T>(ICacheable cacheable, T[] values) where T : unmanaged => _memoryManager.UpdateBuffer(cacheable, values, accelerator);
 	public (uint, MemoryBuffer) UpdateBuffer<T>(ICacheable<T> cacheable) where T : unmanaged => _memoryManager.UpdateBuffer(cacheable, accelerator);
@@ -59,6 +61,18 @@ public sealed partial class GPU(Accelerator accelerator, IMemoryManager memoryMa
 	/// Warning: This will NOT sync GPU data back onto the CPU.
 	/// </summary>
 	public uint FreeBuffer(uint Id) => _memoryManager.FreeBuffer(Id);
+
+	/// <summary>
+	/// Frees <paramref name="id"/> without syncing to CPU and throws if the buffer is still live.
+	/// </summary>
+	internal void ReleaseBuffer(uint id)
+	{
+		if (id == 0)
+			return;
+
+		uint remaining = FreeBuffer(id);
+		Guard.BufferReleased(id, remaining);
+	}
 	public bool IsStored(uint id) => _memoryManager.IsStored(id);
 	public string PrintMemoryUsage(bool percentage, string format = "F2", BinaryByteUnit unit = BinaryByteUnit.Megabytes) =>
 		_memoryManager.PrintMemoryUsage(percentage, format, unit);

@@ -13,7 +13,7 @@ internal static class MaskBitwiseOps
 	internal static Mask BinaryOp(Mask left, Mask right, MaskOperation operation)
 	{
 		Shape outputShape = OutputShape(left, right, operation);
-		Mask output = new(left.Gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
+		Mask output = new(outputShape.ElementCount, outputShape.ToStorageColumns(), gpu: left.Gpu);
 
 		if (SharesLayout(left, right))
 			LaunchWordOp(output, left, right, operation);
@@ -166,5 +166,5 @@ internal static class MaskBitwiseOps
 
 	static bool SharesLayout(Mask left, Mask right) => left.Shape().MatchesDimensions(right.Shape());
 
-	static Mask EmptyLike(Mask mask) => new(mask.Gpu, mask.ElementCount, mask.Columns);
+	static Mask EmptyLike(Mask mask) => new(mask.ElementCount, mask.Columns, gpu: mask.Gpu);
 }

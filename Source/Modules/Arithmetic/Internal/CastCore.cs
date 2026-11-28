@@ -23,7 +23,7 @@ internal static class CastCore
 		}
 
 		GPU gpu = vector.Gpu;
-		VectorInt output = new(gpu, vector.Length, vector.Columns);
+		VectorInt output = new(vector.Length, vector.Columns, gpu: gpu);
 		output.Residence = vector.Residence;
 
 		using (GpuScope.Begin(output, vector))
@@ -41,7 +41,7 @@ internal static class CastCore
 	internal static Vector ToVector(VectorInt vector)
 	{
 		GPU gpu = vector.Gpu;
-		Vector output = new(gpu, vector.Length, vector.Columns);
+		Vector output = new(vector.Length, vector.Columns, gpu: gpu);
 		output.Residence = vector.Residence;
 
 		using (GpuScope.Begin(output, vector))

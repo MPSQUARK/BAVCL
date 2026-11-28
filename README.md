@@ -33,10 +33,8 @@ Minimal example:
 ```csharp
 using BAVCL;
 
-GPU gpu = GPUManager.Default;
-
-Vector a = new(gpu, [1f, 2f, 3f, 4f]);
-Vector b = new(gpu, [10f, 20f, 30f, 40f]);
+Vector a = new([1f, 2f, 3f, 4f]);
+Vector b = new([10f, 20f, 30f, 40f]);
 
 Vector sum = a + b;
 sum.Print();
@@ -48,9 +46,8 @@ Methods follow a consistent suffix scheme: no suffix = CPU, `X` = GPU, `IP` / `X
 
 - [Features](Documentation/Features.md) — module catalog and API suffix guide
 - [BAVCL Specification](Documentation/BAVCLSpecification.md)
-- [Roadmap board](Documentation/Roadmap.md) — Mermaid kanban-style project status
 - [GPGPU Kernel Guide](Documentation/GPGPUKernelGuide.md)
-- [Migration Guide](Documentation/MigrationGuide.md)
+- [Migrations](Documentation/Migrations/README.md) — one file per tagged breaking-change step
 
 ## Licence at a glance
 

@@ -1,32 +1,59 @@
 using System;
 using BAVCL.Modules.Structural;
+using ILGPU;
+using ILGPU.Runtime;
 
 namespace BAVCL.Core;
 
 public abstract class VectorBase<T> : CacheableBase<T>, IIO where T : unmanaged
 {
-	protected internal int _columns = 0;
+	protected internal volatile int _columns = 0;
 
 	public virtual int Columns
 	{
 		get => _columns;
 		set
 		{
-			if (value < 0)
-				throw new Exception($"Columns must be zero or greater. Recieved {value}");
-
+			Guard.ValidColumns(value);
 			_columns = value;
 		}
 	}
 
-	protected VectorBase(GPU gpu, T[] value, int columns = 0, bool cache = true) : base(gpu, value, cache) =>
+	/// <summary>Creates an empty shell with no backing data or GPU buffer.</summary>
+	protected VectorBase(GPU? gpu = null) : base(gpu) { }
+
+	protected VectorBase(T[] values, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
+		: base(values, upload, gpu) =>
 		Columns = columns;
 
-	protected VectorBase(GPU gpu, int length, int columns = 0) : base(gpu, length) =>
+	protected VectorBase(int length, int columns = 0, Init init = Init.UnInit, GPU? gpu = null)
+		: base(length, init, gpu) =>
 		Columns = columns;
 
-	protected VectorBase(GPU gpu, int columns) : base(gpu, [], cache: false)
+	/// <summary>Replaces storage with host <paramref name="values"/>, freeing any prior owned GPU buffer first.</summary>
+	public virtual void Assign(T[] values, int columns = 0, Upload upload = Upload.Now)
 	{
+		ArgumentNullException.ThrowIfNull(values);
+		Guard.ValidColumns(columns);
+		AssignDataCore(values, upload);
+		Columns = columns;
+	}
+
+	/// <summary>Replaces storage with a fresh GPU buffer of <paramref name="length"/> elements, freeing any prior owned GPU buffer first.</summary>
+	public virtual void Assign(int length, int columns = 0, Init init = Init.UnInit)
+	{
+		Guard.ArgumentIsNonNegative(length);
+		Guard.ValidColumns(columns);
+		AssignLengthCore(length, init);
+		Columns = columns;
+	}
+
+	/// <summary>Replaces storage with a device-to-device copy of <paramref name="deviceView"/>, freeing any prior owned GPU buffer first.</summary>
+	public virtual void Assign(ArrayView1D<T, Stride1D.Dense> deviceView, int columns = 0)
+	{
+		Guard.ArgumentIsPositive(deviceView.IntLength);
+		Guard.ValidColumns(columns);
+		AssignViewCore(deviceView);
 		Columns = columns;
 	}
 
@@ -106,7 +133,7 @@ public abstract class VectorBase<T> : CacheableBase<T>, IIO where T : unmanaged
 	public void SetAt(int index, T val)
 	{
 		ValidateIndexForView(index);
-		using (var scope = this.CpuScope())
+		using (var scope = this.CpuScope(Upload.Defer))
 		{
 			EditableView<T> view = scope.View;
 			view[index] = val;
@@ -117,7 +144,7 @@ public abstract class VectorBase<T> : CacheableBase<T>, IIO where T : unmanaged
 	{
 		int computedIndex = GetIndexFromCoordinatesForView(row, col);
 		ValidateIndexForView(computedIndex);
-		using (var scope = this.CpuScope())
+		using (var scope = this.CpuScope(Upload.Defer))
 		{
 			EditableView<T> view = scope.View;
 			view[computedIndex] = val;

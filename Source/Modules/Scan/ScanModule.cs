@@ -6,56 +6,56 @@ public static class VectorScan
 {
 	extension(Vector)
 	{
-		public static Vector CumSum(Vector vector, bool syncToGpu = true) =>
+		public static Vector CumSum(Vector vector, Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? ScanCore.CumSumInclusive2D(vector, syncToGpu)
-				: ScanCore.CumSumInclusive1D(vector, syncToGpu);
+				? ScanCore.CumSumInclusive2D(vector, upload)
+				: ScanCore.CumSumInclusive1D(vector, upload);
 
-		public static Vector CumSumExclusive(Vector vector, bool syncToGpu = true) =>
+		public static Vector CumSumExclusive(Vector vector, Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? ScanCore.CumSumExclusive2D(vector, syncToGpu)
-				: ScanCore.CumSumExclusive1D(vector, syncToGpu);
+				? ScanCore.CumSumExclusive2D(vector, upload)
+				: ScanCore.CumSumExclusive1D(vector, upload);
 
-		public static Vector CumProd(Vector vector, bool syncToGpu = true) =>
+		public static Vector CumProd(Vector vector, Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? ScanCore.CumProdInclusive2D(vector, syncToGpu)
-				: ScanCore.CumProdInclusive1D(vector, syncToGpu);
+				? ScanCore.CumProdInclusive2D(vector, upload)
+				: ScanCore.CumProdInclusive1D(vector, upload);
 
-		public static Vector CumProdExclusive(Vector vector, bool syncToGpu = true) =>
+		public static Vector CumProdExclusive(Vector vector, Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? ScanCore.CumProdExclusive2D(vector, syncToGpu)
-				: ScanCore.CumProdExclusive1D(vector, syncToGpu);
+				? ScanCore.CumProdExclusive2D(vector, upload)
+				: ScanCore.CumProdExclusive1D(vector, upload);
 
-		public static void CumSumIP(Vector vector, bool syncToGpu = true)
+		public static void CumSumIP(Vector vector, Upload upload = Upload.Now)
 		{
 			if (vector.Is2D())
-				ScanCore.CumSumInclusiveIP2D(vector, syncToGpu);
+				ScanCore.CumSumInclusiveIP2D(vector, upload);
 			else
-				ScanCore.CumSumInclusiveIP1D(vector, syncToGpu);
+				ScanCore.CumSumInclusiveIP1D(vector, upload);
 		}
 
-		public static void CumSumExclusiveIP(Vector vector, bool syncToGpu = true)
+		public static void CumSumExclusiveIP(Vector vector, Upload upload = Upload.Now)
 		{
 			if (vector.Is2D())
-				ScanCore.CumSumExclusiveIP2D(vector, syncToGpu);
+				ScanCore.CumSumExclusiveIP2D(vector, upload);
 			else
-				ScanCore.CumSumExclusiveIP1D(vector, syncToGpu);
+				ScanCore.CumSumExclusiveIP1D(vector, upload);
 		}
 
-		public static void CumProdIP(Vector vector, bool syncToGpu = true)
+		public static void CumProdIP(Vector vector, Upload upload = Upload.Now)
 		{
 			if (vector.Is2D())
-				ScanCore.CumProdInclusiveIP2D(vector, syncToGpu);
+				ScanCore.CumProdInclusiveIP2D(vector, upload);
 			else
-				ScanCore.CumProdInclusiveIP1D(vector, syncToGpu);
+				ScanCore.CumProdInclusiveIP1D(vector, upload);
 		}
 
-		public static void CumProdExclusiveIP(Vector vector, bool syncToGpu = true)
+		public static void CumProdExclusiveIP(Vector vector, Upload upload = Upload.Now)
 		{
 			if (vector.Is2D())
-				ScanCore.CumProdExclusiveIP2D(vector, syncToGpu);
+				ScanCore.CumProdExclusiveIP2D(vector, upload);
 			else
-				ScanCore.CumProdExclusiveIP1D(vector, syncToGpu);
+				ScanCore.CumProdExclusiveIP1D(vector, upload);
 		}
 
 		public static Vector CumSumX(Vector vector) =>
@@ -113,56 +113,56 @@ public static class VectorScan
 
 	extension(VectorInt)
 	{
-		public static VectorInt CumSum(VectorInt vector, bool syncToGpu = true) =>
+		public static VectorInt CumSum(VectorInt vector, Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? ScanCore.CumSumInclusive2D(vector, syncToGpu)
-				: ScanCore.CumSumInclusive1D(vector, syncToGpu);
+				? ScanCore.CumSumInclusive2D(vector, upload)
+				: ScanCore.CumSumInclusive1D(vector, upload);
 
-		public static VectorInt CumSumExclusive(VectorInt vector, bool syncToGpu = true) =>
+		public static VectorInt CumSumExclusive(VectorInt vector, Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? ScanCore.CumSumExclusive2D(vector, syncToGpu)
-				: ScanCore.CumSumExclusive1D(vector, syncToGpu);
+				? ScanCore.CumSumExclusive2D(vector, upload)
+				: ScanCore.CumSumExclusive1D(vector, upload);
 
-		public static VectorInt CumProd(VectorInt vector, bool syncToGpu = true) =>
+		public static VectorInt CumProd(VectorInt vector, Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? ScanCore.CumProdInclusive2D(vector, syncToGpu)
-				: ScanCore.CumProdInclusive1D(vector, syncToGpu);
+				? ScanCore.CumProdInclusive2D(vector, upload)
+				: ScanCore.CumProdInclusive1D(vector, upload);
 
-		public static VectorInt CumProdExclusive(VectorInt vector, bool syncToGpu = true) =>
+		public static VectorInt CumProdExclusive(VectorInt vector, Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? ScanCore.CumProdExclusive2D(vector, syncToGpu)
-				: ScanCore.CumProdExclusive1D(vector, syncToGpu);
+				? ScanCore.CumProdExclusive2D(vector, upload)
+				: ScanCore.CumProdExclusive1D(vector, upload);
 
-		public static void CumSumIP(VectorInt vector, bool syncToGpu = true)
+		public static void CumSumIP(VectorInt vector, Upload upload = Upload.Now)
 		{
 			if (vector.Is2D())
-				ScanCore.CumSumInclusiveIP2D(vector, syncToGpu);
+				ScanCore.CumSumInclusiveIP2D(vector, upload);
 			else
-				ScanCore.CumSumInclusiveIP1D(vector, syncToGpu);
+				ScanCore.CumSumInclusiveIP1D(vector, upload);
 		}
 
-		public static void CumSumExclusiveIP(VectorInt vector, bool syncToGpu = true)
+		public static void CumSumExclusiveIP(VectorInt vector, Upload upload = Upload.Now)
 		{
 			if (vector.Is2D())
-				ScanCore.CumSumExclusiveIP2D(vector, syncToGpu);
+				ScanCore.CumSumExclusiveIP2D(vector, upload);
 			else
-				ScanCore.CumSumExclusiveIP1D(vector, syncToGpu);
+				ScanCore.CumSumExclusiveIP1D(vector, upload);
 		}
 
-		public static void CumProdIP(VectorInt vector, bool syncToGpu = true)
+		public static void CumProdIP(VectorInt vector, Upload upload = Upload.Now)
 		{
 			if (vector.Is2D())
-				ScanCore.CumProdInclusiveIP2D(vector, syncToGpu);
+				ScanCore.CumProdInclusiveIP2D(vector, upload);
 			else
-				ScanCore.CumProdInclusiveIP1D(vector, syncToGpu);
+				ScanCore.CumProdInclusiveIP1D(vector, upload);
 		}
 
-		public static void CumProdExclusiveIP(VectorInt vector, bool syncToGpu = true)
+		public static void CumProdExclusiveIP(VectorInt vector, Upload upload = Upload.Now)
 		{
 			if (vector.Is2D())
-				ScanCore.CumProdExclusiveIP2D(vector, syncToGpu);
+				ScanCore.CumProdExclusiveIP2D(vector, upload);
 			else
-				ScanCore.CumProdExclusiveIP1D(vector, syncToGpu);
+				ScanCore.CumProdExclusiveIP1D(vector, upload);
 		}
 
 		public static VectorInt CumSumX(VectorInt vector) =>
@@ -223,56 +223,56 @@ public static class ScanModuleExtensions
 {
 	extension(Vector vector)
 	{
-		public Vector CumSum(bool syncToGpu = true) =>
+		public Vector CumSum(Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? ScanCore.CumSumInclusive2D(vector, syncToGpu)
-				: ScanCore.CumSumInclusive1D(vector, syncToGpu);
+				? ScanCore.CumSumInclusive2D(vector, upload)
+				: ScanCore.CumSumInclusive1D(vector, upload);
 
-		public Vector CumSumExclusive(bool syncToGpu = true) =>
+		public Vector CumSumExclusive(Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? ScanCore.CumSumExclusive2D(vector, syncToGpu)
-				: ScanCore.CumSumExclusive1D(vector, syncToGpu);
+				? ScanCore.CumSumExclusive2D(vector, upload)
+				: ScanCore.CumSumExclusive1D(vector, upload);
 
-		public Vector CumProd(bool syncToGpu = true) =>
+		public Vector CumProd(Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? ScanCore.CumProdInclusive2D(vector, syncToGpu)
-				: ScanCore.CumProdInclusive1D(vector, syncToGpu);
+				? ScanCore.CumProdInclusive2D(vector, upload)
+				: ScanCore.CumProdInclusive1D(vector, upload);
 
-		public Vector CumProdExclusive(bool syncToGpu = true) =>
+		public Vector CumProdExclusive(Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? ScanCore.CumProdExclusive2D(vector, syncToGpu)
-				: ScanCore.CumProdExclusive1D(vector, syncToGpu);
+				? ScanCore.CumProdExclusive2D(vector, upload)
+				: ScanCore.CumProdExclusive1D(vector, upload);
 
-		public void CumSumIP(bool syncToGpu = true)
+		public void CumSumIP(Upload upload = Upload.Now)
 		{
 			if (vector.Is2D())
-				ScanCore.CumSumInclusiveIP2D(vector, syncToGpu);
+				ScanCore.CumSumInclusiveIP2D(vector, upload);
 			else
-				ScanCore.CumSumInclusiveIP1D(vector, syncToGpu);
+				ScanCore.CumSumInclusiveIP1D(vector, upload);
 		}
 
-		public void CumSumExclusiveIP(bool syncToGpu = true)
+		public void CumSumExclusiveIP(Upload upload = Upload.Now)
 		{
 			if (vector.Is2D())
-				ScanCore.CumSumExclusiveIP2D(vector, syncToGpu);
+				ScanCore.CumSumExclusiveIP2D(vector, upload);
 			else
-				ScanCore.CumSumExclusiveIP1D(vector, syncToGpu);
+				ScanCore.CumSumExclusiveIP1D(vector, upload);
 		}
 
-		public void CumProdIP(bool syncToGpu = true)
+		public void CumProdIP(Upload upload = Upload.Now)
 		{
 			if (vector.Is2D())
-				ScanCore.CumProdInclusiveIP2D(vector, syncToGpu);
+				ScanCore.CumProdInclusiveIP2D(vector, upload);
 			else
-				ScanCore.CumProdInclusiveIP1D(vector, syncToGpu);
+				ScanCore.CumProdInclusiveIP1D(vector, upload);
 		}
 
-		public void CumProdExclusiveIP(bool syncToGpu = true)
+		public void CumProdExclusiveIP(Upload upload = Upload.Now)
 		{
 			if (vector.Is2D())
-				ScanCore.CumProdExclusiveIP2D(vector, syncToGpu);
+				ScanCore.CumProdExclusiveIP2D(vector, upload);
 			else
-				ScanCore.CumProdExclusiveIP1D(vector, syncToGpu);
+				ScanCore.CumProdExclusiveIP1D(vector, upload);
 		}
 
 		public Vector CumSumX() =>
@@ -330,56 +330,56 @@ public static class ScanModuleExtensions
 
 	extension(VectorInt vector)
 	{
-		public VectorInt CumSum(bool syncToGpu = true) =>
+		public VectorInt CumSum(Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? ScanCore.CumSumInclusive2D(vector, syncToGpu)
-				: ScanCore.CumSumInclusive1D(vector, syncToGpu);
+				? ScanCore.CumSumInclusive2D(vector, upload)
+				: ScanCore.CumSumInclusive1D(vector, upload);
 
-		public VectorInt CumSumExclusive(bool syncToGpu = true) =>
+		public VectorInt CumSumExclusive(Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? ScanCore.CumSumExclusive2D(vector, syncToGpu)
-				: ScanCore.CumSumExclusive1D(vector, syncToGpu);
+				? ScanCore.CumSumExclusive2D(vector, upload)
+				: ScanCore.CumSumExclusive1D(vector, upload);
 
-		public VectorInt CumProd(bool syncToGpu = true) =>
+		public VectorInt CumProd(Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? ScanCore.CumProdInclusive2D(vector, syncToGpu)
-				: ScanCore.CumProdInclusive1D(vector, syncToGpu);
+				? ScanCore.CumProdInclusive2D(vector, upload)
+				: ScanCore.CumProdInclusive1D(vector, upload);
 
-		public VectorInt CumProdExclusive(bool syncToGpu = true) =>
+		public VectorInt CumProdExclusive(Upload upload = Upload.Now) =>
 			vector.Is2D()
-				? ScanCore.CumProdExclusive2D(vector, syncToGpu)
-				: ScanCore.CumProdExclusive1D(vector, syncToGpu);
+				? ScanCore.CumProdExclusive2D(vector, upload)
+				: ScanCore.CumProdExclusive1D(vector, upload);
 
-		public void CumSumIP(bool syncToGpu = true)
+		public void CumSumIP(Upload upload = Upload.Now)
 		{
 			if (vector.Is2D())
-				ScanCore.CumSumInclusiveIP2D(vector, syncToGpu);
+				ScanCore.CumSumInclusiveIP2D(vector, upload);
 			else
-				ScanCore.CumSumInclusiveIP1D(vector, syncToGpu);
+				ScanCore.CumSumInclusiveIP1D(vector, upload);
 		}
 
-		public void CumSumExclusiveIP(bool syncToGpu = true)
+		public void CumSumExclusiveIP(Upload upload = Upload.Now)
 		{
 			if (vector.Is2D())
-				ScanCore.CumSumExclusiveIP2D(vector, syncToGpu);
+				ScanCore.CumSumExclusiveIP2D(vector, upload);
 			else
-				ScanCore.CumSumExclusiveIP1D(vector, syncToGpu);
+				ScanCore.CumSumExclusiveIP1D(vector, upload);
 		}
 
-		public void CumProdIP(bool syncToGpu = true)
+		public void CumProdIP(Upload upload = Upload.Now)
 		{
 			if (vector.Is2D())
-				ScanCore.CumProdInclusiveIP2D(vector, syncToGpu);
+				ScanCore.CumProdInclusiveIP2D(vector, upload);
 			else
-				ScanCore.CumProdInclusiveIP1D(vector, syncToGpu);
+				ScanCore.CumProdInclusiveIP1D(vector, upload);
 		}
 
-		public void CumProdExclusiveIP(bool syncToGpu = true)
+		public void CumProdExclusiveIP(Upload upload = Upload.Now)
 		{
 			if (vector.Is2D())
-				ScanCore.CumProdExclusiveIP2D(vector, syncToGpu);
+				ScanCore.CumProdExclusiveIP2D(vector, upload);
 			else
-				ScanCore.CumProdExclusiveIP1D(vector, syncToGpu);
+				ScanCore.CumProdExclusiveIP1D(vector, upload);
 		}
 
 		public VectorInt CumSumX() =>

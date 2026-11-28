@@ -8,7 +8,7 @@ BAVCL is a C# GPU-accelerated numerics library on ILGPU. Authoritative spec: [Do
 |------|------|
 | Numerics bibliography | [`citations.md`](citations.md) (MNRAS layout; numbered [1]–[11]) |
 | Picking an API / suffix (`X`, `IP`, modules) | [Documentation/Features.md](Documentation/Features.md) |
-| `GpuScope`, `CpuScope`, reads, `Copy`, LRU pinning | [Documentation/MigrationGuide.md](Documentation/MigrationGuide.md) — [Host API and scopes](Documentation/MigrationGuide.md#host-api-and-scopes) |
+| `GpuScope`, `CpuScope`, reads, `Copy`, LRU pinning | Spec [§3.4](Documentation/BAVCLSpecification.md#34-scope-only-gpu-pinning-implemented), [§8.4](Documentation/BAVCLSpecification.md#84-gpuscope-implemented), [§8.6](Documentation/BAVCLSpecification.md#86-residence-flags-and-coherence-implemented). Breaking steps: [Documentation/Migrations/README.md](Documentation/Migrations/README.md) |
 | ILGPU kernels or module GPU dispatch | [Documentation/GPGPUKernelGuide.md](Documentation/GPGPUKernelGuide.md) + `.agents/skills/bavcl-gpgpu/SKILL.md` |
 | Full contracts | [Documentation/BAVCLSpecification.md](Documentation/BAVCLSpecification.md) |
 
@@ -18,7 +18,7 @@ BAVCL is a C# GPU-accelerated numerics library on ILGPU. Authoritative spec: [Do
 - **Do not** open `CpuScope` for read-only; **do not** call `SyncCPU()` in consumer code
 - **GpuScope:** one `GpuScope.Begin(modified, readOnly…)` when buffers exist; nested scopes only for allocate-after-pin (see `SortAlgorithms.Argsort1DAscX`)
 - **Edit in-place:** `CpuScope` + `scope.View` (`EditableView`)
-- **Structural edit:** `CpuScopeAndSync` + `RetrieveReadOnlySpan()` for inputs, then assign backing store (library-internal `Value` / `Length`)
+- **Structural edit:** `CpuScope(Upload.Now)` + `RetrieveReadOnlySpan()` for inputs, then assign backing store (library-internal `Value` / `Length`)
 - **Loops:** one `RetrieveReadOnlySpan()` for read loops; one `CpuScope` + `View` for write loops — not `GetAt` / `SetAt`
 - **Pinning:** only via `GpuScope` — `LiveCount` is observable for debugging
 - **Discovery:** check Features.md before inventing a code path
@@ -26,8 +26,8 @@ BAVCL is a C# GPU-accelerated numerics library on ILGPU. Authoritative spec: [Do
 | Intent | API |
 |--------|-----|
 | Read (anywhere) | `RetrieveReadOnlySpan()` |
-| Edit in-place | `CpuScope` / `CpuScopeAndSync` + `scope.View` |
-| Edit structural | `CpuScopeAndSync` + `RetrieveReadOnlySpan()` then assign backing store |
+| Edit in-place | `CpuScope()` + `scope.View` (`CpuScope(Upload.Defer)` keeps the result on the CPU) |
+| Edit structural | `CpuScope(Upload.Now)` + `RetrieveReadOnlySpan()` then assign backing store |
 
 ## Device-side code (kernels, GPU dispatch, ILGPU)
 

@@ -9,7 +9,7 @@ internal static class VectorIntGpuOps
 	{
 		VectorIntOperationValidation.ValidateOperation(operation);
 		GPU gpu = vector.Gpu;
-		VectorInt output = new(gpu, vector.Length, vector.Columns);
+		VectorInt output = new(vector.Length, vector.Columns, gpu: gpu);
 
 		using (GpuScope.Begin(output, vector))
 		{

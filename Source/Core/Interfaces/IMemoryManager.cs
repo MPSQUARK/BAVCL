@@ -1,3 +1,4 @@
+using ILGPU;
 using ILGPU.Runtime;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,12 @@ public interface IMemoryManager
     #region Allocate
     public (uint, MemoryBuffer) Allocate<T>(ICacheable<T> cacheable, Accelerator accelerator) where T : unmanaged;
     public (uint, MemoryBuffer) Allocate<T>(ICacheable cacheable, T[] values, Accelerator accelerator) where T : unmanaged;
-    public (uint, MemoryBuffer) AllocateEmpty<T>(ICacheable cacheable, int length, Accelerator accelerator) where T : unmanaged;
+    public (uint, MemoryBuffer) Allocate<T>(ICacheable cacheable, ArrayView1D<T, Stride1D.Dense> deviceView, Accelerator accelerator) where T : unmanaged;
+    /// <summary>
+    /// Allocates GPU storage of <paramref name="length"/> elements.
+    /// <see cref="Init.UnInit"/> leaves contents undefined; <see cref="Init.Zeroed"/> clears the device buffer.
+    /// </summary>
+    public (uint, MemoryBuffer) AllocateEmpty<T>(ICacheable cacheable, int length, Accelerator accelerator, Init init = Init.UnInit) where T : unmanaged;
     #endregion
 
     #region Update

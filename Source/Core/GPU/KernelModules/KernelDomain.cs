@@ -11,5 +11,6 @@ public enum KernelDomain
 	Mask,
 	Sorting,
 	Experimental,
+	Generators,
 	Fourier,
 }

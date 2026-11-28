@@ -41,17 +41,63 @@ internal class LRU : IMemoryManager
     public long AvailableMemory { get; set; } = -1;
     public long MemoryUsed => Interlocked.Read(ref _memoryUsed);
 
-    public (uint, MemoryBuffer) AllocateEmpty<T>(ICacheable cacheable, int length, Accelerator accelerator) where T : unmanaged
+    public (uint, MemoryBuffer) AllocateEmpty<T>(ICacheable cacheable, int length, Accelerator accelerator, Init init = Init.UnInit) where T : unmanaged
     {
         uint id = GenerateId();
         MemoryBuffer1D<T, Stride1D.Dense> buffer;
-        long memNeeded = (long)Interop.SizeOf<T>() * (long)length;
 
         lock (_gate)
         {
-            GC(memNeeded);
-            UpdateMemoryUsage(memNeeded);
+            GC(cacheable.MemorySize);
             buffer = accelerator.Allocate1D<T>(length);
+
+            if (init == Init.Zeroed && length > 0)
+            {
+                try
+                {
+                    buffer.MemSetToZero(accelerator.DefaultStream);
+                    accelerator.Synchronize();
+                }
+                catch
+                {
+                    buffer.Dispose();
+                    throw;
+                }
+            }
+
+            UpdateMemoryUsage(cacheable.MemorySize);
+            RegisterEntry(id, buffer, cacheable);
+        }
+
+        return (id, buffer);
+    }
+
+    public (uint, MemoryBuffer) Allocate<T>(ICacheable cacheable, ArrayView1D<T, Stride1D.Dense> deviceView, Accelerator accelerator) where T : unmanaged
+    {
+        int length = deviceView.IntLength;
+        uint id = GenerateId();
+        MemoryBuffer1D<T, Stride1D.Dense> buffer;
+
+        lock (_gate)
+        {
+            GC(cacheable.MemorySize);
+            buffer = accelerator.Allocate1D<T>(length);
+
+            if (length > 0)
+            {
+                try
+                {
+                    buffer.View.CopyFrom(accelerator.DefaultStream, deviceView);
+                    accelerator.Synchronize();
+                }
+                catch
+                {
+                    buffer.Dispose();
+                    throw;
+                }
+            }
+
+            UpdateMemoryUsage(cacheable.MemorySize);
             RegisterEntry(id, buffer, cacheable);
         }
 

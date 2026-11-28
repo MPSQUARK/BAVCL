@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using BAVCL.Core.Helpers;
 using BAVCL.Core.Memory;
 using BAVCL.Modules.Statistics;
@@ -63,7 +64,7 @@ internal static class MaskGpu
 		Shape outputShape = leftShape.BroadcastWith(rightShape);
 
 		GPU gpu = left.Gpu;
-		Mask output = new(gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
+		Mask output = new(outputShape.ElementCount, outputShape.ToStorageColumns(), gpu: gpu);
 
 		using (GpuScope.Begin(output, left, right))
 		{
@@ -91,7 +92,7 @@ internal static class MaskGpu
 		Shape outputShape = leftShape.BroadcastWith(rightShape);
 
 		GPU gpu = left.Gpu;
-		Mask output = new(gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
+		Mask output = new(outputShape.ElementCount, outputShape.ToStorageColumns(), gpu: gpu);
 
 		using (GpuScope.Begin(output, left, right))
 		{
@@ -111,10 +112,37 @@ internal static class MaskGpu
 		return output;
 	}
 
+	internal static Mask CompareX(VectorComplex64 left, VectorComplex64 right, bool equal)
+	{
+		Guard.MatchingGpu(left, right);
+		Shape leftShape = left.Shape();
+		Shape rightShape = right.Shape();
+		Shape outputShape = leftShape.BroadcastWith(rightShape);
+		GPU gpu = left.Gpu;
+		Mask output = new(outputShape.ElementCount, outputShape.ToStorageColumns(), gpu: gpu);
+
+		using (GpuScope.Begin(output, left, right))
+		{
+			gpu.complexCompareMask(
+				gpu.DefaultStream,
+				outputShape.ElementCount,
+				output.GetBuffer().View,
+				left.GetBuffer().View,
+				right.GetBuffer().View,
+				outputShape.Cols,
+				BroadcastStrides.For(leftShape),
+				BroadcastStrides.For(rightShape),
+				new SpecializedValue<int>(equal ? 0 : 1));
+			gpu.Synchronize();
+		}
+
+		return output;
+	}
+
 	internal static Mask CompareX(Vector vector, float scalar, VectorComparison comparison)
 	{
 		GPU gpu = vector.Gpu;
-		Mask output = new(gpu, vector.Length, vector.Columns);
+		Mask output = new(vector.Length, vector.Columns, gpu: gpu);
 
 		using (GpuScope.Begin(output, vector))
 		{
@@ -134,7 +162,7 @@ internal static class MaskGpu
 	internal static Mask CompareX(VectorInt vector, int scalar, VectorComparison comparison)
 	{
 		GPU gpu = vector.Gpu;
-		Mask output = new(gpu, vector.Length, vector.Columns);
+		Mask output = new(vector.Length, vector.Columns, gpu: gpu);
 
 		using (GpuScope.Begin(output, vector))
 		{
@@ -151,6 +179,26 @@ internal static class MaskGpu
 		return output;
 	}
 
+	internal static Mask CompareX(VectorComplex64 vector, Complex scalar, bool equal)
+	{
+		GPU gpu = vector.Gpu;
+		Mask output = new(vector.Length, vector.Columns, gpu: gpu);
+
+		using (GpuScope.Begin(output, vector))
+		{
+			gpu.complexCompareScalarMask(
+				gpu.DefaultStream,
+				vector.Length,
+				output.GetBuffer().View,
+				vector.GetBuffer().View,
+				scalar,
+				new SpecializedValue<int>(equal ? 0 : 1));
+			gpu.Synchronize();
+		}
+
+		return output;
+	}
+
 	internal static Vector MaskX(Vector vector, Mask mask, float fill)
 	{
 		Guard.MatchingGpu(vector, mask);
@@ -159,7 +207,7 @@ internal static class MaskGpu
 		Shape outputShape = vectorShape.BroadcastWith(maskShape);
 
 		GPU gpu = vector.Gpu;
-		Vector output = new(gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
+		Vector output = new(outputShape.ElementCount, outputShape.ToStorageColumns(), gpu: gpu);
 
 		using (GpuScope.Begin(output, vector, mask))
 		{
@@ -187,11 +235,38 @@ internal static class MaskGpu
 		Shape outputShape = vectorShape.BroadcastWith(maskShape);
 
 		GPU gpu = vector.Gpu;
-		VectorInt output = new(gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
+		VectorInt output = new(outputShape.ElementCount, outputShape.ToStorageColumns(), gpu: gpu);
 
 		using (GpuScope.Begin(output, vector, mask))
 		{
 			gpu.maskFilterInt(
+				gpu.DefaultStream,
+				outputShape.ElementCount,
+				output.GetBuffer().View,
+				vector.GetBuffer().View,
+				mask.GetBuffer().View,
+				fill,
+				outputShape.Cols,
+				BroadcastStrides.For(vectorShape),
+				BroadcastStrides.For(maskShape));
+			gpu.Synchronize();
+		}
+
+		return output;
+	}
+
+	internal static VectorComplex64 MaskX(VectorComplex64 vector, Mask mask, Complex fill)
+	{
+		Guard.MatchingGpu(vector, mask);
+		Shape vectorShape = vector.Shape();
+		Shape maskShape = mask.Shape();
+		Shape outputShape = vectorShape.BroadcastWith(maskShape);
+		GPU gpu = vector.Gpu;
+		VectorComplex64 output = new(outputShape.ElementCount, outputShape.ToStorageColumns(), gpu: gpu);
+
+		using (GpuScope.Begin(output, vector, mask))
+		{
+			gpu.complexMaskFilterBroadcast(
 				gpu.DefaultStream,
 				outputShape.ElementCount,
 				output.GetBuffer().View,

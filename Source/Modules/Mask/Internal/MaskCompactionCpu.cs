@@ -17,62 +17,84 @@ internal static class MaskCompactionCpu
 	internal static bool IsRowBroadcastMask(Shape maskShape, Shape outputShape) =>
 		maskShape.Rows == 1 && outputShape.Rows > 1;
 
-	internal static Vector Filter(Vector vector, Mask mask, bool syncToGpu = true)
+	internal static Vector Filter(Vector vector, Mask mask, Upload upload = Upload.Now)
 	{
-		(Shape vectorShape, Shape maskShape, Shape outputShape) = ForFilter(vector.Shape(), mask.Shape());
-		float[] data = Filter(vector.RetrieveReadOnlySpan(), mask, vectorShape, maskShape, outputShape);
-		return new Vector(vector.Gpu, data, columns: 0, cache: syncToGpu);
+		float[] data = Filter(vector.RetrieveReadOnlySpan(), mask, vector.Shape());
+		return new Vector(data, columns: 0, upload: upload, gpu: vector.Gpu);
 	}
 
-	internal static VectorInt Filter(VectorInt vector, Mask mask, bool syncToGpu = true)
+	internal static VectorInt Filter(VectorInt vector, Mask mask, Upload upload = Upload.Now)
 	{
-		(Shape vectorShape, Shape maskShape, Shape outputShape) = ForFilter(vector.Shape(), mask.Shape());
-		int[] data = Filter(vector.RetrieveReadOnlySpan(), mask, vectorShape, maskShape, outputShape);
-		return new VectorInt(vector.Gpu, data, columns: 0, cache: syncToGpu);
+		int[] data = Filter(vector.RetrieveReadOnlySpan(), mask, vector.Shape());
+		return new VectorInt(data, columns: 0, upload: upload, gpu: vector.Gpu);
 	}
 
-	internal static (Vector TrueLanes, Vector FalseLanes) Partition(Vector vector, Mask mask, bool syncToGpu = true)
+	internal static VectorComplex64 Filter(VectorComplex64 vector, Mask mask, Upload upload = Upload.Now)
 	{
-		(Shape vectorShape, Shape maskShape, Shape outputShape) = ForFilter(vector.Shape(), mask.Shape());
-		(float[] trueData, float[] falseData) = Partition(
-			vector.ToArray(),
-			mask,
-			vectorShape,
-			maskShape,
-			outputShape);
+		Complex[] data = Filter(vector.RetrieveReadOnlySpan(), mask, vector.Shape());
+		return new VectorComplex64(data, columns: 0, upload: upload, gpu: vector.Gpu);
+	}
+
+	internal static (Vector TrueLanes, Vector FalseLanes) Partition(Vector vector, Mask mask, Upload upload = Upload.Now)
+	{
+		(float[] trueData, float[] falseData) = Partition(vector.ToArray(), mask, vector.Shape());
 		return (
-			new Vector(vector.Gpu, trueData, columns: 0, cache: syncToGpu),
-			new Vector(vector.Gpu, falseData, columns: 0, cache: syncToGpu));
+			new Vector(trueData, columns: 0, upload: upload, gpu: vector.Gpu),
+			new Vector(falseData, columns: 0, upload: upload, gpu: vector.Gpu));
 	}
 
-	internal static (VectorInt TrueLanes, VectorInt FalseLanes) Partition(VectorInt vector, Mask mask, bool syncToGpu = true)
+	internal static (VectorInt TrueLanes, VectorInt FalseLanes) Partition(VectorInt vector, Mask mask, Upload upload = Upload.Now)
 	{
-		(Shape vectorShape, Shape maskShape, Shape outputShape) = ForFilter(vector.Shape(), mask.Shape());
-		(int[] trueData, int[] falseData) = Partition(
-			vector.ToArray(),
-			mask,
-			vectorShape,
-			maskShape,
-			outputShape);
+		(int[] trueData, int[] falseData) = Partition(vector.ToArray(), mask, vector.Shape());
 		return (
-			new VectorInt(vector.Gpu, trueData, columns: 0, cache: syncToGpu),
-			new VectorInt(vector.Gpu, falseData, columns: 0, cache: syncToGpu));
+			new VectorInt(trueData, columns: 0, upload: upload, gpu: vector.Gpu),
+			new VectorInt(falseData, columns: 0, upload: upload, gpu: vector.Gpu));
 	}
 
-	internal static VectorInt Where(Mask mask, bool syncToGpu = true)
+	internal static (VectorComplex64 TrueLanes, VectorComplex64 FalseLanes) Partition(
+		VectorComplex64 vector,
+		Mask mask,
+		Upload upload = Upload.Now)
+	{
+		(Complex[] trueData, Complex[] falseData) = Partition(vector.ToArray(), mask, vector.Shape());
+		return (
+			new VectorComplex64(trueData, columns: 0, upload: upload, gpu: vector.Gpu),
+			new VectorComplex64(falseData, columns: 0, upload: upload, gpu: vector.Gpu));
+	}
+
+	internal static VectorInt Where(Mask mask, Upload upload = Upload.Now)
 	{
 		Shape maskShape = mask.Shape();
 		if (maskShape.Rows == 1 && maskShape.Cols > 0)
 		{
 			int[] rowIndices = WhereSingleRowMaskIndices(mask, maskShape);
 			if (rowIndices.Length == 0)
-				return new VectorInt(mask.Gpu, 0, columns: 0);
+				return new VectorInt(0, columns: 0, gpu: mask.Gpu);
 
-			return new VectorInt(mask.Gpu, rowIndices, columns: 0, cache: syncToGpu);
+			return new VectorInt(rowIndices, columns: 0, upload: upload, gpu: mask.Gpu);
 		}
 
 		int[] indices = SelectedSourceIndices(mask, maskShape, maskShape, maskShape, selected: true);
-		return new VectorInt(mask.Gpu, indices, columns: 0, cache: syncToGpu);
+		return new VectorInt(indices, columns: 0, upload: upload, gpu: mask.Gpu);
+	}
+
+	internal static VectorComplex64 Mask(VectorComplex64 vector, Mask mask, Complex fill = default, Upload upload = Upload.Now)
+	{
+		(Shape vectorShape, Shape maskShape, Shape outputShape) = ForFilter(vector.Shape(), mask.Shape());
+		if (outputShape.ElementCount == 0)
+			return new VectorComplex64(0, outputShape.ToStorageColumns(), gpu: vector.Gpu);
+
+		Complex[] output = new Complex[outputShape.ElementCount];
+		FillMasked(
+			output,
+			outputShape,
+			BroadcastStrides.For(vectorShape),
+			BroadcastStrides.For(maskShape),
+			mask.RetrieveReadOnlySpan(),
+			vector.ToArray(),
+			fill);
+
+		return new VectorComplex64(output, outputShape.ToStorageColumns(), upload: upload, gpu: vector.Gpu);
 	}
 
 	static int[] SelectedColumns(Mask mask, Shape maskShape, int cols)
@@ -157,13 +179,10 @@ internal static class MaskCompactionCpu
 		}
 	}
 
-	internal static T[] Filter<T>(
-		ReadOnlySpan<T> input,
-		Mask mask,
-		Shape vectorShape,
-		Shape maskShape,
-		Shape outputShape) where T : unmanaged
+	internal static T[] Filter<T>(ReadOnlySpan<T> input, Mask mask, Shape vectorShape) where T : unmanaged
 	{
+		Shape maskShape = mask.Shape();
+		Shape outputShape = vectorShape.BroadcastWith(maskShape);
 		if (IsRowBroadcastMask(maskShape, outputShape))
 			return FilterBroadcast(
 				input,
@@ -175,13 +194,10 @@ internal static class MaskCompactionCpu
 		return Gather(input, indices);
 	}
 
-	internal static (T[] True, T[] False) Partition<T>(
-		T[] input,
-		Mask mask,
-		Shape vectorShape,
-		Shape maskShape,
-		Shape outputShape) where T : unmanaged
+	internal static (T[] True, T[] False) Partition<T>(T[] input, Mask mask, Shape vectorShape) where T : unmanaged
 	{
+		Shape maskShape = mask.Shape();
+		Shape outputShape = vectorShape.BroadcastWith(maskShape);
 		int elementCount = outputShape.ElementCount;
 		if (elementCount == 0)
 			return ([], []);
@@ -403,11 +419,11 @@ internal static class MaskCompactionCpu
 		&& vectorShape.MatchesDimensions(outputShape)
 		&& mask.ElementCount == outputShape.ElementCount;
 
-	internal static Vector Mask(Vector vector, Mask mask, float fill = 0f, bool syncToGpu = true)
+	internal static Vector Mask(Vector vector, Mask mask, float fill = 0f, Upload upload = Upload.Now)
 	{
 		(Shape vectorShape, Shape maskShape, Shape outputShape) = ForFilter(vector.Shape(), mask.Shape());
 		if (outputShape.ElementCount == 0)
-			return new Vector(vector.Gpu, 0, outputShape.ToStorageColumns());
+			return new Vector(0, outputShape.ToStorageColumns(), gpu: vector.Gpu);
 
 		float[] output = new float[outputShape.ElementCount];
 		FillMasked(
@@ -419,14 +435,14 @@ internal static class MaskCompactionCpu
 			vector.ToArray(),
 			fill);
 
-		return new Vector(vector.Gpu, output, outputShape.ToStorageColumns(), cache: syncToGpu);
+		return new Vector(output, outputShape.ToStorageColumns(), upload: upload, gpu: vector.Gpu);
 	}
 
-	internal static VectorInt Mask(VectorInt vector, Mask mask, int fill = 0, bool syncToGpu = true)
+	internal static VectorInt Mask(VectorInt vector, Mask mask, int fill = 0, Upload upload = Upload.Now)
 	{
 		(Shape vectorShape, Shape maskShape, Shape outputShape) = ForFilter(vector.Shape(), mask.Shape());
 		if (outputShape.ElementCount == 0)
-			return new VectorInt(vector.Gpu, 0, outputShape.ToStorageColumns());
+			return new VectorInt(0, outputShape.ToStorageColumns(), gpu: vector.Gpu);
 
 		int[] output = new int[outputShape.ElementCount];
 		FillMasked(
@@ -438,7 +454,5 @@ internal static class MaskCompactionCpu
 			vector.ToArray(),
 			fill);
 
-		return new VectorInt(vector.Gpu, output, outputShape.ToStorageColumns(), cache: syncToGpu);
-	}
-
-}
+		return new VectorInt(output, outputShape.ToStorageColumns(), upload: upload, gpu: vector.Gpu);
+	}}

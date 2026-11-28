@@ -57,7 +57,7 @@ internal static class VarianceAccum
 		if (count == 0)
 			return 0f;
 
-		Guard.IsNotZero(count - 1);
+		Guard.DivisorIsNotZero(count - 1);
 		return m2 / (count - 1);
 	}
 

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using ILGPU;
 using ILGPU.Runtime;
 using BAVCL.Core.Exceptions;
@@ -7,15 +8,15 @@ namespace BAVCL.Core.Memory;
 
 /// <summary>
 /// A rented pooled GPU buffer (entity). Dispose to return storage to the <see cref="BufferPool"/>.
-/// Use <see cref="Possess{TCacheable}"/> with a <see cref="Vessel{TCacheable}"/> for domain APIs.
+/// Use <see cref="Possess{TCacheable}"/> with an empty domain instance for domain APIs.
 /// </summary>
 public sealed class BufferEntity<T> : IDisposable where T : unmanaged
 {
 	readonly ElementBufferPool<T> _pool;
 	readonly BufferSlot<T> _slot;
 	readonly int _length;
-	bool _disposed;
-	bool _possessed;
+	int _disposed;
+	int _possessed;
 
 	internal BufferSlot<T> Slot => _slot;
 
@@ -35,6 +36,12 @@ public sealed class BufferEntity<T> : IDisposable where T : unmanaged
 	/// <summary>Kernel subview over the rented length.</summary>
 	public ArrayView1D<T, Stride1D.Dense> View => _slot.GetBuffer().View.SubView(0, _length);
 
+	/// <summary>Uploads the rented range from host memory.</summary>
+	public void CopyFromCPU(T[] values) => _slot.GetBuffer().AsArrayView<T>(0, _length).CopyFromCPU(values);
+
+	/// <summary>Downloads the rented range into host memory.</summary>
+	public void CopyToCPU(T[] values) => _slot.GetBuffer().AsArrayView<T>(0, _length).CopyToCPU(values);
+
 	/// <summary>CPU read view over <see cref="Length"/> after a pinned kernel launch.</summary>
 	internal ReadOnlySpan<T> ReadRentedSpan() => _slot.RetrieveReadOnlySpan()[.._length];
 
@@ -49,73 +56,111 @@ public sealed class BufferEntity<T> : IDisposable where T : unmanaged
 	}
 
 	/// <summary>
-	/// Inhabits <paramref name="vessel"/> with this entity's buffer. Dispose the returned scope to Banish.
+	/// Inhabits an empty <paramref name="target"/> with this entity's pooled buffer. Dispose the returned scope to restore it to empty.
 	/// </summary>
-	public PossessionScope<TCacheable> Possess<TCacheable>(Vessel<TCacheable> vessel)
+	public PossessionScope<TCacheable> Possess<TCacheable>(TCacheable target)
 		where TCacheable : CacheableBase<T> =>
-		new(this, vessel);
+		new(this, target);
 
-	internal void BeginPossession<TCacheable>(Vessel<TCacheable> vessel) where TCacheable : CacheableBase<T>
+	internal void BeginPossession<TCacheable>(TCacheable target) where TCacheable : CacheableBase<T>
 	{
-		ObjectDisposedException.ThrowIf(_disposed, this);
+		ArgumentNullException.ThrowIfNull(target);
+		ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
 
-		if (_possessed)
+		if (Interlocked.CompareExchange(ref _possessed, 1, 0) != 0)
 			throw new EntityAlreadyPossessedException();
 
-		if (!vessel.IsVessel)
-			throw new VesselAlreadyInhabitedException(typeof(TCacheable));
+		bool targetClaimed = false;
+		try
+		{
+			Guard.IsEmptyForPossession(target);
+			Guard.MatchingGpu(Gpu, target.Gpu);
+			Guard.AcquirePossession(target);
+			targetClaimed = true;
+			BufferIdTransfer.Possess(_slot, target);
+		}
+		catch
+		{
+			if (targetClaimed)
+				target.ReleasePossession();
 
-		GpuValidation.IsSameVesselContainer(Gpu, vessel.Gpu);
-		BufferIdTransfer.Possess(_slot, vessel.Target);
-		_possessed = true;
+			Volatile.Write(ref _possessed, 0);
+			throw;
+		}
 	}
 
-	internal void Banish<TCacheable>(Vessel<TCacheable> vessel) where TCacheable : CacheableBase<T>
+	internal void Banish<TCacheable>(TCacheable target) where TCacheable : CacheableBase<T>
 	{
-		if (!_possessed)
+		if (Interlocked.Exchange(ref _possessed, 0) == 0)
 			return;
 
-		BufferIdTransfer.Banish(vessel.Target, _slot);
-		_possessed = false;
+		BufferIdTransfer.Banish(target, _slot);
 	}
 
 	public void Dispose()
 	{
-		if (_disposed)
+		if (Volatile.Read(ref _disposed) != 0)
 			return;
 
-		if (_possessed)
+		if (Volatile.Read(ref _possessed) != 0)
 			throw new EntityDisposeWhilePossessedException();
 
+		if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
+			return;
+
 		_pool.Return(_slot);
-		_disposed = true;
 	}
 
-	/// <summary>RAII possession scope — dispose to Banish the soul.</summary>
+	/// <summary>RAII possession scope — dispose to return the pooled buffer and restore the target to empty.</summary>
 	public struct PossessionScope<TCacheable> : IDisposable
 		where TCacheable : CacheableBase<T>
 	{
 		readonly BufferEntity<T> _entity;
-		readonly Vessel<TCacheable> _vessel;
-		bool _disposed;
+		readonly TCacheable _target;
+		int _disposed;
 
 		/// <summary>The inhabited domain instance while possessed.</summary>
-		public readonly TCacheable Soul => _vessel.Target;
+		public readonly TCacheable Soul => _target;
 
-		internal PossessionScope(BufferEntity<T> entity, Vessel<TCacheable> vessel)
+		internal PossessionScope(BufferEntity<T> entity, TCacheable target)
 		{
 			_entity = entity;
-			_vessel = vessel;
-			_entity.BeginPossession(vessel);
+			_target = target;
+			_entity.BeginPossession(target);
 		}
 
 		public void Dispose()
 		{
-			if (_disposed)
+			if (Interlocked.Exchange(ref _disposed, 1) != 0)
 				return;
 
-			_disposed = true;
-			_entity.Banish(_vessel);
+			_entity.Banish(_target);
+		}
+	}
+}
+
+public static class BufferEntityExtensions
+{
+	/// <summary>Inhabits an empty <see cref="Types.Mask"/> with this entity's pooled word buffer.</summary>
+	public static BufferEntity<int>.PossessionScope<Types.Mask> Possess(
+		this BufferEntity<int> entity,
+		Types.Mask target,
+		int elementCount,
+		int columns = 0)
+	{
+		ArgumentNullException.ThrowIfNull(entity);
+		ArgumentNullException.ThrowIfNull(target);
+		Guard.IsEmptyForPossession(target);
+
+		target.SetPossessedLayout(elementCount, columns);
+		try
+		{
+			return entity.Possess(target);
+		}
+		catch
+		{
+			target.RestoreEmptyState();
+			throw;
 		}
 	}
 }

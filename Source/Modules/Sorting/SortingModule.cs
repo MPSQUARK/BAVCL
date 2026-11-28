@@ -4,17 +4,17 @@ public static class VectorSorting
 {
 	extension(VectorInt)
 	{
-		public static VectorInt Sort(VectorInt vector, SortOrder order, bool syncToGpu = true) => SortCore.Sort(vector, order, syncToGpu);
+		public static VectorInt Sort(VectorInt vector, SortOrder order, Upload upload = Upload.Now) => SortCore.Sort(vector, order, upload);
 
-		public static VectorInt SortAsc(VectorInt vector, bool syncToGpu = true) => SortCore.SortAsc(vector, syncToGpu);
+		public static VectorInt SortAsc(VectorInt vector, Upload upload = Upload.Now) => SortCore.SortAsc(vector, upload);
 
-		public static VectorInt SortDesc(VectorInt vector, bool syncToGpu = true) => SortCore.SortDesc(vector, syncToGpu);
+		public static VectorInt SortDesc(VectorInt vector, Upload upload = Upload.Now) => SortCore.SortDesc(vector, upload);
 
-		public static void SortIP(VectorInt vector, SortOrder order, bool syncToGpu = true) => SortCore.SortIP(vector, order, syncToGpu);
+		public static void SortIP(VectorInt vector, SortOrder order, Upload upload = Upload.Now) => SortCore.SortIP(vector, order, upload);
 
-		public static void SortAscIP(VectorInt vector, bool syncToGpu = true) => SortCore.SortAscIP(vector, syncToGpu);
+		public static void SortAscIP(VectorInt vector, Upload upload = Upload.Now) => SortCore.SortAscIP(vector, upload);
 
-		public static void SortDescIP(VectorInt vector, bool syncToGpu = true) => SortCore.SortDescIP(vector, syncToGpu);
+		public static void SortDescIP(VectorInt vector, Upload upload = Upload.Now) => SortCore.SortDescIP(vector, upload);
 
 		public static VectorInt SortX(VectorInt vector, SortOrder order) => GpuSortingCore.SortX(vector, order);
 
@@ -28,20 +28,20 @@ public static class VectorSorting
 
 		public static void SortDescXIP(VectorInt vector) => GpuSortingCore.SortDescXIP(vector);
 
-		public static VectorInt Argsort(VectorInt vector, SortOrder order, bool syncToGpu = true) => ArgsortCore.Argsort(vector, order, syncToGpu);
+		public static VectorInt Argsort(VectorInt vector, SortOrder order, Upload upload = Upload.Now) => ArgsortCore.Argsort(vector, order, upload);
 
-		public static VectorInt ArgsortAsc(VectorInt vector, bool syncToGpu = true) => ArgsortCore.ArgsortAsc(vector, syncToGpu);
+		public static VectorInt ArgsortAsc(VectorInt vector, Upload upload = Upload.Now) => ArgsortCore.ArgsortAsc(vector, upload);
 
-		public static VectorInt ArgsortDesc(VectorInt vector, bool syncToGpu = true) => ArgsortCore.ArgsortDesc(vector, syncToGpu);
+		public static VectorInt ArgsortDesc(VectorInt vector, Upload upload = Upload.Now) => ArgsortCore.ArgsortDesc(vector, upload);
 
-		public static void ArgsortIP(VectorInt vector, VectorInt indices, SortOrder order, bool syncToGpu = true) =>
-			ArgsortCore.ArgsortIP(vector, indices, order, syncToGpu);
+		public static void ArgsortIP(VectorInt vector, VectorInt indices, SortOrder order, Upload upload = Upload.Now) =>
+			ArgsortCore.ArgsortIP(vector, indices, order, upload);
 
-		public static void ArgsortAscIP(VectorInt vector, VectorInt indices, bool syncToGpu = true) =>
-			ArgsortCore.ArgsortAscIP(vector, indices, syncToGpu);
+		public static void ArgsortAscIP(VectorInt vector, VectorInt indices, Upload upload = Upload.Now) =>
+			ArgsortCore.ArgsortAscIP(vector, indices, upload);
 
-		public static void ArgsortDescIP(VectorInt vector, VectorInt indices, bool syncToGpu = true) =>
-			ArgsortCore.ArgsortDescIP(vector, indices, syncToGpu);
+		public static void ArgsortDescIP(VectorInt vector, VectorInt indices, Upload upload = Upload.Now) =>
+			ArgsortCore.ArgsortDescIP(vector, indices, upload);
 
 		public static VectorInt ArgsortX(VectorInt vector, SortOrder order) => GpuSortingCore.ArgsortX(vector, order);
 
@@ -59,17 +59,17 @@ public static class VectorSorting
 
 	extension(Vector)
 	{
-		public static Vector Sort(Vector vector, SortOrder order, bool syncToGpu = true) => SortCore.Sort(vector, order, syncToGpu);
+		public static Vector Sort(Vector vector, SortOrder order, Upload upload = Upload.Now) => SortCore.Sort(vector, order, upload);
 
-		public static Vector SortAsc(Vector vector, bool syncToGpu = true) => SortCore.SortAsc(vector, syncToGpu);
+		public static Vector SortAsc(Vector vector, Upload upload = Upload.Now) => SortCore.SortAsc(vector, upload);
 
-		public static Vector SortDesc(Vector vector, bool syncToGpu = true) => SortCore.SortDesc(vector, syncToGpu);
+		public static Vector SortDesc(Vector vector, Upload upload = Upload.Now) => SortCore.SortDesc(vector, upload);
 
-		public static void SortIP(Vector vector, SortOrder order, bool syncToGpu = true) => SortCore.SortIP(vector, order, syncToGpu);
+		public static void SortIP(Vector vector, SortOrder order, Upload upload = Upload.Now) => SortCore.SortIP(vector, order, upload);
 
-		public static void SortAscIP(Vector vector, bool syncToGpu = true) => SortCore.SortAscIP(vector, syncToGpu);
+		public static void SortAscIP(Vector vector, Upload upload = Upload.Now) => SortCore.SortAscIP(vector, upload);
 
-		public static void SortDescIP(Vector vector, bool syncToGpu = true) => SortCore.SortDescIP(vector, syncToGpu);
+		public static void SortDescIP(Vector vector, Upload upload = Upload.Now) => SortCore.SortDescIP(vector, upload);
 
 		public static Vector SortX(Vector vector, SortOrder order) => GpuSortingCore.SortX(vector, order);
 
@@ -83,20 +83,20 @@ public static class VectorSorting
 
 		public static void SortDescXIP(Vector vector) => GpuSortingCore.SortDescXIP(vector);
 
-		public static VectorInt Argsort(Vector vector, SortOrder order, bool syncToGpu = true) => ArgsortCore.Argsort(vector, order, syncToGpu);
+		public static VectorInt Argsort(Vector vector, SortOrder order, Upload upload = Upload.Now) => ArgsortCore.Argsort(vector, order, upload);
 
-		public static VectorInt ArgsortAsc(Vector vector, bool syncToGpu = true) => ArgsortCore.ArgsortAsc(vector, syncToGpu);
+		public static VectorInt ArgsortAsc(Vector vector, Upload upload = Upload.Now) => ArgsortCore.ArgsortAsc(vector, upload);
 
-		public static VectorInt ArgsortDesc(Vector vector, bool syncToGpu = true) => ArgsortCore.ArgsortDesc(vector, syncToGpu);
+		public static VectorInt ArgsortDesc(Vector vector, Upload upload = Upload.Now) => ArgsortCore.ArgsortDesc(vector, upload);
 
-		public static void ArgsortIP(Vector vector, VectorInt indices, SortOrder order, bool syncToGpu = true) =>
-			ArgsortCore.ArgsortIP(vector, indices, order, syncToGpu);
+		public static void ArgsortIP(Vector vector, VectorInt indices, SortOrder order, Upload upload = Upload.Now) =>
+			ArgsortCore.ArgsortIP(vector, indices, order, upload);
 
-		public static void ArgsortAscIP(Vector vector, VectorInt indices, bool syncToGpu = true) =>
-			ArgsortCore.ArgsortAscIP(vector, indices, syncToGpu);
+		public static void ArgsortAscIP(Vector vector, VectorInt indices, Upload upload = Upload.Now) =>
+			ArgsortCore.ArgsortAscIP(vector, indices, upload);
 
-		public static void ArgsortDescIP(Vector vector, VectorInt indices, bool syncToGpu = true) =>
-			ArgsortCore.ArgsortDescIP(vector, indices, syncToGpu);
+		public static void ArgsortDescIP(Vector vector, VectorInt indices, Upload upload = Upload.Now) =>
+			ArgsortCore.ArgsortDescIP(vector, indices, upload);
 
 		public static VectorInt ArgsortX(Vector vector, SortOrder order) => GpuSortingCore.ArgsortX(vector, order);
 
@@ -117,17 +117,17 @@ public static class SortingModule
 {
 	extension(VectorInt vector)
 	{
-		public VectorInt Sort(SortOrder order, bool syncToGpu = true) => SortCore.Sort(vector, order, syncToGpu);
+		public VectorInt Sort(SortOrder order, Upload upload = Upload.Now) => SortCore.Sort(vector, order, upload);
 
-		public VectorInt SortAsc(bool syncToGpu = true) => SortCore.SortAsc(vector, syncToGpu);
+		public VectorInt SortAsc(Upload upload = Upload.Now) => SortCore.SortAsc(vector, upload);
 
-		public VectorInt SortDesc(bool syncToGpu = true) => SortCore.SortDesc(vector, syncToGpu);
+		public VectorInt SortDesc(Upload upload = Upload.Now) => SortCore.SortDesc(vector, upload);
 
-		public void SortIP(SortOrder order, bool syncToGpu = true) => SortCore.SortIP(vector, order, syncToGpu);
+		public void SortIP(SortOrder order, Upload upload = Upload.Now) => SortCore.SortIP(vector, order, upload);
 
-		public void SortAscIP(bool syncToGpu = true) => SortCore.SortAscIP(vector, syncToGpu);
+		public void SortAscIP(Upload upload = Upload.Now) => SortCore.SortAscIP(vector, upload);
 
-		public void SortDescIP(bool syncToGpu = true) => SortCore.SortDescIP(vector, syncToGpu);
+		public void SortDescIP(Upload upload = Upload.Now) => SortCore.SortDescIP(vector, upload);
 
 		public VectorInt SortX(SortOrder order) => GpuSortingCore.SortX(vector, order);
 
@@ -141,18 +141,18 @@ public static class SortingModule
 
 		public void SortDescXIP() => GpuSortingCore.SortDescXIP(vector);
 
-		public VectorInt Argsort(SortOrder order, bool syncToGpu = true) => ArgsortCore.Argsort(vector, order, syncToGpu);
+		public VectorInt Argsort(SortOrder order, Upload upload = Upload.Now) => ArgsortCore.Argsort(vector, order, upload);
 
-		public VectorInt ArgsortAsc(bool syncToGpu = true) => ArgsortCore.ArgsortAsc(vector, syncToGpu);
+		public VectorInt ArgsortAsc(Upload upload = Upload.Now) => ArgsortCore.ArgsortAsc(vector, upload);
 
-		public VectorInt ArgsortDesc(bool syncToGpu = true) => ArgsortCore.ArgsortDesc(vector, syncToGpu);
+		public VectorInt ArgsortDesc(Upload upload = Upload.Now) => ArgsortCore.ArgsortDesc(vector, upload);
 
-		public void ArgsortIP(VectorInt indices, SortOrder order, bool syncToGpu = true) =>
-			ArgsortCore.ArgsortIP(vector, indices, order, syncToGpu);
+		public void ArgsortIP(VectorInt indices, SortOrder order, Upload upload = Upload.Now) =>
+			ArgsortCore.ArgsortIP(vector, indices, order, upload);
 
-		public void ArgsortAscIP(VectorInt indices, bool syncToGpu = true) => ArgsortCore.ArgsortAscIP(vector, indices, syncToGpu);
+		public void ArgsortAscIP(VectorInt indices, Upload upload = Upload.Now) => ArgsortCore.ArgsortAscIP(vector, indices, upload);
 
-		public void ArgsortDescIP(VectorInt indices, bool syncToGpu = true) => ArgsortCore.ArgsortDescIP(vector, indices, syncToGpu);
+		public void ArgsortDescIP(VectorInt indices, Upload upload = Upload.Now) => ArgsortCore.ArgsortDescIP(vector, indices, upload);
 
 		public VectorInt ArgsortX(SortOrder order) => GpuSortingCore.ArgsortX(vector, order);
 
@@ -169,17 +169,17 @@ public static class SortingModule
 
 	extension(Vector vector)
 	{
-		public Vector Sort(SortOrder order, bool syncToGpu = true) => SortCore.Sort(vector, order, syncToGpu);
+		public Vector Sort(SortOrder order, Upload upload = Upload.Now) => SortCore.Sort(vector, order, upload);
 
-		public Vector SortAsc(bool syncToGpu = true) => SortCore.SortAsc(vector, syncToGpu);
+		public Vector SortAsc(Upload upload = Upload.Now) => SortCore.SortAsc(vector, upload);
 
-		public Vector SortDesc(bool syncToGpu = true) => SortCore.SortDesc(vector, syncToGpu);
+		public Vector SortDesc(Upload upload = Upload.Now) => SortCore.SortDesc(vector, upload);
 
-		public void SortIP(SortOrder order, bool syncToGpu = true) => SortCore.SortIP(vector, order, syncToGpu);
+		public void SortIP(SortOrder order, Upload upload = Upload.Now) => SortCore.SortIP(vector, order, upload);
 
-		public void SortAscIP(bool syncToGpu = true) => SortCore.SortAscIP(vector, syncToGpu);
+		public void SortAscIP(Upload upload = Upload.Now) => SortCore.SortAscIP(vector, upload);
 
-		public void SortDescIP(bool syncToGpu = true) => SortCore.SortDescIP(vector, syncToGpu);
+		public void SortDescIP(Upload upload = Upload.Now) => SortCore.SortDescIP(vector, upload);
 
 		public Vector SortX(SortOrder order) => GpuSortingCore.SortX(vector, order);
 
@@ -193,18 +193,18 @@ public static class SortingModule
 
 		public void SortDescXIP() => GpuSortingCore.SortDescXIP(vector);
 
-		public VectorInt Argsort(SortOrder order, bool syncToGpu = true) => ArgsortCore.Argsort(vector, order, syncToGpu);
+		public VectorInt Argsort(SortOrder order, Upload upload = Upload.Now) => ArgsortCore.Argsort(vector, order, upload);
 
-		public VectorInt ArgsortAsc(bool syncToGpu = true) => ArgsortCore.ArgsortAsc(vector, syncToGpu);
+		public VectorInt ArgsortAsc(Upload upload = Upload.Now) => ArgsortCore.ArgsortAsc(vector, upload);
 
-		public VectorInt ArgsortDesc(bool syncToGpu = true) => ArgsortCore.ArgsortDesc(vector, syncToGpu);
+		public VectorInt ArgsortDesc(Upload upload = Upload.Now) => ArgsortCore.ArgsortDesc(vector, upload);
 
-		public void ArgsortIP(VectorInt indices, SortOrder order, bool syncToGpu = true) =>
-			ArgsortCore.ArgsortIP(vector, indices, order, syncToGpu);
+		public void ArgsortIP(VectorInt indices, SortOrder order, Upload upload = Upload.Now) =>
+			ArgsortCore.ArgsortIP(vector, indices, order, upload);
 
-		public void ArgsortAscIP(VectorInt indices, bool syncToGpu = true) => ArgsortCore.ArgsortAscIP(vector, indices, syncToGpu);
+		public void ArgsortAscIP(VectorInt indices, Upload upload = Upload.Now) => ArgsortCore.ArgsortAscIP(vector, indices, upload);
 
-		public void ArgsortDescIP(VectorInt indices, bool syncToGpu = true) => ArgsortCore.ArgsortDescIP(vector, indices, syncToGpu);
+		public void ArgsortDescIP(VectorInt indices, Upload upload = Upload.Now) => ArgsortCore.ArgsortDescIP(vector, indices, upload);
 
 		public VectorInt ArgsortX(SortOrder order) => GpuSortingCore.ArgsortX(vector, order);
 

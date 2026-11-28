@@ -13,19 +13,13 @@ namespace BAVCL;
 /// </summary>
 public sealed partial class Vector : VectorBase<float>
 {
-	public Vector(GPU gpu, float[] values, int columns = 0, bool cache = true) :
-		base(gpu, values, columns, cache)
-	{ }
+	public Vector(GPU? gpu = null) : base(gpu) { }
 
-	public Vector(GPU gpu, int length, int columns = 0) :
-		base(gpu, length, columns)
-	{ }
+	public Vector(float[] values, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
+		: base(values, columns, upload, gpu) { }
 
-	private Vector(GPU gpu, int columns) : base(gpu, columns) { }
-
-	/// <summary>Creates an empty vessel shell with no GPU buffer.</summary>
-	public static Vessel<Vector> CreateVessel(GPU gpu, int columns = 0) =>
-		new(new Vector(gpu, columns), gpu);
+	public Vector(int length, int columns = 0, Init init = Init.UnInit, GPU? gpu = null)
+		: base(length, columns, init, gpu) { }
 
 	public override void Print() => Console.WriteLine(this.ToStr());
 
@@ -49,8 +43,8 @@ public sealed partial class Vector : VectorBase<float>
 		return true;
 	}
 
-	public Vector Copy(bool Cache = true) =>
-		new(Gpu, ToArray(), Columns, Cache);
+	public Vector Copy(Upload upload = Upload.Now) =>
+		new(ToArray(), Columns, upload, Gpu);
 
 	public void Flatten() => Columns = 0;
 
@@ -58,9 +52,9 @@ public sealed partial class Vector : VectorBase<float>
 	{
 		if (Length % 3 != 0) { throw new Exception("Vector length must be a multiple of 3"); }
 		if (ID != 0)
-			return new Geometric.Vector3(Gpu, Pull());
+			return new Geometric.Vector3(Pull(), gpu: Gpu);
 
-		return new Geometric.Vector3(Gpu, ToArray());
+		return new Geometric.Vector3(ToArray(), gpu: Gpu);
 	}
 
 	public override string ToString() => VectorStructuralExtensions.ToStr(this);
@@ -86,11 +80,11 @@ public sealed partial class Vector : VectorBase<float>
 	public Mask CompareX(float scalar, VectorComparison comparison) =>
 		MaskGpu.CompareX(this, scalar, comparison);
 
-    #region OPERATORS
-    /// <summary>
-    /// Returns the absolute value of the vector.
-    /// </summary>
-    public static Vector operator +(Vector vector) =>
+	#region OPERATORS
+	/// <summary>
+	/// Returns the absolute value of the vector.
+	/// </summary>
+	public static Vector operator +(Vector vector) =>
 		vector.AbsX();
 	public static Vector operator +(Vector vectorA, Vector vectorB) =>
 		vectorA.OP(vectorB, Operations.add);
@@ -98,16 +92,16 @@ public sealed partial class Vector : VectorBase<float>
 		vector.OP(Scalar, Operations.add);
 	public static Vector operator +(float Scalar, Vector vector) =>
 		vector.OP(Scalar, Operations.add);
-    // In-place operator optimization
-    public void operator +=(Vector vectorB) =>
+	// In-place operator optimization
+	public void operator +=(Vector vectorB) =>
 		this.IPOP(vectorB, Operations.add);
 	public void operator +=(float Scalar) =>
-        this.IPOP(Scalar, Operations.add);
+		this.IPOP(Scalar, Operations.add);
 
-    /// <summary>
-    /// Negates the vector by multiplying it by -1.
-    /// </summary>
-    public static Vector operator -(Vector vector) =>
+	/// <summary>
+	/// Negates the vector by multiplying it by -1.
+	/// </summary>
+	public static Vector operator -(Vector vector) =>
 		vector.OP(-1, Operations.multiply);
 	public static Vector operator -(Vector vectorA, Vector vectorB) =>
 		vectorA.OP(vectorB, Operations.subtract);
@@ -115,25 +109,25 @@ public sealed partial class Vector : VectorBase<float>
 		vector.OP(scalar, Operations.subtract);
 	public static Vector operator -(float scalar, Vector vector) =>
 		vector.OP(scalar, Operations.flipSubtract);
-    // In-place operator optimization
-    public void operator -=(Vector vectorB) =>
-        this.IPOP(vectorB, Operations.subtract);
-    public void operator -=(float Scalar) =>
-        this.IPOP(Scalar, Operations.subtract);
+	// In-place operator optimization
+	public void operator -=(Vector vectorB) =>
+		this.IPOP(vectorB, Operations.subtract);
+	public void operator -=(float Scalar) =>
+		this.IPOP(Scalar, Operations.subtract);
 
-    public static Vector operator *(Vector vectorA, Vector vectorB) =>
+	public static Vector operator *(Vector vectorA, Vector vectorB) =>
 		vectorA.OP(vectorB, Operations.multiply);
 	public static Vector operator *(Vector vector, float scalar) =>
 		vector.OP(scalar, Operations.multiply);
 	public static Vector operator *(float scalar, Vector vector) =>
 		vector.OP(scalar, Operations.multiply);
-    // In-place operator optimization
-    public void operator *=(Vector vectorB) =>
-        this.IPOP(vectorB, Operations.multiply);
-    public void operator *=(float Scalar) =>
-        this.IPOP(Scalar, Operations.multiply);
+	// In-place operator optimization
+	public void operator *=(Vector vectorB) =>
+		this.IPOP(vectorB, Operations.multiply);
+	public void operator *=(float Scalar) =>
+		this.IPOP(Scalar, Operations.multiply);
 
-    public static Vector operator /(Vector vectorA, Vector vectorB) =>
+	public static Vector operator /(Vector vectorA, Vector vectorB) =>
 		vectorA.OP(vectorB, Operations.divide);
 	public static Vector operator /(Vector vector, float scalar) =>
 		vector.OP(scalar, Operations.divide);
@@ -144,23 +138,23 @@ public sealed partial class Vector : VectorBase<float>
 	public static (Vector TrueLanes, Vector FalseLanes) operator /(Vector vector, Mask mask) =>
 		MaskCompaction.PartitionX(vector, mask);
 
-    // In-place operator optimization
-    public void operator /=(Vector vectorB) =>
-        this.IPOP(vectorB, Operations.divide);
-    public void operator /=(float Scalar) =>
-        this.IPOP(Scalar, Operations.divide);
+	// In-place operator optimization
+	public void operator /=(Vector vectorB) =>
+		this.IPOP(vectorB, Operations.divide);
+	public void operator /=(float Scalar) =>
+		this.IPOP(Scalar, Operations.divide);
 
-    public static Vector operator ^(Vector vectorA, Vector vectorB) =>
+	public static Vector operator ^(Vector vectorA, Vector vectorB) =>
 		vectorA.OP(vectorB, Operations.pow);
 	public static Vector operator ^(Vector vector, float scalar) =>
 		vector.OP(scalar, Operations.pow);
 	public static Vector operator ^(float Scalar, Vector vector) =>
 		vector.OP(Scalar, Operations.flipPow);
-    // In-place operator optimization
-    public void operator ^=(Vector vectorB) =>
-        this.IPOP(vectorB, Operations.pow);
+	// In-place operator optimization
+	public void operator ^=(Vector vectorB) =>
+		this.IPOP(vectorB, Operations.pow);
 	public void operator ^=(float Scalar) =>
-        this.IPOP(Scalar, Operations.pow);
+		this.IPOP(Scalar, Operations.pow);
 
 	/// <summary>Mask fill false lanes (accelerated <c>maskFilter</c> kernel).</summary>
 	public static Vector operator &(Vector vector, Mask mask) =>
@@ -197,5 +191,5 @@ public sealed partial class Vector : VectorBase<float>
 	public static Mask operator <=(Vector vector, float scalar) =>
 		MaskGpu.CompareX(vector, scalar, VectorComparison.LessOrEqual);
 
-    #endregion
+	#endregion
 }

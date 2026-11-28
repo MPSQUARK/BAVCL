@@ -10,7 +10,7 @@ internal static class ScanAlgorithms
 	internal static Vector CumSumInclusiveX1D(Vector vector)
 	{
 		if (vector.Length == 0)
-			return new Vector(vector.Gpu, 0, vector.Columns);
+			return new Vector([], vector.Columns, Upload.Defer, vector.Gpu);
 
 		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatSumInclusive;
 		Vector output = vector.Copy();
@@ -21,7 +21,7 @@ internal static class ScanAlgorithms
 	internal static Vector CumSumInclusiveX2D(Vector vector)
 	{
 		if (vector.Length == 0)
-			return new Vector(vector.Gpu, 0, vector.Columns);
+			return new Vector([], vector.Columns, Upload.Defer, vector.Gpu);
 
 		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatSumInclusive;
 		Vector output = vector.Copy();
@@ -32,7 +32,7 @@ internal static class ScanAlgorithms
 	internal static VectorInt CumSumInclusiveX1D(VectorInt vector)
 	{
 		if (vector.Length == 0)
-			return new VectorInt(vector.Gpu, 0, vector.Columns);
+			return new VectorInt([], vector.Columns, Upload.Defer, vector.Gpu);
 
 		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntSumInclusive;
 		VectorInt output = vector.Copy();
@@ -43,7 +43,7 @@ internal static class ScanAlgorithms
 	internal static VectorInt CumSumInclusiveX2D(VectorInt vector)
 	{
 		if (vector.Length == 0)
-			return new VectorInt(vector.Gpu, 0, vector.Columns);
+			return new VectorInt([], vector.Columns, Upload.Defer, vector.Gpu);
 
 		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntSumInclusive;
 		VectorInt output = vector.Copy();
@@ -54,7 +54,7 @@ internal static class ScanAlgorithms
 	internal static Vector CumSumExclusiveX1D(Vector vector)
 	{
 		if (vector.Length == 0)
-			return new Vector(vector.Gpu, 0, vector.Columns);
+			return new Vector([], vector.Columns, Upload.Defer, vector.Gpu);
 
 		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatSumExclusive;
 		Vector output = vector.Copy();
@@ -65,7 +65,7 @@ internal static class ScanAlgorithms
 	internal static Vector CumSumExclusiveX2D(Vector vector)
 	{
 		if (vector.Length == 0)
-			return new Vector(vector.Gpu, 0, vector.Columns);
+			return new Vector([], vector.Columns, Upload.Defer, vector.Gpu);
 
 		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatSumExclusive;
 		Vector output = vector.Copy();
@@ -76,7 +76,7 @@ internal static class ScanAlgorithms
 	internal static VectorInt CumSumExclusiveX1D(VectorInt vector)
 	{
 		if (vector.Length == 0)
-			return new VectorInt(vector.Gpu, 0, vector.Columns);
+			return new VectorInt([], vector.Columns, Upload.Defer, vector.Gpu);
 
 		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntSumExclusive;
 		VectorInt output = vector.Copy();
@@ -87,7 +87,7 @@ internal static class ScanAlgorithms
 	internal static VectorInt CumSumExclusiveX2D(VectorInt vector)
 	{
 		if (vector.Length == 0)
-			return new VectorInt(vector.Gpu, 0, vector.Columns);
+			return new VectorInt([], vector.Columns, Upload.Defer, vector.Gpu);
 
 		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntSumExclusive;
 		VectorInt output = vector.Copy();
@@ -98,7 +98,7 @@ internal static class ScanAlgorithms
 	internal static Vector CumProdInclusiveX1D(Vector vector)
 	{
 		if (vector.Length == 0)
-			return new Vector(vector.Gpu, 0, vector.Columns);
+			return new Vector([], vector.Columns, Upload.Defer, vector.Gpu);
 
 		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatProductInclusive;
 		Vector output = vector.Copy();
@@ -109,7 +109,7 @@ internal static class ScanAlgorithms
 	internal static Vector CumProdInclusiveX2D(Vector vector)
 	{
 		if (vector.Length == 0)
-			return new Vector(vector.Gpu, 0, vector.Columns);
+			return new Vector([], vector.Columns, Upload.Defer, vector.Gpu);
 
 		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatProductInclusive;
 		Vector output = vector.Copy();
@@ -120,7 +120,7 @@ internal static class ScanAlgorithms
 	internal static VectorInt CumProdInclusiveX1D(VectorInt vector)
 	{
 		if (vector.Length == 0)
-			return new VectorInt(vector.Gpu, 0, vector.Columns);
+			return new VectorInt([], vector.Columns, Upload.Defer, vector.Gpu);
 
 		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntProductInclusive;
 		VectorInt output = vector.Copy();
@@ -131,7 +131,7 @@ internal static class ScanAlgorithms
 	internal static VectorInt CumProdInclusiveX2D(VectorInt vector)
 	{
 		if (vector.Length == 0)
-			return new VectorInt(vector.Gpu, 0, vector.Columns);
+			return new VectorInt([], vector.Columns, Upload.Defer, vector.Gpu);
 
 		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntProductInclusive;
 		VectorInt output = vector.Copy();
@@ -142,7 +142,7 @@ internal static class ScanAlgorithms
 	internal static Vector CumProdExclusiveX1D(Vector vector)
 	{
 		if (vector.Length == 0)
-			return new Vector(vector.Gpu, 0, vector.Columns);
+			return new Vector([], vector.Columns, Upload.Defer, vector.Gpu);
 
 		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatProductExclusive;
 		Vector output = vector.Copy();
@@ -153,7 +153,7 @@ internal static class ScanAlgorithms
 	internal static Vector CumProdExclusiveX2D(Vector vector)
 	{
 		if (vector.Length == 0)
-			return new Vector(vector.Gpu, 0, vector.Columns);
+			return new Vector([], vector.Columns, Upload.Defer, vector.Gpu);
 
 		Scan<float, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.FloatProductExclusive;
 		Vector output = vector.Copy();
@@ -164,7 +164,7 @@ internal static class ScanAlgorithms
 	internal static VectorInt CumProdExclusiveX1D(VectorInt vector)
 	{
 		if (vector.Length == 0)
-			return new VectorInt(vector.Gpu, 0, vector.Columns);
+			return new VectorInt([], vector.Columns, Upload.Defer, vector.Gpu);
 
 		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntProductExclusive;
 		VectorInt output = vector.Copy();
@@ -175,7 +175,7 @@ internal static class ScanAlgorithms
 	internal static VectorInt CumProdExclusiveX2D(VectorInt vector)
 	{
 		if (vector.Length == 0)
-			return new VectorInt(vector.Gpu, 0, vector.Columns);
+			return new VectorInt([], vector.Columns, Upload.Defer, vector.Gpu);
 
 		Scan<int, Stride1D.Dense, Stride1D.Dense> scan = vector.Gpu.AlgorithmProviders.IntProductExclusive;
 		VectorInt output = vector.Copy();

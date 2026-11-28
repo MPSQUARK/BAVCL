@@ -74,7 +74,7 @@ internal static class Broadcast
 		int outLength = outShape.ElementCount;
 		var op = new SpecializedValue<int>((int)operation);
 
-		Vector output = new(gpu, outLength, outShape.ToStorageColumns());
+		Vector output = new(outLength, outShape.ToStorageColumns(), gpu: gpu);
 
 		using (GpuScope.Begin(output, vectorA, vectorB))
 		{
@@ -126,7 +126,7 @@ internal static class Broadcast
 		int outLength = outShape.ElementCount;
 		var op = new SpecializedValue<int>((int)operation);
 
-		VectorInt output = new(gpu, outLength, outShape.ToStorageColumns());
+		VectorInt output = new(outLength, outShape.ToStorageColumns(), gpu: gpu);
 
 		using (GpuScope.Begin(output, vectorA, vectorB))
 		{

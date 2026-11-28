@@ -74,7 +74,7 @@ internal static class FourierCore
 		float[] output = new float[source.Length];
 		for (int i = 0; i < output.Length; i++)
 			output[i] = transformed[i].Real;
-		return new Vector(spectrum.Real.Gpu, output, spectrum.Columns);
+		return new Vector(output, spectrum.Columns, gpu: spectrum.Real.Gpu);
 	}
 
 	private static FftResult TransformGpu(Vector input)
@@ -82,8 +82,8 @@ internal static class FourierCore
 		Validate(input);
 		if (input.Is2D())
 			return TransformCpu(input);
-		Vector real = new(input.Gpu, input.Length, input.Columns);
-		Vector imaginary = new(input.Gpu, input.Length, input.Columns);
+		Vector real = new(input.Length, input.Columns, gpu: input.Gpu);
+		Vector imaginary = new(input.Length, input.Columns, gpu: input.Gpu);
 		using (GpuScope.Begin([real, imaginary], [input]))
 		{
 			input.Gpu.fftRealFloat(
@@ -108,8 +108,8 @@ internal static class FourierCore
 			new FftPlan2D(input.RowCount(), input.Columns).Transform(source, transformed);
 			return CreateResult(input.Gpu, input.Columns, transformed);
 		}
-		Vector real = new(input.Gpu, input.Length, input.Columns);
-		Vector imaginary = new(input.Gpu, input.Length, input.Columns);
+		Vector real = new(input.Length, input.Columns, gpu: input.Gpu);
+		Vector imaginary = new(input.Length, input.Columns, gpu: input.Gpu);
 		using (GpuScope.Begin([real, imaginary], [input]))
 		{
 			input.Gpu.fftRealInt(
@@ -131,8 +131,8 @@ internal static class FourierCore
 			imaginary[i] = values[i].Imaginary;
 		}
 		return new FftResult(
-			new Vector(gpu, real, columns),
-			new Vector(gpu, imaginary, columns));
+			new Vector(real, columns, gpu: gpu),
+			new Vector(imaginary, columns, gpu: gpu));
 	}
 
 	private static void Validate(VectorBase<float> input)
