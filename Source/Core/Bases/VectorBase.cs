@@ -133,7 +133,7 @@ public abstract class VectorBase<T> : CacheableBase<T>, IIO where T : unmanaged
 	public void SetAt(int index, T val)
 	{
 		ValidateIndexForView(index);
-		using (var scope = this.CpuScope())
+		using (var scope = this.CpuScope(Upload.Defer))
 		{
 			EditableView<T> view = scope.View;
 			view[index] = val;
@@ -144,7 +144,7 @@ public abstract class VectorBase<T> : CacheableBase<T>, IIO where T : unmanaged
 	{
 		int computedIndex = GetIndexFromCoordinatesForView(row, col);
 		ValidateIndexForView(computedIndex);
-		using (var scope = this.CpuScope())
+		using (var scope = this.CpuScope(Upload.Defer))
 		{
 			EditableView<T> view = scope.View;
 			view[computedIndex] = val;
