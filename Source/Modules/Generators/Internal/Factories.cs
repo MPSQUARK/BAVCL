@@ -5,156 +5,156 @@ namespace BAVCL.Modules.Generators;
 
 internal static class FactoriesCore
 {
-	internal static Vector Zeros(GPU gpu, int length, int columns = 0)
+	internal static Vector Zeros(int length, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		Guard.ArgumentIsPositive(length);
-		return new(gpu, new float[length], columns);
+		return new(new float[length], columns, upload, gpu);
 	}
 
-	internal static BAVCL.Geometric.Vector3 Zeros(GPU gpu, int length)
+	internal static BAVCL.Geometric.Vector3 Zeros3(int length, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		Guard.ArgumentIsPositive(length);
-		return new(gpu, new float[length], true);
+		return new(new float[length], upload, gpu);
 	}
 
-	internal static Vector Ones(GPU gpu, int length, int columns = 0)
+	internal static Vector Ones(int length, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		Guard.ArgumentIsPositive(length);
-		return new(gpu, FilledArray(length, 1f), columns);
+		return new(FilledArray(length, 1f), columns, upload, gpu);
 	}
 
-	internal static Vector Fill(GPU gpu, float value, int length, int columns = 0, bool cache = true)
+	internal static Vector Fill(float value, int length, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		Guard.ArgumentIsPositive(length);
-		return new(gpu, FilledArray(length, value), columns, cache);
+		return new(FilledArray(length, value), columns, upload, gpu);
 	}
 
-	internal static BAVCL.Geometric.Vector3 Fill(GPU gpu, float value, int length)
+	internal static BAVCL.Geometric.Vector3 Fill3(float value, int length, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		Guard.ArgumentIsPositive(length);
-		return new(gpu, FilledArray(length, value), true);
+		return new(FilledArray(length, value), upload, gpu);
 	}
 
 	internal static Vector Arange(
-		GPU gpu, float startval, float endval, float interval, int columns = 0, bool cache = true)
+		float startval, float endval, float interval, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		float[] values = GeneratorsCore.Arange(startval, endval, interval);
 		Guard.RangeIsNotEmpty(values.Length);
-		return new(gpu, values, columns, cache);
+		return new(values, columns, upload, gpu);
 	}
 
 	internal static Vector Linspace(
-		GPU gpu, float startval, float endval, int steps, int columns = 0, bool cache = true)
+		float startval, float endval, int steps, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		Guard.ArgumentIsPositive(steps);
 		float[] values = GeneratorsCore.Linspace(startval, endval, steps);
-		return new(gpu, values, columns, cache);
+		return new(values, columns, upload, gpu);
 	}
 
-	internal static Vector ZerosInPlace(Vector vector, bool sync = true)
+	internal static Vector ZerosInPlace(Vector vector, Upload upload = Upload.Now)
 	{
 		Guard.ArgumentIsPositive(vector.Length);
-		using (vector.CpuScope(sync))
+		using (vector.CpuScope(upload))
 			vector.Value = new float[vector.Length];
 		return vector;
 	}
 
-	internal static Vector OnesInPlace(Vector vector, bool sync = true)
+	internal static Vector OnesInPlace(Vector vector, Upload upload = Upload.Now)
 	{
 		Guard.ArgumentIsPositive(vector.Length);
-		using (vector.CpuScope(sync))
+		using (vector.CpuScope(upload))
 			vector.Value = FilledArray(vector.Length, 1f);
 		return vector;
 	}
 
-	internal static Vector FillInPlace(Vector vector, float value, bool sync = true)
+	internal static Vector FillInPlace(Vector vector, float value, Upload upload = Upload.Now)
 	{
 		Guard.ArgumentIsPositive(vector.Length);
-		using (vector.CpuScope(sync))
+		using (vector.CpuScope(upload))
 			vector.Value = FilledArray(vector.Length, value);
 		return vector;
 	}
 
-	internal static Vector Random(GPU gpu, int length, int? seed, int columns)
+	internal static Vector Random(int length, int? seed, int columns, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		Guard.ArgumentIsPositive(length);
-		return new(gpu, GenerateRandom(length, seed), columns);
+		return new(GenerateRandom(length, seed), columns, upload, gpu);
 	}
 
-	internal static Vector RandomUniform(GPU gpu, int length, float low, float high, int? seed, int columns)
+	internal static Vector RandomUniform(int length, float low, float high, int? seed, int columns, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		Guard.ArgumentIsPositive(length);
-		return new(gpu, GenerateUniform(length, low, high, seed), columns);
+		return new(GenerateUniform(length, low, high, seed), columns, upload, gpu);
 	}
 
-	internal static Vector RandomNormal(GPU gpu, int length, float mean, float stdDev, int? seed, int columns)
+	internal static Vector RandomNormal(int length, float mean, float stdDev, int? seed, int columns, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		Guard.ArgumentIsPositive(length);
-		return new(gpu, GenerateNormal(length, mean, stdDev, seed), columns);
+		return new(GenerateNormal(length, mean, stdDev, seed), columns, upload, gpu);
 	}
 
-	internal static VectorInt ZerosInt(GPU gpu, int length, int columns = 0)
+	internal static VectorInt ZerosInt(int length, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		Guard.ArgumentIsPositive(length);
-		return new(gpu, new int[length], columns);
+		return new(new int[length], columns, upload, gpu);
 	}
 
-	internal static VectorInt OnesInt(GPU gpu, int length, int columns = 0)
+	internal static VectorInt OnesInt(int length, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		Guard.ArgumentIsPositive(length);
-		return new(gpu, FilledArray(length, 1), columns);
+		return new(FilledArray(length, 1), columns, upload, gpu);
 	}
 
-	internal static VectorInt Fill(GPU gpu, int value, int length, int columns = 0, bool cache = true)
+	internal static VectorInt Fill(int value, int length, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		Guard.ArgumentIsPositive(length);
-		return new(gpu, FilledArray(length, value), columns, cache);
+		return new(FilledArray(length, value), columns, upload, gpu);
 	}
 
 	internal static VectorInt Arange(
-		GPU gpu, int startval, int endval, int interval, int columns = 0, bool cache = true)
+		int startval, int endval, int interval, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		int[] values = GeneratorsCore.Arange(startval, endval, interval);
 		Guard.RangeIsNotEmpty(values.Length);
-		return new(gpu, values, columns, cache);
+		return new(values, columns, upload, gpu);
 	}
 
 	internal static VectorInt Linspace(
-		GPU gpu, int startval, int endval, int steps, int columns = 0, bool cache = true)
+		int startval, int endval, int steps, int columns = 0, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		Guard.ArgumentIsPositive(steps);
 		int[] values = GeneratorsCore.Linspace(startval, endval, steps);
-		return new(gpu, values, columns, cache);
+		return new(values, columns, upload, gpu);
 	}
 
-	internal static VectorInt ZerosInPlace(VectorInt vector, bool sync = true)
+	internal static VectorInt ZerosInPlace(VectorInt vector, Upload upload = Upload.Now)
 	{
 		Guard.ArgumentIsPositive(vector.Length);
-		using (vector.CpuScope(sync))
+		using (vector.CpuScope(upload))
 			vector.Value = new int[vector.Length];
 		return vector;
 	}
 
-	internal static VectorInt OnesInPlace(VectorInt vector, bool sync = true)
+	internal static VectorInt OnesInPlace(VectorInt vector, Upload upload = Upload.Now)
 	{
 		Guard.ArgumentIsPositive(vector.Length);
-		using (vector.CpuScope(sync))
+		using (vector.CpuScope(upload))
 			vector.Value = FilledArray(vector.Length, 1);
 		return vector;
 	}
 
-	internal static VectorInt FillInPlace(VectorInt vector, int value, bool sync = true)
+	internal static VectorInt FillInPlace(VectorInt vector, int value, Upload upload = Upload.Now)
 	{
 		Guard.ArgumentIsPositive(vector.Length);
-		using (vector.CpuScope(sync))
+		using (vector.CpuScope(upload))
 			vector.Value = FilledArray(vector.Length, value);
 		return vector;
 	}
 
-	internal static VectorInt RandomUniform(GPU gpu, int length, int low, int high, int? seed, int columns)
+	internal static VectorInt RandomUniform(int length, int low, int high, int? seed, int columns, Upload upload = Upload.Now, GPU? gpu = null)
 	{
 		Guard.ArgumentIsPositive(length);
-		return new(gpu, GenerateUniform(length, low, high, seed), columns);
+		return new(GenerateUniform(length, low, high, seed), columns, upload, gpu);
 	}
 
 	static float[] GenerateRandom(int length, int? seed)

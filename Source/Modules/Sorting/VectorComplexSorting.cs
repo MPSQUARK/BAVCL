@@ -153,7 +153,7 @@ public static class VectorComplexSorting
 	static void SortInPlace(VectorComplex64 vector, ComplexSortMode mode, SortOrder order)
 	{
 		ValidateMode(mode);
-		using (var scope = vector.CpuScope())
+		using (var scope = vector.CpuScope(Upload.Defer))
 		{
 			Complex[] values = vector.Value;
 			SortRows(values, vector.Columns, mode, order);
@@ -183,7 +183,7 @@ public static class VectorComplexSorting
 	{
 		Guard.MatchingDimensions(vector.Shape(), indices.Shape());
 		VectorInt result = ArgsortCore(vector, mode, order);
-		using var scope = indices.CpuScope();
+		using var scope = indices.CpuScope(Upload.Defer);
 		EditableView<int> view = scope.View;
 		ReadOnlySpan<int> source = result.RetrieveReadOnlySpan();
 		for (int i = 0; i < source.Length; i++)

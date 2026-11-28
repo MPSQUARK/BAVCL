@@ -21,7 +21,7 @@ internal static class ElementWiseCore
 		if (DescriptiveStatistics.Min(vector) > 0f)
 			return;
 
-		using (var scope = vector.CpuScopeAndSync())
+		using (var scope = vector.CpuScope())
 		{
 			EditableView<float> view = scope.View;
 			for (int i = 0; i < vector.Length; i++)
@@ -72,7 +72,7 @@ internal static class ElementWiseCore
 
 	internal static void RsqrtInPlace(Vector vector)
 	{
-		using (var scope = vector.CpuScopeAndSync())
+		using (var scope = vector.CpuScope())
 		{
 			EditableView<float> view = scope.View;
 			for (int i = 0; i < vector.Length; i++)
@@ -103,7 +103,7 @@ internal static class ElementWiseCore
 			throw new Exception("DiffX is for use with 1D Vectors ONLY");
 
 		GPU gpu = vector.Gpu;
-		Vector output = new(gpu, vector.Length - 1, vector.Columns);
+		Vector output = new(vector.Length - 1, vector.Columns, gpu: gpu);
 
 		using (GpuScope.Begin(output, vector))
 		{
@@ -150,7 +150,7 @@ internal static class ElementWiseCore
 
 	internal static void AbsInPlace(VectorInt vector)
 	{
-		using (var scope = vector.CpuScopeAndSync())
+		using (var scope = vector.CpuScope())
 		{
 			EditableView<int> view = scope.View;
 			for (int i = 0; i < vector.Length; i++)
@@ -181,7 +181,7 @@ internal static class ElementWiseCore
 			throw new Exception("DiffX is for use with 1D Vectors ONLY");
 
 		GPU gpu = vector.Gpu;
-		VectorInt output = new(gpu, vector.Length - 1, vector.Columns);
+		VectorInt output = new(vector.Length - 1, vector.Columns, gpu: gpu);
 
 		using (GpuScope.Begin(output, vector))
 		{

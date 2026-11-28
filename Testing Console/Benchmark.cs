@@ -28,7 +28,7 @@ public class Benchmark
 	[Benchmark]
 	public void Create()
 	{
-		Vector newVec = new(gpu, data);
+		Vector newVec = new(data, gpu: gpu);
 	}
 
 	//[Params(2, 8, 16, 49, 100, 64, 256, 529, 165518, 5131, 123, 71645, 12.1518f)]

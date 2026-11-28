@@ -64,7 +64,7 @@ internal static class MaskGpu
 		Shape outputShape = leftShape.BroadcastWith(rightShape);
 
 		GPU gpu = left.Gpu;
-		Mask output = new(gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
+		Mask output = new(outputShape.ElementCount, outputShape.ToStorageColumns(), gpu: gpu);
 
 		using (GpuScope.Begin(output, left, right))
 		{
@@ -92,7 +92,7 @@ internal static class MaskGpu
 		Shape outputShape = leftShape.BroadcastWith(rightShape);
 
 		GPU gpu = left.Gpu;
-		Mask output = new(gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
+		Mask output = new(outputShape.ElementCount, outputShape.ToStorageColumns(), gpu: gpu);
 
 		using (GpuScope.Begin(output, left, right))
 		{
@@ -119,7 +119,7 @@ internal static class MaskGpu
 		Shape rightShape = right.Shape();
 		Shape outputShape = leftShape.BroadcastWith(rightShape);
 		GPU gpu = left.Gpu;
-		Mask output = new(gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
+		Mask output = new(outputShape.ElementCount, outputShape.ToStorageColumns(), gpu: gpu);
 
 		using (GpuScope.Begin(output, left, right))
 		{
@@ -142,7 +142,7 @@ internal static class MaskGpu
 	internal static Mask CompareX(Vector vector, float scalar, VectorComparison comparison)
 	{
 		GPU gpu = vector.Gpu;
-		Mask output = new(gpu, vector.Length, vector.Columns);
+		Mask output = new(vector.Length, vector.Columns, gpu: gpu);
 
 		using (GpuScope.Begin(output, vector))
 		{
@@ -162,7 +162,7 @@ internal static class MaskGpu
 	internal static Mask CompareX(VectorInt vector, int scalar, VectorComparison comparison)
 	{
 		GPU gpu = vector.Gpu;
-		Mask output = new(gpu, vector.Length, vector.Columns);
+		Mask output = new(vector.Length, vector.Columns, gpu: gpu);
 
 		using (GpuScope.Begin(output, vector))
 		{
@@ -182,7 +182,7 @@ internal static class MaskGpu
 	internal static Mask CompareX(VectorComplex64 vector, Complex scalar, bool equal)
 	{
 		GPU gpu = vector.Gpu;
-		Mask output = new(gpu, vector.Length, vector.Columns);
+		Mask output = new(vector.Length, vector.Columns, gpu: gpu);
 
 		using (GpuScope.Begin(output, vector))
 		{
@@ -207,7 +207,7 @@ internal static class MaskGpu
 		Shape outputShape = vectorShape.BroadcastWith(maskShape);
 
 		GPU gpu = vector.Gpu;
-		Vector output = new(gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
+		Vector output = new(outputShape.ElementCount, outputShape.ToStorageColumns(), gpu: gpu);
 
 		using (GpuScope.Begin(output, vector, mask))
 		{
@@ -235,7 +235,7 @@ internal static class MaskGpu
 		Shape outputShape = vectorShape.BroadcastWith(maskShape);
 
 		GPU gpu = vector.Gpu;
-		VectorInt output = new(gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
+		VectorInt output = new(outputShape.ElementCount, outputShape.ToStorageColumns(), gpu: gpu);
 
 		using (GpuScope.Begin(output, vector, mask))
 		{
@@ -262,7 +262,7 @@ internal static class MaskGpu
 		Shape maskShape = mask.Shape();
 		Shape outputShape = vectorShape.BroadcastWith(maskShape);
 		GPU gpu = vector.Gpu;
-		VectorComplex64 output = new(gpu, outputShape.ElementCount, outputShape.ToStorageColumns());
+		VectorComplex64 output = new(outputShape.ElementCount, outputShape.ToStorageColumns(), gpu: gpu);
 
 		using (GpuScope.Begin(output, vector, mask))
 		{

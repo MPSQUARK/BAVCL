@@ -1,13 +1,14 @@
 namespace BAVCL;
 
 /// <summary>
-/// Controls when host-initialized data is uploaded to the GPU.
+/// Controls when host data is uploaded to the GPU. Used by constructors, assignment,
+/// operation results, and CPU scope exit.
 /// </summary>
 public enum Upload : byte
 {
-	/// <summary>Upload data to the GPU immediately on construction or assignment (<see cref="Core.Residence.InSync"/>).</summary>
+	/// <summary>Upload to the GPU now (<see cref="Core.Residence.InSync"/>).</summary>
 	Now = 0,
 
-	/// <summary>Keep data on the CPU until the first GPU operation (<see cref="Core.Residence.Cpu"/>).</summary>
+	/// <summary>Keep data on the CPU until the next GPU operation needs it (<see cref="Core.Residence.Cpu"/>).</summary>
 	Defer = 1,
 }

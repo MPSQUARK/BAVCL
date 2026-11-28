@@ -14,7 +14,7 @@ internal static class ShapeOpsCore
 
 	internal static void AppendInPlace(Vector vectorA, Vector vectorB)
 	{
-		using (vectorA.CpuScopeAndSync())
+		using (vectorA.CpuScope())
 		{
 			ReadOnlySpan<float> left = vectorA.RetrieveReadOnlySpan();
 			ReadOnlySpan<float> right = vectorB.RetrieveReadOnlySpan();
@@ -104,7 +104,7 @@ internal static class ShapeOpsCore
 
 	internal static void MergeInPlace(Vector vector, Vector vectorB)
 	{
-		using (vector.CpuScopeAndSync())
+		using (vector.CpuScope())
 		{
 			ReadOnlySpan<float> left = vector.RetrieveReadOnlySpan();
 			ReadOnlySpan<float> right = vectorB.RetrieveReadOnlySpan();
@@ -118,7 +118,7 @@ internal static class ShapeOpsCore
 
 	internal static void ReverseInPlace(Vector vector)
 	{
-		using (vector.CpuScopeAndSync())
+		using (vector.CpuScope())
 		{
 			ReadOnlySpan<float> src = vector.RetrieveReadOnlySpan();
 			float[] reversed = new float[src.Length];
@@ -277,7 +277,7 @@ internal static class ShapeOpsCore
 
 	internal static void AppendInPlace(VectorInt vectorA, VectorInt vectorB)
 	{
-		using (vectorA.CpuScopeAndSync())
+		using (vectorA.CpuScope())
 		{
 			ReadOnlySpan<int> left = vectorA.RetrieveReadOnlySpan();
 			ReadOnlySpan<int> right = vectorB.RetrieveReadOnlySpan();
@@ -365,7 +365,7 @@ internal static class ShapeOpsCore
 
 	internal static void MergeInPlace(VectorInt vector, VectorInt vectorB)
 	{
-		using (vector.CpuScopeAndSync())
+		using (vector.CpuScope())
 		{
 			ReadOnlySpan<int> left = vector.RetrieveReadOnlySpan();
 			ReadOnlySpan<int> right = vectorB.RetrieveReadOnlySpan();
@@ -376,7 +376,7 @@ internal static class ShapeOpsCore
 
 	internal static void ReverseInPlace(VectorInt vector)
 	{
-		using (vector.CpuScopeAndSync())
+		using (vector.CpuScope())
 		{
 			ReadOnlySpan<int> src = vector.RetrieveReadOnlySpan();
 			int[] reversed = new int[src.Length];
@@ -387,6 +387,7 @@ internal static class ShapeOpsCore
 		}
 	}
 
+	// TODO: use Array.Reverse()
 	internal static VectorInt Reverse(VectorInt vector) =>
 		new(vector.ToArray().Reverse().ToArray(), vector.Columns, gpu: vector.Gpu);
 

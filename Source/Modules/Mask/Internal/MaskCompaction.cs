@@ -14,7 +14,7 @@ internal static class MaskCompaction
 		Shape maskShape = mask.Shape();
 		int elementCount = maskShape.ElementCount;
 		if (elementCount == 0)
-			return new VectorInt(gpu, 0, columns: 0);
+			return new VectorInt(0, columns: 0, gpu: gpu);
 
 		using BufferEntity<int> flags = BufferPools.For(gpu).Int.Rent(elementCount);
 		using BufferEntity<int> writePos = BufferPools.For(gpu).Int.Rent(elementCount);
@@ -23,9 +23,9 @@ internal static class MaskCompaction
 			int trueCount = MaskGpuSelection.ExclusivePrefixCount(
 				gpu, mask, maskShape, maskShape, flags.View, writePos.View);
 			if (trueCount == 0)
-				return new VectorInt(gpu, 0, columns: 0);
+				return new VectorInt(0, columns: 0, gpu: gpu);
 
-			VectorInt output = new(gpu, trueCount, columns: 0);
+			VectorInt output = new(trueCount, columns: 0, gpu: gpu);
 			using (GpuScope.Begin(output))
 			{
 				gpu.compactWriteIndices(
@@ -55,7 +55,7 @@ internal static class MaskCompaction
 		(Shape vectorShape, Shape maskShape, Shape outputShape) = ForFilterGpu(vector, mask);
 		int elementCount = outputShape.ElementCount;
 		if (elementCount == 0)
-			return new Vector(vector.Gpu, 0, columns: 0);
+			return new Vector(0, columns: 0, gpu: vector.Gpu);
 
 		GPU gpu = vector.Gpu;
 		using BufferEntity<int> flags = BufferPools.For(gpu).Int.Rent(elementCount);
@@ -65,9 +65,9 @@ internal static class MaskCompaction
 			int count = MaskGpuSelection.ExclusivePrefixCount(
 				gpu, mask, maskShape, outputShape, flags.View, writePos.View);
 			if (count == 0)
-				return new Vector(gpu, 0, columns: 0);
+				return new Vector(0, columns: 0, gpu: gpu);
 
-			Vector output = new(gpu, count, columns: 0);
+			Vector output = new(count, columns: 0, gpu: gpu);
 			using (GpuScope.Begin(output, vector))
 			{
 				gpu.compactGatherFloat(
@@ -91,7 +91,7 @@ internal static class MaskCompaction
 		(Shape vectorShape, Shape maskShape, Shape outputShape) = ForFilterGpu(vector, mask);
 		int elementCount = outputShape.ElementCount;
 		if (elementCount == 0)
-			return new VectorInt(vector.Gpu, 0, columns: 0);
+			return new VectorInt(0, columns: 0, gpu: vector.Gpu);
 
 		GPU gpu = vector.Gpu;
 		using BufferEntity<int> flags = BufferPools.For(gpu).Int.Rent(elementCount);
@@ -101,9 +101,9 @@ internal static class MaskCompaction
 			int count = MaskGpuSelection.ExclusivePrefixCount(
 				gpu, mask, maskShape, outputShape, flags.View, writePos.View);
 			if (count == 0)
-				return new VectorInt(gpu, 0, columns: 0);
+				return new VectorInt(0, columns: 0, gpu: gpu);
 
-			VectorInt output = new(gpu, count, columns: 0);
+			VectorInt output = new(count, columns: 0, gpu: gpu);
 			using (GpuScope.Begin(output, vector))
 			{
 				gpu.compactGatherInt(
@@ -127,7 +127,7 @@ internal static class MaskCompaction
 		(Shape vectorShape, Shape maskShape, Shape outputShape) = ForFilterGpu(vector, mask);
 		int elementCount = outputShape.ElementCount;
 		if (elementCount == 0)
-			return new VectorComplex64(vector.Gpu, 0, columns: 0);
+			return new VectorComplex64(0, columns: 0, gpu: vector.Gpu);
 
 		GPU gpu = vector.Gpu;
 		using BufferEntity<int> flags = BufferPools.For(gpu).Int.Rent(elementCount);
@@ -137,9 +137,9 @@ internal static class MaskCompaction
 			int count = MaskGpuSelection.ExclusivePrefixCount(
 				gpu, mask, maskShape, outputShape, flags.View, writePos.View);
 			if (count == 0)
-				return new VectorComplex64(gpu, 0, columns: 0);
+				return new VectorComplex64(0, columns: 0, gpu: gpu);
 
-			VectorComplex64 output = new(gpu, count, columns: 0);
+			VectorComplex64 output = new(count, columns: 0, gpu: gpu);
 			using (GpuScope.Begin(output, vector))
 			{
 				gpu.compactGatherComplex(
@@ -163,7 +163,7 @@ internal static class MaskCompaction
 		(Shape vectorShape, Shape maskShape, Shape outputShape) = ForFilterGpu(vector, mask);
 		int elementCount = outputShape.ElementCount;
 		if (elementCount == 0)
-			return (new Vector(vector.Gpu, 0, columns: 0), new Vector(vector.Gpu, 0, columns: 0));
+			return (new Vector(0, columns: 0, gpu: vector.Gpu), new Vector(0, columns: 0, gpu: vector.Gpu));
 
 		GPU gpu = vector.Gpu;
 		using BufferEntity<int> flags = BufferPools.For(gpu).Int.Rent(elementCount);
@@ -173,8 +173,8 @@ internal static class MaskCompaction
 			int trueCount = MaskGpuSelection.ExclusivePrefixCount(
 				gpu, mask, maskShape, outputShape, flags.View, writePos.View);
 			int falseCount = elementCount - trueCount;
-			Vector trueOutput = new(gpu, trueCount, columns: 0);
-			Vector falseOutput = new(gpu, falseCount, columns: 0);
+			Vector trueOutput = new(trueCount, columns: 0, gpu: gpu);
+			Vector falseOutput = new(falseCount, columns: 0, gpu: gpu);
 			using (GpuScope.Begin([trueOutput, falseOutput], [vector]))
 			{
 				gpu.compactGatherFloatPartition(
@@ -199,7 +199,7 @@ internal static class MaskCompaction
 		(Shape vectorShape, Shape maskShape, Shape outputShape) = ForFilterGpu(vector, mask);
 		int elementCount = outputShape.ElementCount;
 		if (elementCount == 0)
-			return (new VectorInt(vector.Gpu, 0, columns: 0), new VectorInt(vector.Gpu, 0, columns: 0));
+			return (new VectorInt(0, columns: 0, gpu: vector.Gpu), new VectorInt(0, columns: 0, gpu: vector.Gpu));
 
 		GPU gpu = vector.Gpu;
 		using BufferEntity<int> flags = BufferPools.For(gpu).Int.Rent(elementCount);
@@ -209,8 +209,8 @@ internal static class MaskCompaction
 			int trueCount = MaskGpuSelection.ExclusivePrefixCount(
 				gpu, mask, maskShape, outputShape, flags.View, writePos.View);
 			int falseCount = elementCount - trueCount;
-			VectorInt trueOutput = new(gpu, trueCount, columns: 0);
-			VectorInt falseOutput = new(gpu, falseCount, columns: 0);
+			VectorInt trueOutput = new(trueCount, columns: 0, gpu: gpu);
+			VectorInt falseOutput = new(falseCount, columns: 0, gpu: gpu);
 			using (GpuScope.Begin([trueOutput, falseOutput], [vector]))
 			{
 				gpu.compactGatherIntPartition(
@@ -235,7 +235,7 @@ internal static class MaskCompaction
 		(Shape vectorShape, Shape maskShape, Shape outputShape) = ForFilterGpu(vector, mask);
 		int elementCount = outputShape.ElementCount;
 		if (elementCount == 0)
-			return (new VectorComplex64(vector.Gpu, 0, columns: 0), new VectorComplex64(vector.Gpu, 0, columns: 0));
+			return (new VectorComplex64(0, columns: 0, gpu: vector.Gpu), new VectorComplex64(0, columns: 0, gpu: vector.Gpu));
 
 		GPU gpu = vector.Gpu;
 		using BufferEntity<int> flags = BufferPools.For(gpu).Int.Rent(elementCount);
@@ -245,8 +245,8 @@ internal static class MaskCompaction
 			int trueCount = MaskGpuSelection.ExclusivePrefixCount(
 				gpu, mask, maskShape, outputShape, flags.View, writePos.View);
 			int falseCount = elementCount - trueCount;
-			VectorComplex64 trueOutput = new(gpu, trueCount, columns: 0);
-			VectorComplex64 falseOutput = new(gpu, falseCount, columns: 0);
+			VectorComplex64 trueOutput = new(trueCount, columns: 0, gpu: gpu);
+			VectorComplex64 falseOutput = new(falseCount, columns: 0, gpu: gpu);
 			using (GpuScope.Begin([trueOutput, falseOutput], [vector]))
 			{
 				gpu.compactGatherComplexPartition(

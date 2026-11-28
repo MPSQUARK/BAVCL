@@ -187,7 +187,7 @@ internal static class SortAlgorithms
 		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
 		using (GpuScope.BeginReadOnly(input))
 		{
-			VectorInt indices = new(gpu, length, input.Columns);
+			VectorInt indices = new(length, input.Columns, gpu: gpu);
 			using (GpuScope.Begin(indices))
 			{
 				using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
@@ -251,7 +251,7 @@ internal static class SortAlgorithms
 		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
 		using (GpuScope.BeginReadOnly(input))
 		{
-			VectorInt indices = new(gpu, length, input.Columns);
+			VectorInt indices = new(length, input.Columns, gpu: gpu);
 			using (GpuScope.Begin(indices))
 			{
 				using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
@@ -315,7 +315,7 @@ internal static class SortAlgorithms
 		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
 		using (GpuScope.BeginReadOnly(input))
 		{
-			VectorInt indices = new(gpu, length, input.Columns);
+			VectorInt indices = new(length, input.Columns, gpu: gpu);
 			using (GpuScope.Begin(indices))
 			{
 				using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
@@ -379,7 +379,7 @@ internal static class SortAlgorithms
 		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
 		using (GpuScope.BeginReadOnly(input))
 		{
-			VectorInt indices = new(gpu, length, input.Columns);
+			VectorInt indices = new(length, input.Columns, gpu: gpu);
 			using (GpuScope.Begin(indices))
 			{
 				using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(radixTempOffset + radixTempElements);
@@ -444,7 +444,7 @@ internal static class SortAlgorithms
 		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
 		using (GpuScope.BeginReadOnly(input))
 		{
-			VectorInt indices = new(gpu, length, input.Columns);
+			VectorInt indices = new(length, input.Columns, gpu: gpu);
 			using (GpuScope.Begin(indices))
 			{
 				using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(Argsort2DScratchElements(length));
@@ -500,7 +500,7 @@ internal static class SortAlgorithms
 		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
 		using (GpuScope.BeginReadOnly(input))
 		{
-			VectorInt indices = new(gpu, length, input.Columns);
+			VectorInt indices = new(length, input.Columns, gpu: gpu);
 			using (GpuScope.Begin(indices))
 			{
 				using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(Argsort2DScratchElements(length));
@@ -556,7 +556,7 @@ internal static class SortAlgorithms
 		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
 		using (GpuScope.BeginReadOnly(input))
 		{
-			VectorInt indices = new(gpu, length, input.Columns);
+			VectorInt indices = new(length, input.Columns, gpu: gpu);
 			using (GpuScope.Begin(indices))
 			{
 				using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(Argsort2DScratchElements(length));
@@ -610,7 +610,7 @@ internal static class SortAlgorithms
 		// Pin input before allocating indices: the allocation's own LRU pass could otherwise evict it.
 		using (GpuScope.BeginReadOnly(input))
 		{
-			VectorInt indices = new(gpu, length, input.Columns);
+			VectorInt indices = new(length, input.Columns, gpu: gpu);
 			using (GpuScope.Begin(indices))
 			{
 				using BufferEntity<int> scratch = BufferPools.For(gpu).Int.Rent(Argsort2DScratchElements(length));
@@ -785,7 +785,7 @@ internal static class SortAlgorithms
 		int tempElements = RadixPairsTempElements<long, AscendingInt64>(gpu, length);
 		using (GpuScope.BeginReadOnly(input))
 		{
-			VectorInt indices = new(gpu, length, input.Columns);
+			VectorInt indices = new(length, input.Columns, gpu: gpu);
 			using (GpuScope.Begin(indices))
 			{
 				using BufferEntity<long> keys = BufferPools.For(gpu).Long.Rent(length);
@@ -830,7 +830,7 @@ internal static class SortAlgorithms
 		int tempElements = RadixPairsTempElements<long, DescendingInt64>(gpu, length);
 		using (GpuScope.BeginReadOnly(input))
 		{
-			VectorInt indices = new(gpu, length, input.Columns);
+			VectorInt indices = new(length, input.Columns, gpu: gpu);
 			using (GpuScope.Begin(indices))
 			{
 				using BufferEntity<long> keys = BufferPools.For(gpu).Long.Rent(length);
@@ -1007,7 +1007,7 @@ internal static class SortAlgorithms
 		GPU gpu = input.Gpu;
 		using (GpuScope.BeginReadOnly(input))
 		{
-			VectorInt indices = new(gpu, input.Length, input.Columns);
+			VectorInt indices = new(input.Length, input.Columns, gpu: gpu);
 			using (GpuScope.Begin(indices))
 				Argsort2DCore(input, indices, mode, sortPairs);
 			return indices;

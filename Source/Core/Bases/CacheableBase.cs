@@ -226,7 +226,7 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 		}
 	}
 
-	public void ExitCpuScope(bool syncToGpu)
+	public void ExitCpuScope(Upload upload)
 	{
 		if (Interlocked.Decrement(ref _cpuScopeDepth) != 0)
 			return;
@@ -234,7 +234,7 @@ public abstract class CacheableBase<T> : ICacheable<T> where T : unmanaged
 		CommitCpuView();
 		ResidenceScopeHelper.TransitionOrReconcile(this, Residence.ActiveCpu, Residence.Cpu);
 
-		if (syncToGpu)
+		if (upload == Upload.Now)
 			UpdateCache();
 	}
 

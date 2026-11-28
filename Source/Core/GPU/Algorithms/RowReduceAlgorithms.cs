@@ -35,7 +35,7 @@ internal static class RowReduceAlgorithms
 
 		using (GpuScope.BeginReadOnly(coeff, matrix))
 		{
-			Vector output = new(gpu, rows, 0);
+			Vector output = new(rows, 0, gpu: gpu);
 			using (GpuScope.Begin(output))
 			{
 				gpu.reduceRowFusedCompensated(
@@ -64,7 +64,7 @@ internal static class RowReduceAlgorithms
 
 		using (GpuScope.BeginReadOnly(coeff, matrix))
 		{
-			VectorInt output = new(gpu, rows, 0);
+			VectorInt output = new(rows, 0, gpu: gpu);
 			using (GpuScope.Begin(output))
 			{
 				gpu.reduceRowFused(
